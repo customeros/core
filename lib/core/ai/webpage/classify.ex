@@ -2,24 +2,33 @@ defmodule Core.Ai.Webpage.Classify do
   @model :claude_sonnet
   @model_temperature 0.2
   @max_tokens 1024
-  @output_format :json
+  @error_unprocessable "unable to scrape webpage"
 
-  def classify_webpage(domain) do
+  def classify_webpage(nil), do: {:error, "domain cannot be nil"}
+  def classify_webpage(""), do: {:error, "domain cannot be empty string"}
+
+  def classify_webpage(domain) when is_binary(domain) do
     case Core.External.Jina.Service.fetch_page(domain) do
       {:ok, content} ->
-        {system_prompt, prompt} = build_classify_webpage_prompts(domain, content)
+        case validate_content(content) do
+          {:ok, validated_content} ->
+            {system_prompt, prompt} = build_classify_webpage_prompts(domain, validated_content)
 
-        request = %Core.Ai.AskAi.AskAIRequest{
-          model: @model,
-          prompt: prompt,
-          system_prompt: system_prompt,
-          max_output_tokens: @max_tokens,
-          model_temperature: @model_temperature
-        }
+            request = %Core.Ai.AskAi.AskAIRequest{
+              model: @model,
+              prompt: prompt,
+              system_prompt: system_prompt,
+              max_output_tokens: @max_tokens,
+              model_temperature: @model_temperature
+            }
 
-        case Core.Ai.AskAi.ask(request) do
-          {:ok, answer} -> {:ok, answer}
-          {:error, reason} -> {:error, reason}
+            case Core.Ai.AskAi.ask(request) do
+              {:ok, answer} -> {:ok, answer}
+              {:error, reason} -> {:error, reason}
+            end
+
+          {:error, reason} ->
+            {:error, reason}
         end
 
       {:error, reason} ->
@@ -27,6 +36,25 @@ defmodule Core.Ai.Webpage.Classify do
     end
 
     ## TODO add output validation & save to DB
+  end
+
+  def validate_content(content) do
+    cond do
+      content == "" ->
+        {:error, @error_unprocessable}
+
+      String.contains?(content, "403 Forbidden") ->
+        {:error, @error_unprocessable}
+
+      String.contains?(content, "Robot Challenge") ->
+        {:error, @error_unprocessable}
+
+      String.contains?(content, "no content") ->
+        {:error, @error_unprocessable}
+
+      true ->
+        {:ok, content}
+    end
   end
 
   defp build_classify_webpage_prompts(domain, content) do

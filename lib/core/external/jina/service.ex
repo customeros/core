@@ -2,7 +2,11 @@ defmodule Core.External.Jina.Service do
   @error_payment_required {:error, :payment_required}
   @error_unprocessable {:error, :unprocessable}
 
-  def fetch_page(url) do
+  def fetch_page(nil), do: {:error, "url cannot be nil"}
+  def fetch_page(""), do: {:error, "url cannot be empty string"}
+  def fetch_page(url) when not is_binary(url), do: {:error, "url is invalid"}
+
+  def fetch_page(url) when is_binary(url) do
     with {:ok, config} <- validate_config(),
          request_url = config.jina_api_path <> url,
          {:ok, status_code, _headers, client_ref} <-
@@ -15,7 +19,7 @@ defmodule Core.External.Jina.Service do
     end
   end
 
-  defp make_request(request_url, api_key) do
+  defp make_request(request_url, api_key) when request_url != "" and api_key != "" do
     headers = [
       {"Authorization", "Bearer #{api_key}"},
       {"X-Retain-Images", "none"},
