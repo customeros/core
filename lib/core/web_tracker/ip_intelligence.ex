@@ -8,14 +8,14 @@ defmodule Core.WebTracker.IPIntelligence do
   alias Core.External.Snitcher.Service, as: Snitcher
 
   @doc """
-  Validates if an IP address is a threat using IPData service.
+  Gets IP data including location, threat assessment, and mobile carrier info.
+  Returns all information from IPData service.
   """
-  @spec check_ip_threat(String.t()) :: :ok | {:error, :threat}
-  def check_ip_threat(ip) do
+  @spec get_ip_data(String.t()) :: {:ok, map()} | {:error, term()}
+  def get_ip_data(ip) do
     case IPData.verify_ip(ip) do
-      {:ok, %{is_threat: true}} -> {:error, :threat}
-      {:ok, _} -> :ok
-      {:error, _} -> :ok  # Be lenient on service errors
+      {:ok, data} -> {:ok, data}
+      {:error, reason} -> {:error, reason}
     end
   end
 
