@@ -1,4 +1,4 @@
-defmodule Realtime.Repo.Migrations.UpdateDocNameToBeUuid do
+defmodule Core.Repo.Migrations.UpdateDocNameToBeUuid do
   use Ecto.Migration
 
   def change do

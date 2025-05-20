@@ -1,4 +1,4 @@
-defmodule Realtime.Repo.Migrations.CreateDocuments do
+defmodule Core.Repo.Migrations.CreateDocuments do
   use Ecto.Migration
 
   def change do

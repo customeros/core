@@ -1,4 +1,4 @@
-defmodule Realtime.Repo.Migrations.CreateYjsDocumentWrites do
+defmodule Core.Repo.Migrations.CreateYjsDocumentWrites do
   use Ecto.Migration
 
   def change do

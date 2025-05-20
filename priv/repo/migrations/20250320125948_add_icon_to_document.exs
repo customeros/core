@@ -1,4 +1,4 @@
-defmodule Realtime.Repo.Migrations.AddIconToDocument do
+defmodule Core.Repo.Migrations.AddIconToDocument do
   use Ecto.Migration
 
   def change do
