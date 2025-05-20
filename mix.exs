@@ -66,7 +66,7 @@ defmodule Core.MixProject do
       {:postgrex, "~> 0.20"},
       {:protobuf_generate, "~> 0.1.3", runtime: false},
       {:swoosh, "~> 1.19"},
-      {:telemetry_metrics, "~> 0.6"},
+      {:telemetry_metrics, "~> 1.1"},
       {:telemetry_poller, "~> 1.0"},
       {:temp, "~> 0.4"},
       {:y_ex, "~> 0.7"}
