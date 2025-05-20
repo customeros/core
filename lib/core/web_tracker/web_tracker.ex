@@ -3,12 +3,14 @@ defmodule Core.WebTracker do
   The WebTracker context.
   This module will handle:
   - Web tracker configuration validation
-  - IP validation
+  - Request validation (user agent, referrer)
   - Event processing
   - Session management
   - Event storage
   """
   require Logger
+
+  alias Core.WebTracker.IPIntelligence
 
   @doc """
   Process a web tracker event.
@@ -30,11 +32,32 @@ defmodule Core.WebTracker do
   end
 
   @doc """
-  Validate IP address.
-  TODO: Implement the actual IP validation logic
+  Check if the request is from a bot based on user agent.
   """
-  def validate_ip(_ip) do
-    # For now, always return ok
-    :ok
+  @spec check_bot(String.t()) :: :ok | {:error, :bot}
+  def check_bot(user_agent) do
+    # Simple bot detection - can be enhanced later
+    if String.match?(String.downcase(user_agent), ~r/(bot|crawler|spider)/),
+      do: {:error, :bot},
+      else: :ok
+  end
+
+  @doc """
+  Check if the referrer is suspicious.
+  """
+  @spec check_suspicious(String.t()) :: :ok | {:error, :suspicious}
+  def check_suspicious(referrer) do
+    # Simple suspicious URL detection - can be enhanced later
+    if String.match?(String.downcase(referrer), ~r/(porn|xxx|gambling|casino)/),
+      do: {:error, :suspicious},
+      else: :ok
+  end
+
+  @doc """
+  Check if the IP is a threat.
+  """
+  @spec check_threat(String.t()) :: :ok | {:error, :threat}
+  def check_threat(ip) do
+    IPIntelligence.check_ip_threat(ip)
   end
 end
