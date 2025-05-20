@@ -81,6 +81,15 @@ if port_str = get_env.("NATS_PORT", "4222") do
   end
 end
 
+# IPData and Snitcher configuration
+config :core, :ipdata,
+  api_url: "https://api.ipdata.co",
+  api_key: get_env.("IPDATA_API_KEY", nil)
+
+config :core, :snitcher,
+  api_url: "https://api.snitcher.com",
+  api_key: get_env.("SNITCHER_API_KEY", nil)
+
 # AI configuration
 config :core, :ai,
   anthropic_api_path: "https://api.anthropic.com/v1/messages",

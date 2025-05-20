@@ -6,17 +6,17 @@ defmodule Core.External.Snitcher.Service do
 
   require Logger
 
-  @api_url "https://api.snitcher.com"
-
   @doc """
   Identifies company information from an IP address using Snitcher service.
   """
   @spec identify_ip(String.t()) :: {:ok, map()} | {:error, term()}
   def identify_ip(ip) do
-    api_key = get_api_key()
+    config = get_config()
+    api_key = config.api_key
+    api_url = config.api_url
 
     case HTTPoison.post(
-           "#{@api_url}/company/find",
+           "#{api_url}/company/find",
            "",
            [
              {"Authorization", "Bearer #{api_key}"},
@@ -49,8 +49,13 @@ defmodule Core.External.Snitcher.Service do
     end
   end
 
-  defp get_api_key do
-    System.get_env("SNITCHER_API_KEY") ||
-      raise "SNITCHER_API_KEY environment variable is not set"
+  defp get_config do
+    case Application.get_env(:core, :snitcher) do
+      nil -> raise "Snitcher configuration is not set"
+      config ->
+        api_key = config[:api_key] || raise "SNITCHER_API_KEY is not set"
+        api_url = config[:api_url] || raise "Snitcher API URL is not configured"
+        %{api_key: api_key, api_url: api_url}
+    end
   end
 end
