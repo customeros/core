@@ -2,7 +2,7 @@ import Config
 
 # Core application
 config :core,
-  ecto_repos: [Core.Realtime.Repo],
+  ecto_repos: [Core.Repo],
   generators: [timestamp_type: :utc_datetime]
 
 # Web endpoint
