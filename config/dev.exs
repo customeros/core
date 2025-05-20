@@ -24,7 +24,9 @@ config :core, :realtime,
   app_env: :dev
 
 # Development logger configuration
-config :logger, :console, format: "[$level] $message\n"
+config :logger, :console,
+  level: :debug,
+  format: "[$level] $message\n"
 
 # Phoenix development configurations
 config :phoenix, :stacktrace_depth, 20
