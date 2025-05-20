@@ -68,7 +68,8 @@ defmodule Core.MixProject do
       {:telemetry_poller, "~> 1.0"},
       {:temp, "~> 0.4"},
       {:y_ex, "~> 0.7"},
-      {:swoosh, "~> 1.19"}
+      {:swoosh, "~> 1.19"},
+      {:floki, "~> 0.37.1"}
     ]
   end
 
