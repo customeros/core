@@ -7,7 +7,7 @@ defmodule Core.Nats.Handlers.WebtrackerHandler do
 
   def handle_message(%{body: body, topic: "webtracker.visitor.identified"}) do
     try do
-      _event = WebtrackerVisitorIdentified.decode(body)
+      # _event = WebtrackerVisitorIdentified.decode(body)
       :ok
     rescue
       e ->

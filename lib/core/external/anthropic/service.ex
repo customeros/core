@@ -1,8 +1,6 @@
-defmodule Core.Ai.Anthropic.Service do
-  alias Core.Ai.Anthropic.Models.Message
-  alias Core.Ai.Anthropic.Models.AnthropicApiRequest
-  alias Core.Ai.Anthropic.Config
-  alias Core.Ai.Anthropic.Models.AskAIRequest
+defmodule Core.External.Anthropic.Service do
+  alias Core.External.Anthropic.Models
+  alias Core.External.Anthropic.Config
 
   require Logger
 
@@ -11,9 +9,9 @@ defmodule Core.Ai.Anthropic.Service do
   @content_type_header "content-type"
   @default_api_version "2023-06-01"
 
-  @spec ask(AskAIRequest.t(), Config.t()) :: {:ok, String.t()} | {:error, any()}
-  def ask(%AskAIRequest{} = message, %Config{} = config) do
-    with :ok <- AskAIRequest.validate(message),
+  @spec ask(Models.AskAIRequest.t(), Config.t()) :: {:ok, String.t()} | {:error, any()}
+  def ask(%Models.AskAIRequest{} = message, %Config{} = config) do
+    with :ok <- Models.AskAIRequest.validate(message),
          :ok <- Config.validate(config),
          {:ok, req_body} <- build_request(message),
          {:ok, response} <- execute(req_body, config) do
@@ -23,16 +21,16 @@ defmodule Core.Ai.Anthropic.Service do
     end
   end
 
-  defp build_request(%AskAIRequest{} = message) do
+  defp build_request(%Models.AskAIRequest{} = message) do
     model_name =
       case message.model do
         :claude_haiku -> "claude-3-5-haiku-20241022"
         :claude_sonnet -> "claude-3-5-sonnet-20241022"
       end
 
-    request = %AnthropicApiRequest{
+    request = %Models.AnthropicApiRequest{
       model: model_name,
-      messages: [%Message{role: "user", content: message.prompt}],
+      messages: [%Models.Message{role: "user", content: message.prompt}],
       max_tokens: message.max_output_tokens,
       temperature: message.model_temperature
     }

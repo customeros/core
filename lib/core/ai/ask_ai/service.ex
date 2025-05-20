@@ -1,4 +1,4 @@
-defmodule Core.Ai.AskAi.Service do
+defmodule Core.Ai.AskAi do
   defmodule AskAIRequest do
     @derive Jason.Encoder
     @moduledoc """
@@ -26,9 +26,11 @@ defmodule Core.Ai.AskAi.Service do
 
   @spec ask(AskAIRequest.t()) :: {:ok, String.t()} | {:error, any()}
   def ask(%AskAIRequest{} = message) do
+    dbg(Core.External.Anthropic.Config.from_application_env())
+
     case message.model do
       model when model in [:claude_haiku, :claude_sonnet] ->
-        anthropic_request = %Core.Ai.Anthropic.Models.AskAIRequest{
+        anthropic_request = %Core.External.Anthropic.Models.AskAIRequest{
           model: message.model,
           prompt: message.prompt,
           system_prompt: message.system_prompt,
@@ -36,7 +38,10 @@ defmodule Core.Ai.AskAi.Service do
           model_temperature: message.model_temperature
         }
 
-        Core.Ai.Anthropic.Service.ask(anthropic_request, Core.Ai.Anthropic.Config.from_application_env())
+        Core.External.Anthropic.Service.ask(
+          anthropic_request,
+          Core.External.Anthropic.Config.from_application_env()
+        )
 
       unsupported_model ->
         {:error, {:unsupported_model, unsupported_model}}

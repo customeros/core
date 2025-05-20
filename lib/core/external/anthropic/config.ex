@@ -1,4 +1,4 @@
-defmodule Core.Ai.Anthropic.Config do
+defmodule Core.External.Anthropic.Config do
   @type t :: %__MODULE__{
           api_path: String.t(),
           api_key: String.t(),
@@ -13,16 +13,12 @@ defmodule Core.Ai.Anthropic.Config do
   ]
 
   def from_application_env do
-    api_path =
-      Application.get_env(:ai, :anthropic_api_path, "https://api.anthropic.com/v1/messages")
-
-    api_key = Application.get_env(:ai, :anthropic_api_key)
-    timeout = Application.get_env(:ai, :default_llm_timeout, 45_000)
+    ai_config = Application.get_env(:core, :ai)
 
     %__MODULE__{
-      api_path: api_path,
-      api_key: api_key,
-      timeout: timeout
+      api_path: ai_config[:anthropic_api_path] || "https://api.anthropic.com/v1/messages",
+      api_key: ai_config[:anthropic_api_key],
+      timeout: ai_config[:timeout] || 45_000
     }
   end
 

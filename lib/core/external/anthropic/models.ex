@@ -1,4 +1,4 @@
-defmodule Core.Ai.Anthropic.Models do
+defmodule Core.External.Anthropic.Models do
   @moduledoc """
   Structs for representing Anthropic API requests and responses.
   """

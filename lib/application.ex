@@ -24,7 +24,6 @@ defmodule Core.Application do
       if env != :test do
         children ++
           [
-            Core.Realtime.RabbitMQConsumer,
             Core.Nats.Supervisor
           ]
       else
