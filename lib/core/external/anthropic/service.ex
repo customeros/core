@@ -46,32 +46,35 @@ defmodule Core.External.Anthropic.Service do
   end
 
   defp execute(req_body, config) do
+    req_body
+    |> Jason.encode()
+    |> case do
+      {:ok, json_body} ->
+        config.api_path
+        |> build_request_with_headers(json_body, config)
+        |> send_request(config.timeout)
+
+      {:error, reason} ->
+        {:error, {:json_encode_error, reason}}
+    end
+  end
+
+  defp build_request_with_headers(url, body, config) do
     headers = [
       {@content_type_header, "application/json"},
       {@api_key_header, config.api_key},
       {@anthropic_api_header, @default_api_version}
     ]
 
-    options = [
-      timeout: config.timeout,
-      recv_timeout: config.timeout
-    ]
+    Finch.build(:post, url, headers, body)
+  end
 
-    case Jason.encode(req_body) do
-      {:ok, json_body} ->
-        case :hackney.request(:post, config.api_path, headers, json_body, options) do
-          {:ok, status, _headers, client_ref} ->
-            case :hackney.body(client_ref) do
-              {:ok, body} -> process_response(status, body)
-              {:error, reason} -> {:error, {:http_error, reason}}
-            end
-
-          {:error, reason} ->
-            {:error, {:http_error, reason}}
-        end
-
-      {:error, reason} ->
-        {:error, {:json_encode_error, reason}}
+  defp send_request(request, timeout) do
+    request
+    |> Finch.request(Core.Finch, receive_timeout: timeout)
+    |> case do
+      {:ok, response} -> process_response(response.status, response.body)
+      {:error, reason} -> {:error, {:http_error, reason}}
     end
   end
 
@@ -82,16 +85,15 @@ defmodule Core.External.Anthropic.Service do
            Enum.find(content, &(Map.get(&1, "type") == "text")) do
       {:ok, String.trim(text)}
     else
-      nil ->
-        {:error, {:invalid_response, "No text content found in response"}}
-
-      _ ->
-        {:error, {:invalid_response, "Invalid response format"}}
+      nil -> {:error, {:invalid_response, "No text content found in response"}}
+      _ -> {:error, {:invalid_response, "Invalid response format"}}
     end
   end
 
   defp process_response(status, body) do
-    case Jason.decode(body, keys: :atoms) do
+    body
+    |> Jason.decode(keys: :atoms)
+    |> case do
       {:ok, %{error: %{type: type, message: message}}} ->
         {:error, {:api_error, "#{type}: #{message}"}}
 

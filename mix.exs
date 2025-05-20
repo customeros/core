@@ -46,9 +46,10 @@ defmodule Core.MixProject do
       {:dns_cluster, "~> 0.1.1"},
       {:ecto_psql_extras, "~> 0.8"},
       {:ecto_sql, "~> 3.12"},
+      {:floki, "~> 0.37.1"},
+      {:finch, "~> 0.19"},
       {:gnat, "~> 1.10"},
       {:grpc, "~> 0.10.1"},
-      {:hackney, "~> 1.18"},
       {:jason, "~> 1.4"},
       {:jetstream, "~> 0.0.9"},
       {:opentelemetry, "~> 1.5"},
@@ -64,13 +65,11 @@ defmodule Core.MixProject do
       {:plug_cowboy, "~> 2.5"},
       {:postgrex, "~> 0.20"},
       {:protobuf_generate, "~> 0.1.3", runtime: false},
+      {:swoosh, "~> 1.19"},
       {:telemetry_metrics, "~> 0.6"},
       {:telemetry_poller, "~> 1.0"},
       {:temp, "~> 0.4"},
-      {:y_ex, "~> 0.7"},
-      {:swoosh, "~> 1.19"},
-      {:floki, "~> 0.37.1"},
-      {:httpoison, "~> 2.0"}
+      {:y_ex, "~> 0.7"}
     ]
   end
 

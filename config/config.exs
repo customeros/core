@@ -49,6 +49,9 @@ config :core,
   jina: [
     jina_api_path: "https://r.jina.ai/",
     jina_api_key: System.get_env("JINA_API_KEY")
+  ],
+  ipdata: [
+    ipdata_api_key: System.get_env("IPDATA_API_KEY")
   ]
 
 # Import environment specific config
