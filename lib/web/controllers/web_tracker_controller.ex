@@ -6,7 +6,7 @@ defmodule Web.WebTrackerController do
 
   plug Web.Plugs.ValidateWebTrackerHeaders when action in [:create]
 
-  def create(conn, params) do
+  def create(conn, _params) do
     # Check if origin should be ignored
     if OriginValidator.should_ignore_origin?(conn.assigns.origin) do
       conn
