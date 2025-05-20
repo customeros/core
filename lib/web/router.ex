@@ -21,6 +21,14 @@ defmodule Web.Router do
     plug Web.Plugs.ValidateHeaders
   end
 
+  # Health check endpoint
+  scope "/", Web do
+    pipe_through :public_api
+
+    get "/health", HealthController, :index
+  end
+
+  # Browser routes
   scope "/", Web do
     pipe_through :browser
   end
@@ -35,11 +43,11 @@ defmodule Web.Router do
           schema: Web.Graphql.Schema,
           interface: :simple
 
-  # Public API routes (no auth required)
-  scope "/api/public", Web do
+  # V1 API endpoints
+  scope "/v1", Web do
     pipe_through :public_api
 
-    get "/health", HealthController, :index
+    post "/events", WebTrackerController, :create
   end
 
   # Protected API routes (auth required)
