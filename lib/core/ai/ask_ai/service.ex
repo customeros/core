@@ -26,8 +26,6 @@ defmodule Core.Ai.AskAi do
 
   @spec ask(AskAIRequest.t()) :: {:ok, String.t()} | {:error, any()}
   def ask(%AskAIRequest{} = message) do
-    dbg(Core.External.Anthropic.Config.from_application_env())
-
     case message.model do
       model when model in [:claude_haiku, :claude_sonnet] ->
         anthropic_request = %Core.External.Anthropic.Models.AskAIRequest{

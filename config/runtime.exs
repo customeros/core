@@ -108,3 +108,8 @@ if config_env() == :prod do
     ],
     secret_key_base: secret_key_base
 end
+
+# Jina configuration
+config :core, :jina,
+  jina_api_path: "https://r.jina.ai/",
+  jina_api_key: get_env.("JINA_API_KEY", nil)

@@ -39,10 +39,14 @@ config :core,
     nats_node_3: "localhost",
     nats_port: 4222
   ],
-  ai: %{
+  ai: [
     anthropic_api_path: "https://api.anthropic.com/v1/messages",
     default_llm_timeout: 45_000
-  }
+  ],
+  jina: [
+    jina_api_path: "https://r.jina.ai/",
+    jina_api_key: System.get_env("JINA_API_KEY")
+  ]
 
 # Import environment specific config
 import_config "#{config_env()}.exs"
