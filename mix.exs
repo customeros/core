@@ -43,7 +43,7 @@ defmodule Core.MixProject do
       {:credo, "~> 1.7", only: [:dev, :test], runtime: false},
       {:delta, "~> 0.2.0"},
       {:dialyxir, "~> 1.4", only: [:dev, :test], runtime: false},
-      {:dns_cluster, "~> 0.1.1"},
+      {:dns_cluster, "~> 0.2.0"},
       {:ecto_psql_extras, "~> 0.8"},
       {:ecto_sql, "~> 3.12"},
       {:floki, "~> 0.37.1"},
