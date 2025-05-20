@@ -21,10 +21,10 @@ jobs:
           node-version: "20"
 
       - name: Install Dependencies
-        run: npm install @actions/core @actions/github
+        run: npm install @actions/core @actions/github node-fetch@3
 
       - name: Run PR Notification Script
-        run: node ./deployment/runners/pr-notification.js
+        run: node ./scripts/runners/pr-notification.js
         env:
           SLACK_CHANNEL_ID: ${{ secrets.SLACK_CHANNEL_ID }}
           SLACK_API_TOKEN: ${{ secrets.SLACK_API_TOKEN }}
