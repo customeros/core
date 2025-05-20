@@ -32,13 +32,13 @@ config :opentelemetry, :processors,
 
 # External services and integrations
 config :core,
-  nats: %{
+  nats: [
     environment: "dev",
     nats_node_1: "localhost",
     nats_node_2: "localhost",
     nats_node_3: "localhost",
     nats_port: 4222
-  },
+  ],
   ai: %{
     anthropic_api_path: "https://api.anthropic.com/v1/messages",
     default_llm_timeout: 45_000

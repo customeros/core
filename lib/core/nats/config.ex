@@ -1,4 +1,6 @@
 defmodule Core.Nats.Config do
+  alias Ecto.Query.API
+
   @type t :: %__MODULE__{
           environment: String.t(),
           nats_node_1: String.t(),
