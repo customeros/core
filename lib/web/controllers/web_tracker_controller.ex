@@ -13,10 +13,11 @@ defmodule Web.WebTrackerController do
     origin = conn.assigns.origin
     user_agent = conn.assigns.user_agent
     referer = conn.assigns.referer
-    ip = conn.remote_ip |> :inet.ntoa() |> to_string()
-    visitor_id = Map.get(params, "visitor_id")
+    ip = params["ip"] || (conn.remote_ip |> Tuple.to_list() |> Enum.join("."))
+    visitor_id = Map.get(params, "visitorId")
 
-    with :ok <- validate_origin(origin),
+    with {:ok, visitor_id} <- validate_visitor_id(visitor_id),
+         :ok <- validate_origin(origin),
          {:ok, tenant} <- OriginTenantMapper.get_tenant_for_origin(origin),
          :ok <- WebTracker.check_bot(user_agent),
          :ok <- WebTracker.check_suspicious(referer) do
@@ -44,6 +45,11 @@ defmodule Web.WebTrackerController do
           |> json(%{error: "internal_server_error", details: "something went wrong"})
       end
     else
+      {:error, :missing_visitor_id} ->
+        conn
+        |> put_status(:bad_request)
+        |> json(%{error: "bad_request", details: "missing visitor_id"})
+
       {:error, :bot} ->
         conn
         |> put_status(:forbidden)
@@ -77,4 +83,8 @@ defmodule Web.WebTrackerController do
         :ok
     end
   end
+
+  @spec validate_visitor_id(String.t() | nil) :: {:ok, String.t()} | {:error, :missing_visitor_id}
+  defp validate_visitor_id(visitor_id) when is_binary(visitor_id) and visitor_id != "", do: {:ok, visitor_id}
+  defp validate_visitor_id(_), do: {:error, :missing_visitor_id}
 end
