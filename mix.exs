@@ -69,7 +69,8 @@ defmodule Core.MixProject do
       {:temp, "~> 0.4"},
       {:y_ex, "~> 0.7"},
       {:swoosh, "~> 1.19"},
-      {:floki, "~> 0.37.1"}
+      {:floki, "~> 0.37.1"},
+      {:httpoison, "~> 2.0"}
     ]
   end
 
