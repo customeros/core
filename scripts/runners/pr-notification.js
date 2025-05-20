@@ -1,5 +1,6 @@
-const core = require('@actions/core');
-const github = require('@actions/github');
+import * as core from '@actions/core';
+import * as github from '@actions/github';
+import fetch from 'node-fetch';
 
 async function run() {
   try {
@@ -232,9 +233,10 @@ async function removeReaction(messageInfo, emoji, token) {
   }
 }
 
-module.exports = run;
+// New way to expose the run function
+export default run;
 
 // Execute the function if this file is run directly
-if (require.main === module) {
+if (import.meta.url === import.meta.main) {
   run();
 }
