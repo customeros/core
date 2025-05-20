@@ -1,0 +1,29 @@
+# .github/dependabot.yml
+version: 2
+updates:
+  # Maintain dependencies for Elixir (Hex packages)
+  - package-ecosystem: "mix"
+    directory: "/"
+    schedule:
+      interval: "daily"
+      time: "04:00"
+      timezone: "Europe/London"
+    open-pull-requests-limit: 10
+    commit-message:
+      prefix: "deps"
+      prefix-development: "deps(dev)"
+      include: "scope"
+    labels:
+      - "dependencies"
+      - "elixir"
+    pull-request-branch-name:
+      separator: "-"
+
+  # Optional: Also maintain dependencies for GitHub Actions
+  - package-ecosystem: "github-actions"
+    directory: "/"
+    schedule:
+      interval: "weekly"
+    labels:
+      - "dependencies"
+      - "github-actions"
