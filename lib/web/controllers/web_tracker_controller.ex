@@ -9,25 +9,40 @@ defmodule Web.WebTrackerController do
   plug Web.Plugs.ValidateWebTrackerHeaders when action in [:create]
 
   @spec create(Plug.Conn.t(), map()) :: Plug.Conn.t()
-  def create(conn, _params) do
+  def create(conn, params) do
     origin = conn.assigns.origin
     user_agent = conn.assigns.user_agent
     referer = conn.assigns.referer
     ip = conn.remote_ip |> :inet.ntoa() |> to_string()
+    visitor_id = Map.get(params, "visitor_id")
 
     with :ok <- validate_origin(origin),
          {:ok, tenant} <- OriginTenantMapper.get_tenant_for_origin(origin),
          :ok <- WebTracker.check_bot(user_agent),
-         :ok <- WebTracker.check_suspicious(referer),
-         :ok <- WebTracker.check_threat(ip) do
+         :ok <- WebTracker.check_suspicious(referer) do
 
-      # Store tenant in conn.assigns for further processing
-      conn = assign(conn, :tenant, tenant)
+      # Process the new event
+      case WebTracker.process_new_event(%{
+        tenant: tenant,
+        visitor_id: visitor_id,
+        origin: origin,
+        ip: ip
+      }) do
+        {:ok, _result} ->
+          conn
+          |> put_status(:accepted)
+          |> json(%{accepted: true})
 
-      # For now, just return accepted with tenant info
-      conn
-      |> put_status(:accepted)
-      |> json(%{accepted: true, tenant: tenant})
+        {:error, :forbidden, _message} ->
+          conn
+          |> put_status(:forbidden)
+          |> json(%{error: "forbidden", details: "request blocked"})
+
+        {:error, _status, _message} ->
+          conn
+          |> put_status(:internal_server_error)
+          |> json(%{error: "internal_server_error", details: "something went wrong"})
+      end
     else
       {:error, :bot} ->
         conn
@@ -38,11 +53,6 @@ defmodule Web.WebTrackerController do
         conn
         |> put_status(:forbidden)
         |> json(%{error: "forbidden", details: "suspicious referrer"})
-
-      {:error, :threat} ->
-        conn
-        |> put_status(:forbidden)
-        |> json(%{error: "forbidden", details: "ip is a threat"})
 
       {:error, :origin_ignored} ->
         conn
