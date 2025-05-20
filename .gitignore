@@ -48,3 +48,7 @@ priv/scripts/*
 .mise*
 
 .*.bun-build
+
+.idea
+
+/temp/*
