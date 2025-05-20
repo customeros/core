@@ -2,21 +2,21 @@ defmodule Web.WebTrackerController do
   use Web, :controller
   require Logger
 
+  alias Core.WebTracker.OriginValidator
+
   plug Web.Plugs.ValidateWebTrackerHeaders when action in [:create]
 
-  def create(conn, params) do
-    # Log validated headers
-    # Logger.info("""
-    # WebTracker Event:
-    # Origin: #{conn.assigns.origin}
-    # Referer: #{conn.assigns.referer}
-    # User-Agent: #{conn.assigns.user_agent}
-    # Body: #{inspect(params, pretty: true)}
-    # """)
-
-    # For now, just return accepted
-    conn
-    |> put_status(:accepted)
-    |> json(%{accepted: true})
+  def create(conn, _params) do
+    # Check if origin should be ignored
+    if OriginValidator.should_ignore_origin?(conn.assigns.origin) do
+      conn
+      |> put_status(:forbidden)
+      |> json(%{error: "forbidden", details: "origin explicitly ignored"})
+    else
+      # For now, just return accepted
+      conn
+      |> put_status(:accepted)
+      |> json(%{accepted: true})
+    end
   end
 end
