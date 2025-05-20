@@ -6,8 +6,6 @@ defmodule Core.External.IPData.Service do
 
   require Logger
 
-  @api_url "https://api.ipdata.co"
-
   @doc """
   Verifies an IP address using IPData service.
   Returns information about the IP including:
@@ -17,9 +15,11 @@ defmodule Core.External.IPData.Service do
   """
   @spec verify_ip(String.t()) :: {:ok, map()} | {:error, term()}
   def verify_ip(ip) do
-    api_key = get_api_key()
+    config = get_config()
+    api_key = config.api_key
+    api_url = config.api_url
 
-    case HTTPoison.get("#{@api_url}/#{ip}?api-key=#{api_key}") do
+    case HTTPoison.get("#{api_url}/#{ip}?api-key=#{api_key}") do
       {:ok, %{status_code: 200, body: body}} ->
         case Jason.decode(body) do
           {:ok, data} ->
@@ -50,8 +50,13 @@ defmodule Core.External.IPData.Service do
     end
   end
 
-  defp get_api_key do
-    System.get_env("IPDATA_API_KEY") ||
-      raise "IPDATA_API_KEY environment variable is not set"
+  defp get_config do
+    case Application.get_env(:core, :ipdata) do
+      nil -> raise "IPData configuration is not set"
+      config ->
+        api_key = config[:api_key] || raise "IPDATA_API_KEY is not set"
+        api_url = config[:api_url] || raise "IPData API URL is not configured"
+        %{api_key: api_key, api_url: api_url}
+    end
   end
 end
