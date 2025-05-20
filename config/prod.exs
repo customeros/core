@@ -13,4 +13,7 @@ config :core, Web.Endpoint,
 
 config :logger, level: :info
 
+# Disable Swoosh Local Memory Storage
+config :swoosh, local: false
+
 config :core, :app_env, :prod

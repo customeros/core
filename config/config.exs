@@ -30,6 +30,9 @@ config :opentelemetry, :processors,
     exporter: {:otel_exporter_stdout, []}
   }
 
+# Mailer
+config :core, Core.Mailer, adapter: Swoosh.Adapters.Local
+
 # External services and integrations
 config :core,
   nats: [

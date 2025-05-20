@@ -14,7 +14,7 @@ defmodule Core.MixProject do
         core: [
           applications: [opentelemetry: :temporary],
           include_executables_for: [:unix],
-          strip_beams: Mix.env() == :prod,
+          strip_beams: Mix.env() == :prod
         ]
       ],
       dialyzer: [plt_add_deps: :apps_direct]
@@ -67,7 +67,8 @@ defmodule Core.MixProject do
       {:telemetry_metrics, "~> 0.6"},
       {:telemetry_poller, "~> 1.0"},
       {:temp, "~> 0.4"},
-      {:y_ex, "~> 0.7"}
+      {:y_ex, "~> 0.7"},
+      {:swoosh, "~> 1.19"}
     ]
   end
 
