@@ -11,25 +11,53 @@ defmodule Core.WebTracker do
   require Logger
 
   alias Core.WebTracker.IPIntelligence
+  alias Core.WebTracker.WebSession
 
   @doc """
-  Process a web tracker event.
-  TODO: Implement the actual processing logic
+  Process a new web tracker event.
+  Handles session management and IP validation.
   """
-  def process_event(event_params) do
-    # For now, just log that we received the event
-    Logger.info("WebTracker processing event: #{inspect(event_params, pretty: true)}")
-    :ok
+  @spec process_new_event(map()) :: {:ok, map()} | {:error, atom(), String.t()}
+  def process_new_event(%{tenant: tenant, visitor_id: visitor_id, origin: origin, ip: ip}) do
+    # Check for existing active session
+    case WebSession.get_active_session(tenant, visitor_id, origin) do
+      nil ->
+        # No active session, verify IP and create new session
+        case IPIntelligence.get_ip_data(ip) do
+          {:ok, ip_data} ->
+            if ip_data.is_threat do
+              {:error, :forbidden, "ip is a threat"}
+            else
+              # Create new session with IP data
+              session_attrs = %{
+                tenant: tenant,
+                visitor_id: visitor_id,
+                origin: origin,
+                ip: ip,
+                city: ip_data.city,
+                region: ip_data.region,
+                country_code: ip_data.country_code,
+                is_mobile: ip_data.is_mobile
+              }
+
+              case WebSession.create(session_attrs) do
+                {:ok, session} -> {:ok, %{status: :created, session_id: session.id}}
+                {:error, _changeset} -> {:error, :internal_server_error, "failed to create session"}
+              end
+            end
+
+          {:error, reason} ->
+            Logger.error("Failed to get IP data: #{inspect(reason)}")
+            {:error, :internal_server_error, "failed to process request"}
+        end
+
+      session ->
+        # TODO: Handle existing session case
+        {:ok, %{status: :accepted, session_id: session.id}}
+    end
   end
 
-  @doc """
-  Validate web tracker configuration.
-  TODO: Implement the actual validation logic
-  """
-  def validate_tracker(_origin) do
-    # For now, always return ok
-    {:ok, "dummy_tracker_id"}
-  end
+  def process_new_event(_), do: {:error, :bad_request, "missing required parameters"}
 
   @doc """
   Check if the request is from a bot based on user agent.
@@ -51,13 +79,5 @@ defmodule Core.WebTracker do
     if String.match?(String.downcase(referrer), ~r/(porn|xxx|gambling|casino)/),
       do: {:error, :suspicious},
       else: :ok
-  end
-
-  @doc """
-  Check if the IP is a threat.
-  """
-  @spec check_threat(String.t()) :: :ok | {:error, :threat}
-  def check_threat(ip) do
-    IPIntelligence.check_ip_threat(ip)
   end
 end
