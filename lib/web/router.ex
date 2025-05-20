@@ -13,6 +13,10 @@ defmodule Web.Router do
     plug Web.Plugs.ValidateHeaders
   end
 
+  pipeline :public_api do
+    plug :accepts, ["json"]
+  end
+
   pipeline :graphql do
     plug Web.Plugs.ValidateHeaders
   end
@@ -31,6 +35,14 @@ defmodule Web.Router do
           schema: Web.Graphql.Schema,
           interface: :simple
 
+  # Public API routes (no auth required)
+  scope "/api/public", Web do
+    pipe_through :public_api
+
+    get "/health", HealthController, :index
+  end
+
+  # Protected API routes (auth required)
   scope "/api", Web do
     pipe_through :api
 
