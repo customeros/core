@@ -9,6 +9,8 @@ config :core, Realtime.Mailer, adapter: Swoosh.Adapters.Test
 
 config :swoosh, :api_client, false
 
+config :core, Example.Mailer, adapter: Swoosh.Adapters.Test
+
 config :logger, level: :warning
 
 config :phoenix, :plug_init_mode, :runtime
