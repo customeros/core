@@ -41,7 +41,7 @@ defmodule Core.MixProject do
       {:cors_plug, "~> 3.0"},
       {:cowlib, "~> 2.15", override: true},
       {:credo, "~> 1.7", only: [:dev, :test], runtime: false},
-      {:delta, "~> 0.2.0"},
+      {:delta, "~> 0.4.1"},
       {:dialyxir, "~> 1.4", only: [:dev, :test], runtime: false},
       {:dns_cluster, "~> 0.2.0"},
       {:ecto_psql_extras, "~> 0.8"},
