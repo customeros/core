@@ -29,4 +29,4 @@ jobs:
 
       - name: Build Phoenix app
         run: |
-          ./deployment/runners/build-core.sh ${{ env.APP_PATH }}
+          ./scripts/runners/build-core.sh ${{ env.APP_PATH }}
