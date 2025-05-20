@@ -60,7 +60,7 @@ defmodule Core.WebTracker.WebSession do
   def create(attrs) do
     now = DateTime.utc_now() |> DateTime.truncate(:second)
     attrs = attrs
-      |> Map.put(:id, IdGenerator.generate_id("sess"))
+      |> Map.put(:id, IdGenerator.generate_id_21("sess"))
       |> Map.put(:created_at, now)
       |> Map.put(:updated_at, now)
       |> Map.put(:started_at, now)
@@ -77,9 +77,9 @@ defmodule Core.WebTracker.WebSession do
   @spec get_active_session(String.t(), String.t(), String.t()) :: t() | nil
   def get_active_session(tenant, visitor_id, origin) do
     from(s in __MODULE__,
-      where: s.tenant == ^tenant and
-             s.visitor_id == ^visitor_id and
-             s.origin == ^origin and
+      where: not is_nil(s.tenant) and s.tenant == ^tenant and
+             not is_nil(s.visitor_id) and s.visitor_id == ^visitor_id and
+             not is_nil(s.origin) and s.origin == ^origin and
              s.active == true
     )
     |> Repo.one()
