@@ -1,16 +1,17 @@
-defmodule Core.WebTracker.WebSession do
+defmodule Core.WebTracker.Schemas.WebSession do
   @moduledoc """
-  Schema and methods for managing web sessions.
+  Schema definition for web sessions.
   """
 
   use Ecto.Schema
   import Ecto.Changeset
-  import Ecto.Query
-  alias Core.Repo
-  alias Core.Utils.IdGenerator
 
   @primary_key {:id, :string, autogenerate: false}
   @foreign_key_type :string
+
+  # Constants
+  @id_prefix "sess"
+  @id_regex ~r/^#{@id_prefix}_[a-z0-9]{21}$/
 
   schema "web_sessions" do
     field :tenant, :string
@@ -54,36 +55,9 @@ defmodule Core.WebTracker.WebSession do
   }
 
   @doc """
-  Creates a new web session.
+  Returns the ID prefix used for web sessions.
   """
-  @spec create(map()) :: {:ok, t()} | {:error, Ecto.Changeset.t()}
-  def create(attrs) do
-    now = DateTime.utc_now() |> DateTime.truncate(:second)
-    attrs = attrs
-      |> Map.put(:id, IdGenerator.generate_id_21("sess"))
-      |> Map.put(:created_at, now)
-      |> Map.put(:updated_at, now)
-      |> Map.put(:started_at, now)
-
-    %__MODULE__{}
-    |> changeset(attrs)
-    |> Repo.insert()
-  end
-
-  @doc """
-  Gets an active session for the given tenant, visitor_id and origin combination.
-  Returns nil if no active session is found.
-  """
-  @spec get_active_session(String.t(), String.t(), String.t()) :: t() | nil
-  def get_active_session(tenant, visitor_id, origin) do
-    from(s in __MODULE__,
-      where: not is_nil(s.tenant) and s.tenant == ^tenant and
-             not is_nil(s.visitor_id) and s.visitor_id == ^visitor_id and
-             not is_nil(s.origin) and s.origin == ^origin and
-             s.active == true
-    )
-    |> Repo.one()
-  end
+  def id_prefix, do: @id_prefix
 
   @doc """
   Validates the changeset for a web session.
@@ -96,6 +70,6 @@ defmodule Core.WebTracker.WebSession do
       :started_at, :ended_at, :created_at, :updated_at
     ])
     |> validate_required([:id, :tenant, :visitor_id, :origin, :created_at, :updated_at])
-    |> validate_format(:id, ~r/^sess_[a-z0-9]{21}$/)
+    |> validate_format(:id, @id_regex)
   end
 end
