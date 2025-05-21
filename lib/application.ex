@@ -8,14 +8,20 @@ defmodule Core.Application do
     OpentelemetryPhoenix.setup(adapter: :bandit)
 
     children = [
-      Web.Telemetry,
+      {Phoenix.PubSub, name: Realtime.PubSub},
+
+      Core.Icp.Service,
+      Core.Realtime.ColorManager,
+      Core.Realtime.StoreManager,
       Core.Repo,
+      Core.Scraper.Service,
+      Web.Endpoint,
+      Web.Presence,
+      Web.Telemetry,
+
+      ## 3rd party
       {DNSCluster,
        query: Application.get_env(:core, :dns_cluster_query) || :ignore},
-      {Phoenix.PubSub, name: Realtime.PubSub},
-      Web.Presence,
-      Web.Endpoint,
-      Core.Realtime.ColorManager,
       {Finch, name: Core.Finch}
     ]
 
