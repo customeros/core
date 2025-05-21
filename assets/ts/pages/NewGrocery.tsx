@@ -1,4 +1,7 @@
+<<<<<<<< HEAD:assets/ts/pages/NewGrocery.tsx
 import React from 'react';
+========
+>>>>>>>> 0910c01 (implement icons):assets/src/pages/NewGrocery.tsx
 import { Link, useForm } from '@inertiajs/react';
 
 export const NewGrocery = () => {
