@@ -1,4 +1,4 @@
-defmodule Web.OrganizationViewChannel do
+defmodule Web.PresenceChannel do
   @moduledoc """
   This is the Channel that tracks Organization view.
   """
@@ -10,7 +10,7 @@ defmodule Web.OrganizationViewChannel do
 
   @impl true
   def join(
-        "organization_presence:" <> _organization_id,
+        "presence",
         %{"user_id" => user_id, "username" => username},
         socket
       ) do
@@ -28,7 +28,7 @@ defmodule Web.OrganizationViewChannel do
 
   @impl true
   def join(
-        "organization_presence:" <> _organization_id,
+        "presence" <> _organization_id,
         %{"user_id" => user_id},
         socket
       ) do
