@@ -23,7 +23,7 @@ defmodule Core.Utils.IdGenerator do
     "#{prefix}_#{Nanoid.generate(16, @alphabet)}"
   end
 
-  @spec generate_id(Integer.t()) :: String.t()
+  @spec generate_id(integer()) :: String.t()
   def generate_id(size \\ 21) when is_integer(size) and size != 0 do
     Nanoid.generate(size, @alphabet)
   end
