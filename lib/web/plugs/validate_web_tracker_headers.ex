@@ -37,7 +37,7 @@ defmodule Web.Plugs.ValidateWebTrackerHeaders do
     case get_req_header(conn, header_name) do
       [value] when value != "" -> {:ok, value}
       _ ->
-        Logger.warn("Missing required header: #{header_name}")
+        Logger.warning("Missing required header: #{header_name}", [])
         {:error, header_name}
     end
   end
