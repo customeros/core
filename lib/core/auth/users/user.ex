@@ -2,6 +2,7 @@ defmodule Core.Auth.Users.User do
   use Ecto.Schema
   import Ecto.Changeset
 
+  @primary_key {:id, :string, autogenerate: false}
   schema "users" do
     field(:email, :string)
     field(:confirmed_at, :naive_datetime)
@@ -28,7 +29,7 @@ defmodule Core.Auth.Users.User do
   def registration_changeset(user, attrs, opts \\ []) do
     user
     |> cast(attrs, [:email, :tenant_id])
-    |> Map.put(:id, Core.Utils.IdGenerator.generate_id_21("user"))
+    |> maybe_put_id()
     |> validate_email(opts)
     |> validate_tenant_id()
   end
@@ -80,4 +81,10 @@ defmodule Core.Auth.Users.User do
     now = NaiveDateTime.utc_now() |> NaiveDateTime.truncate(:second)
     change(user, confirmed_at: now)
   end
+
+  defp maybe_put_id(%Ecto.Changeset{data: %{id: nil}} = changeset) do
+    put_change(changeset, :id, Core.Utils.IdGenerator.generate_id_21("user"))
+  end
+
+  defp maybe_put_id(changeset), do: changeset
 end

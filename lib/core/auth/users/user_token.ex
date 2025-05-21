@@ -13,6 +13,7 @@ defmodule Core.Auth.Users.UserToken do
   @change_email_validity_in_days 7
   @session_validity_in_days 60
 
+  @primary_key {:id, :string, autogenerate: false}
   schema "users_tokens" do
     field(:token, :binary)
     field(:context, :string)
@@ -43,7 +44,14 @@ defmodule Core.Auth.Users.UserToken do
   """
   def build_session_token(user) do
     token = :crypto.strong_rand_bytes(@rand_size)
-    {token, %UserToken{token: token, context: "session", user_id: user.id}}
+
+    {token,
+     %UserToken{
+       id: Core.Utils.IdGenerator.generate_id_21("user_token"),
+       token: token,
+       context: "session",
+       user_id: user.id
+     }}
   end
 
   @doc """
@@ -113,7 +121,9 @@ defmodule Core.Auth.Users.UserToken do
         query =
           from token in by_token_and_context_query(hashed_token, context),
             join: user in assoc(token, :user),
-            where: token.inserted_at > ago(^days, "day") and token.sent_to == user.email,
+            where:
+              token.inserted_at > ago(^days, "day") and
+                token.sent_to == user.email,
             select: user
 
         {:ok, query}
@@ -147,7 +157,8 @@ defmodule Core.Auth.Users.UserToken do
 
         query =
           from token in by_token_and_context_query(hashed_token, context),
-            where: token.inserted_at > ago(@change_email_validity_in_days, "day")
+            where:
+              token.inserted_at > ago(@change_email_validity_in_days, "day")
 
         {:ok, query}
 
