@@ -17,7 +17,6 @@ defmodule Web.Plugs.ValidateWebTrackerHeaders do
     with {:ok, origin} <- validate_header(conn, "origin"),
          {:ok, referer} <- validate_header(conn, "referer"),
          {:ok, user_agent} <- validate_header(conn, "user-agent") do
-
       # Store validated headers in assigns for later use
       conn
       |> assign(:origin, origin)
@@ -26,6 +25,7 @@ defmodule Web.Plugs.ValidateWebTrackerHeaders do
     else
       {:error, missing_header} ->
         Logger.debug("ValidateWebTrackerHeaders plug halting due to missing #{missing_header}")
+
         conn
         |> put_status(:forbidden)
         |> Phoenix.Controller.json(%{error: "forbidden", details: "missing #{missing_header}"})
@@ -35,9 +35,11 @@ defmodule Web.Plugs.ValidateWebTrackerHeaders do
 
   defp validate_header(conn, header_name) do
     case get_req_header(conn, header_name) do
-      [value] when value != "" -> {:ok, value}
+      [value] when value != "" ->
+        {:ok, value}
+
       _ ->
-        Logger.warning("Missing required header: #{header_name}", [])
+        Logger.warning("Missing required header: #{header_name}")
         {:error, header_name}
     end
   end
