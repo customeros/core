@@ -11,24 +11,22 @@ defmodule Web.WebTrackerController do
 
   @spec create(Plug.Conn.t(), map()) :: Plug.Conn.t()
   def create(conn, params) do
-    origin = conn.assigns.origin
-    user_agent = conn.assigns.user_agent
-    referer = conn.assigns.referer
-    ip = params["ip"] || (conn.remote_ip |> Tuple.to_list() |> Enum.join("."))
+    # Header values used only for validation
+    header_origin = conn.assigns.origin
+    header_user_agent = conn.assigns.user_agent
+    header_referer = conn.assigns.referer
+
     visitor_id = Map.get(params, "visitorId")
 
     with {:ok, visitor_id} <- validate_visitor_id(visitor_id),
-         :ok <- validate_origin(origin),
-         {:ok, tenant} <- OriginTenantMapper.get_tenant_for_origin(origin),
-         :ok <- WebTracker.check_bot(user_agent),
-         :ok <- WebTracker.check_suspicious(referer),
+         :ok <- validate_origin(header_origin),
+         {:ok, tenant} <- OriginTenantMapper.get_tenant_for_origin(header_origin),
+         :ok <- WebTracker.check_bot(header_user_agent),
+         :ok <- WebTracker.check_suspicious(header_referer),
+         # Create event params with body values
          {:ok, event_params} <- WebTrackerParams.new(Map.merge(params, %{
            "tenant" => tenant,
-           "visitor_id" => visitor_id,
-           "origin" => origin,
-           "ip" => ip,
-           "user_agent" => user_agent,
-           "referrer" => referer
+           "visitor_id" => visitor_id
          })) do
 
       case WebTracker.process_new_event(event_params) do
