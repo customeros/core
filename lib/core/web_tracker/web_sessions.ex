@@ -9,6 +9,11 @@ defmodule Core.WebTracker.WebSessions do
   alias Core.Utils.IdGenerator
   alias Core.WebTracker.Schemas.WebSession
 
+  # Session timeout constants (in minutes)
+  @page_exit_timeout_minutes 5
+  @default_timeout_minutes 30
+  @default_limit 100
+
   @doc """
   Creates a new web session.
   """
@@ -56,5 +61,37 @@ defmodule Core.WebTracker.WebSessions do
       updated_at: now
     })
     |> Repo.update()
+  end
+
+  @doc """
+  Returns a list of sessions that should be closed based on their last event type and timestamp.
+
+  Conditions for closure:
+  - Session must be active
+  - For page_exit events: last event older than #{@page_exit_timeout_minutes} minutes
+  - For other events: last event older than #{@default_timeout_minutes} minutes
+
+  Results are ordered by last_event_at (oldest first) and limited by the input parameter.
+  If limit is 0 or negative, defaults to #{@default_limit}.
+  """
+  @spec get_sessions_to_close(integer) :: [WebSession.t()] | {:error, String.t()}
+  def get_sessions_to_close(limit) when not is_integer(limit),
+    do: {:error, "limit must be an integer"}
+  def get_sessions_to_close(limit) when limit <= 0,
+    do: get_sessions_to_close(@default_limit)
+  def get_sessions_to_close(limit) do
+    now = DateTime.utc_now()
+    page_exit_cutoff = DateTime.add(now, -@page_exit_timeout_minutes * 60, :second)
+    default_cutoff = DateTime.add(now, -@default_timeout_minutes * 60, :second)
+    page_exit_event_str = :page_exit |> Atom.to_string()
+
+    from(s in WebSession,
+      where: s.active == true and
+             ((s.last_event_type == ^page_exit_event_str and s.last_event_at < ^page_exit_cutoff) or
+              (s.last_event_type != ^page_exit_event_str and s.last_event_at < ^default_cutoff)),
+      order_by: [asc: s.last_event_at],
+      limit: ^limit
+    )
+    |> Repo.all()
   end
 end
