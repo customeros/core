@@ -5,17 +5,11 @@ import { createInertiaApp } from '@inertiajs/react';
 import { createRoot } from 'react-dom/client';
 import axios from 'axios';
 
-import { DemoPageOne } from './pages/DemoPageOne';
-import { ListGroceries } from './pages/ListGroceries';
-import { NewGrocery } from './pages/NewGrocery';
 import { Leads } from './pages/Leads';
 
 axios.defaults.xsrfHeaderName = 'x-csrf-token';
 
 const pages = {
-  DemoPageOne,
-  ListGroceries,
-  NewGrocery,
   Leads,
 };
 createInertiaApp({
