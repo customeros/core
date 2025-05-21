@@ -20,6 +20,7 @@ defmodule Core.WebTracker.WebSessions do
       |> Map.put(:created_at, now)
       |> Map.put(:updated_at, now)
       |> Map.put(:started_at, now)
+      |> Map.put(:last_event_at, now)
 
     %WebSession{}
     |> WebSession.changeset(attrs)
@@ -39,5 +40,17 @@ defmodule Core.WebTracker.WebSessions do
              s.active == true
     )
     |> Repo.one()
+  end
+
+  @doc """
+  Updates the last_event_at timestamp for a session.
+  """
+  @spec update_last_event_at(WebSession.t()) :: {:ok, WebSession.t()} | {:error, Ecto.Changeset.t()}
+  def update_last_event_at(%WebSession{} = session) do
+    now = DateTime.utc_now() |> DateTime.truncate(:second)
+
+    session
+    |> WebSession.changeset(%{last_event_at: now, updated_at: now})
+    |> Repo.update()
   end
 end

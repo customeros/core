@@ -30,6 +30,7 @@ defmodule Core.WebTracker.Schemas.WebSession do
     # Custom timestamps
     field :started_at, :utc_datetime
     field :ended_at, :utc_datetime
+    field :last_event_at, :utc_datetime
     field :created_at, :utc_datetime
     field :updated_at, :utc_datetime
   end
@@ -50,6 +51,7 @@ defmodule Core.WebTracker.Schemas.WebSession do
     # Timestamps
     started_at: DateTime.t() | nil,
     ended_at: DateTime.t() | nil,
+    last_event_at: DateTime.t() | nil,
     created_at: DateTime.t(),
     updated_at: DateTime.t()
   }
@@ -67,7 +69,7 @@ defmodule Core.WebTracker.Schemas.WebSession do
     |> cast(attrs, [
       :id, :tenant, :visitor_id, :origin, :active, :metadata,
       :ip, :city, :region, :country_code, :is_mobile,
-      :started_at, :ended_at, :created_at, :updated_at
+      :started_at, :ended_at, :last_event_at, :created_at, :updated_at
     ])
     |> validate_required([:id, :tenant, :visitor_id, :origin, :created_at, :updated_at])
     |> validate_format(:id, @id_regex)
