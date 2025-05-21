@@ -1,0 +1,124 @@
+defmodule Core.ApiCallLogger.Logger do
+  @moduledoc """
+  Handles logging of external API calls made with Finch.
+  """
+
+  require Logger
+  alias Core.Repo
+  alias Core.ApiCallLogger.Schema
+  alias Core.Utils.IdGenerator
+
+  @type vendor :: String.t()
+
+  # List of parameter names that should be redacted
+  @sensitive_params ["api-key", "api_key", "apikey", "key", "token", "access_token", "secret"]
+
+  @doc """
+  Makes a Finch request and logs its details.
+  """
+  @spec request(Finch.Request.t(), vendor()) :: {:ok, Finch.Response.t()} | {:error, term()}
+  def request(request, vendor)
+  def request(%Finch.Request{} = request, vendor) when is_binary(vendor) and byte_size(vendor) > 0 do
+    start_time = System.monotonic_time()
+
+    try do
+      case Finch.request(request, Core.Finch) do
+        {:ok, response} = result ->
+          log_success(vendor, request, response, start_time)
+          result
+
+        {:error, reason} = error ->
+          log_error(vendor, request, reason, start_time)
+          error
+      end
+    rescue
+      e ->
+        Logger.error("Request failed with exception: #{inspect(e)}")
+        log_error(vendor, request, e, start_time)
+        {:error, :request_failed}
+    end
+  end
+
+  def request(%Finch.Request{}, _vendor), do: {:error, :invalid_vendor}
+  def request(_request, _vendor), do: {:error, :invalid_request}
+
+  # Private functions
+
+  defp construct_url(%Finch.Request{scheme: scheme, host: host, port: port, path: path, query: query}) do
+    base_url = "#{scheme}://#{host}#{port_to_string(port)}#{path}"
+    if query, do: "#{base_url}?#{redact_sensitive_params(query)}", else: base_url
+  end
+
+  defp port_to_string(443), do: ""
+  defp port_to_string(80), do: ""
+  defp port_to_string(port) when is_integer(port), do: ":#{port}"
+  defp port_to_string(_), do: ""
+
+  defp redact_sensitive_params(nil), do: nil
+  defp redact_sensitive_params(query) do
+    query
+    |> String.split("&")
+    |> Enum.map(&redact_param/1)
+    |> Enum.join("&")
+  end
+
+  defp redact_param(param) do
+    [key | _] = String.split(param, "=", parts: 2)
+    if Enum.any?(@sensitive_params, &String.contains?(String.downcase(key), &1)) do
+      "#{key}=[REDACTED]"
+    else
+      param
+    end
+  end
+
+  defp log_success(vendor, request, response, start_time) do
+    duration = System.monotonic_time() - start_time
+    duration_ms = System.convert_time_unit(duration, :native, :millisecond)
+
+    attrs = %{
+      id: IdGenerator.generate_id_21(Schema.id_prefix()),
+      vendor: vendor,
+      method: request.method,
+      url: construct_url(request),
+      request_body: request.body,
+      duration: duration_ms,
+      status_code: response.status,
+      response_body: response.body
+    }
+
+    Task.start(fn ->
+      %Schema{}
+      |> Schema.changeset(attrs)
+      |> Repo.insert()
+      |> case do
+        {:ok, _log} -> :ok
+        {:error, error} -> Logger.error("Failed to log API call: #{inspect(error)}")
+      end
+    end)
+  end
+
+  defp log_error(vendor, request, reason, start_time) do
+    duration = System.monotonic_time() - start_time
+    duration_ms = System.convert_time_unit(duration, :native, :millisecond)
+
+    attrs = %{
+      id: IdGenerator.generate_id_21(Schema.id_prefix()),
+      vendor: vendor,
+      method: request.method,
+      url: construct_url(request),
+      request_body: request.body,
+      duration: duration_ms,
+      error_message: "#{inspect(reason)}"
+    }
+
+    Task.start(fn ->
+      %Schema{}
+      |> Schema.changeset(attrs)
+      |> Repo.insert()
+      |> case do
+        {:ok, _log} -> :ok
+        {:error, error} -> Logger.error("Failed to log API call: #{inspect(error)}")
+      end
+    end)
+  end
+end
