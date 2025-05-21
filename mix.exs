@@ -50,6 +50,7 @@ defmodule Core.MixProject do
       {:finch, "~> 0.19"},
       {:gnat, "~> 1.10"},
       {:grpc, "~> 0.10.1"},
+      {:gettext, "~> 0.20"},
       {:jason, "~> 1.4"},
       {:jetstream, "~> 0.0.9"},
       {:nanoid, "~> 2.1.0"},

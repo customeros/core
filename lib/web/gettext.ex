@@ -20,8 +20,5 @@ defmodule Web.Gettext do
   
     See the [Gettext Docs](https://hexdocs.pm/gettext) for detailed usage.
     """
-    # use Gettext, otp_app: :core
-    def gettext(string) do
-        string
-    end
-  end
+    use Gettext.Backend, otp_app: :core
+end
