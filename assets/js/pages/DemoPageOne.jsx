@@ -5,6 +5,9 @@ export default function DemoPageOne({ place, facts }) {
   const loadFacts = () => {
     router.reload({ only: ["facts"] });
   };
+  const navigateToGroceries = () => {
+    router.visit("/groceries");
+  };
 
   return (
     <>
@@ -32,10 +35,10 @@ export default function DemoPageOne({ place, facts }) {
           <div className="mt-4 flex md:ml-4 md:mt-0">
             <button
               type="button"
-              onClick={loadFacts}
-              className="ml-3 inline-flex items-center rounded-md bg-indigo-600 px-3 py-2 text-sm font-semibold text-white shadow-sm hover:bg-indigo-700 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-indigo-600"
+              onClick={navigateToGroceries}
+              className="ml-3 inline-flex items-center rounded-md bg-indigo-600 px-3 py-2 text-sm font-semibold text-white shadow-sm hover:bg-indigo-70 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-indigo-600"
             >
-              Load Facts
+              navigate to groceries
             </button>
           </div>
         </div>

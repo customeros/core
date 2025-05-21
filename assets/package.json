@@ -1,16 +1,19 @@
 {
-"name": "assets",
-"version": "1.0.0",
-"description": "",
-"main": "js/app.jsx",
-"scripts": {
-  "test": "echo \"Error: no test specified\" && exit 1"
-},
-"private": "true",
-"dependencies": {
-  "@inertiajs/react": "^1.2.0",
-  "axios": "^1.6.7",
-  "react": "^18.3.1",
-  "react-dom": "^18.3.1"
-}
+  "name": "assets",
+  "version": "1.0.0",
+  "description": "",
+  "main": "js/app.jsx",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "private": "true",
+  "dependencies": {
+    "@inertiajs/react": "^1.2.0",
+    "axios": "^1.6.7",
+    "react": "^18.3.1",
+    "react-dom": "^18.3.1"
+  },
+  "devDependencies": {
+    "tailwindcss": "^4.0.0"
+  }
 }
