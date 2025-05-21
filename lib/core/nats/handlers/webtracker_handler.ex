@@ -3,9 +3,7 @@ defmodule Core.Nats.Handlers.WebtrackerHandler do
     This module handles decoding the protobuf webtracker stream messages.
   """
 
-  alias Core.Realtime.Pb.{WebtrackerVisitorIdentified}
-
-  def handle_message(%{body: body, topic: "webtracker.visitor.identified"}) do
+  def handle_message(%{body: _body, topic: "webtracker.visitor.identified"}) do
     try do
       # _event = WebtrackerVisitorIdentified.decode(body)
       :ok
