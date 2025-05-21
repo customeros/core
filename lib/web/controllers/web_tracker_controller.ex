@@ -84,7 +84,7 @@ defmodule Web.WebTrackerController do
   end
 
   @spec validate_origin(String.t()) :: :ok | {:error, atom()}
-  defp validate_origin(origin) do
+  defp validate_origin(origin) when is_binary(origin) and origin != "" do
     cond do
       OriginValidator.should_ignore_origin?(origin) ->
         {:error, :origin_ignored}
