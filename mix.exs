@@ -52,6 +52,7 @@ defmodule Core.MixProject do
       {:grpc, "~> 0.10.1"},
       {:jason, "~> 1.4"},
       {:jetstream, "~> 0.0.9"},
+      {:nanoid, "~> 2.1.0"},
       {:opentelemetry, "~> 1.5"},
       {:opentelemetry_api, "~> 1.4"},
       {:opentelemetry_bandit, "~> 0.2"},
@@ -90,7 +91,7 @@ defmodule Core.MixProject do
         "esbuild.install --if-missing",
         "cmd npm install --prefix assets"
       ],
-      "assets.build": ["tailwind core", "esbuild core"],
+      "assets.build": ["tailwind core", "esbuild core"]
     ]
   end
 end
