@@ -36,13 +36,6 @@ config :core, Core.Mailer, adapter: Swoosh.Adapters.Local
 
 # External services and integrations
 config :core,
-  nats: [
-    environment: "dev",
-    nats_node_1: "localhost",
-    nats_node_2: "localhost",
-    nats_node_3: "localhost",
-    nats_port: 4222
-  ],
   ai: [
     anthropic_api_path: "https://api.anthropic.com/v1/messages",
     default_llm_timeout: 45_000
@@ -64,9 +57,7 @@ config :inertia,
   ssr: false,
   raise_on_ssr_failure: true
 
-
-
-  config :esbuild,
+config :esbuild,
   version: "0.21.4",
   core: [
     args:
@@ -74,6 +65,7 @@ config :inertia,
     cd: Path.expand("../assets", __DIR__),
     env: %{"NODE_PATH" => Path.expand("../deps", __DIR__)}
   ]
+
 # Configure tailwind (the version is required)
 config :tailwind,
   version: "4.0.0",
@@ -85,8 +77,6 @@ config :tailwind,
     ),
     cd: Path.expand("../assets", __DIR__)
   ]
-
- 
 
 # Import environment specific config
 import_config "#{config_env()}.exs"

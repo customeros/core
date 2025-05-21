@@ -2,7 +2,10 @@ import Config
 
 # Helper functions for environment variables
 get_env = fn key, default -> System.get_env(key, default) end
-get_env_integer = fn key, default -> String.to_integer(get_env.(key, default)) end
+
+get_env_integer = fn key, default ->
+  String.to_integer(get_env.(key, default))
+end
 
 get_env_boolean = fn key, default ->
   case get_env.(key, default) do
@@ -30,14 +33,15 @@ if config_env() == :dev do
 end
 
 # Server configuration
-if get_env.("PHX_SERVER", nil), do: config(:realtime, Web.Endpoint, server: true)
+if get_env.("PHX_SERVER", nil),
+  do: config(:realtime, Web.Endpoint, server: true)
 
 # Database configuration
 config :core, Core.Repo,
   username: get_env.("POSTGRES_USER", "postgres"),
   password: get_env.("POSTGRES_PASSWORD", "password"),
   hostname: get_env.("POSTGRES_HOST", "localhost"),
-  database: get_env.("POSTGRES_DB", "openline"),
+  database: get_env.("POSTGRES_DB", "customeros"),
   port: get_env_integer.("POSTGRES_PORT", "5555"),
   stacktrace: true,
   show_sensitive_data_on_connection_error: true,
@@ -63,22 +67,6 @@ config :opentelemetry, :processors,
 if config_env() == :prod do
   # Set NATS environment to production in production mode
   config :core, :nats, environment: "production"
-end
-
-# Configure NATS hosts if environment variables are set
-Enum.each(1..3, fn node ->
-  host_var = "NATS_HOST_NODE_#{node}"
-
-  if host = get_env.(host_var, "localhost") do
-    if host != "", do: config(:core, :nats, String.to_atom("nats_node_#{node}"))
-  end
-end)
-
-# Configure NATS port if environment variable is set
-if port_str = get_env.("NATS_PORT", "4222") do
-  if port_str != "" do
-    config :core, :nats, nats_port: get_env_integer.("NATS_PORT", "4222")
-  end
 end
 
 # IPData and Snitcher configuration

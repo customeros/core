@@ -10,7 +10,8 @@ defmodule Core.Application do
     children = [
       Web.Telemetry,
       Core.Repo,
-      {DNSCluster, query: Application.get_env(:core, :dns_cluster_query) || :ignore},
+      {DNSCluster,
+       query: Application.get_env(:core, :dns_cluster_query) || :ignore},
       {Phoenix.PubSub, name: Realtime.PubSub},
       Web.Presence,
       Web.Endpoint,
@@ -24,9 +25,7 @@ defmodule Core.Application do
     children =
       if env != :test do
         children ++
-          [
-            Core.Nats.Supervisor
-          ]
+          []
       else
         children
       end

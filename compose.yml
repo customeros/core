@@ -1,0 +1,30 @@
+networks:
+  customeros:
+
+volumes:
+  postgres_data:
+
+services:
+  postgres:
+    image: postgres:17.4
+    container_name: postgres
+    networks:
+      - customeros
+    ports:
+      - "5555:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    environment:
+      POSTGRES_DB: customeros
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: password
+    healthcheck:
+      test:
+        [
+          "CMD-SHELL",
+          "pg_isready -U postgres -d customeros -h localhost -p 5555",
+        ]
+      interval: 3s
+      timeout: 3s
+      retries: 5
+      start_period: 5s
