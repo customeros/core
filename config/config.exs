@@ -52,7 +52,7 @@ config :esbuild,
   version: "0.21.5",
   core: [
     args:
-      ~w(ts/app.tsx --bundle --target=es2020 --outdir=../priv/static/assets --external:/fonts/* --external:/images/* --splitting --format=esm --jsx=automatic),
+      ~w(src/app.tsx --bundle --target=es2020 --outdir=../priv/static/assets --external:/fonts/* --external:/images/* --splitting --format=esm --jsx=automatic),
     cd: Path.expand("../assets", __DIR__),
     env: %{"NODE_PATH" => Path.expand("../deps", __DIR__)}
   ]

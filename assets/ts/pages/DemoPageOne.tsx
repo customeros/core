@@ -1,5 +1,8 @@
 import { Link, router } from '@inertiajs/react';
+<<<<<<<< HEAD:assets/ts/pages/DemoPageOne.tsx
 import React from 'react';
+========
+>>>>>>>> 0910c01 (implement icons):assets/src/pages/DemoPageOne.tsx
 import { Button } from './components/Button/Button';
 
 interface Fact {

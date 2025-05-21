@@ -37,9 +37,8 @@ defmodule Web.Router do
 
     get "/home", PageController, :home
     get "/demo", DemoController, :index
-    get "/groceries", ShoppingController, :index
-    get "/groceries/new", ShoppingController, :new
-    post "/groceries", ShoppingController, :create
+    get "/leads", LeadsController, :index
+    get "/icons.svg", IconsController, :index
   end
 
   scope "/graphql" do

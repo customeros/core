@@ -1,4 +1,4 @@
-@import "tailwindcss";
+@import 'tailwindcss';
 
 @theme {
   /* Primary */
@@ -306,4 +306,9 @@
   --color-pink-800: #9e165f;
   --color-pink-900: #851651;
   --color-pink-950: #4e0d30;
+}
+@layer base {
+  body {
+    @apply text-sm;
+  }
 }
