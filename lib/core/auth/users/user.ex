@@ -2,9 +2,11 @@ defmodule Core.Auth.Users.User do
   use Ecto.Schema
   import Ecto.Changeset
 
+  @primary_key {:id, :string, autogenerate: false}
   schema "users" do
     field(:email, :string)
     field(:confirmed_at, :naive_datetime)
+    field(:tenant_id, :string)
 
     timestamps(type: :utc_datetime)
   end
@@ -26,14 +28,18 @@ defmodule Core.Auth.Users.User do
   """
   def registration_changeset(user, attrs, opts \\ []) do
     user
-    |> cast(attrs, [:email])
+    |> cast(attrs, [:email, :tenant_id])
+    |> maybe_put_id()
     |> validate_email(opts)
+    |> validate_tenant_id()
   end
 
   defp validate_email(changeset, opts) do
     changeset
     |> validate_required([:email])
-    |> validate_format(:email, ~r/^[^\s]+@[^\s]+$/, message: "must have the @ sign and no spaces")
+    |> validate_format(:email, ~r/^[^\s]+@[^\s]+$/,
+      message: "must have the @ sign and no spaces"
+    )
     |> validate_length(:email, max: 160)
     |> maybe_validate_unique_email(opts)
   end
@@ -41,11 +47,16 @@ defmodule Core.Auth.Users.User do
   defp maybe_validate_unique_email(changeset, opts) do
     if Keyword.get(opts, :validate_email, true) do
       changeset
-      |> unsafe_validate_unique(:email, Example.Repo)
+      |> unsafe_validate_unique(:email, Core.Repo)
       |> unique_constraint(:email)
     else
       changeset
     end
+  end
+
+  defp validate_tenant_id(changeset) do
+    changeset
+    |> validate_required([:tenant_id])
   end
 
   @doc """
@@ -70,4 +81,10 @@ defmodule Core.Auth.Users.User do
     now = NaiveDateTime.utc_now() |> NaiveDateTime.truncate(:second)
     change(user, confirmed_at: now)
   end
+
+  defp maybe_put_id(%Ecto.Changeset{data: %{id: nil}} = changeset) do
+    put_change(changeset, :id, Core.Utils.IdGenerator.generate_id_21("user"))
+  end
+
+  defp maybe_put_id(changeset), do: changeset
 end

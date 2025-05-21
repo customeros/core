@@ -16,7 +16,6 @@ defmodule Core.Application do
       Web.Presence,
       Web.Endpoint,
       Core.Realtime.ColorManager,
-      Core.Realtime.StoreManager,
       {Finch, name: Core.Finch}
     ]
 
