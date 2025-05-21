@@ -5,13 +5,19 @@ import { createInertiaApp } from "@inertiajs/react";
 import { createRoot } from "react-dom/client";
 import axios from "axios";
 
-axios.defaults.xsrfHeaderName = "x-csrf-token";
+import DemoPageOne from "./pages/DemoPageOne.jsx";
+import ListGroceries from "./pages/ListGroceries.jsx";
+import NewGrocery from "./pages/NewGrocery.jsx";
 
+axios.defaults.xsrfHeaderName = "x-csrf-token";
+const pages = {
+  DemoPageOne,
+  ListGroceries,
+  NewGrocery,
+};
 createInertiaApp({
   resolve: async (name) => {
-    console.log(name);
-    const module = await import(`./pages/DemoPageOne.jsx`);
-    return module;
+    return await pages[name];
   },
   setup({ App, el, props }) {
     createRoot(el).render(<App {...props} />);

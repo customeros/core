@@ -14,8 +14,7 @@ config :core, Web.Endpoint,
     layout: false
   ],
   pubsub_server: Realtime.PubSub,
-  live_view: [signing_salt: "jVLoUB9r"],
-  static_paths: ["/assets/app.js"]
+  live_view: [signing_salt: "jVLoUB9r"]
 
 # Logger
 config :logger, :console,
@@ -48,20 +47,12 @@ config :core,
     ipdata_api_key: System.get_env("IPDATA_API_KEY")
   ]
 
-# Inertia configuration
-config :inertia,
-  endpoint: Web.Endpoint,
-  camelize_props: true,
-  static_paths: ["/assets/app.js"],
-  default_version: "1",
-  ssr: false,
-  raise_on_ssr_failure: true
-
+# Esbuild configuration
 config :esbuild,
-  version: "0.21.4",
+  version: "0.21.5",
   core: [
     args:
-      ~w(js/app.jsx --bundle --target=es2020 --outdir=../priv/static/assets --external:/fonts/* --external:/images/* --splitting --format=esm),
+      ~w(js/app.jsx --bundle --target=es2020 --outdir=../priv/static/assets --external:/fonts/* --external:/images/* --splitting --format=esm --jsx=automatic),
     cd: Path.expand("../assets", __DIR__),
     env: %{"NODE_PATH" => Path.expand("../deps", __DIR__)}
   ]
@@ -78,5 +69,17 @@ config :tailwind,
     cd: Path.expand("../assets", __DIR__)
   ]
 
+ 
+# Inertia configuration
+config :inertia,
+  endpoint: Web.Endpoint,
+  camelize_props: true,
+  static_paths: ["/assets/app.js"],
+  default_version: "1",
+  ssr: false,
+  raise_on_ssr_failure: true
+
+
 # Import environment specific config
 import_config "#{config_env()}.exs"
+

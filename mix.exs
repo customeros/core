@@ -74,14 +74,14 @@ defmodule Core.MixProject do
       {:y_ex, "~> 0.7"},
       {:inertia, "~> 2.4.0"},
       {:esbuild, "~> 0.9", runtime: Mix.env() == :dev},
-      {:tailwind, "~> 0.2", runtime: Mix.env() == :dev}
+      {:tailwind, "~> 0.3", runtime: Mix.env() == :dev}
     ]
   end
 
   defp aliases do
     [
       clean: ["deps.clean --unused --unlock"],
-      dev: ["compile.script", "phx.server", "assets.setup", "assets.build"],
+      dev: ["compile.script", "phx.server", "assets.setup", "assets.build" ],
       "ecto.setup": ["ecto.create", "ecto.migrate"],
       proto: ["proto.fetch", "proto.gen"],
       setup: ["deps.get", "ecto.setup"],
@@ -91,7 +91,12 @@ defmodule Core.MixProject do
         "esbuild.install --if-missing",
         "cmd npm install --prefix assets"
       ],
-      "assets.build": ["tailwind core", "esbuild core"]
+      "assets.build": ["tailwind core", "esbuild core"],
+      "assets.deploy": [
+        "tailwind core --minify",
+        "esbuild core --minify",
+        "phx.digest"
+      ]
     ]
   end
 end
