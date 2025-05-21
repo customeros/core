@@ -94,4 +94,22 @@ defmodule Core.WebTracker.WebSessions do
     )
     |> Repo.all()
   end
+
+  @doc """
+  Closes a web session by setting active to false and ended_at to the last_event_at timestamp.
+  Returns {:ok, session} if closed successfully or if already closed.
+  """
+  @spec close(WebSession.t()) :: {:ok, WebSession.t()} | {:error, Ecto.Changeset.t() | String.t()}
+  def close(%WebSession{} = session) when is_nil(session.id),
+    do: {:error, "Session ID is required"}
+  def close(%WebSession{active: false} = session),
+    do: {:ok, session}  # Session already closed, return as is
+  def close(%WebSession{} = session) do
+    session
+    |> WebSession.changeset(%{
+      active: false,
+      ended_at: session.last_event_at
+    })
+    |> Repo.update()
+  end
 end
