@@ -22,7 +22,8 @@ defmodule Core.Application do
       ## 3rd party
       {DNSCluster,
        query: Application.get_env(:core, :dns_cluster_query) || :ignore},
-      {Finch, name: Core.Finch}
+      {Finch, name: Core.Finch},
+      Core.WebTracker.WebSessionCloser
     ]
 
     env = Application.get_env(:core, :app_env, :prod)
