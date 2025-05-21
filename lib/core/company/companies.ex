@@ -9,12 +9,8 @@ defmodule Core.Company.Companies do
     do: {:error, "domain must be a string"}
 
   def create_with_domain(domain) when is_binary(domain) do
-    now = DateTime.utc_now() |> DateTime.truncate(:second)
-
     %Company{primary_domain: domain}
     |> Map.put(:id, IdGenerator.generate_id_21(Company.id_prefix()))
-    |> Map.put(:created_at, now)
-    |> Map.put(:updated_at, now)
     |> Company.changeset(%{})
     |> Repo.insert()
   end

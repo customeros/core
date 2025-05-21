@@ -15,9 +15,7 @@ defmodule Core.Company.Schemas.Company do
     field :icon_key, :string
     field :country_a2, :string
 
-    # Technical fields
-    field :created_at, :utc_datetime
-    field :updated_at, :utc_datetime
+    timestamps(type: :utc_datetime)
   end
 
   @type t :: %__MODULE__{
@@ -28,7 +26,7 @@ defmodule Core.Company.Schemas.Company do
     industry: String.t() | nil,
     icon_key: String.t() | nil,
     country_a2: String.t() | nil,
-    created_at: DateTime.t(),
+    inserted_at: DateTime.t(),
     updated_at: DateTime.t()
   }
 
