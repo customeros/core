@@ -6,7 +6,7 @@ defmodule Web.ShoppingController do
     |> render_inertia("NewGrocery")
   end
 
-  def create(conn, params) do
+  def create(_conn, _params) do
     
   end
 
