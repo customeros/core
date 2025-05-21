@@ -19,34 +19,38 @@ defmodule Core.WebTracker do
   Handles session management and IP validation.
   """
   @spec process_new_event(map()) :: {:ok, map()} | {:error, atom(), String.t()}
-  def process_new_event(%{
-        tenant: tenant,
-        visitor_id: visitor_id,
-        origin: origin,
-        ip: ip,
-        event_type: event_type,
-        event_data: event_data,
-        href: href,
-        search: search,
-        hostname: hostname,
-        pathname: pathname,
-        referrer: referrer,
-        user_agent: user_agent,
-        language: language,
-        cookies_enabled: cookies_enabled,
-        screen_resolution: screen_resolution,
-        timestamp: timestamp
-      } = attrs) when is_binary(tenant) and
-                     is_binary(visitor_id) and
-                     is_binary(origin) and
-                     is_binary(ip) and
-                     is_binary(event_type) and
-                     is_binary(href) and
-                     is_binary(hostname) and
-                     is_binary(pathname) and
-                     is_binary(user_agent) and
-                     is_binary(language) and
-                     is_boolean(cookies_enabled) do
+  def process_new_event(
+        %{
+          tenant: tenant,
+          visitor_id: visitor_id,
+          origin: origin,
+          ip: ip,
+          event_type: event_type,
+          event_data: _event_data,
+          href: href,
+          search: _search,
+          hostname: hostname,
+          pathname: pathname,
+          referrer: referrer,
+          user_agent: user_agent,
+          language: language,
+          cookies_enabled: cookies_enabled,
+          screen_resolution: _screen_resolution,
+          timestamp: _timestamp
+        } = attrs
+      )
+      when is_binary(tenant) and
+             is_binary(visitor_id) and
+             is_binary(origin) and
+             is_binary(ip) and
+             is_binary(event_type) and
+             is_binary(href) and
+             is_binary(hostname) and
+             is_binary(pathname) and
+             is_binary(user_agent) and
+             is_binary(language) and
+             is_binary(referrer) and
+             is_boolean(cookies_enabled) do
     # Check for existing active session
     case WebSessions.get_active_session(tenant, visitor_id, origin) do
       nil ->
@@ -89,7 +93,8 @@ defmodule Core.WebTracker do
     end
   end
 
-  def process_new_event(_), do: {:error, :bad_request, "invalid or missing parameters"}
+  def process_new_event(_),
+    do: {:error, :bad_request, "invalid or missing parameters"}
 
   defp create_event(attrs, session) do
     event_attrs = %{
@@ -115,6 +120,7 @@ defmodule Core.WebTracker do
     case WebTrackerEvents.create(event_attrs) do
       {:ok, _event} ->
         {:ok, %{status: :accepted, session_id: session.id}}
+
       {:error, _changeset} ->
         {:error, :internal_server_error, "failed to create event"}
     end
@@ -130,6 +136,7 @@ defmodule Core.WebTracker do
       do: {:error, :bot},
       else: :ok
   end
+
   def check_bot(_), do: {:error, :bot}
 
   @doc """
@@ -142,5 +149,6 @@ defmodule Core.WebTracker do
       do: {:error, :suspicious},
       else: :ok
   end
+
   def check_suspicious(_), do: {:error, :suspicious}
 end
