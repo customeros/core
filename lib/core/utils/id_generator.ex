@@ -22,6 +22,6 @@ defmodule Core.Utils.IdGenerator do
   end
 
   defp generate_random_string(length) do
-    for _ <- 1..length, into: "", do: <<Enum.random('abcdefghijklmnopqrstuvwxyz0123456789')>>
+    for _ <- 1..length, into: "", do: <<Enum.random(~c"abcdefghijklmnopqrstuvwxyz0123456789")>>
   end
 end
