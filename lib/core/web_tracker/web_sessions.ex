@@ -43,14 +43,18 @@ defmodule Core.WebTracker.WebSessions do
   end
 
   @doc """
-  Updates the last_event_at timestamp for a session.
+  Updates the last event information (timestamp and type) for a session.
   """
-  @spec update_last_event_at(WebSession.t()) :: {:ok, WebSession.t()} | {:error, Ecto.Changeset.t()}
-  def update_last_event_at(%WebSession{} = session) do
+  @spec update_last_event(WebSession.t(), String.t()) :: {:ok, WebSession.t()} | {:error, Ecto.Changeset.t()}
+  def update_last_event(%WebSession{} = session, event_type) do
     now = DateTime.utc_now() |> DateTime.truncate(:second)
 
     session
-    |> WebSession.changeset(%{last_event_at: now, updated_at: now})
+    |> WebSession.changeset(%{
+      last_event_at: now,
+      last_event_type: event_type,
+      updated_at: now
+    })
     |> Repo.update()
   end
 end

@@ -13,6 +13,11 @@ defmodule Core.WebTracker.Schemas.WebTrackerEvent do
   @id_prefix "wevnt"
   @id_regex ~r/^#{@id_prefix}_[a-z0-9]{21}$/
 
+  # Known event types
+  @event_types [:page_view, :page_exit, :click, :identify]
+
+  def event_types, do: @event_types
+
   schema "web_tracker_events" do
     # Required fields
     field :tenant, :string
@@ -38,6 +43,8 @@ defmodule Core.WebTracker.Schemas.WebTrackerEvent do
     # Technical field
     field :created_at, :utc_datetime
   end
+
+  @type event_type :: :page_view | :page_exit | :click | :identify
 
   @type t :: %__MODULE__{
     id: String.t(),
