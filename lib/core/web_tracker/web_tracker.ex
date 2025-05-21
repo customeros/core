@@ -117,10 +117,10 @@ defmodule Core.WebTracker do
       timestamp: attrs.timestamp
     }
 
-    case WebTrackerEvents.create(event_attrs) do
-      {:ok, _event} ->
-        {:ok, %{status: :accepted, session_id: session.id}}
-
+    with {:ok, _event} <- WebTrackerEvents.create(event_attrs),
+         {:ok, _session} <- WebSessions.update_last_event_at(session) do
+      {:ok, %{status: :accepted, session_id: session.id}}
+    else
       {:error, _changeset} ->
         {:error, :internal_server_error, "failed to create event"}
     end
