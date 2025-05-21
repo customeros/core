@@ -4,7 +4,6 @@ defmodule Core.WebTracker.WebTrackerEvents do
   Handles all business logic and database operations related to web tracker events.
   """
 
-  import Ecto.Query
   alias Core.Repo
   alias Core.Utils.IdGenerator
   alias Core.WebTracker.Schemas.WebTrackerEvent
@@ -12,10 +11,13 @@ defmodule Core.WebTracker.WebTrackerEvents do
   @doc """
   Creates a new web tracker event.
   """
-  @spec create(map()) :: {:ok, WebTrackerEvent.t()} | {:error, Ecto.Changeset.t()}
+  @spec create(map()) ::
+          {:ok, WebTrackerEvent.t()} | {:error, Ecto.Changeset.t()}
   def create(attrs) do
     now = DateTime.utc_now() |> DateTime.truncate(:second)
-    attrs = attrs
+
+    attrs =
+      attrs
       |> Map.put(:id, IdGenerator.generate_id_21(WebTrackerEvent.id_prefix()))
       |> Map.put(:created_at, now)
 
