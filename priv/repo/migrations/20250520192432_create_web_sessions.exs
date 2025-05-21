@@ -21,8 +21,10 @@ defmodule Core.Repo.Migrations.CreateWebSessions do
       # Timestamps
       add :started_at, :utc_datetime
       add :ended_at, :utc_datetime, null: true
-      add :created_at, :utc_datetime, null: false
-      add :updated_at, :utc_datetime, null: false
+      add :last_event_at, :utc_datetime
+      add :last_event_type, :string
+
+      timestamps(type: :utc_datetime)
     end
 
     # Create indexes for common queries

@@ -40,8 +40,7 @@ defmodule Core.WebTracker.Schemas.WebTrackerEvent do
     field :cookies_enabled, :boolean
     field :screen_resolution, :string
 
-    # Technical field
-    field :created_at, :utc_datetime
+    timestamps(type: :utc_datetime)
   end
 
   @type event_type :: :page_view | :page_exit | :click | :identify
@@ -65,7 +64,8 @@ defmodule Core.WebTracker.Schemas.WebTrackerEvent do
     language: String.t() | nil,
     cookies_enabled: boolean() | nil,
     screen_resolution: String.t() | nil,
-    created_at: DateTime.t()
+    inserted_at: DateTime.t(),
+    updated_at: DateTime.t()
   }
 
   @doc """
@@ -83,10 +83,9 @@ defmodule Core.WebTracker.Schemas.WebTrackerEvent do
       :ip, :visitor_id, :event_type, :event_data, :timestamp,
       :href, :origin, :search, :hostname, :pathname,
       :referrer, :user_agent, :language,
-      :cookies_enabled, :screen_resolution,
-      :created_at
+      :cookies_enabled, :screen_resolution
     ])
-    |> validate_required([:id, :tenant, :session_id, :created_at])
+    |> validate_required([:id, :tenant, :session_id])
     |> validate_format(:id, @id_regex)
   end
 end
