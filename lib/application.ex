@@ -12,7 +12,6 @@ defmodule Core.Application do
 
       Core.Icp.Service,
       Core.Realtime.ColorManager,
-      Core.Realtime.StoreManager,
       Core.Repo,
       Core.Scraper.Service,
       Web.Endpoint,
