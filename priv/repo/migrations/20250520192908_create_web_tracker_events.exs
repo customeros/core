@@ -25,8 +25,7 @@ defmodule Core.Repo.Migrations.CreateWebTrackerEvents do
       add :cookies_enabled, :boolean
       add :screen_resolution, :string
 
-      # Technical field
-      add :created_at, :utc_datetime, null: false
+      timestamps(type: :utc_datetime)
     end
 
     # Create indexes for common queries

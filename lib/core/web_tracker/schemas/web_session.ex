@@ -32,8 +32,8 @@ defmodule Core.WebTracker.Schemas.WebSession do
     field :ended_at, :utc_datetime
     field :last_event_at, :utc_datetime
     field :last_event_type, :string
-    field :created_at, :utc_datetime
-    field :updated_at, :utc_datetime
+
+    timestamps(type: :utc_datetime)
   end
 
   @type t :: %__MODULE__{
@@ -54,7 +54,7 @@ defmodule Core.WebTracker.Schemas.WebSession do
     ended_at: DateTime.t() | nil,
     last_event_at: DateTime.t() | nil,
     last_event_type: String.t() | nil,
-    created_at: DateTime.t(),
+    inserted_at: DateTime.t(),
     updated_at: DateTime.t()
   }
 
@@ -71,9 +71,9 @@ defmodule Core.WebTracker.Schemas.WebSession do
     |> cast(attrs, [
       :id, :tenant, :visitor_id, :origin, :active, :metadata,
       :ip, :city, :region, :country_code, :is_mobile,
-      :started_at, :ended_at, :last_event_at, :last_event_type, :created_at, :updated_at
+      :started_at, :ended_at, :last_event_at, :last_event_type
     ])
-    |> validate_required([:id, :tenant, :visitor_id, :origin, :created_at, :updated_at])
+    |> validate_required([:id, :tenant, :visitor_id, :origin])
     |> validate_format(:id, @id_regex)
   end
 end
