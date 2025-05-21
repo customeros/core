@@ -7,6 +7,7 @@ defmodule Core.Auth.Users do
   alias Core.Repo
 
   alias Core.Auth.Users.{User, UserToken, UserNotifier}
+  alias Core.Auth.Tenants
 
   ## Database getters
 
@@ -66,9 +67,28 @@ defmodule Core.Auth.Users do
 
   """
   def register_user(attrs) do
+    email = Map.fetch!(attrs, :email)
+    tenant_name = extract_tenant_name(email)
+
+    tenant =
+      case Tenants.get_tenant_by_name(tenant_name) do
+        nil ->
+          {:ok, tenant} = Tenants.create_tenant(tenant_name)
+          tenant
+
+        tenant ->
+          tenant
+      end
+
+    # Now register user (optionally you could associate the user with the tenant)
     %User{}
-    |> User.registration_changeset(attrs)
+    |> User.registration_changeset(Map.put(attrs, :tenant_id, tenant.id))
     |> Repo.insert()
+  end
+
+  defp extract_tenant_name(email) do
+    [_, domain] = String.split(email, "@")
+    domain |> String.replace(".", "")
   end
 
   ## Settings
@@ -114,7 +134,8 @@ defmodule Core.Auth.Users do
   def update_user_email(user, token) do
     context = "change:#{user.email}"
 
-    with {:ok, query} <- UserToken.verify_change_email_token_query(token, context),
+    with {:ok, query} <-
+           UserToken.verify_change_email_token_query(token, context),
          %UserToken{sent_to: email} <- Repo.one(query),
          {:ok, _} <- Repo.transaction(user_email_multi(user, email, context)) do
       :ok
@@ -131,7 +152,10 @@ defmodule Core.Auth.Users do
 
     Ecto.Multi.new()
     |> Ecto.Multi.update(:user, changeset)
-    |> Ecto.Multi.delete_all(:tokens, UserToken.by_user_and_contexts_query(user, [context]))
+    |> Ecto.Multi.delete_all(
+      :tokens,
+      UserToken.by_user_and_contexts_query(user, [context])
+    )
   end
 
   @doc ~S"""
@@ -143,12 +167,21 @@ defmodule Core.Auth.Users do
       {:ok, %{to: ..., body: ...}}
 
   """
-  def deliver_user_update_email_instructions(%User{} = user, current_email, update_email_url_fun)
+  def deliver_user_update_email_instructions(
+        %User{} = user,
+        current_email,
+        update_email_url_fun
+      )
       when is_function(update_email_url_fun, 1) do
-    {encoded_token, user_token} = UserToken.build_email_token(user, "change:#{current_email}")
+    {encoded_token, user_token} =
+      UserToken.build_email_token(user, "change:#{current_email}")
 
     Repo.insert!(user_token)
-    UserNotifier.deliver_update_email_instructions(user, update_email_url_fun.(encoded_token))
+
+    UserNotifier.deliver_update_email_instructions(
+      user,
+      update_email_url_fun.(encoded_token)
+    )
   end
 
   ## Session
@@ -184,13 +217,15 @@ defmodule Core.Auth.Users do
   Confirms a user. Does nothing if they're already confirmed.
   """
   # NOTE: You could add a last_seen_at timestamp update here.
-  def confirm_user(%User{confirmed_at: confirmed_at} = user) when is_nil(confirmed_at) do
+  def confirm_user(%User{confirmed_at: confirmed_at} = user)
+      when is_nil(confirmed_at) do
     user
     |> User.confirm_changeset()
     |> Repo.update()
   end
 
-  def confirm_user(%User{confirmed_at: confirmed_at} = user) when not is_nil(confirmed_at) do
+  def confirm_user(%User{confirmed_at: confirmed_at} = user)
+      when not is_nil(confirmed_at) do
     {:ok, user}
   end
 

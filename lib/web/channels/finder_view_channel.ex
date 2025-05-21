@@ -8,7 +8,11 @@ defmodule Web.FinderChannel do
   alias Web.Presence
 
   @impl true
-  def join("finder:" <> _organization_id, %{"user_id" => user_id, "username" => username}, socket) do
+  def join(
+        "finder:" <> _organization_id,
+        %{"user_id" => user_id, "username" => username},
+        socket
+      ) do
     {:ok, color} = ColorManager.assign_color(user_id)
 
     socket =
