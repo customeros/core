@@ -13,8 +13,9 @@ config :core, Web.Endpoint,
     formats: [html: Web.ErrorHTML, json: Web.ErrorJSON],
     layout: false
   ],
-  pubsub_server: Core.Realtime.PubSub,
-  live_view: [signing_salt: "jVLoUB9r"]
+  pubsub_server: Realtime.PubSub,
+  live_view: [signing_salt: "jVLoUB9r"],
+  static_paths: ["/assets/app.js"]
 
 # Logger
 config :logger, :console,
@@ -53,6 +54,39 @@ config :core,
   ipdata: [
     ipdata_api_key: System.get_env("IPDATA_API_KEY")
   ]
+
+# Inertia configuration
+config :inertia,
+  endpoint: Web.Endpoint,
+  camelize_props: true,
+  static_paths: ["/assets/app.js"],
+  default_version: "1",
+  ssr: false,
+  raise_on_ssr_failure: true
+
+
+
+  config :esbuild,
+  version: "0.21.4",
+  core: [
+    args:
+      ~w(js/app.jsx --bundle --target=es2020 --outdir=../priv/static/assets --external:/fonts/* --external:/images/* --splitting --format=esm),
+    cd: Path.expand("../assets", __DIR__),
+    env: %{"NODE_PATH" => Path.expand("../deps", __DIR__)}
+  ]
+# Configure tailwind (the version is required)
+config :tailwind,
+  version: "4.0.0",
+  core: [
+    args: ~w(
+      --config=tailwind.config.js
+      --input=css/app.css
+      --output=../priv/static/assets/app.css
+    ),
+    cd: Path.expand("../assets", __DIR__)
+  ]
+
+ 
 
 # Import environment specific config
 import_config "#{config_env()}.exs"

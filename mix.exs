@@ -61,6 +61,7 @@ defmodule Core.MixProject do
       {:phoenix_ecto, "~> 4.6"},
       {:phoenix_live_dashboard, "~> 0.8.6"},
       {:phoenix_live_reload, "~> 1.2", only: :dev},
+      {:phoenix_html, "~> 4.2"},
       {:phoenix_live_view, "~> 1.0.5"},
       {:plug_cowboy, "~> 2.5"},
       {:postgrex, "~> 0.20"},
@@ -69,18 +70,27 @@ defmodule Core.MixProject do
       {:telemetry_metrics, "~> 1.1"},
       {:telemetry_poller, "~> 1.0"},
       {:temp, "~> 0.4"},
-      {:y_ex, "~> 0.7"}
+      {:y_ex, "~> 0.7"},
+      {:inertia, "~> 2.4.0"},
+      {:esbuild, "~> 0.9", runtime: Mix.env() == :dev},
+      {:tailwind, "~> 0.2", runtime: Mix.env() == :dev}
     ]
   end
 
   defp aliases do
     [
       clean: ["deps.clean --unused --unlock"],
-      dev: ["compile.script", "phx.server"],
+      dev: ["compile.script", "phx.server", "assets.setup", "assets.build"],
       "ecto.setup": ["ecto.create", "ecto.migrate"],
       proto: ["proto.fetch", "proto.gen"],
       setup: ["deps.get", "ecto.setup"],
-      tidy: ["deps.get"]
+      tidy: ["deps.get"],
+      "assets.setup": [
+        "tailwind.install --if-missing",
+        "esbuild.install --if-missing",
+        "cmd npm install --prefix assets"
+      ],
+      "assets.build": ["tailwind core", "esbuild core"],
     ]
   end
 end

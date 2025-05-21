@@ -21,6 +21,7 @@ defmodule Web do
       # Import common connection and controller functions to use in pipelines
       import Plug.Conn
       import Phoenix.Controller
+      import Phoenix.LiveView.Router
     end
   end
 
@@ -37,6 +38,7 @@ defmodule Web do
         layouts: [html: Web.Layouts]
 
       import Plug.Conn
+      import Inertia.Controller
 
       unquote(verified_routes())
     end
@@ -53,12 +55,49 @@ defmodule Web do
 
   def html do
     quote do
-      import Phoenix.HTML
-      import Phoenix.HTML.Form
-
       use Phoenix.Component
 
+      import Inertia.HTML
+
+      import Phoenix.Controller,
+      only: [get_csrf_token: 0, view_module: 1, view_template: 1]
+
       alias Web.Router.Helpers, as: Routes
+      
+      unquote(html_helpers())
+    end
+  end
+
+  defp html_helpers do
+    quote do
+      # HTML escaping functionality
+      import Phoenix.HTML
+      # Core UI components and translation
+      import Web.CoreComponents
+      import Web.Gettext
+
+      # Shortcut for generating JS commands
+      alias Phoenix.LiveView.JS
+
+      # Routes generation with the ~p sigil
+      unquote(verified_routes())
+    end
+  end
+
+  def live_view do
+    quote do
+      use Phoenix.LiveView,
+        layout: {Web.Layouts, :app}
+
+      unquote(html_helpers())
+    end
+  end
+
+  def live_component do
+    quote do
+      use Phoenix.LiveComponent
+
+      unquote(html_helpers())
     end
   end
 

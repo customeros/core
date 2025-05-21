@@ -6,6 +6,7 @@ defmodule Web.Router do
     plug :fetch_session
     plug :protect_from_forgery
     plug :put_secure_browser_headers
+    plug Inertia.Plug
   end
 
   pipeline :api do
@@ -31,6 +32,8 @@ defmodule Web.Router do
   # Browser routes
   scope "/", Web do
     pipe_through :browser
+
+    get "/test", PageController, :home
   end
 
   scope "/graphql" do
