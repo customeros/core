@@ -5,6 +5,7 @@ defmodule Web.WebTrackerController do
   alias Core.WebTracker
   alias Core.WebTracker.OriginValidator
   alias Core.WebTracker.OriginTenantMapper
+  alias Core.WebTracker.Schemas.WebTrackerParams
 
   plug Web.Plugs.ValidateWebTrackerHeaders when action in [:create]
 
@@ -20,24 +21,31 @@ defmodule Web.WebTrackerController do
          :ok <- validate_origin(origin),
          {:ok, tenant} <- OriginTenantMapper.get_tenant_for_origin(origin),
          :ok <- WebTracker.check_bot(user_agent),
-         :ok <- WebTracker.check_suspicious(referer) do
+         :ok <- WebTracker.check_suspicious(referer),
+         {:ok, event_params} <- WebTrackerParams.new(Map.merge(params, %{
+           "tenant" => tenant,
+           "visitor_id" => visitor_id,
+           "origin" => origin,
+           "ip" => ip,
+           "user_agent" => user_agent,
+           "referrer" => referer
+         })) do
 
-      # Process the new event
-      case WebTracker.process_new_event(%{
-        tenant: tenant,
-        visitor_id: visitor_id,
-        origin: origin,
-        ip: ip
-      }) do
-        {:ok, _result} ->
+      case WebTracker.process_new_event(event_params) do
+        {:ok, result} ->
           conn
           |> put_status(:accepted)
-          |> json(%{accepted: true})
+          |> json(%{accepted: true, session_id: result.session_id})
 
         {:error, :forbidden, _message} ->
           conn
           |> put_status(:forbidden)
           |> json(%{error: "forbidden", details: "request blocked"})
+
+        {:error, :bad_request, message} ->
+          conn
+          |> put_status(:bad_request)
+          |> json(%{error: "bad_request", details: message})
 
         {:error, _status, _message} ->
           conn
@@ -69,6 +77,11 @@ defmodule Web.WebTrackerController do
         conn
         |> put_status(:forbidden)
         |> json(%{error: "forbidden", details: "origin not configured"})
+
+      {:error, message} when is_binary(message) ->
+        conn
+        |> put_status(:bad_request)
+        |> json(%{error: "bad_request", details: message})
     end
   end
 
