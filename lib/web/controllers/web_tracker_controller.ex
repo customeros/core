@@ -94,6 +94,7 @@ defmodule Web.WebTrackerController do
         :ok
     end
   end
+  defp validate_origin(_), do: {:error, :origin_not_configured}
 
   @spec validate_visitor_id(String.t() | nil) :: {:ok, String.t()} | {:error, :missing_visitor_id}
   defp validate_visitor_id(visitor_id) when is_binary(visitor_id) and visitor_id != "", do: {:ok, visitor_id}
