@@ -69,7 +69,8 @@ defmodule Core.WebTracker do
                 city: ip_data.city,
                 region: ip_data.region,
                 country_code: ip_data.country_code,
-                is_mobile: ip_data.is_mobile
+                is_mobile: ip_data.is_mobile,
+                last_event_type: event_type
               }
 
               case WebSessions.create(session_attrs) do
@@ -118,7 +119,7 @@ defmodule Core.WebTracker do
     }
 
     with {:ok, _event} <- WebTrackerEvents.create(event_attrs),
-         {:ok, _session} <- WebSessions.update_last_event_at(session) do
+         {:ok, _session} <- WebSessions.update_last_event(session, attrs.event_type) do
       {:ok, %{status: :accepted, session_id: session.id}}
     else
       {:error, _changeset} ->
