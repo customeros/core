@@ -5,6 +5,10 @@ defmodule Core.External.IPData.Service do
   """
   require Logger
 
+  alias Core.ApiCallLogger.Logger, as: ApiLogger
+
+  @vendor "ipdata"
+
   @doc """
   Verifies an IP address using IPData service.
   Returns information about the IP including:
@@ -16,26 +20,18 @@ defmodule Core.External.IPData.Service do
   def verify_ip(ip) do
     with %{api_key: api_key, api_url: api_url} <- get_config(),
          url <- "#{api_url}/#{ip}?api-key=#{api_key}",
-         {:ok, response} <- make_request(url),
-         {:ok, data} <- parse_response(response) do
-      {:ok,
-       %{
-         ip_address: data["ip"],
-         city: data["city"],
-         region: data["region"],
-         country_code: data["country_code"],
-         is_threat: data["threat"]["is_threat"],
-         is_mobile: data["carrier"] != nil
-       }}
+         {:ok, response} <- make_request(url) do
+      parse_response(response)
     end
   end
 
   defp make_request(url) do
-    Finch.build(:get, url)
-    |> Finch.request(Core.Finch)
+    :get
+    |> Finch.build(url)
+    |> ApiLogger.request(@vendor)
     |> case do
-      {:ok, %Finch.Response{status: 200, body: body}} ->
-        {:ok, body}
+      {:ok, %Finch.Response{status: 200} = response} ->
+        {:ok, response}
 
       {:ok, %Finch.Response{status: 400}} ->
         {:error, :invalid_ip}
@@ -50,10 +46,18 @@ defmodule Core.External.IPData.Service do
     end
   end
 
-  defp parse_response(body) do
+  defp parse_response(%Finch.Response{body: body}) do
     case Jason.decode(body) do
       {:ok, data} ->
-        {:ok, data}
+        {:ok,
+         %{
+           ip_address: data["ip"],
+           city: data["city"],
+           region: data["region"],
+           country_code: data["country_code"],
+           is_threat: data["threat"]["is_threat"],
+           is_mobile: data["carrier"] != nil
+         }}
 
       {:error, error} ->
         Logger.error("Failed to decode IPData response: #{inspect(error)}")

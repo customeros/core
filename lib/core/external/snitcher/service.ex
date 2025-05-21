@@ -5,6 +5,10 @@ defmodule Core.External.Snitcher.Service do
   """
   require Logger
 
+  alias Core.ApiCallLogger.Logger, as: ApiLogger
+
+  @vendor "snitcher"
+
   @doc """
   Identifies company information from an IP address using Snitcher service.
   """
@@ -30,15 +34,7 @@ defmodule Core.External.Snitcher.Service do
 
     :post
     |> Finch.build(url, headers, "")
-    |> Finch.request(Core.Finch)
-    |> case do
-      {:ok, response} ->
-        {:ok, response}
-
-      {:error, reason} ->
-        Logger.error("Snitcher request failed: #{inspect(reason)}")
-        {:error, :request_failed}
-    end
+    |> ApiLogger.request(@vendor)
   end
 
   defp parse_response(%Finch.Response{status: 200, body: body}) do
