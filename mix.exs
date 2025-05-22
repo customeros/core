@@ -83,7 +83,7 @@ defmodule Core.MixProject do
   defp aliases do
     [
       clean: ["deps.clean --unused --unlock"],
-      dev: ["compile.script", "phx.server", "assets.setup", "assets.build" ],
+      dev: ["compile.script", "phx.server", "assets.setup", "assets.build"],
       "ecto.setup": ["ecto.create", "ecto.migrate"],
       proto: ["proto.fetch", "proto.gen"],
       setup: ["deps.get", "ecto.setup"],

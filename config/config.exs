@@ -43,6 +43,10 @@ config :core,
     jina_api_path: "https://r.jina.ai/",
     jina_api_key: System.get_env("JINA_API_KEY")
   ],
+  puremd: [
+    puremd_api_path: "https://pure.md/",
+    puremd_api_key: System.get_env("PUREMD_API_KEY")
+  ],
   ipdata: [
     ipdata_api_key: System.get_env("IPDATA_API_KEY")
   ]
