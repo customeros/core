@@ -38,4 +38,10 @@ defmodule Core.Crm.Leads do
         end
     end
   end
+
+  def update_lead(%Lead{} = lead, attrs) do
+    lead
+    |> Lead.changeset(attrs)
+    |> Repo.update()
+  end
 end

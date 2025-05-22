@@ -20,8 +20,9 @@ defmodule Core.AI.Company.Industry do
     homepage_content: String.t()
   }
 
-  @spec identify(input()) :: {:ok, String.t()} | {:error, term()}
-  def identify(%{domain: domain, homepage_content: content}) do
+  @spec identify(input() | nil | map()) :: {:ok, String.t()} | {:error, term()}
+  def identify(nil), do: {:error, {:invalid_request, "Input cannot be nil"}}
+  def identify(%{domain: domain, homepage_content: content}) when is_binary(domain) and is_binary(content) do
     prompt = build_prompt(domain, content)
 
     request = %AskAIRequest{
@@ -50,6 +51,7 @@ defmodule Core.AI.Company.Industry do
         error
     end
   end
+  def identify(_), do: {:error, {:invalid_request, "Invalid input format"}}
 
   defp build_prompt(domain, content) do
     """

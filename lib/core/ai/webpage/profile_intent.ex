@@ -1,4 +1,11 @@
 defmodule Core.Ai.Webpage.ProfileIntent do
+  @moduledoc """
+  Profiles webpage intent using AI.
+  """
+
+  @callback profile_webpage_intent(url :: String.t(), content :: String.t()) ::
+              {:ok, %Core.Ai.Webpage.Intent{}} | {:error, term()}
+
   @model :claude_sonnet
   @model_temperature 0.2
   @max_tokens 1024
@@ -120,13 +127,13 @@ defmodule Core.Ai.Webpage.ProfileIntent do
     Your job is to score the content across 4 stages of the buyer's journey, evaluating how well it addresses buyer needs at each stage:
 
     1. Problem Recognition (identifying challenges/pain points)
-    2. Solution Research (educating about approaches/methodologies) 
+    2. Solution Research (educating about approaches/methodologies)
     3. Evaluation (comparing options, features, case studies)
     4. Purchase Readiness (pricing, demos, trials, CTAs)
 
     Score each stage 1-5:
     1: Not relevant for this stage
-    2: Slightly relevant  
+    2: Slightly relevant
     3: Moderately relevant
     4: Very relevant
     5: Highly relevant
