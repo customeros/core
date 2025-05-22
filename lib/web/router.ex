@@ -44,6 +44,7 @@ defmodule Web.Router do
     get "/demo", DemoController, :index
     get "/leads", LeadsController, :index
     get "/icons.svg", IconsController, :index
+    get "/signin", SigninController, :index
   end
 
   scope "/graphql" do
