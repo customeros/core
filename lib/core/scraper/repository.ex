@@ -2,6 +2,10 @@ defmodule Core.Scraper.Repository do
   @moduledoc """
   Database operations for scraped webpages.
   """
+
+  @callback get_by_url(url :: String.t()) :: nil | %Core.Scraper.ScrapedWebpage{}
+  @callback save_scraped_content(url :: String.t(), content :: String.t(), links :: list(String.t()), classification :: nil | %Core.Ai.Webpage.Classification{}, intent :: nil | %Core.Ai.Webpage.Intent{}) :: {:ok, %Core.Scraper.ScrapedWebpage{}} | {:error, term()}
+
   alias Core.Repo
   alias Core.Scraper.ScrapedWebpage
   alias Core.Ai.Webpage.Classification
@@ -85,6 +89,12 @@ defmodule Core.Scraper.Repository do
     Repo.all(from s in ScrapedWebpage, where: s.domain == ^domain)
   end
 
+  def delete_all do
+    Repo.delete_all(ScrapedWebpage)
+  end
+
+  # Private helper functions
+
   @spec get_business_pages_by_domain(String.t(), keyword()) ::
           {:ok, [ScrapedWebpage.t()]} | {:error, :not_found}
 
@@ -115,6 +125,7 @@ defmodule Core.Scraper.Repository do
   end
 
   ## Helpers ##
+
   defp extract_domain(url) do
     case URI.parse(url) do
       %URI{host: host} when is_binary(host) -> host

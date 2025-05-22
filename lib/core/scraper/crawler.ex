@@ -38,34 +38,39 @@ defmodule Core.Scraper.Crawler do
   end
 
   defp crawl(%{queue: [{url, depth} | rest]} = state) do
-    # Skip if already visited or reached limits
-    if MapSet.member?(state.visited, url) ||
-         MapSet.size(state.visited) >= state.max_pages do
+    # Skip if already visited
+    if MapSet.member?(state.visited, url) do
       # Process next URL
       crawl(%{state | queue: rest})
     else
       # Process this URL
       Logger.info("Crawling #{url} (depth: #{depth})")
 
+      # Add a small delay to be nice to the server
+      if state.delay > 0, do: Process.sleep(state.delay)
+
       case scrape_url(url) do
         {:ok, content} ->
-          # Add a small delay to be nice to the server
-          if state.delay > 0, do: Process.sleep(state.delay)
-
           # Update state
           new_state = %{
             state
             | visited: MapSet.put(state.visited, url),
-              results: Map.put(state.results, url, content),
-              queue: queue_new_links(rest, content.links, depth, state)
+              results: Map.put(state.results, url, content)
           }
 
-          # Continue crawling
-          crawl(new_state)
+          # Check if we've reached max_pages
+          if MapSet.size(new_state.visited) >= state.max_pages do
+            crawl(%{new_state | queue: []})
+          else
+            # Continue crawling with new links
+            crawl(%{new_state | queue: queue_new_links(rest, content.links, depth, state)})
+          end
 
         {:error, reason} ->
           Logger.warning("Failed to scrape #{url}: #{reason}")
-          crawl(%{state | queue: rest})
+          # Still mark as visited to avoid retrying failed URLs
+          new_state = %{state | visited: MapSet.put(state.visited, url)}
+          crawl(%{new_state | queue: rest})
       end
     end
   end
