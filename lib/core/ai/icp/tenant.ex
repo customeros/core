@@ -32,7 +32,7 @@ defmodule Core.Ai.Icp.Tenant do
   defp build_prompts(domain, business_pages) do
     system_prompt = """
     I will provide you with a B2B company and relevant content from their website.  Your job is to build an actionable ideal customer profile that can be used to accurately qualify all leads.  The ideal customer profile will consist of two parts:
-    1. A consise descriptive paragraph of the ideal customer profile for the business
+    1. A concise descriptive paragraph of the ideal customer profile for the business
     2. Up to 5 qualifying attributes of a company that matches the ideal customer profile
     IMPORTANT:  Your response MUST be in valid JSON format exactly matching this schema:
       {
