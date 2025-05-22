@@ -1,9 +1,10 @@
 defmodule Core.Ai.Webpage.ProfileIntent.Behaviour do
   @moduledoc """
-  Behaviour module defining the contract for webpage intent profiling.
+  Behaviour for Webpage Profile Intent service.
   """
 
   alias Core.Ai.Webpage.Intent
 
-  @callback profile_webpage_intent(String.t(), String.t()) :: {:ok, Intent.t()} | {:error, term()}
+  @callback profile_webpage_intent(url :: String.t(), content :: String.t()) ::
+              {:ok, %Core.Ai.Webpage.Intent{}} | {:error, term()}
 end

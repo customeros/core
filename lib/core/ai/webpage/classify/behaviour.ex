@@ -1,9 +1,8 @@
 defmodule Core.Ai.Webpage.Classify.Behaviour do
   @moduledoc """
-  Behaviour module defining the contract for webpage classification.
+  Behaviour for Webpage Classify service.
   """
 
-  alias Core.Ai.Webpage.Classification
-
-  @callback classify_webpage_content(String.t(), String.t()) :: {:ok, Classification.t()} | {:error, term()}
+  @callback classify_webpage_content(url :: String.t(), content :: String.t()) ::
+              {:ok, %Core.Ai.Webpage.Classification{}} | {:error, term()}
 end

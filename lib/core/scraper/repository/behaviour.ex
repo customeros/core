@@ -1,6 +1,6 @@
 defmodule Core.Scraper.Repository.Behaviour do
   @moduledoc """
-  Behaviour module defining the contract for the scraper repository.
+  Behaviour for Scraper repository.
   """
 
   @type url :: String.t()
@@ -9,7 +9,9 @@ defmodule Core.Scraper.Repository.Behaviour do
   @type classification :: map() | nil
   @type intent :: map() | nil
 
-  @callback get_by_url(url()) :: map() | nil
+  @callback get_by_url(url :: String.t()) :: nil | struct()
+  @callback create(attrs :: map()) :: {:ok, struct()} | {:error, term()}
+  @callback update(struct(), attrs :: map()) :: {:ok, struct()} | {:error, term()}
   @callback save_scraped_content(url(), content(), links(), classification(), intent()) :: {:ok, map()} | {:error, term()}
   @callback delete_all() :: :ok
 end
