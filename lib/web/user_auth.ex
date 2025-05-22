@@ -208,11 +208,18 @@ defmodule Web.UserAuth do
       conn
       |> assign_prop(:current_user, conn.assigns[:current_user])
     else
-      conn
-      |> put_flash(:error, "You must log in to access this page.")
-      |> maybe_store_return_to()
-      |> redirect(to: ~p"/signin")
-      |> halt()
+      if get_req_header(conn, "accept") == ["application/json"] do
+        conn
+        |> put_status(:unauthorized)
+        |> json(%{error: "Unauthorized"})
+        |> halt()
+      else
+        conn
+        |> put_flash(:error, "You must log in to access this page.")
+        |> maybe_store_return_to()
+        |> redirect(to: ~p"/signin")
+        |> halt()
+      end
     end
   end
 
