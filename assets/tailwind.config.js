@@ -13,6 +13,13 @@ module.exports = {
         brand: '#FD4F00',
       },
     },
+    fontFamily: {
+      heading: ['IBM Plex Sans'],
+      body: ['IBM Plex Sans'],
+    },
+    borderColor: {
+      transparent: 'transparent',
+    },
   },
   plugins: [
     require('@tailwindcss/forms'),

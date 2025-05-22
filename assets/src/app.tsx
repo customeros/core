@@ -6,8 +6,7 @@ import { createRoot } from 'react-dom/client';
 import axios from 'axios';
 
 import { Leads } from './pages/Leads';
-import { Signin } from './pages/Signin.tsx';
-
+import { Signin } from './pages/Signin';
 axios.defaults.xsrfHeaderName = 'x-csrf-token';
 
 const pages = {
