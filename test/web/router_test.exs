@@ -129,4 +129,4 @@ defmodule Web.RouterTest do
   end
 end
 
-# NOTE: Ensure that Core.WebTracker.IPIntelligence.get_ip_data/1 uses the configured module (Application.compile_env/3) for the mock to work in tests.
+# NOTE: Ensure that Core.WebTracker.IPIntelligence.get_ip_data/1 uses the configured module (Application.compile_env/3) for the mock to work in tests..
