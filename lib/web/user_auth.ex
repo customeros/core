@@ -3,6 +3,7 @@ defmodule Web.UserAuth do
 
   import Plug.Conn
   import Phoenix.Controller
+  import Inertia.Controller
 
   alias Core.Auth.Users
 
@@ -205,6 +206,7 @@ defmodule Web.UserAuth do
   def require_authenticated_user(conn, _opts) do
     if conn.assigns[:current_user] do
       conn
+      |> assign_prop(:current_user, conn.assigns[:current_user])
     else
       conn
       |> put_flash(:error, "You must log in to access this page.")
