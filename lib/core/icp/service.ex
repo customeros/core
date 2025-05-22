@@ -8,8 +8,8 @@ defmodule Core.Icp.Service do
     GenServer.start_link(__MODULE__, %{}, opts)
   end
 
-  def create_icp(domain) do
-    GenServer.cast(@name, {:create_icp, domain})
+  def create_icp_for_tenant(tenant_id) do
+    GenServer.cast(@name, {:create_tenant_icp, tenant_id})
   end
 
   @impl true
@@ -18,9 +18,11 @@ defmodule Core.Icp.Service do
   end
 
   @impl true
-  def handle_cast({:create_icp, domain}, state) do
-    Task.start_link(fn -> Core.Icp.BuildProfile.start(domain) end)
+  def handle_cast({:create_tenant_icp, tenant_id}, state) do
+    Task.start_link(fn ->
+      Core.Icp.BuildProfile.start_for_tenant(tenant_id)
+    end)
+
     {:noreply, state}
   end
-    
 end

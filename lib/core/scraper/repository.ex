@@ -12,6 +12,7 @@ defmodule Core.Scraper.Repository do
   alias Core.Ai.Webpage.Intent
   import Ecto.Query
 
+  ## Create ##
   def save_scraped_content(
         url,
         content,
@@ -50,6 +51,7 @@ defmodule Core.Scraper.Repository do
     save_scraped_content(url, content, links, classification, intent)
   end
 
+  ## Update ##
   def update_classification(url, %Classification{} = classification) do
     case get_by_url(url) do
       nil ->
@@ -64,7 +66,6 @@ defmodule Core.Scraper.Repository do
     end
   end
 
-  # Fixed: was Intent
   def update_intent(url, %Intent{} = intent) do
     case get_by_url(url) do
       nil ->
@@ -79,6 +80,7 @@ defmodule Core.Scraper.Repository do
     end
   end
 
+  ## Get ##
   def get_by_url(url) do
     Repo.get_by(ScrapedWebpage, url: url)
   end
@@ -92,6 +94,38 @@ defmodule Core.Scraper.Repository do
   end
 
   # Private helper functions
+
+  @spec get_business_pages_by_domain(String.t(), keyword()) ::
+          {:ok, [ScrapedWebpage.t()]} | {:error, :not_found}
+
+  def get_business_pages_by_domain(domain, opts \\ []) do
+    limit = Keyword.get(opts, :limit)
+
+    content_types =
+      Keyword.get(opts, :content_types, [
+        "product_page",
+        "solution_page",
+        "case_study"
+      ])
+
+    case domain
+         |> business_pages_query(content_types)
+         |> maybe_limit(limit)
+         |> Repo.all() do
+      [] -> {:error, :not_found}
+      pages -> {:ok, pages}
+    end
+  end
+
+  defp business_pages_query(domain, content_types) do
+    from w in ScrapedWebpage,
+      where: w.domain == ^domain,
+      where: w.content_type in ^content_types,
+      order_by: [desc: w.inserted_at]
+  end
+
+  ## Helpers ##
+
   defp extract_domain(url) do
     case URI.parse(url) do
       %URI{host: host} when is_binary(host) -> host
@@ -146,4 +180,12 @@ defmodule Core.Scraper.Repository do
       purchase_readiness_score: intent.purchase_readiness
     }
   end
+
+  defp maybe_limit(query, nil), do: query
+
+  defp maybe_limit(query, limit) when is_integer(limit) and limit > 0 do
+    limit(query, ^limit)
+  end
+
+  defp maybe_limit(query, _), do: query
 end
