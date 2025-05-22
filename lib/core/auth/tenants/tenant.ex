@@ -5,6 +5,7 @@ defmodule Core.Auth.Tenants.Tenant do
   @primary_key {:id, :string, autogenerate: false}
   schema "tenants" do
     field(:name, :string)
+    field(:domain, :string)
 
     timestamps(type: :utc_datetime)
   end
@@ -13,13 +14,13 @@ defmodule Core.Auth.Tenants.Tenant do
     tenant
     |> cast(attrs, [:id, :name])
     |> maybe_put_id()
-    |> validate_required([:id, :name])
+    |> validate_required([:id, :name, :domain])
     |> validate_length(:name, max: 160)
     |> unique_constraint(:name)
   end
 
   defp maybe_put_id(%Ecto.Changeset{data: %{id: nil}} = changeset) do
-    put_change(changeset, :id, Core.Utils.IdGenerator.generate_id_21("tenant"))
+    put_change(changeset, :id, Core.Utils.IdGenerator.generate_id_16("tenant"))
   end
 
   defp maybe_put_id(changeset), do: changeset
