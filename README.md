@@ -15,11 +15,21 @@ bun install
 
 ```bash
 brew services start postgresql@14
-createdb openline
+createdb customeros
 createuser -s postgres
 export POSTGRES_PORT=5432
 echo 'export POSTGRES_PORT=5432' >> ~/.zshrc
 brew services start nats-server
+mix setup
+```
+
+## Upgrade
+
+```bash
+dropdb customeros
+createdb customeros
+mix deps.get
+mix ecto.migrate
 mix setup
 ```
 
