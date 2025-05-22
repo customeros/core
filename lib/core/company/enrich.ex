@@ -15,18 +15,21 @@ defmodule Core.Company.Enrich do
   def scrape_homepage(company_id) when is_binary(company_id) do
     GenServer.cast(__MODULE__, {:scrape_homepage, company_id})
   end
+
   def scrape_homepage(_), do: {:error, :invalid_company_id}
 
   @spec enrich_industry(String.t()) :: :ok
   def enrich_industry(company_id) when is_binary(company_id) do
     GenServer.cast(__MODULE__, {:enrich_industry, company_id})
   end
+
   def enrich_industry(_), do: {:error, :invalid_company_id}
 
   @spec enrich_name(String.t()) :: :ok
   def enrich_name(company_id) when is_binary(company_id) do
     GenServer.cast(__MODULE__, {:enrich_name, company_id})
   end
+
   def enrich_name(_), do: {:error, :invalid_company_id}
 
   # Server Callbacks
@@ -59,7 +62,9 @@ defmodule Core.Company.Enrich do
   defp process_industry_enrichment(company_id) do
     case Repo.get(Company, company_id) do
       nil ->
-        Logger.warning("Company #{company_id} not found for industry enrichment")
+        Logger.warning(
+          "Company #{company_id} not found for industry enrichment"
+        )
 
       company ->
         if should_enrich_industry?(company) do
@@ -71,9 +76,13 @@ defmodule Core.Company.Enrich do
             )
 
           if count > 0 do
-            Logger.debug("Marked industry enrichment attempt for company #{company_id}")
+            Logger.debug(
+              "Marked industry enrichment attempt for company #{company_id}"
+            )
           else
-            Logger.error("Failed to mark industry enrichment attempt for company #{company_id}")
+            Logger.error(
+              "Failed to mark industry enrichment attempt for company #{company_id}"
+            )
           end
 
           # TODO: Implement industry code enrichment logic here
@@ -83,7 +92,9 @@ defmodule Core.Company.Enrich do
           # 3. Updating company with industry code
           # 4. Creating a lead for the company
         else
-          Logger.info("Skipping industry enrichment for company #{company_id}: #{enrichment_skip_reason(company)}")
+          Logger.info(
+            "Skipping industry enrichment for company #{company_id}: #{enrichment_skip_reason(company)}"
+          )
         end
     end
   end
@@ -103,9 +114,13 @@ defmodule Core.Company.Enrich do
             )
 
           if count > 0 do
-            Logger.debug("Marked name enrichment attempt for company #{company_id}")
+            Logger.debug(
+              "Marked name enrichment attempt for company #{company_id}"
+            )
           else
-            Logger.error("Failed to mark name enrichment attempt for company #{company_id}")
+            Logger.error(
+              "Failed to mark name enrichment attempt for company #{company_id}"
+            )
           end
 
           # TODO: Implement name enrichment logic here
@@ -114,9 +129,10 @@ defmodule Core.Company.Enrich do
           # 2. Determining appropriate company name
           # 3. Updating company with enriched name
           # 4. Updating related records if needed
-
         else
-          Logger.info("Skipping name enrichment for company #{company_id}: #{name_enrichment_skip_reason(company)}")
+          Logger.info(
+            "Skipping name enrichment for company #{company_id}: #{name_enrichment_skip_reason(company)}"
+          )
         end
     end
   end
@@ -188,13 +204,14 @@ defmodule Core.Company.Enrich do
             )
 
           if count > 0 do
-            Logger.debug("Starting homepage scraping for company #{company_id} (domain: #{company.primary_domain})")
+            Logger.debug(
+              "Starting homepage scraping for company #{company_id} (domain: #{company.primary_domain})"
+            )
 
             # Start the scraping process
             Task.start(fn ->
-              case Scrape.scrape_webpage_with_jina(company.primary_domain) do
+              case Scrape.scrape_webpage(company.primary_domain) do
                 {:ok, content, _links} ->
-                  # Store the scraped content
                   {update_count, _} =
                     Repo.update_all(
                       from(c in Company, where: c.id == ^company_id),
@@ -202,20 +219,33 @@ defmodule Core.Company.Enrich do
                     )
 
                   if update_count > 0 do
-                    Logger.info("Successfully scraped and stored homepage content for company #{company_id} (domain: #{company.primary_domain})")
+                    Logger.info(
+                      "Successfully scraped and stored homepage content for company #{company_id} (domain: #{company.primary_domain})"
+                    )
+                    # Trigger enrichment processes after successful scraping
+                    enrich_industry(company_id)
+                    enrich_name(company_id)
                   else
-                    Logger.error("Failed to store scraped content for company #{company_id} (domain: #{company.primary_domain})")
+                    Logger.error(
+                      "Failed to store scraped content for company #{company_id} (domain: #{company.primary_domain})"
+                    )
                   end
 
                 {:error, reason} ->
-                  Logger.error("Failed to scrape homepage for company #{company_id} (domain: #{company.primary_domain}): #{inspect(reason)}")
+                  Logger.error(
+                    "Failed to scrape homepage for company #{company_id} (domain: #{company.primary_domain}): #{inspect(reason)}"
+                  )
               end
             end)
           else
-            Logger.error("Failed to mark scraping attempt for company #{company_id} (domain: #{company.primary_domain})")
+            Logger.error(
+              "Failed to mark scraping attempt for company #{company_id} (domain: #{company.primary_domain})"
+            )
           end
         else
-          Logger.info("Skipping homepage scraping for company #{company_id} (domain: #{company.primary_domain}): #{homepage_scraping_skip_reason(company)}")
+          Logger.info(
+            "Skipping homepage scraping for company #{company_id} (domain: #{company.primary_domain}): #{homepage_scraping_skip_reason(company)}"
+          )
         end
     end
   end
