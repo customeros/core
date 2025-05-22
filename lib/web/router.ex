@@ -39,6 +39,7 @@ defmodule Web.Router do
     pipe_through :browser
 
     get "/icons.svg", IconsController, :index
+    get "/favicon/*path", FaviconController, :serve
   end
 
   scope "/", Web do

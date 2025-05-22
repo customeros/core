@@ -12,7 +12,7 @@ defmodule Web do
   those modules here.
   """
 
-  def static_paths, do: ~w(assets fonts images favicon.ico robots.txt *.svg icons.svg)
+  def static_paths, do: ~w(assets fonts images favicon favicon/* robots.txt *.svg icons.svg)
 
   def router do
     quote do
