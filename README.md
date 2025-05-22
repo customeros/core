@@ -45,6 +45,14 @@ mix dev
 iex -S mix
 ```
 
+## Test
+
+```bash
+mix test
+```
+
+Use the `--cover` flag to generate a test coverage report
+
 ## Teardown
 
 ```bash
