@@ -1,4 +1,4 @@
-defmodule Core.Industry.Schemas.Industry do
+defmodule Core.Crm.Industries.Industry do
   use Ecto.Schema
   import Ecto.Changeset
 

@@ -6,7 +6,7 @@ defmodule Core.Company.Enrich do
   alias Core.Repo
   alias Core.Company.Schemas.Company
   alias Core.Scraper.Scrape
-  alias Core.Industry.Industries
+  alias Core.Crm.Industries
 
   def start_link(_opts) do
     GenServer.start_link(__MODULE__, %{}, name: __MODULE__)
@@ -83,9 +83,9 @@ defmodule Core.Company.Enrich do
 
             # Get industry code from AI
             case Core.AI.Company.Industry.identify(%{
-              domain: company.primary_domain,
-              homepage_content: company.homepage_content
-            }) do
+                   domain: company.primary_domain,
+                   homepage_content: company.homepage_content
+                 }) do
               {:ok, industry_code} ->
                 # Get industry name from our industries table
                 case Industries.get_by_code(industry_code) do
@@ -257,6 +257,7 @@ defmodule Core.Company.Enrich do
                     Logger.info(
                       "Successfully scraped and stored homepage content for company #{company_id} (domain: #{company.primary_domain})"
                     )
+
                     # Trigger enrichment processes after successful scraping
                     enrich_industry(company_id)
                     enrich_name(company_id)
