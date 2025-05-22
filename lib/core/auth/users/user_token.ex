@@ -2,6 +2,7 @@ defmodule Core.Auth.Users.UserToken do
   use Ecto.Schema
   import Ecto.Query
   alias Core.Auth.Users.UserToken
+  alias Core.Auth.Users.User
 
   @hash_algorithm :sha256
   @rand_size 32
@@ -18,7 +19,7 @@ defmodule Core.Auth.Users.UserToken do
     field(:token, :binary)
     field(:context, :string)
     field(:sent_to, :string)
-    belongs_to(:user, Core.Auth.Users.User)
+    field(:user_id, :string)
 
     timestamps(updated_at: false)
   end
@@ -65,7 +66,8 @@ defmodule Core.Auth.Users.UserToken do
   def verify_session_token_query(token) do
     query =
       from token in by_token_and_context_query(token, "session"),
-        join: user in assoc(token, :user),
+        join: user in User,
+        on: token.user_id == user.id,
         where: token.inserted_at > ago(@session_validity_in_days, "day"),
         select: user
 
@@ -95,6 +97,7 @@ defmodule Core.Auth.Users.UserToken do
 
     {Base.url_encode64(token, padding: false),
      %UserToken{
+       id: Core.Utils.IdGenerator.generate_id_21("user_token"),
        token: hashed_token,
        context: context,
        sent_to: sent_to,
@@ -120,7 +123,8 @@ defmodule Core.Auth.Users.UserToken do
 
         query =
           from token in by_token_and_context_query(hashed_token, context),
-            join: user in assoc(token, :user),
+            join: user in User,
+            on: token.user_id == user.id,
             where:
               token.inserted_at > ago(^days, "day") and
                 token.sent_to == user.email,

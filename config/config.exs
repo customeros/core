@@ -31,7 +31,7 @@ config :opentelemetry, :processors,
   }
 
 # Mailer
-config :core, Core.Mailer, adapter: Swoosh.Adapters.Local
+config :swoosh, :api_client, Swoosh.ApiClient.Finch
 
 # External services and integrations
 config :core,
@@ -69,7 +69,6 @@ config :tailwind,
     cd: Path.expand("../assets", __DIR__)
   ]
 
- 
 # Inertia configuration
 config :inertia,
   endpoint: Web.Endpoint,
@@ -79,7 +78,5 @@ config :inertia,
   ssr: false,
   raise_on_ssr_failure: true
 
-
 # Import environment specific config
 import_config "#{config_env()}.exs"
-
