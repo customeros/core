@@ -1,4 +1,4 @@
-defmodule Core.Company.Schemas.Company do
+defmodule Core.Crm.Companies.Company do
   use Ecto.Schema
   import Ecto.Changeset
 
