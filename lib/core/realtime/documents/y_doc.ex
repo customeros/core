@@ -1,5 +1,7 @@
 defmodule Core.Realtime.YDoc do
-  use Core.Realtime.YEcto, repo: Core.Repo, schema: Core.Realtime.Documents.DocumentWrite
+  use Core.Realtime.YEcto,
+    repo: Core.Repo,
+    schema: Core.Realtime.Documents.DocumentWrite
 end
 
 defmodule Core.Realtime.EctoPersistence do
@@ -16,6 +18,7 @@ defmodule Core.Realtime.EctoPersistence do
 
   @impl true
   def unbind(_state, _doc_name, _doc) do
+    :ok
   end
 
   @impl true

@@ -18,6 +18,6 @@ config :swoosh, local: false
 
 config :core, Core.Mailer,
   adapter: Swoosh.Adapters.Postmark,
-  api_key: "aa3f8b33-77af-4d81-b6ce-eb8d82346c6a"
+  api_key: System.get_env("POSTMARK_API_KEY", "")
 
 config :core, :app_env, :prod
