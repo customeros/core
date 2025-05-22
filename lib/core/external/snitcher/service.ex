@@ -1,18 +1,12 @@
 defmodule Core.External.Snitcher.Service do
-  @moduledoc """
-  Snitcher service integration.
-  Handles company identification from IP addresses.
-  """
   require Logger
 
   alias Core.ApiCallLogger.Logger, as: ApiLogger
+  alias Core.External.Snitcher.Types
 
   @vendor "snitcher"
 
-  @doc """
-  Identifies company information from an IP address using Snitcher service.
-  """
-  @spec identify_ip(String.t()) :: {:ok, map()} | {:error, term()}
+  @spec identify_ip(String.t()) :: {:ok, Types.t()} | {:error, term()}
   def identify_ip(ip) when is_binary(ip) do
     with {:ok, config} <- get_config(),
          {:ok, response} <- make_request(config, ip) do
@@ -37,19 +31,15 @@ defmodule Core.External.Snitcher.Service do
     |> ApiLogger.request(@vendor)
   end
 
-  defp parse_response(%Finch.Response{status: 200, body: body}) do
+  defp parse_response(%Finch.Response{status: status, body: body}) when status in [200, 404] do
     case Jason.decode(body) do
       {:ok, data} ->
-        {:ok, %{domain: data["domain"]}}
+        Types.parse_response(data)
 
       {:error, error} ->
         Logger.error("Failed to decode Snitcher response: #{inspect(error)}")
         {:error, :decode_error}
     end
-  end
-
-  defp parse_response(%Finch.Response{status: 404}) do
-    {:ok, %{domain: nil}}
   end
 
   defp parse_response(%Finch.Response{status: status, body: body}) do
