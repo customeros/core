@@ -2,15 +2,15 @@ defmodule Core.Industry.Schemas.Industry do
   use Ecto.Schema
   import Ecto.Changeset
 
+  @primary_key {:code, :string, autogenerate: false}
+  @derive {Phoenix.Param, key: :code}
   schema "industries" do
-    field :code, :string
     field :name, :string
 
     timestamps(type: :utc_datetime)
   end
 
   @type t :: %__MODULE__{
-    id: integer(),
     code: String.t(),
     name: String.t(),
     inserted_at: DateTime.t(),
