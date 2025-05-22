@@ -38,13 +38,16 @@ defmodule Core.WebTracker.WebSessions do
   """
   @spec get_active_session(String.t(), String.t(), String.t()) :: WebSession.t() | nil
   def get_active_session(tenant, visitor_id, origin) do
-    from(s in WebSession,
-      where: not is_nil(s.tenant) and s.tenant == ^tenant and
-             not is_nil(s.visitor_id) and s.visitor_id == ^visitor_id and
-             not is_nil(s.origin) and s.origin == ^origin and
-             s.active == true
+    result = Repo.one(
+      from s in WebSession,
+        where: s.tenant == ^tenant and
+               s.visitor_id == ^visitor_id and
+               s.origin == ^origin and
+               s.active == true,
+        order_by: [desc: s.inserted_at],
+        limit: 1
     )
-    |> Repo.one()
+    result
   end
 
   @doc """

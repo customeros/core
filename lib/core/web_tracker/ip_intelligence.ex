@@ -4,7 +4,8 @@ defmodule Core.WebTracker.IPIntelligence do
   Coordinates between IPData and Snitcher services for IP validation and company identification.
   """
 
-  alias Core.External.IPData.Service, as: IPData
+  @behaviour Core.WebTracker.IPIntelligenceBehaviour
+
   alias Core.External.Snitcher.Service, as: Snitcher
   alias Core.External.Snitcher.Types
 
@@ -12,9 +13,11 @@ defmodule Core.WebTracker.IPIntelligence do
   Gets IP data including location, threat assessment, and mobile carrier info.
   Returns all information from IPData service.
   """
+  @impl true
   @spec get_ip_data(String.t()) :: {:ok, map()} | {:error, term()}
   def get_ip_data(ip) do
-    case IPData.verify_ip(ip) do
+    ipdata_mod = Application.get_env(:core, Core.External.IPData.Service, Core.External.IPData.Service)
+    case ipdata_mod.verify_ip(ip) do
       {:ok, data} -> {:ok, data}
       {:error, reason} -> {:error, reason}
     end
@@ -24,6 +27,7 @@ defmodule Core.WebTracker.IPIntelligence do
   Gets company information for an IP address using Snitcher.
   Returns a typed response with company details if found.
   """
+  @impl true
   @spec get_company_info(String.t()) :: {:ok, Types.t()} | {:error, term()}
   def get_company_info(ip) when is_binary(ip) do
     Snitcher.identify_ip(ip)

@@ -6,6 +6,7 @@ defmodule Core.External.IPData.Service do
   require Logger
 
   alias Core.ApiCallLogger.Logger, as: ApiLogger
+  @behaviour Core.External.IPData.Behaviour
 
   @vendor "ipdata"
 

@@ -54,6 +54,7 @@ defmodule Core.MixProject do
       {:idna, "~> 6.1.1"},
       {:jason, "~> 1.4"},
       {:jetstream, "~> 0.0.9"},
+      {:mox, "~> 1.1", only: :test},
       {:nanoid, "~> 2.1.0"},
       {:opentelemetry, "~> 1.5"},
       {:opentelemetry_api, "~> 1.4"},

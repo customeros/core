@@ -1,18 +1,41 @@
 import Config
 
+# Configure your database
+#
+# The MIX_TEST_PARTITION environment variable can be used
+# to provide built-in test partitioning in CI environment.
+# Run `mix help test` for more information.
+config :core, Core.Repo,
+  username: System.get_env("POSTGRES_USER", "postgres"),
+  password: System.get_env("POSTGRES_PASSWORD", "postgres"),
+  hostname: System.get_env("POSTGRES_HOST", "localhost"),
+  database: "core_test#{System.get_env("MIX_TEST_PARTITION")}",
+  pool: Ecto.Adapters.SQL.Sandbox,
+  pool_size: 10
+
+# We don't run a server during test. If one is required,
+# you can enable the server option below.
 config :core, Web.Endpoint,
   http: [ip: {127, 0, 0, 1}, port: 4002],
-  secret_key_base: "pcrqicRFh5xqnXMCq/W9kaZYhIJtXytsvf5L5Janxrk6VBFToY9Gr6Rjz+AaPhV+",
-  server: false
+  server: false,
+  secret_key_base: String.duplicate("a", 64)
 
-config :core, Realtime.Mailer, adapter: Swoosh.Adapters.Test
+# In test we don't send emails.
+config :core, Core.Mailer, adapter: Swoosh.Adapters.Test
 
-config :swoosh, :api_client, false
+# Print only warnings and errors during test
+config :logger, level: :warn
 
-config :core, Example.Mailer, adapter: Swoosh.Adapters.Test
-
-config :logger, level: :warning
-
+# Initialize plugs at runtime for faster test compilation
 config :phoenix, :plug_init_mode, :runtime
 
-config :core, :app_env, :test
+# Configure IPData service to use mock in test
+config :core, :ipdata,
+  api_key: "test-key",
+  api_url: "http://test-url"
+
+# Use mock for IPData service in test
+config :core, Core.External.IPData.Service, Core.External.IPData.Service.Mock
+
+# Use mock for IPIntelligence in test
+config :core, Core.WebTracker.IPIntelligence, Core.WebTracker.IPIntelligence.Mock

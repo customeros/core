@@ -10,7 +10,6 @@ defmodule Core.WebTracker do
   """
   require Logger
 
-  alias Core.WebTracker.IPIntelligence
   alias Core.WebTracker.WebSessions
   alias Core.WebTracker.WebTrackerEvents
   alias Core.Crm.Companies
@@ -52,11 +51,14 @@ defmodule Core.WebTracker do
              is_binary(language) and
              is_binary(referrer) and
              is_boolean(cookies_enabled) do
+    # Use configured IPIntelligence module
+    ip_intelligence_mod = Application.get_env(:core, Core.WebTracker.IPIntelligence, Core.WebTracker.IPIntelligence)
+
     # Check for existing active session
     case WebSessions.get_active_session(tenant, visitor_id, origin) do
       nil ->
         # No active session, verify IP and create new session
-        case IPIntelligence.get_ip_data(ip) do
+        case ip_intelligence_mod.get_ip_data(ip) do
           {:ok, ip_data} ->
             if ip_data.is_threat do
               {:error, :forbidden, "ip is a threat"}
@@ -80,7 +82,7 @@ defmodule Core.WebTracker do
                   create_event(attrs, session)
 
                   # Get company info from Snitcher after session creation
-                  case IPIntelligence.get_company_info(ip) do
+                  case ip_intelligence_mod.get_company_info(ip) do
                     {:ok, %{domain: domain, company: company}} ->
                       case company do
                         nil ->
