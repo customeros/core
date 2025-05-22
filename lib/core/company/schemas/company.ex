@@ -15,6 +15,16 @@ defmodule Core.Company.Schemas.Company do
     field :icon_key, :string
     field :country_a2, :string
 
+    # Enrichment attempt timestamps
+    field :domain_scrape_attempt_at, :utc_datetime
+    field :industry_enrich_attempt_at, :utc_datetime
+    field :name_enrich_attempt_at, :utc_datetime
+    field :icon_enrich_attempt_at, :utc_datetime
+
+    # LinkedIn fields
+    field :linkedin_id, :string
+    field :linkedin_alias, :string
+
     timestamps(type: :utc_datetime)
   end
 
@@ -26,6 +36,14 @@ defmodule Core.Company.Schemas.Company do
     industry: String.t() | nil,
     icon_key: String.t() | nil,
     country_a2: String.t() | nil,
+    # Enrichment attempt timestamps
+    domain_scrape_attempt_at: DateTime.t() | nil,
+    industry_enrich_attempt_at: DateTime.t() | nil,
+    name_enrich_attempt_at: DateTime.t() | nil,
+    icon_enrich_attempt_at: DateTime.t() | nil,
+    # LinkedIn fields
+    linkedin_id: String.t() | nil,
+    linkedin_alias: String.t() | nil,
     inserted_at: DateTime.t(),
     updated_at: DateTime.t()
   }
@@ -34,7 +52,11 @@ defmodule Core.Company.Schemas.Company do
 
   def changeset(company, attrs) do
     company
-    |> cast(attrs, [:id, :primary_domain, :name, :industry_code, :industry, :icon_key, :country_a2])
+    |> cast(attrs, [
+      :id, :primary_domain, :name, :industry_code, :industry, :icon_key, :country_a2,
+      :domain_scrape_attempt_at, :industry_enrich_attempt_at, :name_enrich_attempt_at, :icon_enrich_attempt_at,
+      :linkedin_id, :linkedin_alias
+    ])
     |> validate_required([:id, :primary_domain])
     |> validate_format(:id, @id_regex)
     |> unique_constraint(:primary_domain)
