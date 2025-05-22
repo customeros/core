@@ -18,19 +18,19 @@ defmodule Core.Scraper.Clean do
     lines = String.split(text, "\n")
 
     # First pass: parse into sections and remove link-heavy ones
-    sections = 
+    sections =
       lines
       |> parse_document_sections()
       |> remove_navigation_heavy_sections()
-      
+
     # Second pass: remove list-heavy sections and navigation markers
-    sections 
+    sections
     |>remove_lists_and_navigation_markers()
     |>render_document()
   end
 
   defp parse_document_sections(lines) do
-    {sections, current} = 
+    {sections, current} =
       Enum.reduce(lines, {[], %DocumentSection{}}, fn line, {sections, current} ->
         if is_heading(line) || is_horizontal_rule(line) do
           # Save previous section if it exists
@@ -45,17 +45,17 @@ defmodule Core.Scraper.Clean do
         else
           # Analyze line content
           trimmed_line = String.trim(line)
-          
+
           current = cond do
             is_markdown_link(line) || is_html_link(line) || is_link_definition(line) ->
               %{current | link_count: current.link_count + 1, content: current.content ++ [line]}
-            
+
             is_link_list_item(line) ->
               %{current | list_count: current.list_count + 1, content: current.content ++ [line]}
-            
+
             String.length(trimmed_line) > 0 ->
               %{current | text_count: current.text_count + 1, content: current.content ++ [line]}
-            
+
             true ->
               %{current | content: current.content ++ [line]}
           end
@@ -146,11 +146,6 @@ defmodule Core.Scraper.Clean do
     Regex.match?(link_def_regex, line)
   end
 
-  defp is_list_item(line) do
-    list_item_regex = ~r/^\s*[\*\-+]\s+.+$|^\s*\d+\.\s+.+$/
-    Regex.match?(list_item_regex, line)
-  end
-
   defp is_link_list_item(line) do
     link_list_item_regex = ~r/^\s*[\*\-+]\s+\[.+\]\(.+\).*$|^\s*\d+\.\s+\[.+\]\(.+\).*$/
     Regex.match?(link_list_item_regex, line)
@@ -210,5 +205,5 @@ defmodule Core.Scraper.Clean do
     # Trim leading/trailing whitespace
     String.trim(text)
   end
-  
+
 end

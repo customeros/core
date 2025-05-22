@@ -6,6 +6,7 @@ defmodule Core.Company.Enrich do
   alias Core.Repo
   alias Core.Company.Schemas.Company
   alias Core.Scraper.Scrape
+  alias Core.Industry.Industries
 
   def start_link(_opts) do
     GenServer.start_link(__MODULE__, %{}, name: __MODULE__)
@@ -77,20 +78,54 @@ defmodule Core.Company.Enrich do
 
           if count > 0 do
             Logger.debug(
-              "Marked industry enrichment attempt for company #{company_id}"
+              "Starting industry enrichment for company #{company_id} (domain: #{company.primary_domain})"
             )
+
+            # Get industry code from AI
+            case Core.AI.Company.Industry.identify(%{
+              domain: company.primary_domain,
+              homepage_content: company.homepage_content
+            }) do
+              {:ok, industry_code} ->
+                # Get industry name from our industries table
+                case Industries.get_by_code(industry_code) do
+                  nil ->
+                    Logger.warning(
+                      "Industry code #{industry_code} not found in industries table for company #{company_id}"
+                    )
+
+                  industry ->
+                    # Update company with industry code and name
+                    {update_count, _} =
+                      Repo.update_all(
+                        from(c in Company, where: c.id == ^company_id),
+                        set: [
+                          industry_code: industry.code,
+                          industry: industry.name
+                        ]
+                      )
+
+                    if update_count > 0 do
+                      Logger.info(
+                        "Successfully enriched industry for company #{company_id} (domain: #{company.primary_domain}): #{industry.code} - #{industry.name}"
+                      )
+                    else
+                      Logger.error(
+                        "Failed to update industry for company #{company_id} (domain: #{company.primary_domain})"
+                      )
+                    end
+                end
+
+              {:error, reason} ->
+                Logger.error(
+                  "Failed to get industry code from AI for company #{company_id} (domain: #{company.primary_domain}): #{inspect(reason)}"
+                )
+            end
           else
             Logger.error(
               "Failed to mark industry enrichment attempt for company #{company_id}"
             )
           end
-
-          # TODO: Implement industry code enrichment logic here
-          # This will involve:
-          # 1. Analyzing scraped_content
-          # 2. Determining appropriate industry code (using Snitcher)
-          # 3. Updating company with industry code
-          # 4. Creating a lead for the company
         else
           Logger.info(
             "Skipping industry enrichment for company #{company_id}: #{enrichment_skip_reason(company)}"
