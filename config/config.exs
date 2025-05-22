@@ -31,7 +31,9 @@ config :opentelemetry, :processors,
   }
 
 # Mailer
-config :swoosh, :api_client, Swoosh.ApiClient.Finch
+config :swoosh,
+  api_client: Swoosh.ApiClient.Finch,
+  finch_name: Core.Finch
 
 # External services and integrations
 config :core,

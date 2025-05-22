@@ -44,7 +44,7 @@ priv/scripts/*
 .elixir-tools/
 .lexical
 
-.env*
+.env
 .mise*
 
 .*.bun-build

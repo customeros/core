@@ -15,7 +15,20 @@ defmodule Core.Auth.Users.UserNotifier do
         text_body: opts[:text_body]
       )
 
-    with {:ok, _metadata} <- Mailer.deliver(email) do
+    email_with_options =
+      case opts[:message_stream] do
+        nil ->
+          email
+
+        _ ->
+          Swoosh.Email.put_provider_option(
+            email,
+            :message_stream,
+            opts[:message_stream]
+          )
+      end
+
+    with {:ok, _metadata} <- Mailer.deliver(email_with_options) do
       {:ok, email}
     end
   end
@@ -38,7 +51,8 @@ defmodule Core.Auth.Users.UserNotifier do
       to: user.email,
       subject: "Sign in to CustomerOS",
       html_body: html,
-      text_body: text
+      text_body: text,
+      message_stream: "magic-link"
     )
   end
 
@@ -49,7 +63,8 @@ defmodule Core.Auth.Users.UserNotifier do
       to: user.email,
       subject: "Create your account on CustomerOS",
       html_body: html,
-      text_body: text
+      text_body: text,
+      message_stream: "magic-link"
     )
   end
 
@@ -95,7 +110,7 @@ defmodule Core.Auth.Users.UserNotifier do
     <.email_layout>
       <h1>Hey there!</h1>
 
-      <p>Please use this link to create your account at ExampleApp:</p>
+      <p>Please use this link to create your account at CustomerOS:</p>
 
       <a href={@url}>{@url}</a>
 
@@ -109,7 +124,7 @@ defmodule Core.Auth.Users.UserNotifier do
     <.email_layout>
       <h1>Hey there!</h1>
 
-      <p>Please use this link to sign in to MyApp:</p>
+      <p>Please use this link to sign in to CustomerOS:</p>
 
       <a href={@url}>{@url}</a>
 

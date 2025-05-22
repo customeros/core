@@ -13,11 +13,4 @@ config :core, Web.Endpoint,
 
 config :logger, level: :info
 
-# Disable Swoosh Local Memory Storage
-config :swoosh, local: false
-
-config :core, Core.Mailer,
-  adapter: Swoosh.Adapters.Postmark,
-  api_key: System.get_env("POSTMARK_API_KEY", "")
-
 config :core, :app_env, :prod
