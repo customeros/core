@@ -33,6 +33,13 @@ defmodule Core.Crm.Companies.Enrich do
 
   def enrich_name(_), do: {:error, :invalid_company_id}
 
+  @spec enrich_country(String.t()) :: :ok
+  def enrich_country(company_id) when is_binary(company_id) do
+    GenServer.cast(__MODULE__, {:enrich_country, company_id})
+  end
+
+  def enrich_country(_), do: {:error, :invalid_company_id}
+
   # Server Callbacks
 
   @impl true
@@ -55,6 +62,12 @@ defmodule Core.Crm.Companies.Enrich do
   @impl true
   def handle_cast({:enrich_name, company_id}, state) do
     Task.start(fn -> process_name_enrichment(company_id) end)
+    {:noreply, state}
+  end
+
+  @impl true
+  def handle_cast({:enrich_country, company_id}, state) do
+    Task.start(fn -> process_country_enrichment(company_id) end)
     {:noreply, state}
   end
 
@@ -194,6 +207,69 @@ defmodule Core.Crm.Companies.Enrich do
     end
   end
 
+  defp process_country_enrichment(company_id) do
+    case Repo.get(Company, company_id) do
+      nil ->
+        Logger.warning("Company #{company_id} not found for country enrichment")
+
+      company ->
+        if should_enrich_country?(company) do
+          # Safely update only the country_enrich_attempt_at field
+          {count, _} =
+            Repo.update_all(
+              from(c in Company, where: c.id == ^company_id),
+              set: [country_enrich_attempt_at: DateTime.utc_now()]
+            )
+
+          if count > 0 do
+            Logger.debug(
+              "Starting country enrichment for company #{company_id} (domain: #{company.primary_domain})"
+            )
+
+            # Get country code from AI
+            case Core.AI.Company.Location.identifyCountryCodeA2(%{
+              domain: company.primary_domain,
+              homepage_content: company.homepage_content
+            }) do
+              {:ok, country_code_a2} ->
+                # Ensure country code is uppercase before saving
+                country_code_a2_uppercase = String.upcase(country_code_a2)
+
+                # Update company with the identified country code
+                {update_count, _} =
+                  Repo.update_all(
+                    from(c in Company, where: c.id == ^company_id),
+                    set: [country_a2: country_code_a2_uppercase]
+                  )
+
+                if update_count > 0 do
+                  Logger.info(
+                    "Successfully enriched country for company #{company_id} (domain: #{company.primary_domain}): #{country_code_a2_uppercase}"
+                  )
+                else
+                  Logger.error(
+                    "Failed to update country for company #{company_id} (domain: #{company.primary_domain})"
+                  )
+                end
+
+              {:error, reason} ->
+                Logger.error(
+                  "Failed to get country code from AI for company #{company_id} (domain: #{company.primary_domain}): #{inspect(reason)}"
+                )
+            end
+          else
+            Logger.error(
+              "Failed to mark country enrichment attempt for company #{company_id}"
+            )
+          end
+        else
+          Logger.info(
+            "Skipping country enrichment for company #{company_id}: #{country_enrichment_skip_reason(company)}"
+          )
+        end
+    end
+  end
+
   defp should_enrich_industry?(company) do
     cond do
       not is_nil(company.industry_code) ->
@@ -210,6 +286,19 @@ defmodule Core.Crm.Companies.Enrich do
   defp should_enrich_name?(company) do
     cond do
       not is_nil(company.name) and company.name != "" ->
+        false
+
+      is_nil(company.homepage_content) or company.homepage_content == "" ->
+        false
+
+      true ->
+        true
+    end
+  end
+
+  defp should_enrich_country?(company) do
+    cond do
+      not is_nil(company.country_a2) and company.country_a2 != "" ->
         false
 
       is_nil(company.homepage_content) or company.homepage_content == "" ->
@@ -237,6 +326,19 @@ defmodule Core.Crm.Companies.Enrich do
     cond do
       not is_nil(company.name) and company.name != "" ->
         "name already set"
+
+      is_nil(company.homepage_content) or company.homepage_content == "" ->
+        "no homepage content available"
+
+      true ->
+        "unknown"
+    end
+  end
+
+  defp country_enrichment_skip_reason(company) do
+    cond do
+      not is_nil(company.country_a2) and company.country_a2 != "" ->
+        "country_a2 already set"
 
       is_nil(company.homepage_content) or company.homepage_content == "" ->
         "no homepage content available"
@@ -283,6 +385,7 @@ defmodule Core.Crm.Companies.Enrich do
                     # Trigger enrichment processes after successful scraping
                     enrich_industry(company_id)
                     enrich_name(company_id)
+                    enrich_country(company_id)
                   else
                     Logger.error(
                       "Failed to store scraped content for company #{company_id} (domain: #{company.primary_domain})"
