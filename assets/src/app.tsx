@@ -6,11 +6,13 @@ import { createRoot } from 'react-dom/client';
 import axios from 'axios';
 
 import { Leads } from './pages/Leads';
+import { Signin } from './pages/Signin.tsx';
 
 axios.defaults.xsrfHeaderName = 'x-csrf-token';
 
 const pages = {
   Leads,
+  Signin,
 };
 createInertiaApp({
   resolve: async name => {

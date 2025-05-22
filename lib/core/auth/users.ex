@@ -240,7 +240,7 @@ defmodule Core.Auth.Users do
 
         UserNotifier.deliver_login_link(
           user,
-          "#{Web.Endpoint.url()}/login/email/token/#{email_token}"
+          "#{Web.Endpoint.url()}/signin/token/#{email_token}"
         )
 
       # New user, create a new account.
@@ -252,7 +252,7 @@ defmodule Core.Auth.Users do
 
         UserNotifier.deliver_register_link(
           user,
-          "#{Web.Endpoint.url()}/login/email/token/#{email_token}"
+          "#{Web.Endpoint.url()}/signin/token/#{email_token}"
         )
     end
   end

@@ -35,6 +35,11 @@ defmodule Web.Router do
   scope "/", Web do
     pipe_through :browser
 
+    get "/", PageController, :home
+    get "/signin", AuthController, :index
+    post "/signin", AuthController, :send_magic_link
+    get "/signin/token/:token", AuthController, :signin_with_token
+
     get "/home", PageController, :home
     get "/demo", DemoController, :index
     get "/leads", LeadsController, :index
@@ -63,12 +68,16 @@ defmodule Web.Router do
     pipe_through :api
 
     resources "/documents", DocumentController, only: [:create]
-    post "/organizations/:organization_id/documents", DocumentController, :create
+
+    post "/organizations/:organization_id/documents",
+         DocumentController,
+         :create
+
     get "/organizations/:organization_id/documents", DocumentController, :index
   end
 
   # Enable LiveDashboard and Swoosh mailbox preview in development
-  if Application.compile_env(:realtime, :dev_routes) do
+  if Application.compile_env(:core, :dev_routes) do
     # If you want to use the LiveDashboard in production, you should put
     # it behind authentication and allow only admins to access it.
     # If your application does not have an admins-only section yet,
@@ -80,7 +89,7 @@ defmodule Web.Router do
       pipe_through [:fetch_session, :protect_from_forgery]
 
       live_dashboard "/dashboard", metrics: Web.Telemetry
-      # forward "/mailbox", Plug.Swoosh.MailboxPreview
+      forward "/mailbox", Plug.Swoosh.MailboxPreview
     end
   end
 end
