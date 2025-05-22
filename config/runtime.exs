@@ -116,7 +116,7 @@ config :core, :puremd,
   puremd_api_path: "https://pure.md/",
   puremd_api_key: get_env.("PUREMD_API_KEY", nil)
 
-if get_env.("POSTMARK_API_KEY", nil) == nil do
+if get_env.("POSTMARK_API_KEY", nil) in [nil, ""] do
   config :swoosh, :api_client, false
   config :core, Core.Mailer, adapter: Swoosh.Adapters.Local
 else
