@@ -110,3 +110,8 @@ end
 config :core, :jina,
   jina_api_path: "https://r.jina.ai/",
   jina_api_key: get_env.("JINA_API_KEY", nil)
+
+# PureMD configuration
+config :core, :puremd,
+  puremd_api_path: "https://pure.md/",
+  puremd_api_key: get_env.("PUREMD_API_KEY", nil)
