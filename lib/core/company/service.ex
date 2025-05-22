@@ -10,23 +10,20 @@ defmodule Core.Company.Service do
     do: {:error, "domain must be a string"}
 
   def get_or_create_by_domain(domain) when is_binary(domain) do
-    case Companies.get_by_primary_domain(domain) do
-      nil ->
-        # Company doesn't exist, validate domain and create it
-        case PrimaryDomain.primary_domain_check(domain) do
-          {true, primary_domain} ->
+    case PrimaryDomain.primary_domain_check(domain) do
+      {_, ""} ->
+        {:error, "not a valid domain"}
+
+      {_, primary_domain} ->
+        case Companies.get_by_primary_domain(primary_domain) do
+          nil ->
+            # Company doesn't exist, create it
             create_company_and_trigger_scraping(primary_domain)
 
-          {false, primary_domain} when primary_domain != "" ->
-            create_company_and_trigger_scraping(primary_domain)
-
-          {false, ""} ->
-            {:error, "not a valid domain"}
+          company ->
+            # Company exists, return it
+            {:ok, company}
         end
-
-      company ->
-        # Company exists, return it
-        {:ok, company}
     end
   end
 
