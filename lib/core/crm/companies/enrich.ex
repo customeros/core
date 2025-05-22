@@ -150,20 +150,42 @@ defmodule Core.Crm.Companies.Enrich do
 
           if count > 0 do
             Logger.debug(
-              "Marked name enrichment attempt for company #{company_id}"
+              "Starting name enrichment for company #{company_id} (domain: #{company.primary_domain})"
             )
+
+            # Get company name from AI
+            case Core.AI.Company.Name.identify(%{
+              domain: company.primary_domain,
+              homepage_content: company.homepage_content
+            }) do
+              {:ok, name} ->
+                # Update company with the identified name
+                {update_count, _} =
+                  Repo.update_all(
+                    from(c in Company, where: c.id == ^company_id),
+                    set: [name: name]
+                  )
+
+                if update_count > 0 do
+                  Logger.info(
+                    "Successfully enriched name for company #{company_id} (domain: #{company.primary_domain}): #{name}"
+                  )
+                else
+                  Logger.error(
+                    "Failed to update name for company #{company_id} (domain: #{company.primary_domain})"
+                  )
+                end
+
+              {:error, reason} ->
+                Logger.error(
+                  "Failed to get company name from AI for company #{company_id} (domain: #{company.primary_domain}): #{inspect(reason)}"
+                )
+            end
           else
             Logger.error(
               "Failed to mark name enrichment attempt for company #{company_id}"
             )
           end
-
-          # TODO: Implement name enrichment logic here
-          # This will involve:
-          # 1. Analyzing scraped_content
-          # 2. Determining appropriate company name
-          # 3. Updating company with enriched name
-          # 4. Updating related records if needed
         else
           Logger.info(
             "Skipping name enrichment for company #{company_id}: #{name_enrichment_skip_reason(company)}"

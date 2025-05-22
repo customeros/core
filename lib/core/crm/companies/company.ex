@@ -12,7 +12,7 @@ defmodule Core.Crm.Companies.Company do
     field(:name, :string)
     field(:industry_code, :string)
     field(:industry, :string)
-    field(:icon_key, :string)
+    field(:logo_key, :string)
     field(:country_a2, :string)
 
     # Enrichment attempt timestamps
@@ -38,7 +38,7 @@ defmodule Core.Crm.Companies.Company do
           name: String.t() | nil,
           industry_code: String.t() | nil,
           industry: String.t() | nil,
-          icon_key: String.t() | nil,
+          logo_key: String.t() | nil,
           country_a2: String.t() | nil,
           # Enrichment attempt timestamps
           domain_scrape_attempt_at: DateTime.t() | nil,
@@ -64,7 +64,7 @@ defmodule Core.Crm.Companies.Company do
       :name,
       :industry_code,
       :industry,
-      :icon_key,
+      :logo_key,
       :country_a2,
       :domain_scrape_attempt_at,
       :industry_enrich_attempt_at,
