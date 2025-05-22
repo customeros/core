@@ -83,17 +83,33 @@ defmodule Core.WebTracker do
                     {:ok, %{domain: domain, company: company}} ->
                       case company do
                         nil ->
-                          Logger.warning("Company not found for ip #{ip}: domain: #{domain}")
+                          Logger.warning(
+                            "Company not found for ip #{ip}: domain: #{domain}"
+                          )
 
                         company ->
-                          Logger.info("Found company for ip #{ip}: domain: #{domain} company: #{company.name}")
+                          Logger.info(
+                            "Found company for ip #{ip}: domain: #{domain} company: #{company.name}"
+                          )
+
+                          case Core.Company.Service.get_or_create_by_domain(
+                                 domain
+                               ) do
+                            {:ok, company} ->
+                              Core.Crm.Leads.get_or_create(tenant, %{
+                                ref_id: company.id,
+                                type: :company
+                              })
+                          end
 
                           # TODO: Create lead by domain
                           # This will be implemented as an async call to another service
                       end
 
                     {:error, reason} ->
-                      Logger.error("Failed to get company info: #{inspect(reason)}")
+                      Logger.error(
+                        "Failed to get company info: #{inspect(reason)}"
+                      )
                   end
 
                   {:ok, %{status: :accepted, session_id: session.id}}
@@ -139,7 +155,8 @@ defmodule Core.WebTracker do
     }
 
     with {:ok, _event} <- WebTrackerEvents.create(event_attrs),
-         {:ok, _session} <- WebSessions.update_last_event(session, attrs.event_type) do
+         {:ok, _session} <-
+           WebSessions.update_last_event(session, attrs.event_type) do
       {:ok, %{status: :accepted, session_id: session.id}}
     else
       {:error, _changeset} ->
