@@ -2,62 +2,156 @@ defmodule Core.Ai.Webpage.Classify do
   @model :claude_sonnet
   @model_temperature 0.2
   @max_tokens 1024
-  @error_unprocessable "unable to scrape webpage"
 
-  def classify_webpage(nil), do: {:error, "domain cannot be nil"}
-  def classify_webpage(""), do: {:error, "domain cannot be empty string"}
+  alias Core.Ai.Webpage.Classification
 
-  def classify_webpage(domain) when is_binary(domain) do
-    case Core.External.Jina.Service.fetch_page(domain) do
-      {:ok, content} ->
-        case validate_content(content) do
-          {:ok, validated_content} ->
-            {system_prompt, prompt} = build_classify_webpage_prompts(domain, validated_content)
+  def classify_webpage_content(url, content) when is_binary(content) do
+    {system_prompt, prompt} =
+      build_classify_webpage_prompts(url, content)
 
-            request = %Core.Ai.AskAi.AskAIRequest{
-              model: @model,
-              prompt: prompt,
-              system_prompt: system_prompt,
-              max_output_tokens: @max_tokens,
-              model_temperature: @model_temperature
-            }
+    request = %Core.Ai.AskAi.AskAIRequest{
+      model: @model,
+      prompt: prompt,
+      system_prompt: system_prompt,
+      max_output_tokens: @max_tokens,
+      model_temperature: @model_temperature
+    }
 
-            case Core.Ai.AskAi.ask(request) do
-              {:ok, answer} -> {:ok, answer}
-              {:error, reason} -> {:error, reason}
-            end
-
-          {:error, reason} ->
-            {:error, reason}
+    case Core.Ai.AskAi.ask(request) do
+      {:ok, answer} ->
+        case parse_and_validate_response(answer) do
+          {:ok, classification} -> {:ok, classification}
+          {:error, reason} -> {:error, {:validation_failed, reason}}
         end
 
       {:error, reason} ->
-        {:error, "unable to fetch webpage with jina: #{inspect(reason)}"}
-    end
-
-    ## TODO add output validation & save to DB
-  end
-
-  def validate_content(content) do
-    cond do
-      content == "" ->
-        {:error, @error_unprocessable}
-
-      String.contains?(content, "403 Forbidden") ->
-        {:error, @error_unprocessable}
-
-      String.contains?(content, "Robot Challenge") ->
-        {:error, @error_unprocessable}
-
-      String.contains?(content, "no content") ->
-        {:error, @error_unprocessable}
-
-      true ->
-        {:ok, content}
+        {:error, reason}
     end
   end
 
-  defp build_classify_webpage_prompts(domain, content) do
+  defp parse_and_validate_response(response) when is_binary(response) do
+    with {:ok, json_data} <- Jason.decode(response),
+         {:ok, classification} <- validate_and_build_classification(json_data) do
+      {:ok, classification}
+    else
+      {:error, %Jason.DecodeError{}} ->
+        {:error, "Invalid JSON response"}
+
+      {:error, reason} ->
+        {:error, reason}
+    end
+  end
+
+  defp validate_and_build_classification(json_data) when is_map(json_data) do
+    with {:ok, content_type} <-
+           validate_content_type(json_data["content_type"]),
+         {:ok, secondary_topics} <-
+           validate_list_field(
+             json_data["secondary_topics"],
+             "secondary_topics"
+           ),
+         {:ok, solution_focus} <-
+           validate_list_field(json_data["solution_focus"], "solution_focus"),
+         {:ok, key_pain_points} <-
+           validate_list_field(json_data["key_pain_points"], "key_pain_points"),
+         {:ok, referenced_customers} <-
+           validate_list_field(
+             json_data["referenced_customers"],
+             "referenced_customers"
+           ) do
+      classification = %Classification{
+        primary_topic: normalize_string(json_data["primary_topic"]),
+        secondary_topics: secondary_topics,
+        solution_focus: solution_focus,
+        content_type: content_type,
+        industry_vertical: normalize_string(json_data["industry_vertical"]),
+        key_pain_points: key_pain_points,
+        value_proposition: normalize_string(json_data["value_proposition"]),
+        referenced_customers: referenced_customers
+      }
+
+      {:ok, classification}
+    else
+      {:error, reason} -> {:error, reason}
+    end
+  end
+
+  defp validate_content_type(nil), do: {:ok, :unknown}
+  defp validate_content_type(""), do: {:ok, :unknown}
+
+  defp validate_content_type(content_type) when is_binary(content_type) do
+    normalized =
+      content_type
+      |> String.downcase()
+      |> String.replace(
+        ["technical documentation", "technical docs"],
+        "technical_docs"
+      )
+      |> String.replace(" ", "_")
+
+    valid_types = [
+      "article",
+      "whitepaper",
+      "webinar",
+      "case_study",
+      "product_page",
+      "solution_page",
+      "testimonial",
+      "research_report",
+      "technical_docs"
+    ]
+
+    if normalized in valid_types do
+      {:ok, String.to_atom(normalized)}
+    else
+      # Try to match partial strings for common variations
+      case find_closest_match(normalized, valid_types) do
+        nil -> {:ok, :unknown}
+        match -> {:ok, String.to_atom(match)}
+      end
+    end
+  end
+
+  defp validate_content_type(_), do: {:ok, :unknown}
+
+  defp find_closest_match(input, valid_types) do
+    valid_types
+    |> Enum.find(fn valid_type ->
+      String.contains?(input, valid_type) or String.contains?(valid_type, input)
+    end)
+  end
+
+  defp validate_list_field(nil, _field_name), do: {:ok, []}
+  defp validate_list_field([], _field_name), do: {:ok, []}
+
+  defp validate_list_field(list, _field_name) when is_list(list) do
+    cleaned_list =
+      list
+      |> Enum.filter(&is_binary/1)
+      |> Enum.map(&normalize_string/1)
+      |> Enum.filter(&(&1 != ""))
+
+    {:ok, cleaned_list}
+  end
+
+  defp validate_list_field(value, _field_name) when is_binary(value) do
+    # Handle case where AI returns a single string instead of array
+    if String.trim(value) == "" do
+      {:ok, []}
+    else
+      {:ok, [normalize_string(value)]}
+    end
+  end
+
+  defp validate_list_field(_value, field_name) do
+    {:error, "Invalid #{field_name}: expected list of strings"}
+  end
+
+  defp normalize_string(nil), do: ""
+  defp normalize_string(str) when is_binary(str), do: String.trim(str)
+  defp normalize_string(_), do: ""
+
+  defp build_classify_webpage_prompts(url, content) do
     system_prompt = """
           I will provide you with the scraped content of a webpage along with some metadata about the company it belongs to.  Your job is to classify the content based on:
         - Primary Topic
@@ -111,8 +205,8 @@ defmodule Core.Ai.Webpage.Classify do
     """
 
     prompt = """
-          Domain: #{domain}
-          URL Content: #{content}
+          URL: #{url}
+          Content: #{content}
     """
 
     {system_prompt, prompt}

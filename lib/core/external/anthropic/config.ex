@@ -16,7 +16,9 @@ defmodule Core.External.Anthropic.Config do
     ai_config = Application.get_env(:core, :ai)
 
     %__MODULE__{
-      api_path: ai_config[:anthropic_api_path] || "https://api.anthropic.com/v1/messages",
+      api_path:
+        ai_config[:anthropic_api_path] ||
+          "https://api.anthropic.com/v1/messages",
       api_key: ai_config[:anthropic_api_key],
       timeout: ai_config[:timeout] || 45_000
     }
@@ -25,10 +27,10 @@ defmodule Core.External.Anthropic.Config do
   def validate(%__MODULE__{} = config) do
     cond do
       is_nil(config.api_key) or config.api_key == "" ->
-        {:error, "API key is required"}
+        {:error, "Anthropic API key is required"}
 
       is_nil(config.api_path) or config.api_path == "" ->
-        {:error, "API path is required"}
+        {:error, "Anthropic API path is required"}
 
       true ->
         :ok
