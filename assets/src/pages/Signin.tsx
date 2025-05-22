@@ -1,7 +1,19 @@
+import { useForm } from '@inertiajs/react';
 import { Button } from './components/Button/Button';
 import { Input } from './components/Input';
 
 export const Signin = () => {
+  const { data, post, errors, setData, processing } = useForm({
+    email: '',
+  });
+
+  const submit = (e: React.FormEvent<HTMLFormElement>) => {
+    e.preventDefault();
+    post('/login');
+  };
+
+  console.log(errors);
+
   return (
     <div className="h-screen w-screen flex overflow-hidden max-h-screen max-w-screen">
       <div className="flex-1 items-center h-screen overflow-hidden">
@@ -14,10 +26,20 @@ export const Signin = () => {
                   <img width={223} height={40} alt="CustomerOS" src="/images/CustomerOs-logo.png" />
                   <p className="text-3xl font-semibold mt-[28px] text-gray-900">Welcome back</p>
                 </div>
-                <div className="flex flex-col items-center gap-4 w-full">
+                <form onSubmit={submit} className="flex flex-col items-center gap-4 w-full">
                   <p className="text-gray-500">Sign in to your account</p>
-                  <Input placeholder="Enter your email" variant="outline" className="" />
-                  <Button className="w-full" colorScheme="primary">
+                  <Input
+                    placeholder="Enter your email"
+                    variant="outline"
+                    value={data.email}
+                    onChange={e => setData('email', e.target.value)}
+                  />
+                  <Button
+                    className="w-full"
+                    colorScheme="primary"
+                    isDisabled={processing}
+                    type="submit"
+                  >
                     Sign in with email
                   </Button>
                   <p className="text-gray-500">We'll send you an email with a magic link</p>
@@ -41,7 +63,7 @@ export const Signin = () => {
                       .
                     </div>
                   </div>
-                </div>
+                </form>
               </div>
             </div>
           </div>

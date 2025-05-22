@@ -1,6 +1,8 @@
 defmodule Web.Router do
   use Web, :router
 
+  import Web.UserAuth
+
   pipeline :browser do
     plug :accepts, ["html"]
     plug :fetch_session
@@ -8,6 +10,7 @@ defmodule Web.Router do
     plug :put_root_layout, html: {Web.Layouts, :root}
     plug :protect_from_forgery
     plug :put_secure_browser_headers
+    plug :fetch_current_user
     plug Inertia.Plug
   end
 
@@ -35,16 +38,21 @@ defmodule Web.Router do
   scope "/", Web do
     pipe_through :browser
 
-    get "/", PageController, :home
+    get "/icons.svg", IconsController, :index
+  end
+
+  scope "/", Web do
+    pipe_through [:browser, :require_authenticated_user]
+
+    get "/", LeadsController, :index
+  end
+
+  scope "/", Web do
+    pipe_through [:browser, :redirect_if_user_is_authenticated]
+
     get "/signin", AuthController, :index
     post "/signin", AuthController, :send_magic_link
     get "/signin/token/:token", AuthController, :signin_with_token
-
-    get "/home", PageController, :home
-    get "/demo", DemoController, :index
-    get "/leads", LeadsController, :index
-    get "/icons.svg", IconsController, :index
-    get "/signin", SigninController, :index
   end
 
   scope "/graphql" do
