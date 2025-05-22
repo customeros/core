@@ -25,6 +25,9 @@ defmodule Core.Company.Schemas.Company do
     field :linkedin_id, :string
     field :linkedin_alias, :string
 
+    # Scraped content
+    field :scraped_content, :string
+
     timestamps(type: :utc_datetime)
   end
 
@@ -44,6 +47,8 @@ defmodule Core.Company.Schemas.Company do
     # LinkedIn fields
     linkedin_id: String.t() | nil,
     linkedin_alias: String.t() | nil,
+    # Scraped content
+    scraped_content: String.t() | nil,
     inserted_at: DateTime.t(),
     updated_at: DateTime.t()
   }
@@ -55,7 +60,7 @@ defmodule Core.Company.Schemas.Company do
     |> cast(attrs, [
       :id, :primary_domain, :name, :industry_code, :industry, :icon_key, :country_a2,
       :domain_scrape_attempt_at, :industry_enrich_attempt_at, :name_enrich_attempt_at, :icon_enrich_attempt_at,
-      :linkedin_id, :linkedin_alias
+      :linkedin_id, :linkedin_alias, :scraped_content
     ])
     |> validate_required([:id, :primary_domain])
     |> validate_format(:id, @id_regex)

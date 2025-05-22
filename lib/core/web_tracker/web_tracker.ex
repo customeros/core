@@ -78,6 +78,26 @@ defmodule Core.WebTracker do
                   # Create event with new session
                   create_event(attrs, session)
 
+                  # Get company info from Snitcher after session creation
+                  case IPIntelligence.get_company_info(ip) do
+                    {:ok, %{domain: domain, company: company}} ->
+                      case company do
+                        nil ->
+                          Logger.warning("Company not found for ip #{ip}: domain: #{domain}")
+
+                        company ->
+                          Logger.info("Found company for ip #{ip}: domain: #{domain} company: #{company.name}")
+
+                          # TODO: Create lead by domain
+                          # This will be implemented as an async call to another service
+                      end
+
+                    {:error, reason} ->
+                      Logger.error("Failed to get company info: #{inspect(reason)}")
+                  end
+
+                  {:ok, %{status: :accepted, session_id: session.id}}
+
                 {:error, _changeset} ->
                   {:error, :internal_server_error, "failed to create session"}
               end

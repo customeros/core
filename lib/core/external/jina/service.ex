@@ -3,6 +3,8 @@ defmodule Core.External.Jina.Service do
   Service for fetching web pages using the Jina API.
   """
 
+  require Logger
+
   @error_payment_required {:error, :payment_required}
   @error_unprocessable {:error, :unprocessable}
 
@@ -23,7 +25,8 @@ defmodule Core.External.Jina.Service do
     end
   end
 
-  defp make_request(request_url, api_key) when request_url != "" and api_key != "" do
+  defp make_request(request_url, api_key)
+       when request_url != "" and api_key != "" do
     :get
     |> Finch.build(
       request_url,
@@ -69,8 +72,17 @@ defmodule Core.External.Jina.Service do
     end
   end
 
-  defp handle_response(%Finch.Response{status: 200, body: body}), do: {:ok, body}
-  defp handle_response(%Finch.Response{status: 402}), do: @error_payment_required
-  defp handle_response(%Finch.Response{status: 422}), do: @error_unprocessable
-  defp handle_response(%Finch.Response{status: status}), do: {:error, "error code: #{status}"}
+  defp handle_response(%Finch.Response{status: 200, body: body}),
+    do: {:ok, body}
+
+  defp handle_response(%Finch.Response{status: 402}),
+    do: @error_payment_required
+
+  defp handle_response(%Finch.Response{status: 422}),
+    do: @error_unprocessable
+
+  defp handle_response(%Finch.Response{status: status, body: body}) do
+    Logger.error("error code: #{status}, body: #{body}")
+    {:error, "error code: #{status}"}
+  end
 end
