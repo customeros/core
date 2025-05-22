@@ -15,10 +15,10 @@ defmodule Core.Company.Companies do
     |> Repo.insert()
   end
 
-  @spec get_by_domain(any()) :: Company.t() | nil
-  def get_by_domain(domain) when not is_binary(domain), do: nil
+  @spec get_by_primary_domain(any()) :: Company.t() | nil
+  def get_by_primary_domain(domain) when not is_binary(domain), do: nil
 
-  def get_by_domain(domain) when is_binary(domain) do
+  def get_by_primary_domain(domain) when is_binary(domain) do
     Repo.get_by(Company, primary_domain: domain)
   end
 end
