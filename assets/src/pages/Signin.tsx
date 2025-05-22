@@ -12,8 +12,6 @@ export const Signin = () => {
     post('/signin');
   };
 
-  console.log(errors);
-
   return (
     <div className="h-screen w-screen flex overflow-hidden max-h-screen max-w-screen">
       <div className="flex-1 items-center h-screen overflow-hidden">
