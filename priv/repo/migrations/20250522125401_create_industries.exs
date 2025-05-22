@@ -1,7 +1,6 @@
 defmodule Core.Repo.Migrations.CreateIndustries do
   use Ecto.Migration
-  alias Core.Repo
-  alias Core.Industry.Schemas.Industry
+  alias Core.Crm.Industries.Industry
 
   defp parse_csv_line(line) do
     case Regex.run(~r/^([^,]+),"([^"]*)"$/, line) do
