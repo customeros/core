@@ -32,6 +32,7 @@ export const Signin = () => {
                     placeholder="Enter your email"
                     variant="outline"
                     value={data.email}
+                    className="rounded-lg"
                     onChange={e => setData('email', e.target.value)}
                   />
                   <Button
@@ -40,7 +41,7 @@ export const Signin = () => {
                     isDisabled={processing}
                     type="submit"
                   >
-                    Sign in with email
+                    Sign in with magic link
                   </Button>
                   <p className="text-gray-500">We'll send you an email with a magic link</p>
                   <div className="w-full h-1 border-t" />
