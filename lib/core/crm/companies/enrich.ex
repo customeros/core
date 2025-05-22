@@ -155,9 +155,9 @@ defmodule Core.Crm.Companies.Enrich do
 
             # Get company name from AI
             case Core.AI.Company.Name.identify(%{
-              domain: company.primary_domain,
-              homepage_content: company.homepage_content
-            }) do
+                   domain: company.primary_domain,
+                   homepage_content: company.homepage_content
+                 }) do
               {:ok, name} ->
                 # Update company with the identified name
                 {update_count, _} =
@@ -268,11 +268,11 @@ defmodule Core.Crm.Companies.Enrich do
             # Start the scraping process
             Task.start(fn ->
               case Scrape.scrape_webpage(company.primary_domain) do
-                {:ok, content, _links} ->
+                {:ok, result} ->
                   {update_count, _} =
                     Repo.update_all(
                       from(c in Company, where: c.id == ^company_id),
-                      set: [homepage_content: content]
+                      set: [homepage_content: result.content]
                     )
 
                   if update_count > 0 do

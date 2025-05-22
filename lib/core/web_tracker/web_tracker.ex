@@ -100,9 +100,6 @@ defmodule Core.WebTracker do
                                 type: :company
                               })
                           end
-
-                          # TODO: Create lead by domain
-                          # This will be implemented as an async call to another service
                       end
 
                     {:error, reason} ->
