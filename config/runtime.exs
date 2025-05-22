@@ -63,12 +63,6 @@ config :opentelemetry, :processors,
     }
   }
 
-# Nats configuration
-if config_env() == :prod do
-  # Set NATS environment to production in production mode
-  config :core, :nats, environment: "production"
-end
-
 # IPData and Snitcher configuration
 config :core, :ipdata,
   api_url: "https://api.ipdata.co",
