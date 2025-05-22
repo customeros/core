@@ -1,7 +1,9 @@
 import { Button } from './components/Button/Button';
 import { Icon } from './components/Icon/Icon';
 import { SegmentedView } from './components/SegmentedView/SegmentedView';
+import { usePage } from '@inertiajs/react';
 import clsx from 'clsx';
+
 interface LeadsProps {
   companies: { name: string; count: number; stage: string; domain: string; industry: string }[];
 }
@@ -9,6 +11,10 @@ interface LeadsProps {
 const stages = ['Target', 'Education', 'Solution', 'Evaluation', 'Ready to buy'];
 
 export const Leads = ({ companies }: LeadsProps) => {
+  const page = usePage();
+
+  console.log(page);
+
   return (
     <div className="h-full w-full">
       <div className="flex flex-col items-center justify-center">

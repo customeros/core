@@ -9,7 +9,7 @@ export const Signin = () => {
 
   const submit = (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
-    post('/login');
+    post('/signin');
   };
 
   console.log(errors);
