@@ -11,7 +11,7 @@ defmodule Core.Application do
       Core.Realtime.ColorManager,
       Core.Repo,
       Core.Scraper.Service,
-      Core.Company.Enrich,
+      Core.Crm.Companies.Enrich,
       Web.Endpoint,
       Web.Presence,
       Web.Telemetry,

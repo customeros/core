@@ -1,10 +1,10 @@
-defmodule Core.Company.Enrich do
+defmodule Core.Crm.Companies.Enrich do
   use GenServer
   require Logger
   import Ecto.Query
 
   alias Core.Repo
-  alias Core.Company.Schemas.Company
+  alias Core.Crm.Companies.Company
   alias Core.Scraper.Scrape
   alias Core.Crm.Industries
 

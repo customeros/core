@@ -13,6 +13,7 @@ defmodule Core.WebTracker do
   alias Core.WebTracker.IPIntelligence
   alias Core.WebTracker.WebSessions
   alias Core.WebTracker.WebTrackerEvents
+  alias Core.Crm.Companies
 
   @doc """
   Process a new web tracker event.
@@ -92,9 +93,7 @@ defmodule Core.WebTracker do
                             "Found company for ip #{ip}: domain: #{domain} company: #{company.name}"
                           )
 
-                          case Core.Company.Service.get_or_create_by_domain(
-                                 domain
-                               ) do
+                          case Companies.get_or_create_by_domain(domain) do
                             {:ok, company} ->
                               Core.Crm.Leads.get_or_create(tenant, %{
                                 ref_id: company.id,
