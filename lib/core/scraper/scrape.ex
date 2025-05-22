@@ -5,7 +5,9 @@ defmodule Core.Scraper.Scrape do
   def scrape_webpage(url) do
     case Core.External.Jina.Service.fetch_page(url) do
       {:ok, content} ->
-        process_webpage(content)
+        {:ok, clean_content, links} = process_webpage(content)
+        Core.Scraper.Repository.save_scraped_content(url, clean_content, links)
+        {:ok, content, links}
 
       {:error, _reason} ->
         case Core.External.Puremd.Service.fetch_page(url) do

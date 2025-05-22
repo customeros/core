@@ -2,28 +2,18 @@ defmodule Core.Utils.Domain do
   def to_https(input) when is_binary(input) and byte_size(input) > 0 do
     input = String.trim(input)
 
-    # Define regex patterns
-    domain_only_pattern = ~r/^[a-zA-Z0-9][-a-zA-Z0-9.]*\.[a-zA-Z]{2,}$/
-
-    url_pattern =
-      ~r/^(https?:\/\/)?([a-zA-Z0-9][-a-zA-Z0-9.]*\.[a-zA-Z]{2,})(:\d+)?(\/.*)?$/
-
     cond do
-      # Check if it's already a URL with http/https
-      Regex.match?(url_pattern, input) ->
-        # Get the first capture from the regex
-        captures = Regex.run(url_pattern, input)
-        # The domain should be the third element (index 2) in the captures
-        domain = Enum.at(captures, 2)
-        {:ok, "https://#{domain}"}
+      # Already has https://
+      String.starts_with?(input, "https://") ->
+        {:ok, input}
 
-      # Check if it's just a domain
-      Regex.match?(domain_only_pattern, input) ->
-        {:ok, "https://#{input}"}
+      # Has http:// - convert to https://
+      String.starts_with?(input, "http://") ->
+        {:ok, String.replace_prefix(input, "http://", "https://")}
 
-      # Invalid format
+      # No protocol - add https://
       true ->
-        {:error, "Invalid domain format"}
+        {:ok, "https://#{input}"}
     end
   end
 
