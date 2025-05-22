@@ -1,6 +1,7 @@
 defmodule Core.Company.Enrich do
   use GenServer
   require Logger
+  import Ecto.Query
 
   alias Core.Repo
   alias Core.Company.Schemas.Company
