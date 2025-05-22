@@ -19,6 +19,7 @@ defmodule Core.Crm.Companies.Company do
     field(:domain_scrape_attempt_at, :utc_datetime)
     field(:industry_enrich_attempt_at, :utc_datetime)
     field(:name_enrich_attempt_at, :utc_datetime)
+    field(:country_enrich_attempt_at, :utc_datetime)
     field(:icon_enrich_attempt_at, :utc_datetime)
 
     # LinkedIn fields
@@ -44,6 +45,7 @@ defmodule Core.Crm.Companies.Company do
           domain_scrape_attempt_at: DateTime.t() | nil,
           industry_enrich_attempt_at: DateTime.t() | nil,
           name_enrich_attempt_at: DateTime.t() | nil,
+          country_enrich_attempt_at: DateTime.t() | nil,
           icon_enrich_attempt_at: DateTime.t() | nil,
           # LinkedIn fields
           linkedin_id: String.t() | nil,
@@ -69,6 +71,7 @@ defmodule Core.Crm.Companies.Company do
       :domain_scrape_attempt_at,
       :industry_enrich_attempt_at,
       :name_enrich_attempt_at,
+      :country_enrich_attempt_at,
       :icon_enrich_attempt_at,
       :linkedin_id,
       :linkedin_alias,

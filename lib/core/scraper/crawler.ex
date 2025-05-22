@@ -48,7 +48,7 @@ defmodule Core.Scraper.Crawler do
       Logger.info("Crawling #{url} (depth: #{depth})")
 
       case scrape_url(url) do
-        {:ok, content, links} ->
+        {:ok, content} ->
           # Add a small delay to be nice to the server
           if state.delay > 0, do: Process.sleep(state.delay)
 
@@ -57,7 +57,7 @@ defmodule Core.Scraper.Crawler do
             state
             | visited: MapSet.put(state.visited, url),
               results: Map.put(state.results, url, content),
-              queue: queue_new_links(rest, links, depth, state)
+              queue: queue_new_links(rest, content.links, depth, state)
           }
 
           # Continue crawling
@@ -73,7 +73,7 @@ defmodule Core.Scraper.Crawler do
   defp scrape_url(url) do
     try do
       with {:ok, valid_url} <- Core.Utils.Domain.to_https(url) do
-        handle_url_scraping(valid_url)
+        Core.Scraper.Scrape.scrape_webpage(valid_url)
       else
         {:error, reason} -> {:error, reason}
       end
@@ -82,21 +82,6 @@ defmodule Core.Scraper.Crawler do
     catch
       kind, reason -> {:error, "#{kind}: #{inspect(reason)}"}
     end
-  end
-
-  defp handle_url_scraping(url) do
-    case Core.Scraper.Repository.get_by_url(url) do
-      nil ->
-        Core.Scraper.Scrape.scrape_webpage(url)
-
-      existing_record ->
-        use_cached_content(existing_record)
-    end
-  end
-
-  defp use_cached_content(record) do
-    Logger.info("Using cached content for #{record.url}")
-    {:ok, record.content, record.links}
   end
 
   defp queue_new_links(queue, _links, depth, %{max_depth: max_depth})
