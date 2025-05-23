@@ -27,6 +27,12 @@ const stages = [
   { label: 'Ready to buy', value: 'ready_to_buy', icon: 'rocket-02' },
 ];
 
+const countryCodeToEmoji = (code: string) => {
+  return code
+    .toUpperCase()
+    .replace(/./g, char => String.fromCodePoint(127397 + char.charCodeAt(0)));
+};
+
 export const Leads = ({ companies }: LeadsProps) => {
   const [selectedStage, setSelectedStage] = useState<string>('');
   const page = usePage();
@@ -98,12 +104,15 @@ export const Leads = ({ companies }: LeadsProps) => {
               {filteredCompanies
                 .filter(c => c.stage === stage.value)
                 .map(c => (
-                  <div key={crypto.randomUUID()} className="flex w-full hover:bg-gray-100">
+                  <div
+                    key={crypto.randomUUID()}
+                    className="flex w-full hover:bg-gray-100 items-center"
+                  >
                     <div className="flex pl-6 items-center justify-center">
                       <img src={c.logo} alt={c.name} className="w-10 h-10 rounded-full" />
                     </div>
                     <p className="flex-1 py-2 px-6">{c.name}</p>
-                    <p className="flex mr-6 text-gray-500">{c.country}</p>
+                    <p className="flex mr-6 text-gray-500">{countryCodeToEmoji(c.country)}</p>
                     <p className="flex-1 text-gray-500">{c.domain}</p>
                     <p className="flex-1 ">
                       <span className="bg-gray-100 w-fit px-2 py-1 rounded-[4px]">
