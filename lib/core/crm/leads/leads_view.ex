@@ -2,7 +2,7 @@ defmodule Core.Crm.Leads.LeadView do
   @moduledoc """
   Struct representing a lead view entry with associated company info.
   """
-
+  @derive {Jason.Encoder, only: [:id, :ref_id, :type, :stage, :name, :industry]}
   defstruct [
     :id,
     :ref_id,
