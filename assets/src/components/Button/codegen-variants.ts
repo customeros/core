@@ -8,7 +8,7 @@ const prettierConfig = JSON.parse(fs.readFileSync(path.join(cwd(), '.prettierrc'
 const buttonTypes = ['Link', 'Solid', 'Ghost', 'Outline'];
 const sizes = ['xxs', 'xs', 'sm', 'md', 'lg'];
 
-const colors = ['primary', 'gray'];
+const colors = ['primary', 'gray', 'success', 'error'];
 const variants = ['solid', 'outline', 'link', 'ghost'];
 
 const solidButton = (color: string) => `
@@ -275,7 +275,7 @@ ${buttonTypes
   .join('')}
 `;
 
-const filePath = path.join(cwd(), 'js', 'pages', 'components', 'Button', 'Button.variants.ts');
+const filePath = path.join(cwd(), 'src', 'pages', 'components', 'Button', 'Button.variants.ts');
 
 console.log('Current working directory:', cwd());
 console.log('Writing file to:', filePath);
