@@ -116,7 +116,7 @@ defmodule Core.Research.Crawler do
                 | results: Map.put(new_state.results, url, content)
               }
 
-              new_links = extract_new_links(content.links, depth, updated_state)
+              new_links = extract_new_links(Map.get(content, :links, []), depth, updated_state)
 
               final_state = %{
                 updated_state
