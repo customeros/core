@@ -76,7 +76,8 @@ export const IconButton = forwardRef<HTMLButtonElement, IconButtonProps>(
         className={twMerge(
           buttonVariant({ colorScheme, className }),
           buttonSize({ className, size }),
-          isLoading ? 'opacity-50 cursor-not-allowed' : ''
+          isLoading ? 'opacity-50 cursor-not-allowed' : '',
+          'cursor-pointer'
         )}
       >
         {isLoading && spinner && <span className="relative inline-flex">{spinner}</span>}
