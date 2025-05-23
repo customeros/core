@@ -5,7 +5,7 @@ defmodule Core.Crm.Companies.Enrich do
 
   alias Core.Repo
   alias Core.Crm.Companies.Company
-  alias Core.Scraper.Scrape
+  alias Core.Research.Scraper
   alias Core.Crm.Industries
   alias Core.Media.Images
 
@@ -220,9 +220,9 @@ defmodule Core.Crm.Companies.Enrich do
           if count > 0 do
             # Get country code from AI
             case Core.AI.Company.Location.identifyCountryCodeA2(%{
-              domain: company.primary_domain,
-              homepage_content: company.homepage_content
-            }) do
+                   domain: company.primary_domain,
+                   homepage_content: company.homepage_content
+                 }) do
               {:ok, country_code_a2} ->
                 # Ensure country code is uppercase before saving
                 country_code_a2_uppercase = String.upcase(country_code_a2)
@@ -274,17 +274,19 @@ defmodule Core.Crm.Companies.Enrich do
 
           if count > 0 do
             # Get Brandfetch client ID from configuration
-            client_id = Application.get_env(:core, :brandfetch)[:client_id] ||
-              raise "BRANDFETCH_CLIENT_ID is not configured"
+            client_id =
+              Application.get_env(:core, :brandfetch)[:client_id] ||
+                raise "BRANDFETCH_CLIENT_ID is not configured"
 
             # Construct Brandfetch URL
-            brandfetch_url = "https://cdn.brandfetch.io/#{company.primary_domain}/w/400/h/400?c=#{client_id}"
+            brandfetch_url =
+              "https://cdn.brandfetch.io/#{company.primary_domain}/w/400/h/400?c=#{client_id}"
 
             # Download and store the logo
             case Images.download_and_store(brandfetch_url, %{
-              generate_name: true,
-              path: "_companies"
-            }) do
+                   generate_name: true,
+                   path: "_companies"
+                 }) do
               {:ok, storage_key} ->
                 # Update company with the logo storage key
                 {update_count, _} =
@@ -438,7 +440,7 @@ defmodule Core.Crm.Companies.Enrich do
           if count > 0 do
             # Start the scraping process
             Task.start(fn ->
-              case Scrape.scrape_webpage(company.primary_domain) do
+              case Scraper.scrape_webpage(company.primary_domain) do
                 {:ok, result} ->
                   {update_count, _} =
                     Repo.update_all(
