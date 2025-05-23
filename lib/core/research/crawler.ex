@@ -4,8 +4,8 @@ defmodule Core.Research.Crawler do
   @default_opts [
     max_depth: 2,
     max_pages: 100,
-    # ms between requests
-    delay: 100
+    delay: 100,
+    concurrency: 5
   ]
 
   def start(domain, opts \\ []) do
@@ -13,15 +13,18 @@ defmodule Core.Research.Crawler do
       {:ok, base_domain} ->
         opts = Keyword.merge(@default_opts, opts)
 
-        # Start crawling with initial state
-        crawl(%{
+        # Start crawling with concurrent workers
+        crawl_concurrent(%{
           queue: [{domain, 0}],
           visited: MapSet.new(),
           results: %{},
           base_domain: base_domain,
           max_depth: opts[:max_depth],
           max_pages: opts[:max_pages],
-          delay: opts[:delay]
+          delay: opts[:delay],
+          concurrency: opts[:concurrency],
+          active_tasks: 0,
+          task_refs: MapSet.new()
         })
 
       {:error, reason} ->
@@ -29,52 +32,135 @@ defmodule Core.Research.Crawler do
     end
   end
 
-  defp crawl(%{queue: []} = state) do
-    Logger.info(
-      "Crawling completed. Processed #{MapSet.size(state.visited)} pages."
-    )
+  defp crawl_concurrent(state) do
+    cond do
+      # No more work and no active tasks - we're done
+      Enum.empty?(state.queue) and state.active_tasks == 0 ->
+        Logger.info(
+          "Crawling completed. Processed #{MapSet.size(state.visited)} pages."
+        )
 
-    {:ok, state.results}
+        {:ok, state.results}
+
+      # We've hit max pages - wait for active tasks to finish
+      MapSet.size(state.visited) >= state.max_pages and state.active_tasks == 0 ->
+        Logger.info("Max pages reached. Crawling completed.")
+        {:ok, state.results}
+
+      # Start more tasks if we have queue items and available slots
+      length(state.queue) > 0 and state.active_tasks < state.concurrency and
+          MapSet.size(state.visited) < state.max_pages ->
+        start_next_task(state)
+
+      # Wait for tasks to complete
+      true ->
+        wait_for_task_completion(state)
+    end
   end
 
-  defp crawl(%{queue: [{url, depth} | rest]} = state) do
-    # Skip if already visited
+  defp start_next_task(%{queue: []} = state), do: crawl_concurrent(state)
+
+  defp start_next_task(%{queue: [{url, depth} | rest]} = state) do
+    # Skip if already visited or being processed
     if MapSet.member?(state.visited, url) do
-      # Process next URL
-      crawl(%{state | queue: rest})
+      crawl_concurrent(%{state | queue: rest})
     else
-      # Process this URL
-      Logger.info("Crawling #{url} (depth: #{depth})")
+      # Start async task
+      task =
+        Task.async(fn ->
+          Logger.info("Crawling #{url} (depth: #{depth})")
 
-      # Add a small delay to be nice to the server
-      if state.delay > 0, do: Process.sleep(state.delay)
+          # Add delay to be nice to the server
+          if state.delay > 0, do: Process.sleep(state.delay)
 
-      case scrape_url(url) do
-        {:ok, content} ->
-          # Update state
+          case scrape_url(url) do
+            {:ok, content} ->
+              {:ok, url, depth, content}
+
+            {:error, reason} ->
+              Logger.warning("Failed to scrape #{url}: #{reason}")
+              {:error, url, reason}
+          end
+        end)
+
+      new_state = %{
+        state
+        | queue: rest,
+          visited: MapSet.put(state.visited, url),
+          active_tasks: state.active_tasks + 1,
+          task_refs: MapSet.put(state.task_refs, task.ref)
+      }
+
+      crawl_concurrent(new_state)
+    end
+  end
+
+  defp wait_for_task_completion(state) do
+    receive do
+      {ref, result} ->
+        if MapSet.member?(state.task_refs, ref) do
+          # Clean up the completed task
+          Process.demonitor(ref, [:flush])
+
           new_state = %{
             state
-            | visited: MapSet.put(state.visited, url),
-              results: Map.put(state.results, url, content)
+            | active_tasks: state.active_tasks - 1,
+              task_refs: MapSet.delete(state.task_refs, ref)
           }
 
-          # Check if we've reached max_pages
-          if MapSet.size(new_state.visited) >= state.max_pages do
-            crawl(%{new_state | queue: []})
-          else
-            # Continue crawling with new links
-            crawl(%{
-              new_state
-              | queue: queue_new_links(rest, content.links, depth, state)
-            })
-          end
+          case result do
+            {:ok, url, depth, content} ->
+              # Add results and queue new links
+              updated_state = %{
+                new_state
+                | results: Map.put(new_state.results, url, content)
+              }
 
-        {:error, reason} ->
-          Logger.warning("Failed to scrape #{url}: #{reason}")
-          # Still mark as visited to avoid retrying failed URLs
-          new_state = %{state | visited: MapSet.put(state.visited, url)}
-          crawl(%{new_state | queue: rest})
-      end
+              new_links = extract_new_links(content.links, depth, updated_state)
+
+              final_state = %{
+                updated_state
+                | queue: updated_state.queue ++ new_links
+              }
+
+              crawl_concurrent(final_state)
+
+            {:error, _url, _reason} ->
+              # Just continue without adding results
+              crawl_concurrent(new_state)
+          end
+        else
+          # Unknown task reference, ignore and continue waiting
+          wait_for_task_completion(state)
+        end
+
+      {:DOWN, ref, :process, _pid, _reason} ->
+        if MapSet.member?(state.task_refs, ref) do
+          # Task crashed, clean up
+          new_state = %{
+            state
+            | active_tasks: state.active_tasks - 1,
+              task_refs: MapSet.delete(state.task_refs, ref)
+          }
+
+          crawl_concurrent(new_state)
+        else
+          # Unknown task reference, ignore and continue waiting
+          wait_for_task_completion(state)
+        end
+    end
+  end
+
+  defp extract_new_links(links, depth, state) do
+    if depth >= state.max_depth do
+      []
+    else
+      links
+      |> Enum.filter(fn link ->
+        !MapSet.member?(state.visited, link) &&
+          same_domain?(link, state.base_domain)
+      end)
+      |> Enum.map(fn link -> {link, depth + 1} end)
     end
   end
 
@@ -90,21 +176,6 @@ defmodule Core.Research.Crawler do
     catch
       kind, reason -> {:error, "#{kind}: #{inspect(reason)}"}
     end
-  end
-
-  defp queue_new_links(queue, _links, depth, %{max_depth: max_depth})
-       when depth >= max_depth do
-    queue
-  end
-
-  defp queue_new_links(queue, links, depth, state) do
-    links
-    |> Enum.filter(fn link ->
-      !MapSet.member?(state.visited, link) &&
-        same_domain?(link, state.base_domain)
-    end)
-    |> Enum.map(fn link -> {link, depth + 1} end)
-    |> Enum.concat(queue)
   end
 
   defp same_domain?(url, base_domain) when is_binary(base_domain) do
