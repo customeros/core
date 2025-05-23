@@ -2,9 +2,9 @@ defmodule Core.Media.Images do
   require Logger
 
   @type storage_opts :: %{
-    optional(:generate_name) => boolean(),
-    optional(:path) => String.t()
-  }
+          optional(:generate_name) => boolean(),
+          optional(:path) => String.t()
+        }
 
   defp r2_config do
     Application.get_env(:core, :r2)
@@ -15,11 +15,13 @@ defmodule Core.Media.Images do
   end
 
   defp images_bucket do
-    get_in(images_config(), [:bucket]) || raise "R2 images bucket is not configured"
+    get_in(images_config(), [:bucket]) ||
+      raise "R2 images bucket is not configured"
   end
 
   defp images_cdn_domain do
-    get_in(images_config(), [:cdn_domain]) || raise "R2 images CDN domain is not configured"
+    get_in(images_config(), [:cdn_domain]) ||
+      raise "R2 images CDN domain is not configured"
   end
 
   @doc """
@@ -39,7 +41,8 @@ defmodule Core.Media.Images do
       iex> download_and_store("https://example.com/image.jpg", %{generate_name: true, path: "images/avatars/"})
       {:ok, "images/avatars/abc123def456.jpg"}
   """
-  @spec download_and_store(String.t(), storage_opts()) :: {:ok, String.t()} | {:error, term()}
+  @spec download_and_store(String.t(), storage_opts()) ::
+          {:ok, String.t()} | {:error, term()}
   def download_and_store(url, opts \\ %{}) do
     with {:ok, image_data} <- download_image(url),
          content_type <- get_content_type(url) |> handle_content_type(url),
@@ -57,8 +60,10 @@ defmodule Core.Media.Images do
     case Finch.build(:get, url, [], []) |> Finch.request(Core.Finch) do
       {:ok, %{status: 200, body: body}} ->
         {:ok, body}
+
       {:ok, %{status: status}} ->
         {:error, "HTTP request failed with status #{status}"}
+
       {:error, reason} ->
         {:error, "HTTP request failed: #{inspect(reason)}"}
     end
@@ -73,25 +78,31 @@ defmodule Core.Media.Images do
     * `:generate_name` - If true, generates a random name for the file while preserving extension
     * `:path` - The path prefix where the image should be stored (e.g. "companies" or "users/avatars")
   """
-  @spec store_image(binary(), String.t(), String.t(), storage_opts()) :: {:ok, String.t()} | {:error, term()}
+  @spec store_image(binary(), String.t(), String.t(), storage_opts()) ::
+          {:ok, String.t()} | {:error, term()}
   def store_image(image_data, content_type, original_url, opts \\ %{}) do
-    path = case Map.get(opts, :path, "") do
-      "" -> ""
-      path -> String.trim_trailing(path, "/") <> "/"
-    end
+    path =
+      case Map.get(opts, :path, "") do
+        "" -> ""
+        path -> String.trim_trailing(path, "/") <> "/"
+      end
+
     generate_name = Map.get(opts, :generate_name, false)
 
-    storage_key = if generate_name do
-      extension = get_extension(original_url)
-      "#{path}#{Core.Utils.IdGenerator.generate_id_21("img")}#{extension}"
-    else
-      filename = Path.basename(original_url)
-      "#{path}#{filename}"
-    end
+    storage_key =
+      if generate_name do
+        extension = get_extension(original_url)
+        "#{path}#{Core.Utils.IdGenerator.generate_id_21("img")}#{extension}"
+      else
+        filename = Path.basename(original_url)
+        "#{path}#{filename}"
+      end
 
     config = r2_config()
 
-    case ExAws.S3.put_object(images_bucket(), storage_key, image_data, content_type: content_type)
+    case ExAws.S3.put_object(images_bucket(), storage_key, image_data,
+           content_type: content_type
+         )
          |> ExAws.request(config) do
       {:ok, _} -> {:ok, storage_key}
       {:error, reason} -> {:error, "Failed to store image: #{inspect(reason)}"}
@@ -110,6 +121,7 @@ defmodule Core.Media.Images do
           {"content-type", content_type} -> {:ok, content_type}
           nil -> {:error, "No content type found"}
         end
+
       {:error, reason} ->
         {:error, "Failed to get content type: #{inspect(reason)}"}
     end
@@ -118,12 +130,22 @@ defmodule Core.Media.Images do
   @doc """
   Gets the CDN URL for an image using its storage key.
   """
+  def get_cdn_url(storage_key) when storage_key == "" || storage_key == nil,
+    do: ""
+
   def get_cdn_url(storage_key) when is_binary(storage_key) do
     cdn_domain = images_cdn_domain()
     # Strip any https:// prefix from the domain if it exists
-    clean_domain = String.trim_trailing(String.replace(cdn_domain, ~r/^https?:\/\//, ""), "/")
+    clean_domain =
+      String.trim_trailing(
+        String.replace(cdn_domain, ~r/^https?:\/\//, ""),
+        "/"
+      )
+
     # Normalize the path to prevent double slashes and remove leading slash
-    clean_path = String.trim_leading(String.replace(storage_key, ~r/\/+/, "/"), "/")
+    clean_path =
+      String.trim_leading(String.replace(storage_key, ~r/\/+/, "/"), "/")
+
     "https://#{clean_domain}/#{clean_path}"
   end
 
@@ -131,13 +153,15 @@ defmodule Core.Media.Images do
 
   defp get_extension(url) do
     case Path.extname(url) do
-      "" -> ".jpg"  # Default to .jpg if no extension found
+      # Default to .jpg if no extension found
+      "" -> ".jpg"
       ext -> ext
     end
   end
 
   # Private helper to handle content type
   defp handle_content_type({:ok, content_type}, _url), do: content_type
+
   defp handle_content_type({:error, _}, url) do
     # Try to determine content type from URL extension
     case Path.extname(url) do
@@ -145,7 +169,8 @@ defmodule Core.Media.Images do
       ".gif" -> "image/gif"
       ".webp" -> "image/webp"
       ".svg" -> "image/svg+xml"
-      _ -> "image/jpeg"  # Default to JPEG
+      # Default to JPEG
+      _ -> "image/jpeg"
     end
   end
 end
