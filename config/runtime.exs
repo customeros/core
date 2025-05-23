@@ -120,3 +120,23 @@ else
     adapter: Swoosh.Adapters.Postmark,
     api_key: System.get_env("POSTMARK_API_KEY", "")
 end
+
+# R2 configuration
+config :core, :r2,
+  account_id: System.get_env("CLOUDFLARE_R2_ACCOUNT_ID"),
+  access_key_id: System.get_env("CLOUDFLARE_R2_ACCESS_KEY_ID"),
+  secret_access_key: System.get_env("CLOUDFLARE_R2_ACCESS_KEY_SECRET"),
+  region: "auto",
+  images: [
+    bucket: "images",
+    cdn_domain: System.get_env("R2_IMAGES_CDN")
+  ]
+
+# ExAws configuration for R2
+config :ex_aws, :s3,
+  access_key_id: System.get_env("CLOUDFLARE_R2_ACCESS_KEY_ID"),
+  secret_access_key: System.get_env("CLOUDFLARE_R2_ACCESS_KEY_SECRET"),
+  region: "auto",
+  scheme: "https://",
+  host: "#{System.get_env("CLOUDFLARE_R2_ACCOUNT_ID")}.r2.cloudflarestorage.com",
+  json_codec: Jason

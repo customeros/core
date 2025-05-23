@@ -50,5 +50,5 @@ priv/scripts/*
 .*.bun-build
 
 .idea
-
 /temp/*
+.DS_Store
