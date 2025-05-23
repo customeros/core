@@ -60,7 +60,7 @@ defmodule Core.Auth.Users.User do
     case get_change(changeset, :email) do
       nil -> changeset
       email ->
-        case Domain.extract_domain_from_email(email) do
+        case Domain.extract_domain_from_email(String.downcase(email)) do
           {:ok, domain} ->
             if PersonalEmailProviders.exists?(domain) do
               add_error(changeset, :email, "cannot use a personal email")
