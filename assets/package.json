@@ -5,7 +5,8 @@
   "main": "js/app.jsx",
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1",
-    "codegen": "tsx scripts/codegen-tw.ts"
+    "codegen": "tsx scripts/codegen-tw.ts",
+    "deploy": "NODE_ENV=production npm run codegen && tailwindcss -i css/app.css -o ../priv/static/assets/app.css --minify"
   },
   "private": "true",
   "dependencies": {
