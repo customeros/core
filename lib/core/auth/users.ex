@@ -69,11 +69,12 @@ defmodule Core.Auth.Users do
   def register_user(attrs) do
     email = Map.fetch!(attrs, :email)
     tenant_name = extract_tenant_name(email)
+    domain = extract_domain(email)
 
     tenant =
       case Tenants.get_tenant_by_name(tenant_name) do
         nil ->
-          {:ok, tenant} = Tenants.create_tenant(tenant_name)
+          {:ok, tenant} = Tenants.create_tenant(tenant_name, domain)
           tenant
 
         tenant ->
@@ -89,6 +90,11 @@ defmodule Core.Auth.Users do
   defp extract_tenant_name(email) do
     [_, domain] = String.split(email, "@")
     domain |> String.replace(".", "")
+  end
+
+  defp extract_domain(email) do
+    [_, domain] = String.split(email, "@")
+    domain
   end
 
   ## Settings

@@ -20,21 +20,21 @@ defmodule Core.Auth.Tenants do
 
   ## Tenant registration
 
-  def create_tenant(name) do
+  def create_tenant(name, domain) do
     %Tenant{}
-    |> Tenant.changeset(%{name: name})
+    |> Tenant.changeset(%{name: name, domain: domain})
     |> Repo.insert()
   end
 
-  def create_tenant_and_return_id(name) do
-    case create_tenant(name) do
+  def create_tenant_and_return_id(name, domain) do
+    case create_tenant(name, domain) do
       {:ok, tenant} -> {:ok, tenant.id}
       {:error, changeset} -> {:error, changeset}
     end
   end
 
-  def create_tenant_and_build_icp(name) do
-    case create_tenant_and_return_id(name) do
+  def create_tenant_and_build_icp(name, domain) do
+    case create_tenant_and_return_id(name, domain) do
       {:ok, tenant_id} ->
         tenant_id
         |> Core.Icp.Service.create_icp_for_tenant()
