@@ -80,7 +80,8 @@ defmodule Core.MixProject do
       {:tailwind, "~> 0.3", runtime: Mix.env() == :dev},
       {:ex_aws, "~> 2.5"},
       {:ex_aws_s3, "~> 2.5"},
-      {:sweet_xml, "~> 0.7"}
+      {:sweet_xml, "~> 0.7"},
+      {:hackney, "~> 1.18"}
     ]
   end
 
