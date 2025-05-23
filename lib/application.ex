@@ -5,12 +5,16 @@ defmodule Core.Application do
   @impl true
   def start(_type, _args) do
     children = [
-      {Phoenix.PubSub, name: Realtime.PubSub},
-
-      Core.Icp.Service,
+      Supervisor.child_spec({Phoenix.PubSub, name: Core.PubSub},
+        id: :core_pubsub
+      ),
+      Supervisor.child_spec({Phoenix.PubSub, name: Realtime.PubSub},
+        id: :realtime_pubsub
+      ),
+      Core.Icp.ProfileManager,
       Core.Realtime.ColorManager,
       Core.Repo,
-      Core.Scraper.Service,
+      Core.Research.Orchestrator,
       Core.Crm.Companies.Enrich,
       Web.Endpoint,
       Web.Presence,

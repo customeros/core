@@ -53,15 +53,15 @@ defmodule Core.Crm.Leads do
 
   def get_or_create(tenant, attrs) do
     case Tenants.get_tenant_by_name(tenant) do
-      nil ->
+      {:error, :not_found} ->
         {:error, :not_found, "Tenant not found"}
 
-      %Tenants.Tenant{id: tenant_id} ->
-        case get_by_ref_id(tenant_id, attrs.ref_id) do
+      {:ok, tenant} ->
+        case get_by_ref_id(tenant.id, attrs.ref_id) do
           nil ->
             %Lead{}
             |> Lead.changeset(%{
-              tenant_id: tenant_id,
+              tenant_id: tenant.id,
               ref_id: attrs.ref_id,
               type: attrs.type,
               stage: Map.get(attrs, :stage, :target)

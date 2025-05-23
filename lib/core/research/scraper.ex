@@ -1,18 +1,30 @@
-defmodule Core.Scraper.Scrape do
+defmodule Core.Research.Scraper do
   require Logger
 
   @error_unprocessable "unable to scrape webpage"
 
-  defp jina_service, do: Application.get_env(:core, :jina_service, Core.External.Jina.Service)
-  defp puremd_service, do: Application.get_env(:core, :puremd_service, Core.External.Puremd.Service)
-  defp repo, do: Application.get_env(:core, :scraper_repository, Core.Scraper.Repository)
-  defp classify_service, do: Application.get_env(:core, :classify_service, Core.Ai.Webpage.Classify)
-  defp profile_intent_service, do: Application.get_env(:core, :profile_intent_service, Core.Ai.Webpage.ProfileIntent)
+  defp jina_service,
+    do: Application.get_env(:core, :jina_service, Core.External.Jina.Service)
+
+  defp puremd_service,
+    do:
+      Application.get_env(:core, :puremd_service, Core.External.Puremd.Service)
+
+  defp classify_service,
+    do: Application.get_env(:core, :classify_service, Core.Ai.Webpage.Classify)
+
+  defp profile_intent_service,
+    do:
+      Application.get_env(
+        :core,
+        :profile_intent_service,
+        Core.Ai.Webpage.ProfileIntent
+      )
 
   def scrape_webpage(url) do
-    case repo().get_by_url(url) do
-      nil -> fetch_and_process_webpage(url)
-      existing_record -> use_cached_content(existing_record)
+    case Core.Research.ScrapedWebpages.get_by_url(url) do
+      {:error, :not_found} -> fetch_and_process_webpage(url)
+      {:ok, existing_record} -> use_cached_content(existing_record)
     end
   end
 
@@ -83,7 +95,7 @@ defmodule Core.Scraper.Scrape do
          intent: intent,
          links: links
        }) do
-    case repo().save_scraped_content(
+    case Core.Research.ScrapedWebpages.save_scraped_content(
            url,
            content,
            links,
@@ -122,10 +134,17 @@ defmodule Core.Scraper.Scrape do
   defp process_webpage(url, content) do
     domain = extract_domain(url)
 
-    with clean_content <- Core.Scraper.Clean.process_markdown_webpage(content),
-         {:ok, classification} <- classify_service().classify_webpage_content(domain, clean_content),
-         {:ok, intent} <- profile_intent_service().profile_webpage_intent(domain, clean_content),
-         links <- Core.Scraper.Links.extract_links(clean_content) do
+    with clean_content <-
+           Core.Research.Webpages.Cleaner.process_markdown_webpage(content),
+         {:ok, classification} <-
+           classify_service().classify_webpage_content(domain, clean_content),
+         {:ok, intent} <-
+           profile_intent_service().profile_webpage_intent(
+             domain,
+             clean_content
+           ),
+         links <-
+           Core.Research.Webpages.LinkExtractor.extract_links(clean_content) do
       {:ok,
        %{
          content: clean_content,

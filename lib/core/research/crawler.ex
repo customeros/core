@@ -1,4 +1,4 @@
-defmodule Core.Scraper.Crawler do
+defmodule Core.Research.Crawler do
   require Logger
 
   @default_opts [
@@ -63,7 +63,10 @@ defmodule Core.Scraper.Crawler do
             crawl(%{new_state | queue: []})
           else
             # Continue crawling with new links
-            crawl(%{new_state | queue: queue_new_links(rest, content.links, depth, state)})
+            crawl(%{
+              new_state
+              | queue: queue_new_links(rest, content.links, depth, state)
+            })
           end
 
         {:error, reason} ->
@@ -78,7 +81,7 @@ defmodule Core.Scraper.Crawler do
   defp scrape_url(url) do
     try do
       with {:ok, valid_url} <- Core.Utils.Domain.to_https(url) do
-        Core.Scraper.Scrape.scrape_webpage(valid_url)
+        Core.Research.Scraper.scrape_webpage(valid_url)
       else
         {:error, reason} -> {:error, reason}
       end

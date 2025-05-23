@@ -1,18 +1,20 @@
-defmodule Core.Ai.Icp.Tenant do
+defmodule Core.Research.Builder.ProfileWriter do
+  alias Core.Research.Builder.ProfileValidator
+
   @model :claude_sonnet
   @model_temperature 0.2
   @max_tokens 2048
 
   def generate_icp(domain) when is_binary(domain) do
     with {:ok, pages} <-
-           Core.Scraper.Repository.get_business_pages_by_domain(
+           Core.Research.ScrapedWebpages.get_business_pages_by_domain(
              domain,
              limit: 10
            ),
          {system_prompt, prompt} <- build_prompts(domain, pages),
          {:ok, answer} <-
            Core.Ai.AskAi.ask(build_request(system_prompt, prompt)),
-         {:ok, icp} <- Core.Ai.Icp.ProfileValidator.validate_and_parse(answer) do
+         {:ok, icp} <- ProfileValidator.validate_and_parse(answer) do
       {:ok, icp}
     else
       {:error, reason} -> {:error, reason}
