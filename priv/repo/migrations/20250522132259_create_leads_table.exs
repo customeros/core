@@ -1,12 +1,14 @@
 defmodule Core.Repo.Migrations.CreateLeadsTable do
   use Ecto.Migration
 
-  def change do
-    execute "CREATE TYPE lead_type AS ENUM ('contact', 'company')",
-            "DROP TYPE lead_type"
+  def up do
+    execute """
+    CREATE TYPE lead_type AS ENUM ('contact', 'company')
+    """
 
-    execute "CREATE TYPE lead_stage AS ENUM ('target', 'education', 'solution', 'evaluation', 'ready_to_buy')",
-            "DROP TYPE lead_stage"
+    execute """
+    CREATE TYPE lead_stage AS ENUM ('target', 'education', 'solution', 'evaluation', 'ready_to_buy')
+    """
 
     create table(:leads, primary_key: false) do
       add :id, :string, null: false
@@ -17,5 +19,11 @@ defmodule Core.Repo.Migrations.CreateLeadsTable do
 
       timestamps()
     end
+  end
+
+  def down do
+    drop table(:leads)
+    execute "DROP TYPE lead_stage"
+    execute "DROP TYPE lead_type"
   end
 end
