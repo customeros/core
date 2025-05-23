@@ -77,7 +77,11 @@ defmodule Core.MixProject do
       {:y_ex, "~> 0.7"},
       {:inertia, "~> 2.4.0"},
       {:esbuild, "~> 0.9", runtime: Mix.env() == :dev},
-      {:tailwind, "~> 0.3", runtime: Mix.env() == :dev}
+      {:tailwind, "~> 0.3", runtime: Mix.env() == :dev},
+      {:httpoison, "~> 2.0"},
+      {:ex_aws, "~> 2.5"},
+      {:ex_aws_s3, "~> 2.5"},
+      {:sweet_xml, "~> 0.7"}
     ]
   end
 
