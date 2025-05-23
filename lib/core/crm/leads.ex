@@ -42,11 +42,13 @@ defmodule Core.Crm.Leads do
     |> Repo.all()
     |> Enum.map(fn lead_data ->
       # Generate CDN URL for logo if logo_key exists
-      lead_data = if lead_data.logo_key do
-        Map.put(lead_data, :logo, Images.get_cdn_url(lead_data.logo_key))
-      else
-        Map.put(lead_data, :logo, nil)
-      end
+      lead_data =
+        if lead_data.logo_key do
+          Map.put(lead_data, :logo, Images.get_cdn_url(lead_data.logo_key))
+        else
+          Map.put(lead_data, :logo, nil)
+        end
+
       struct(LeadView, lead_data)
     end)
   end
