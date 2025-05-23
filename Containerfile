@@ -21,19 +21,19 @@ ENV PATH="${BUN_INSTALL}/bin:$PATH"
 WORKDIR /app
 
 # Copy scripts directory for Bun 
-COPY packages/server/core/scripts /app/packages/server/core/scripts
+COPY scripts /app/scripts
 
 # Build JS utilities with Bun
-WORKDIR /app/packages/server/core/scripts
+WORKDIR /app/scripts
 RUN bun install
 RUN bun build --compile convert_lexical_to_yjs.ts --output convert_lexical_to_yjs
 
 # Create priv/scripts directory and move compiled script
-RUN mkdir -p /app/packages/server/core/priv/scripts
-RUN mv convert_lexical_to_yjs /app/packages/server/core/priv/scripts/
+RUN mkdir -p /app/priv/scripts
+RUN mv convert_lexical_to_yjs /app/priv/scripts/
 
 # Set working directory to Elixir app directory
-WORKDIR /app/packages/server/core
+WORKDIR /app
 
 # Install hex + rebar
 RUN mix local.hex --force && \
@@ -43,27 +43,27 @@ RUN mix local.hex --force && \
 ENV MIX_ENV="prod"
 
 # Copy Elixir project files
-COPY packages/server/core/mix.exs packages/server/core/mix.lock ./
+COPY mix.exs mix.lock ./
 
 # Get dependencies
 RUN mix deps.get --only $MIX_ENV
 
 # Copy config files
-COPY packages/server/core/config/config.exs packages/server/core/config/${MIX_ENV}.exs config/
+COPY config/config.exs config/${MIX_ENV}.exs config/
 
 # Compile dependencies
 RUN mix deps.compile
 
 # Copy application code
-COPY packages/server/core/lib lib
-COPY packages/server/core/priv priv
+COPY lib lib
+COPY priv priv
 
 # overlays
 RUN mkdir -p rel/overlays/bin
 
 # Copy overlay files
-COPY packages/server/core/scripts/rel/server rel/overlays/bin/server
-COPY packages/server/core/scripts/rel/server.bat rel/overlays/bin/server.bat
+COPY scripts/rel/server rel/overlays/bin/server
+COPY scripts/rel/server.bat rel/overlays/bin/server.bat
 
 # Make sure server script is executable
 RUN if [ -f rel/overlays/bin/server ]; then chmod +x rel/overlays/bin/server; fi
@@ -72,10 +72,22 @@ RUN if [ -f rel/overlays/bin/server ]; then chmod +x rel/overlays/bin/server; fi
 RUN mix compile
 
 # Copy runtime config
-COPY packages/server/core/config/runtime.exs config/
+COPY config/runtime.exs config/
 
 # Create the release
 RUN mix release
+
+# Install Node.js and npm
+RUN curl -fsSL https://deb.nodesource.com/setup_20.x | bash - && \
+  apt-get install -y nodejs && \
+  npm install -g npm@latest
+
+# Install frontend dependencies
+COPY assets /app/assets
+RUN npm install --prefix /app/assets
+
+# Build and deploy frontend assets
+RUN mix assets.deploy
 
 #
 # Runner Stage
@@ -101,10 +113,10 @@ RUN chown nobody /app
 ENV MIX_ENV="prod"
 
 # Copy the release from the build stage
-COPY --from=builder --chown=nobody:root /app/packages/server/core/_build/${MIX_ENV}/rel/core ./
+COPY --from=builder --chown=nobody:root /app/_build/${MIX_ENV}/rel/core ./
 
 # Copy the entrypoint script
-COPY packages/server/core/scripts/build/entrypoint.sh /app/entrypoint.sh
+COPY scripts/build/entrypoint.sh /app/entrypoint.sh
 RUN chmod +x /app/entrypoint.sh
 
 # Switch to non-root user
