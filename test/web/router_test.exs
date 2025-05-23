@@ -35,6 +35,15 @@ defmodule Web.RouterTest do
     conn = Plug.Test.init_test_session(conn, %{})
     conn = Phoenix.ConnTest.fetch_flash(conn)
     email = "test@example.com"
+
+    # Use a unique tenant name and domain for each test run
+    unique_tenant = "examplecom_#{System.unique_integer()}"
+    unique_domain = "example_#{System.unique_integer()}@example.com"
+    {:ok, _tenant} = Core.Auth.Tenants.create_tenant(%{
+      name: unique_tenant,
+      domain: unique_domain
+    })
+
     conn = post(conn, "/signin", %{email: email})
 
     # Should show success message and render signin page

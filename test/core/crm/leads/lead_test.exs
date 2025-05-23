@@ -27,7 +27,7 @@ defmodule Core.Crm.Leads.LeadTest do
       }
 
       # Create tenant first
-      {:ok, tenant_record} = Core.Auth.Tenants.create_tenant(tenant)
+      {:ok, tenant_record} = Core.Auth.Tenants.create_tenant(%{name: tenant, domain: "#{tenant}.com"})
 
       assert {:ok, %Lead{} = lead} = Core.Crm.Leads.get_or_create(tenant, valid_attrs)
       assert lead.ref_id == valid_attrs.ref_id

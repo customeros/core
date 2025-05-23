@@ -20,9 +20,15 @@ defmodule Core.Auth.Tenants do
 
   ## Tenant registration
 
-  def create_tenant(name) do
+  def create_tenant(name) when is_binary(name) do
     %Tenant{}
-    |> Tenant.changeset(%{name: name})
+    |> Tenant.changeset(%{name: name, domain: "#{name}.com"})
+    |> Repo.insert()
+  end
+
+  def create_tenant(%{name: name, domain: domain}) do
+    %Tenant{}
+    |> Tenant.changeset(%{name: name, domain: domain})
     |> Repo.insert()
   end
 
