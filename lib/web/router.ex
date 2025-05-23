@@ -49,6 +49,7 @@ defmodule Web.Router do
     pipe_through [:browser, :require_authenticated_user]
 
     get "/", LeadsController, :index
+    get "/leads/download", LeadsController, :download
   end
 
   scope "/", Web do

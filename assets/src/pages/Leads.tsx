@@ -51,7 +51,14 @@ export const Leads = ({ companies }: LeadsProps) => {
               {/* <Button colorScheme="primary" size="xs" leftIcon={<Icon name="rocket-02" />}>
                 Add Lead
               </Button> */}
-              <Button colorScheme="gray" size="xs" leftIcon={<Icon name="download-02" />}>
+              <Button
+                colorScheme="gray"
+                size="xs"
+                leftIcon={<Icon name="download-02" />}
+                onClick={() => {
+                  window.location.href = '/leads/download';
+                }}
+              >
                 Download
               </Button>
             </div>
