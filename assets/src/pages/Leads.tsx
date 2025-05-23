@@ -1,8 +1,9 @@
-import { Button } from './components/Button/Button';
-import { Icon, IconName } from './components/Icon/Icon';
-import { SegmentedView } from './components/SegmentedView/SegmentedView';
-import { usePage } from '@inertiajs/react';
 import clsx from 'clsx';
+import { usePage } from '@inertiajs/react';
+
+import { Button } from '../components/Button/Button';
+import { Icon, IconName } from '../components/Icon/Icon';
+import { SegmentedView } from '../components/SegmentedView/SegmentedView';
 
 interface LeadsProps {
   companies: { name: string; count: number; stage: string; domain: string; industry: string }[];
@@ -19,12 +20,10 @@ const stages = [
 export const Leads = ({ companies }: LeadsProps) => {
   const page = usePage();
 
-  console.log(page);
-
   return (
     <div className="h-full w-full">
       <div className="flex flex-col items-center justify-center">
-        <div className=" w-full border-b border-gray-200">
+        <div className="w-full border-b border-gray-200">
           <div className="flex justify-between items-center w-full py-2 px-4">
             <h1 className="">Leads</h1>
             <div className="flex gap-2">
