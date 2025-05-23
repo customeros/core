@@ -11,14 +11,23 @@ defmodule Core.Crm.Leads do
   alias Core.Media.Images
 
   @spec get_by_ref_id(tenant_id :: String.t(), ref_id :: String.t()) ::
-          Lead.t() | nil
+          {:ok, Lead.t()} | {:error, :not_found}
   def get_by_ref_id(tenant_id, ref_id) do
-    Repo.get_by(Lead, tenant_id: tenant_id, ref_id: ref_id)
+    case Repo.get_by(Lead, tenant_id: tenant_id, ref_id: ref_id) do
+      nil -> {:error, :not_found}
+      %Lead{} = lead -> {:ok, lead}
+    end
   end
 
-  @spec list_by_tenant_id(tenant_id :: String.t()) :: [Lead.t()]
+  @spec list_by_tenant_id(tenant_id :: String.t()) ::
+          {:ok, [Lead.t()]} | {:error, :not_found}
   def list_by_tenant_id(tenant_id) do
-    Repo.all(Lead, where: [tenant_id: tenant_id])
+    leads = from(l in Lead, where: l.tenant_id == ^tenant_id) |> Repo.all()
+
+    case leads do
+      [] -> {:error, :not_found}
+      leads -> {:ok, leads}
+    end
   end
 
   @spec list_view_by_tenant_id(tenant_id :: String.t()) :: [LeadView.t()]
@@ -60,7 +69,7 @@ defmodule Core.Crm.Leads do
 
       {:ok, tenant} ->
         case get_by_ref_id(tenant.id, attrs.ref_id) do
-          nil ->
+          {:error, :not_found} ->
             %Lead{}
             |> Lead.changeset(%{
               tenant_id: tenant.id,
