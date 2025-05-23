@@ -32,7 +32,8 @@ defmodule Core.Crm.Leads do
         type: l.type,
         stage: l.stage,
         name: c.name,
-        industry: c.industry
+        industry: c.industry,
+        domain: c.primary_domain
       }
     )
     |> Repo.all()

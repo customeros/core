@@ -8,7 +8,13 @@ interface LeadsProps {
   companies: { name: string; count: number; stage: string; domain: string; industry: string }[];
 }
 
-const stages = ['Target', 'Education', 'Solution', 'Evaluation', 'Ready to buy'];
+const stages = [
+  { label: 'Target', value: 'target' },
+  { label: 'Education', value: 'education' },
+  { label: 'Solution', value: 'solution' },
+  { label: 'Evaluation', value: 'evaluation' },
+  { label: 'Ready to buy', value: 'ready_to_buy' },
+];
 
 export const Leads = ({ companies }: LeadsProps) => {
   const page = usePage();
@@ -34,19 +40,23 @@ export const Leads = ({ companies }: LeadsProps) => {
 
         <div className="w-[70%] max-h-[100px] flex items-center justify-center my-3">
           {stages.map((stage, index) => {
-            const count = companies.filter(c => c.stage === stage).length;
+            const count = companies.filter(c => c.stage === stage.value).length;
             return (
               <div
-                key={stage}
+                key={stage.value}
                 className={clsx(
                   'flex-1 flex items-center justify-center rounded-md bg-primary-100 ',
                   index > 0 && 'ml-[-5px]'
                 )}
-                style={{ height: `${count ? count * 5 : 15}px`, zIndex: 10 - index }}
+                style={{
+                  height: `${count ? count * 5 : 15}px`,
+                  zIndex: 10 - index,
+                  maxHeight: '100px',
+                }}
               >
                 <div className="flex text-center text-primary-700">
                   <span>
-                    {stage}
+                    {stage.label}
                     <span className="mx-1">•</span>
                   </span>
                   <span>{count}</span>
@@ -57,14 +67,14 @@ export const Leads = ({ companies }: LeadsProps) => {
         </div>
 
         {stages.map(stage => (
-          <div key={stage} className="w-full">
+          <div key={stage.value} className="w-full">
             <SegmentedView
               icon={<Icon name="rocket-02" className="text-gray-500" />}
-              label={stage}
-              count={companies.filter(c => c.stage === stage).length}
+              label={stage.label}
+              count={companies.filter(c => c.stage === stage.value).length}
             />
             {companies
-              .filter(c => c.stage === stage)
+              .filter(c => c.stage === stage.value)
               .map(c => (
                 <div key={c.name} className="flex w-full hover:bg-gray-100">
                   <p className="flex-1 py-2 px-6">{c.name}</p>

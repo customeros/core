@@ -4,7 +4,9 @@ defmodule Core.Repo.Migrations.CreateIndustries do
 
   defp parse_csv_line(line) do
     case Regex.run(~r/^([^,]+),"([^"]*)"$/, line) do
-      [_, code, name] -> {code, name}
+      [_, code, name] ->
+        {code, name}
+
       _ ->
         [code, name] = String.split(line, ",", parts: 2)
         {code, name}
@@ -13,8 +15,8 @@ defmodule Core.Repo.Migrations.CreateIndustries do
 
   def change do
     create table(:industries, primary_key: false) do
-      add :code, :string, primary_key: true
-      add :name, :string, null: false
+      add(:code, :string, primary_key: true)
+      add(:name, :string, null: false)
 
       timestamps(type: :utc_datetime)
     end
@@ -28,11 +30,12 @@ defmodule Core.Repo.Migrations.CreateIndustries do
         |> String.split("\n", trim: true)
         |> Enum.each(fn line ->
           {code, name} = parse_csv_line(line)
-          execute """
+
+          execute("""
           INSERT INTO industries (code, name, inserted_at, updated_at)
           VALUES ('#{code}', '#{name}', NOW(), NOW())
           ON CONFLICT (code) DO NOTHING;
-          """
+          """)
         end)
 
       {:error, reason} ->
