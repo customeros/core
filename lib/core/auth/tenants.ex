@@ -43,7 +43,7 @@ defmodule Core.Auth.Tenants do
     case create_tenant_and_return_id(name, domain) do
       {:ok, tenant_id} ->
         tenant_id
-        |> Core.Icp.ProfileManager.create_icp_for_tenant()
+        |> Core.Research.Orchestrator.create_icp_for_tenant()
 
       {:error, changeset} ->
         {:error, changeset}
