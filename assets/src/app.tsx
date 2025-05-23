@@ -1,8 +1,8 @@
 import 'phoenix_html';
 
-import React from 'react';
 import { createInertiaApp } from '@inertiajs/react';
 import { createRoot } from 'react-dom/client';
+
 import axios from 'axios';
 
 import { Leads } from './pages/Leads';

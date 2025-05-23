@@ -126,12 +126,16 @@ defmodule Core.Media.Images do
   Gets the CDN URL for a storage key.
   Handles CDN domains that may have https:// prefix and trailing slashes.
   """
-  def get_cdn_url(storage_key) when is_binary(storage_key) and storage_key != "" do
+  def get_cdn_url(storage_key)
+      when is_binary(storage_key) and storage_key != "" do
     case Application.get_env(:core, :r2)[:images][:cdn_domain] do
-      nil -> nil
+      nil ->
+        nil
+
       cdn_domain ->
         # Strip any https:// prefix and trailing slash from the domain
-        clean_cdn_domain = cdn_domain
+        clean_cdn_domain =
+          cdn_domain
           |> String.replace(~r/^https?:\/\//, "")
           |> String.trim_trailing("/")
 
@@ -141,6 +145,7 @@ defmodule Core.Media.Images do
         "https://#{clean_cdn_domain}/#{clean_key}"
     end
   end
+
   def get_cdn_url(_), do: nil
 
   # Private functions

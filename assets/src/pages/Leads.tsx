@@ -1,3 +1,5 @@
+import { useState } from 'react';
+
 import clsx from 'clsx';
 import { usePage } from '@inertiajs/react';
 
@@ -6,7 +8,15 @@ import { Icon, IconName } from '../components/Icon/Icon';
 import { SegmentedView } from '../components/SegmentedView/SegmentedView';
 
 interface LeadsProps {
-  companies: { name: string; count: number; stage: string; domain: string; industry: string }[];
+  companies: {
+    logo: string;
+    name: string;
+    count: number;
+    stage: string;
+    country: string;
+    domain: string;
+    industry: string;
+  }[];
 }
 
 const stages = [
@@ -18,7 +28,12 @@ const stages = [
 ];
 
 export const Leads = ({ companies }: LeadsProps) => {
+  const [selectedStage, setSelectedStage] = useState<string>('');
   const page = usePage();
+
+  const filteredCompanies = selectedStage
+    ? companies.filter(c => c.stage === selectedStage)
+    : companies;
 
   return (
     <div className="h-full w-full">
@@ -44,14 +59,16 @@ export const Leads = ({ companies }: LeadsProps) => {
               <div
                 key={stage.value}
                 className={clsx(
-                  'flex-1 flex items-center justify-center rounded-md bg-primary-100 ',
-                  index > 0 && 'ml-[-5px]'
+                  'flex-1 flex items-center justify-center rounded-md bg-primary-100 cursor-pointer',
+                  index > 0 && 'ml-[-5px]',
+                  selectedStage === stage.value && 'bg-primary-200'
                 )}
                 style={{
                   height: `${count ? count * 5 : 15}px`,
                   zIndex: 10 - index,
                   maxHeight: '100px',
                 }}
+                onClick={() => setSelectedStage(stage.value)}
               >
                 <div className="flex text-center text-primary-700">
                   <span>
@@ -65,24 +82,38 @@ export const Leads = ({ companies }: LeadsProps) => {
           })}
         </div>
 
-        {stages.map(stage => (
-          <div key={stage.value} className="w-full">
-            <SegmentedView
-              icon={<Icon name={stage.icon as IconName} className="text-gray-500" />}
-              label={stage.label}
-              count={companies.filter(c => c.stage === stage.value).length}
-            />
-            {companies
-              .filter(c => c.stage === stage.value)
-              .map(c => (
-                <div key={crypto.randomUUID()} className="flex w-full hover:bg-gray-100">
-                  <p className="flex-1 py-2 px-6">{c.name}</p>
-                  <p className="flex-1 text-gray-500">{c.domain}</p>
-                  <p className="flex-1 text-gray-500">{c.industry}</p>
-                </div>
-              ))}
-          </div>
-        ))}
+        {stages
+          .filter(stage => !selectedStage || stage.value === selectedStage)
+          .map(stage => (
+            <div key={stage.value} className="w-full">
+              <div className="mb-2">
+                <SegmentedView
+                  icon={<Icon name={stage.icon as IconName} className="text-gray-500" />}
+                  label={stage.label}
+                  count={companies.filter(c => c.stage === stage.value).length}
+                  isSelected={selectedStage === stage.value}
+                  handleClearFilter={() => setSelectedStage('')}
+                />
+              </div>
+              {filteredCompanies
+                .filter(c => c.stage === stage.value)
+                .map(c => (
+                  <div key={crypto.randomUUID()} className="flex w-full hover:bg-gray-100">
+                    <div className="flex pl-6 items-center justify-center">
+                      <img src={c.logo} alt={c.name} className="w-10 h-10 rounded-full" />
+                    </div>
+                    <p className="flex-1 py-2 px-6">{c.name}</p>
+                    <p className="flex mr-6 text-gray-500">{c.country}</p>
+                    <p className="flex-1 text-gray-500">{c.domain}</p>
+                    <p className="flex-1 ">
+                      <span className="bg-gray-100 w-fit px-2 py-1 rounded-[4px]">
+                        {c.industry}
+                      </span>
+                    </p>
+                  </div>
+                ))}
+            </div>
+          ))}
       </div>
     </div>
   );
