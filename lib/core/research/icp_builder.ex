@@ -7,7 +7,6 @@ defmodule Core.Research.IcpBuilder do
          {:ok, _scraped_data} <-
            Core.Research.Crawler.start(tenant_record.domain),
          {:ok, icp} <- ProfileWriter.generate_icp(tenant_record.domain) do
-      dbg(icp)
 
       profile = %{
         domain: tenant_record.domain,
