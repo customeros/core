@@ -5,15 +5,38 @@ defmodule Core.Crm.Leads do
 
   import Ecto.Query, warn: false
   alias Core.Repo
-  alias Core.Crm.Leads.Lead
+  alias Core.Crm.Leads.{Lead, LeadView}
   alias Core.Auth.Tenants
+  alias Core.Crm.Companies.Company
 
+  @spec get_by_ref_id(tenant_id :: String.t(), ref_id :: String.t()) ::
+          Lead.t() | nil
   def get_by_ref_id(tenant_id, ref_id) do
     Repo.get_by(Lead, tenant_id: tenant_id, ref_id: ref_id)
   end
 
+  @spec list_by_tenant_id(tenant_id :: String.t()) :: [Lead.t()]
   def list_by_tenant_id(tenant_id) do
     Repo.all(Lead, where: [tenant_id: tenant_id])
+  end
+
+  @spec list_view_by_tenant_id(tenant_id :: String.t()) :: [LeadView.t()]
+  def list_view_by_tenant_id(tenant_id) do
+    from(l in Lead,
+      where: l.tenant_id == ^tenant_id and l.type == :company,
+      join: c in Company,
+      on: c.id == l.ref_id,
+      select: %{
+        id: l.id,
+        ref_id: l.ref_id,
+        type: l.type,
+        stage: l.stage,
+        name: c.name,
+        industry: c.industry
+      }
+    )
+    |> Repo.all()
+    |> Enum.map(&struct(LeadView, &1))
   end
 
   def get_or_create(tenant, attrs) do

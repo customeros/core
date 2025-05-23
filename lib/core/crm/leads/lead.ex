@@ -2,6 +2,19 @@ defmodule Core.Crm.Leads.Lead do
   use Ecto.Schema
   import Ecto.Changeset
 
+  @type lead_type :: :contact | :company
+  @type lead_stage ::
+          :target | :education | :solution | :evaluation | :ready_to_buy
+  @type t :: %__MODULE__{
+          id: String.t(),
+          tenant_id: String.t(),
+          ref_id: String.t(),
+          type: lead_type,
+          stage: lead_stage,
+          inserted_at: DateTime.t(),
+          updated_at: DateTime.t()
+        }
+
   @primary_key {:id, :string, autogenerate: false}
   schema "leads" do
     field(:tenant_id, :string)
