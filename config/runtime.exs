@@ -140,3 +140,7 @@ config :ex_aws, :s3,
   scheme: "https://",
   host: "#{System.get_env("CLOUDFLARE_R2_ACCOUNT_ID")}.r2.cloudflarestorage.com",
   json_codec: Jason
+
+# Brandfetch configuration
+config :core, :brandfetch,
+  client_id: get_env.("BRANDFETCH_CLIENT_ID", nil)

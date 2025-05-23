@@ -7,6 +7,7 @@ defmodule Core.Crm.Companies.Enrich do
   alias Core.Crm.Companies.Company
   alias Core.Scraper.Scrape
   alias Core.Crm.Industries
+  alias Core.Media.Images
 
   def start_link(_opts) do
     GenServer.start_link(__MODULE__, %{}, name: __MODULE__)
@@ -40,6 +41,13 @@ defmodule Core.Crm.Companies.Enrich do
 
   def enrich_country(_), do: {:error, :invalid_company_id}
 
+  @spec enrich_logo(String.t()) :: :ok
+  def enrich_logo(company_id) when is_binary(company_id) do
+    GenServer.cast(__MODULE__, {:enrich_logo, company_id})
+  end
+
+  def enrich_logo(_), do: {:error, :invalid_company_id}
+
   # Server Callbacks
 
   @impl true
@@ -71,14 +79,18 @@ defmodule Core.Crm.Companies.Enrich do
     {:noreply, state}
   end
 
+  @impl true
+  def handle_cast({:enrich_logo, company_id}, state) do
+    Task.start(fn -> process_logo_enrichment(company_id) end)
+    {:noreply, state}
+  end
+
   # Private Functions
 
   defp process_industry_enrichment(company_id) do
     case Repo.get(Company, company_id) do
       nil ->
-        Logger.warning(
-          "Company #{company_id} not found for industry enrichment"
-        )
+        Logger.error("Company #{company_id} not found for industry enrichment")
 
       company ->
         if should_enrich_industry?(company) do
@@ -90,10 +102,6 @@ defmodule Core.Crm.Companies.Enrich do
             )
 
           if count > 0 do
-            Logger.debug(
-              "Starting industry enrichment for company #{company_id} (domain: #{company.primary_domain})"
-            )
-
             # Get industry code from AI
             case Core.AI.Company.Industry.identify(%{
                    domain: company.primary_domain,
@@ -118,11 +126,7 @@ defmodule Core.Crm.Companies.Enrich do
                         ]
                       )
 
-                    if update_count > 0 do
-                      Logger.info(
-                        "Successfully enriched industry for company #{company_id} (domain: #{company.primary_domain}): #{industry.code} - #{industry.name}"
-                      )
-                    else
+                    if update_count == 0 do
                       Logger.error(
                         "Failed to update industry for company #{company_id} (domain: #{company.primary_domain})"
                       )
@@ -162,10 +166,6 @@ defmodule Core.Crm.Companies.Enrich do
             )
 
           if count > 0 do
-            Logger.debug(
-              "Starting name enrichment for company #{company_id} (domain: #{company.primary_domain})"
-            )
-
             # Get company name from AI
             case Core.AI.Company.Name.identify(%{
                    domain: company.primary_domain,
@@ -179,11 +179,7 @@ defmodule Core.Crm.Companies.Enrich do
                     set: [name: name]
                   )
 
-                if update_count > 0 do
-                  Logger.info(
-                    "Successfully enriched name for company #{company_id} (domain: #{company.primary_domain}): #{name}"
-                  )
-                else
+                if update_count == 0 do
                   Logger.error(
                     "Failed to update name for company #{company_id} (domain: #{company.primary_domain})"
                   )
@@ -222,10 +218,6 @@ defmodule Core.Crm.Companies.Enrich do
             )
 
           if count > 0 do
-            Logger.debug(
-              "Starting country enrichment for company #{company_id} (domain: #{company.primary_domain})"
-            )
-
             # Get country code from AI
             case Core.AI.Company.Location.identifyCountryCodeA2(%{
               domain: company.primary_domain,
@@ -242,11 +234,7 @@ defmodule Core.Crm.Companies.Enrich do
                     set: [country_a2: country_code_a2_uppercase]
                   )
 
-                if update_count > 0 do
-                  Logger.info(
-                    "Successfully enriched country for company #{company_id} (domain: #{company.primary_domain}): #{country_code_a2_uppercase}"
-                  )
-                else
+                if update_count == 0 do
                   Logger.error(
                     "Failed to update country for company #{company_id} (domain: #{company.primary_domain})"
                   )
@@ -265,6 +253,65 @@ defmodule Core.Crm.Companies.Enrich do
         else
           Logger.info(
             "Skipping country enrichment for company #{company_id}: #{country_enrichment_skip_reason(company)}"
+          )
+        end
+    end
+  end
+
+  defp process_logo_enrichment(company_id) do
+    case Repo.get(Company, company_id) do
+      nil ->
+        Logger.error("Company #{company_id} not found for logo enrichment")
+
+      company ->
+        if should_enrich_logo?(company) do
+          # Safely update only the logo_enrich_attempt_at field
+          {count, _} =
+            Repo.update_all(
+              from(c in Company, where: c.id == ^company_id),
+              set: [logo_enrich_attempt_at: DateTime.utc_now()]
+            )
+
+          if count > 0 do
+            # Get Brandfetch client ID from configuration
+            client_id = Application.get_env(:core, :brandfetch)[:client_id] ||
+              raise "BRANDFETCH_CLIENT_ID is not configured"
+
+            # Construct Brandfetch URL
+            brandfetch_url = "https://cdn.brandfetch.io/#{company.primary_domain}/w/400/h/400?c=#{client_id}"
+
+            # Download and store the logo
+            case Images.download_and_store(brandfetch_url, %{
+              generate_name: true,
+              path: "_companies"
+            }) do
+              {:ok, storage_key} ->
+                # Update company with the logo storage key
+                {update_count, _} =
+                  Repo.update_all(
+                    from(c in Company, where: c.id == ^company_id),
+                    set: [logo_key: storage_key]
+                  )
+
+                if update_count == 0 do
+                  Logger.error(
+                    "Failed to update logo key for company #{company_id} (domain: #{company.primary_domain})"
+                  )
+                end
+
+              {:error, reason} ->
+                Logger.error(
+                  "Failed to download and store logo for company #{company_id} (domain: #{company.primary_domain}): #{inspect(reason)}"
+                )
+            end
+          else
+            Logger.error(
+              "Failed to mark logo enrichment attempt for company #{company_id}"
+            )
+          end
+        else
+          Logger.error(
+            "Skipping logo enrichment for company #{company_id}: #{logo_enrichment_skip_reason(company)}"
           )
         end
     end
@@ -302,6 +349,19 @@ defmodule Core.Crm.Companies.Enrich do
         false
 
       is_nil(company.homepage_content) or company.homepage_content == "" ->
+        false
+
+      true ->
+        true
+    end
+  end
+
+  defp should_enrich_logo?(company) do
+    cond do
+      not is_nil(company.logo_key) and company.logo_key != "" ->
+        false
+
+      is_nil(company.primary_domain) or company.primary_domain == "" ->
         false
 
       true ->
@@ -348,6 +408,19 @@ defmodule Core.Crm.Companies.Enrich do
     end
   end
 
+  defp logo_enrichment_skip_reason(company) do
+    cond do
+      not is_nil(company.logo_key) and company.logo_key != "" ->
+        "logo_key already set"
+
+      is_nil(company.primary_domain) or company.primary_domain == "" ->
+        "no primary domain available"
+
+      true ->
+        "unknown"
+    end
+  end
+
   defp process_homepage_scraping(company_id) do
     case Repo.get(Company, company_id) do
       nil ->
@@ -363,10 +436,6 @@ defmodule Core.Crm.Companies.Enrich do
             )
 
           if count > 0 do
-            Logger.debug(
-              "Starting homepage scraping for company #{company_id} (domain: #{company.primary_domain})"
-            )
-
             # Start the scraping process
             Task.start(fn ->
               case Scrape.scrape_webpage(company.primary_domain) do
@@ -377,19 +446,16 @@ defmodule Core.Crm.Companies.Enrich do
                       set: [homepage_content: result.content]
                     )
 
-                  if update_count > 0 do
-                    Logger.info(
-                      "Successfully scraped and stored homepage content for company #{company_id} (domain: #{company.primary_domain})"
+                  if update_count == 0 do
+                    Logger.error(
+                      "Failed to store scraped content for company #{company_id} (domain: #{company.primary_domain})"
                     )
-
+                  else
                     # Trigger enrichment processes after successful scraping
                     enrich_industry(company_id)
                     enrich_name(company_id)
                     enrich_country(company_id)
-                  else
-                    Logger.error(
-                      "Failed to store scraped content for company #{company_id} (domain: #{company.primary_domain})"
-                    )
+                    enrich_logo(company_id)
                   end
 
                 {:error, reason} ->
