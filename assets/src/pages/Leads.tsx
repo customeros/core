@@ -1,5 +1,5 @@
 import { Button } from './components/Button/Button';
-import { Icon } from './components/Icon/Icon';
+import { Icon, IconName } from './components/Icon/Icon';
 import { SegmentedView } from './components/SegmentedView/SegmentedView';
 import { usePage } from '@inertiajs/react';
 import clsx from 'clsx';
@@ -9,11 +9,11 @@ interface LeadsProps {
 }
 
 const stages = [
-  { label: 'Target', value: 'target' },
-  { label: 'Education', value: 'education' },
-  { label: 'Solution', value: 'solution' },
-  { label: 'Evaluation', value: 'evaluation' },
-  { label: 'Ready to buy', value: 'ready_to_buy' },
+  { label: 'Target', value: 'target', icon: 'target-04' },
+  { label: 'Education', value: 'education', icon: 'book-closed' },
+  { label: 'Solution', value: 'solution', icon: 'lightbulb-02' },
+  { label: 'Evaluation', value: 'evaluation', icon: 'clipboard-check' },
+  { label: 'Ready to buy', value: 'ready_to_buy', icon: 'rocket-02' },
 ];
 
 export const Leads = ({ companies }: LeadsProps) => {
@@ -69,14 +69,14 @@ export const Leads = ({ companies }: LeadsProps) => {
         {stages.map(stage => (
           <div key={stage.value} className="w-full">
             <SegmentedView
-              icon={<Icon name="rocket-02" className="text-gray-500" />}
+              icon={<Icon name={stage.icon as IconName} className="text-gray-500" />}
               label={stage.label}
               count={companies.filter(c => c.stage === stage.value).length}
             />
             {companies
               .filter(c => c.stage === stage.value)
               .map(c => (
-                <div key={c.name} className="flex w-full hover:bg-gray-100">
+                <div key={crypto.randomUUID()} className="flex w-full hover:bg-gray-100">
                   <p className="flex-1 py-2 px-6">{c.name}</p>
                   <p className="flex-1 text-gray-500">{c.domain}</p>
                   <p className="flex-1 text-gray-500">{c.industry}</p>

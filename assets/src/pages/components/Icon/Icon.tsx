@@ -7,7 +7,12 @@ interface IconProps extends SVGAttributes<SVGElement> {
   className?: string;
 }
 
-export type IconName = 'rocket-02' | 'download-02';
+export type IconName =
+  | 'rocket-02'
+  | 'download-02'
+  | 'book-closed'
+  | 'lightbulb-02'
+  | 'clipboard-check';
 
 export const Icon = ({
   name,
