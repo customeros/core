@@ -38,11 +38,12 @@ config :core, :ipdata,
 config :core, Core.External.IPData.Service, Core.External.IPData.Service.Mock
 
 # Use mock for IPIntelligence in test
-config :core, Core.WebTracker.IPIntelligence, Core.WebTracker.IPIntelligence.Mock
+config :core,
+       Core.WebTracker.IPIntelligence,
+       Core.WebTracker.IPIntelligence.Mock
 
 # Configure service mocks for test
 config :core, :jina_service, Core.External.Jina.Service.Mock
 config :core, :puremd_service, Core.External.Puremd.Service.Mock
-config :core, :scraper_repository, Core.Scraper.Repository.Mock
 config :core, :classify_service, Core.Ai.Webpage.Classify.Mock
 config :core, :profile_intent_service, Core.Ai.Webpage.ProfileIntent.Mock

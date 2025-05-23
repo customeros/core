@@ -4,8 +4,7 @@
 
 ```bash
 brew install elixir
-brew install postgresql@14
-brew install nats-server
+brew install postgresql@17
 curl -fsSL https://bun.sh/install | bash
 exec /bin/zsh
 bun install
@@ -14,12 +13,11 @@ bun install
 ## Setup
 
 ```bash
-brew services start postgresql@14
+brew services start postgresql@17
 createdb customeros
 createuser -s postgres
-export POSTGRES_PORT=5432
-echo 'export POSTGRES_PORT=5432' >> ~/.zshrc
-brew services start nats-server
+export POSTGRES_PORT=5555
+echo 'export POSTGRES_PORT=5555' >> ~/.zshrc
 mix setup
 ```
 
@@ -31,6 +29,12 @@ createdb customeros
 mix deps.get
 mix ecto.migrate
 mix setup
+```
+
+## Database migrations
+
+```base
+mix ecto.gen.migration {migration name}
 ```
 
 ## Run

@@ -1,4 +1,4 @@
-defmodule Core.Ai.Icp.Profile do
+defmodule Core.Research.Builder.Profile do
   @derive Jason.Encoder
 
   @type t :: %__MODULE__{

@@ -1,13 +1,10 @@
-defmodule Core.Scraper.Repository do
+defmodule Core.Research.ScrapedWebpages do
   @moduledoc """
   Database operations for scraped webpages.
   """
 
-  @callback get_by_url(url :: String.t()) :: nil | %Core.Scraper.ScrapedWebpage{}
-  @callback save_scraped_content(url :: String.t(), content :: String.t(), links :: list(String.t()), classification :: nil | %Core.Ai.Webpage.Classification{}, intent :: nil | %Core.Ai.Webpage.Intent{}) :: {:ok, %Core.Scraper.ScrapedWebpage{}} | {:error, term()}
-
   alias Core.Repo
-  alias Core.Scraper.ScrapedWebpage
+  alias Core.Research.Webpages.ScrapedWebpage
   alias Core.Ai.Webpage.Classification
   alias Core.Ai.Webpage.Intent
   import Ecto.Query
@@ -54,7 +51,7 @@ defmodule Core.Scraper.Repository do
   ## Update ##
   def update_classification(url, %Classification{} = classification) do
     case get_by_url(url) do
-      nil ->
+      {:error, :not_found} ->
         {:error, :not_found}
 
       webpage ->
@@ -68,7 +65,7 @@ defmodule Core.Scraper.Repository do
 
   def update_intent(url, %Intent{} = intent) do
     case get_by_url(url) do
-      nil ->
+      {:error, :not_found} ->
         {:error, :not_found}
 
       webpage ->
@@ -82,15 +79,17 @@ defmodule Core.Scraper.Repository do
 
   ## Get ##
   def get_by_url(url) do
-    Repo.get_by(ScrapedWebpage, url: url)
+    case Repo.get_by(ScrapedWebpage, url: url) do
+      %ScrapedWebpage{} = webpage -> {:ok, webpage}
+      nil -> {:error, :not_found}
+    end
   end
 
   def list_by_domain(domain) do
-    Repo.all(from s in ScrapedWebpage, where: s.domain == ^domain)
-  end
-
-  def delete_all do
-    Repo.delete_all(ScrapedWebpage)
+    case Repo.all(from s in ScrapedWebpage, where: s.domain == ^domain) do
+      %ScrapedWebpage{} = webpage -> {:ok, webpage}
+      nil -> {:error, :not_found}
+    end
   end
 
   # Private helper functions

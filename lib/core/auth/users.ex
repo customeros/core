@@ -73,7 +73,7 @@ defmodule Core.Auth.Users do
 
     tenant =
       case Tenants.get_tenant_by_name(tenant_name) do
-        nil ->
+        {:error, :not_found} ->
           {:ok, tenant} = Tenants.create_tenant(tenant_name, domain)
           tenant
 

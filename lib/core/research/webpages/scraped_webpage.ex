@@ -1,6 +1,30 @@
-defmodule Core.Scraper.ScrapedWebpage do
+defmodule Core.Research.Webpages.ScrapedWebpage do
   use Ecto.Schema
   import Ecto.Changeset
+
+  @type t :: %__MODULE__{
+          id: integer() | nil,
+          url: String.t(),
+          domain: String.t(),
+          content: String.t(),
+          links: [String.t()],
+          # Classification fields
+          primary_topic: String.t() | nil,
+          secondary_topics: [String.t()],
+          solution_focus: [String.t()],
+          content_type: String.t() | nil,
+          industry_vertical: String.t() | nil,
+          key_pain_points: [String.t()],
+          value_proposition: String.t() | nil,
+          referenced_customers: [String.t()],
+          # Intent scores
+          problem_recognition_score: integer() | nil,
+          solution_research_score: integer() | nil,
+          evaluation_score: integer() | nil,
+          purchase_readiness_score: integer() | nil,
+          inserted_at: NaiveDateTime.t() | nil,
+          updated_at: NaiveDateTime.t() | nil
+        }
 
   schema "scraped_webpages" do
     field(:url, :string)

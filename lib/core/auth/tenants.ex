@@ -11,11 +11,17 @@ defmodule Core.Auth.Tenants do
   ## Database getters
 
   def get_tenant_by_name(name) when is_binary(name) do
-    Repo.get_by(Tenant, name: name)
+    case Repo.get_by(Tenant, name: name) do
+      %Tenant{} = tenant -> {:ok, tenant}
+      nil -> {:error, :not_found}
+    end
   end
 
   def get_tenant_by_id(tenant_id) when is_binary(tenant_id) do
-    Repo.get_by(Tenant, id: tenant_id)
+    case Repo.get_by(Tenant, id: tenant_id) do
+      %Tenant{} = tenant -> {:ok, tenant}
+      nil -> {:error, :not_found}
+    end
   end
 
   ## Tenant registration
@@ -37,7 +43,7 @@ defmodule Core.Auth.Tenants do
     case create_tenant_and_return_id(name, domain) do
       {:ok, tenant_id} ->
         tenant_id
-        |> Core.Icp.Service.create_icp_for_tenant()
+        |> Core.Icp.ProfileManager.create_icp_for_tenant()
 
       {:error, changeset} ->
         {:error, changeset}
