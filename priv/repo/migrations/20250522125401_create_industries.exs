@@ -1,6 +1,5 @@
 defmodule Core.Repo.Migrations.CreateIndustries do
   use Ecto.Migration
-  alias Core.Crm.Industries.Industry
 
   defp parse_csv_line(line) do
     case Regex.run(~r/^([^,]+),"([^"]*)"$/, line) do
@@ -13,7 +12,7 @@ defmodule Core.Repo.Migrations.CreateIndustries do
     end
   end
 
-  def change do
+  def up do
     create table(:industries, primary_key: false) do
       add(:code, :string, primary_key: true)
       add(:name, :string, null: false)
@@ -21,7 +20,6 @@ defmodule Core.Repo.Migrations.CreateIndustries do
       timestamps(type: :utc_datetime)
     end
 
-    # Import data from CSV
     csv_path = Path.join([File.cwd!(), "priv", "industries.csv"])
 
     case File.read(csv_path) do
@@ -39,7 +37,11 @@ defmodule Core.Repo.Migrations.CreateIndustries do
         end)
 
       {:error, reason} ->
-        IO.puts("Error reading CSV file: #{reason}")
+        raise "Error reading industries.csv during migration: #{reason}"
     end
+  end
+
+  def down do
+    drop table(:industries)
   end
 end
