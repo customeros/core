@@ -19,11 +19,6 @@ defmodule Core.Media.Images do
       raise "R2 images bucket is not configured"
   end
 
-  defp images_cdn_domain do
-    get_in(images_config(), [:cdn_domain]) ||
-      raise "R2 images CDN domain is not configured"
-  end
-
   @doc """
   Downloads an image from a URL and stores it in R2.
   Returns {:ok, storage_key} or {:error, reason}
@@ -128,26 +123,25 @@ defmodule Core.Media.Images do
   end
 
   @doc """
-  Gets the CDN URL for an image using its storage key.
+  Gets the CDN URL for a storage key.
+  Handles CDN domains that may have https:// prefix and trailing slashes.
   """
-  def get_cdn_url(storage_key) when storage_key == "" || storage_key == nil,
-    do: ""
+  def get_cdn_url(storage_key) when is_binary(storage_key) and storage_key != "" do
+    case Application.get_env(:core, :r2)[:images][:cdn_domain] do
+      nil -> nil
+      cdn_domain ->
+        # Strip any https:// prefix and trailing slash from the domain
+        clean_cdn_domain = cdn_domain
+          |> String.replace(~r/^https?:\/\//, "")
+          |> String.trim_trailing("/")
 
-  def get_cdn_url(storage_key) when is_binary(storage_key) do
-    cdn_domain = images_cdn_domain()
-    # Strip any https:// prefix from the domain if it exists
-    clean_domain =
-      String.trim_trailing(
-        String.replace(cdn_domain, ~r/^https?:\/\//, ""),
-        "/"
-      )
+        # Ensure storage key doesn't have leading slash
+        clean_key = String.trim_leading(storage_key, "/")
 
-    # Normalize the path to prevent double slashes and remove leading slash
-    clean_path =
-      String.trim_leading(String.replace(storage_key, ~r/\/+/, "/"), "/")
-
-    "https://#{clean_domain}/#{clean_path}"
+        "https://#{clean_cdn_domain}/#{clean_key}"
+    end
   end
+  def get_cdn_url(_), do: nil
 
   # Private functions
 
