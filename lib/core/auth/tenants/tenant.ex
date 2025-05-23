@@ -12,7 +12,7 @@ defmodule Core.Auth.Tenants.Tenant do
 
   def changeset(%__MODULE__{} = tenant, attrs) do
     tenant
-    |> cast(attrs, [:id, :name])
+    |> cast(attrs, [:id, :name, :domain])
     |> maybe_put_id()
     |> validate_required([:id, :name, :domain])
     |> validate_length(:name, max: 160)

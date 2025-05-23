@@ -21,15 +21,18 @@ defmodule Core.Crm.Leads.LeadTest do
 
     test "get_or_create/2 with valid data creates a lead" do
       tenant = "test_tenant"
+
       valid_attrs = %{
         ref_id: "test_#{System.unique_integer()}",
         type: :contact
       }
 
       # Create tenant first
-      {:ok, tenant_record} = Core.Auth.Tenants.create_tenant(tenant)
+      {:ok, tenant_record} = Core.Auth.Tenants.create_tenant(tenant, "test.com")
 
-      assert {:ok, %Lead{} = lead} = Core.Crm.Leads.get_or_create(tenant, valid_attrs)
+      assert {:ok, %Lead{} = lead} =
+               Core.Crm.Leads.get_or_create(tenant, valid_attrs)
+
       assert lead.ref_id == valid_attrs.ref_id
       assert lead.type == :contact
       assert lead.tenant_id == tenant_record.id
@@ -37,12 +40,16 @@ defmodule Core.Crm.Leads.LeadTest do
     end
 
     test "get_or_create/2 with invalid data returns error changeset" do
-      assert {:error, :not_found, "Tenant not found"} = Core.Crm.Leads.get_or_create("invalid_tenant", %{})
+      assert {:error, :not_found, "Tenant not found"} =
+               Core.Crm.Leads.get_or_create("invalid_tenant", %{})
     end
 
     test "get_by_ref_id/2 returns the lead with given ref_id" do
       lead = lead_fixture()
-      assert found_lead = Core.Crm.Leads.get_by_ref_id(lead.tenant_id, lead.ref_id)
+
+      assert found_lead =
+               Core.Crm.Leads.get_by_ref_id(lead.tenant_id, lead.ref_id)
+
       assert found_lead.id == lead.id
     end
   end

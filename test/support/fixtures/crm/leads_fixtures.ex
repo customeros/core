@@ -12,7 +12,7 @@ defmodule Core.Crm.LeadsFixtures do
     ref_id = "test_#{System.unique_integer()}"
 
     # Create tenant first
-    {:ok, _tenant} = Core.Auth.Tenants.create_tenant(tenant)
+    {:ok, _tenant} = Core.Auth.Tenants.create_tenant(tenant, "test.com")
 
     {:ok, lead} =
       Core.Crm.Leads.get_or_create(
