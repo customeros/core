@@ -48,7 +48,7 @@ defmodule Core.Auth.Users.UserNotifier do
     {html, text} = render_content(&login_content/1, %{url: url})
 
     deliver(
-      to: user.email,
+      to: usxr.email,
       subject: "Sign in to CustomerOS",
       html_body: html,
       text_body: text,

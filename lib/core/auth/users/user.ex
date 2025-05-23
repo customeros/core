@@ -1,6 +1,8 @@
 defmodule Core.Auth.Users.User do
   use Ecto.Schema
   import Ecto.Changeset
+  alias Core.Utils.Domain
+  alias Core.Auth.PersonalEmailProviders
 
   @derive {Jason.Encoder,
            only: [
@@ -50,7 +52,24 @@ defmodule Core.Auth.Users.User do
       message: "must have the @ sign and no spaces"
     )
     |> validate_length(:email, max: 160)
+    |> validate_personal_email_domain()
     |> maybe_validate_unique_email(opts)
+  end
+
+  defp validate_personal_email_domain(changeset) do
+    case get_change(changeset, :email) do
+      nil -> changeset
+      email ->
+        case Domain.extract_domain_from_email(email) do
+          {:ok, domain} ->
+            if PersonalEmailProviders.exists?(domain) do
+              add_error(changeset, :email, "cannot use a personal email")
+            else
+              changeset
+            end
+          {:error, _} -> changeset
+        end
+    end
   end
 
   defp maybe_validate_unique_email(changeset, opts) do

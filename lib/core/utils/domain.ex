@@ -67,4 +67,15 @@ defmodule Core.Utils.Domain do
     |> String.trim("/")
     |> String.trim()
   end
+
+  def extract_domain_from_email(email) when is_binary(email) and byte_size(email) > 0 do
+    case String.split(email, "@", parts: 2) do
+      [_, domain] when byte_size(domain) > 0 ->
+        validate_domain(domain)
+      _ ->
+        {:error, :invalid_email_format}
+    end
+  end
+  def extract_domain_from_email(""), do: {:error, :invalid_email_format}
+  def extract_domain_from_email(nil), do: {:error, :invalid_email_format}
 end
