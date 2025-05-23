@@ -114,7 +114,7 @@ const formattedContent = format(fileContent, {
   parser: 'babel',
 });
 
-const filePath = process.cwd() + '/src/pages/components/IconButton/IconButton.variants.ts';
+const filePath = process.cwd() + '/src/components/IconButton/IconButton.variants.ts';
 
 format(fileContent, {
   ...prettierConfig,

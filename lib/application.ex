@@ -11,7 +11,6 @@ defmodule Core.Application do
       Supervisor.child_spec({Phoenix.PubSub, name: Realtime.PubSub},
         id: :realtime_pubsub
       ),
-      Core.Icp.ProfileManager,
       Core.Realtime.ColorManager,
       Core.Repo,
       Core.Research.Orchestrator,

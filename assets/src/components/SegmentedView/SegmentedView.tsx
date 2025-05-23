@@ -27,6 +27,7 @@ export const SegmentedView = ({
       {isSelected && (
         <Button
           colorScheme="gray"
+          variant="ghost"
           size="xs"
           leftIcon={<Icon name="download-02" />}
           onClick={handleClearFilter}

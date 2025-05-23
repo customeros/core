@@ -130,6 +130,7 @@ const buttonDefaultProp = `cva([
   'justify-center',
   'whitespace-nowrap',
   'gap-2',
+  'cursor-pointer',
   'text-base',
   'font-medium',
   'shadow-xs',
@@ -275,7 +276,7 @@ ${buttonTypes
   .join('')}
 `;
 
-const filePath = path.join(cwd(), 'src', 'pages', 'components', 'Button', 'Button.variants.ts');
+const filePath = path.join(cwd(), 'src', 'components', 'Button', 'Button.variants.ts');
 
 console.log('Current working directory:', cwd());
 console.log('Writing file to:', filePath);
