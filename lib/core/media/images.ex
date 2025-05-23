@@ -54,13 +54,13 @@ defmodule Core.Media.Images do
   """
   @spec download_image(String.t()) :: {:ok, binary()} | {:error, term()}
   def download_image(url) do
-    case HTTPoison.get(url, [], follow_redirect: true) do
-      {:ok, %{status_code: 200, body: body}} ->
+    case Finch.build(:get, url, [], []) |> Finch.request(Core.Finch) do
+      {:ok, %{status: 200, body: body}} ->
         {:ok, body}
-      {:ok, %{status_code: status_code}} ->
-        {:error, "HTTP request failed with status #{status_code}"}
-      {:error, %HTTPoison.Error{reason: reason}} ->
-        {:error, "HTTP request failed: #{reason}"}
+      {:ok, %{status: status}} ->
+        {:error, "HTTP request failed with status #{status}"}
+      {:error, reason} ->
+        {:error, "HTTP request failed: #{inspect(reason)}"}
     end
   end
 
@@ -104,14 +104,14 @@ defmodule Core.Media.Images do
   """
   @spec get_content_type(String.t()) :: {:ok, String.t()} | {:error, term()}
   def get_content_type(url) do
-    case HTTPoison.head(url, [], follow_redirect: true) do
+    case Finch.build(:head, url, [], []) |> Finch.request(Core.Finch) do
       {:ok, %{headers: headers}} ->
         case List.keyfind(headers, "content-type", 0) do
           {"content-type", content_type} -> {:ok, content_type}
           nil -> {:error, "No content type found"}
         end
-      {:error, %HTTPoison.Error{reason: reason}} ->
-        {:error, "Failed to get content type: #{reason}"}
+      {:error, reason} ->
+        {:error, "Failed to get content type: #{inspect(reason)}"}
     end
   end
 
