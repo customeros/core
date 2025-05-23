@@ -49,6 +49,12 @@ defmodule Core.Research.Builder.ProfileWriter do
     Do not include any text outside the JSON object.
     """
 
+    prompt = build_company_context_prompt(domain, business_pages)
+
+    {system_prompt, prompt}
+  end
+
+  defp build_company_context_prompt(domain, business_pages) do
     prompt = """
     Company Domain: #{domain}
 
@@ -57,10 +63,10 @@ defmodule Core.Research.Builder.ProfileWriter do
     #{build_page_content_section(business_pages)}
     """
 
-    {system_prompt, prompt}
+    {prompt}
   end
 
-  defp build_company_analysis(business_pages) do
+  def build_company_analysis(business_pages) do
     sections = []
 
     # Add industry and vertical information
@@ -86,7 +92,7 @@ defmodule Core.Research.Builder.ProfileWriter do
     |> Enum.join("\n\n")
   end
 
-  defp build_page_content_section(business_pages) do
+  def build_page_content_section(business_pages) do
     content_sections =
       business_pages
       |> Enum.with_index(1)

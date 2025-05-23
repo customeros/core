@@ -3,6 +3,7 @@ defmodule Core.Research.IcpProfiles do
   Database operations for ICP profiles.
   """
 
+  alias Core.Icp.Builder.Profile
   alias Core.Repo
   alias Core.Research.Profiles.Profile
   import Ecto.Query
@@ -29,9 +30,13 @@ defmodule Core.Research.IcpProfiles do
 
   Returns the profile struct or nil if not found.
   """
-  @spec get_by_domain(String.t()) :: Profile.t() | nil
+  @spec get_by_domain(String.t()) ::
+          {:ok, Profile.t()} | {:error, :not_found}
   def get_by_domain(domain) when is_binary(domain) do
-    Repo.get_by(Profile, domain: domain)
+    case Repo.get_by(Profile, domain: domain) do
+      %Profile{} = icp -> {:ok, icp}
+      nil -> {:error, :not_found}
+    end
   end
 
   @doc """
@@ -39,9 +44,13 @@ defmodule Core.Research.IcpProfiles do
 
   Returns the profile struct or nil if not found.
   """
-  @spec get_by_tenant_id(String.t()) :: Profile.t() | nil
+  @spec get_by_tenant_id(String.t()) ::
+          {:ok, Profile.t()} | {:error, :not_found}
   def get_by_tenant_id(tenant_id) when is_binary(tenant_id) do
-    Repo.get_by(Profile, tenant_id: tenant_id)
+    case Repo.get_by(Profile, tenant_id: tenant_id) do
+      %Profile{} = icp -> {:ok, icp}
+      nil -> {:error, :not_found}
+    end
   end
 
   @doc """
@@ -58,9 +67,13 @@ defmodule Core.Research.IcpProfiles do
   @doc """
   Gets a profile by ID.
   """
-  @spec get_profile(integer()) :: Profile.t() | nil
+  @spec get_profile(integer()) ::
+          {:ok, Profile.t()} | {:error, :not_found}
   def get_profile(id) when is_integer(id) do
-    Repo.get(Profile, id)
+    case Repo.get(Profile, id) do
+      %Profile{} = icp -> {:ok, icp}
+      nil -> {:error, :not_found}
+    end
   end
 
   ## Update ##
@@ -88,8 +101,8 @@ defmodule Core.Research.IcpProfiles do
           | {:error, Ecto.Changeset.t()}
   def update_by_domain(domain, attrs) do
     case get_by_domain(domain) do
-      nil -> {:error, :not_found}
-      profile -> update_profile(profile, attrs)
+      {:error, :not_found} -> {:error, :not_found}
+      {:ok, profile} -> update_profile(profile, attrs)
     end
   end
 
@@ -113,8 +126,8 @@ defmodule Core.Research.IcpProfiles do
           {:ok, Profile.t()} | {:error, :not_found}
   def delete_by_domain(domain) do
     case get_by_domain(domain) do
-      nil -> {:error, :not_found}
-      profile -> delete_profile(profile)
+      {:error, :not_found} -> {:error, :not_found}
+      {:ok, profile} -> delete_profile(profile)
     end
   end
 

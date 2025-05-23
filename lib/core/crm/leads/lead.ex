@@ -4,7 +4,13 @@ defmodule Core.Crm.Leads.Lead do
 
   @type lead_type :: :contact | :company
   @type lead_stage ::
-          :target | :education | :solution | :evaluation | :ready_to_buy
+          :target
+          | :education
+          | :solution
+          | :evaluation
+          | :ready_to_buy
+          | :customer
+          | :not_a_fit
   @type t :: %__MODULE__{
           id: String.t(),
           tenant_id: String.t(),
@@ -22,7 +28,15 @@ defmodule Core.Crm.Leads.Lead do
     field(:type, Ecto.Enum, values: [:contact, :company])
 
     field(:stage, Ecto.Enum,
-      values: [:target, :education, :solution, :evaluation, :ready_to_buy],
+      values: [
+        :target,
+        :education,
+        :solution,
+        :evaluation,
+        :ready_to_buy,
+        :not_a_fit,
+        :customer
+      ],
       default: :target
     )
 
