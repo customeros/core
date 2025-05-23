@@ -8,6 +8,7 @@ defmodule Core.Crm.Leads do
   alias Core.Crm.Leads.{Lead, LeadView}
   alias Core.Auth.Tenants
   alias Core.Crm.Companies.Company
+  alias Core.Media.Images
 
   @spec get_by_ref_id(tenant_id :: String.t(), ref_id :: String.t()) ::
           Lead.t() | nil
@@ -33,7 +34,9 @@ defmodule Core.Crm.Leads do
         stage: l.stage,
         name: c.name,
         industry: c.industry,
-        domain: c.primary_domain
+        domain: c.primary_domain,
+        country: c.country_a2,
+        logo: Images.get_cdn_url(c.logo_key)
       }
     )
     |> Repo.all()

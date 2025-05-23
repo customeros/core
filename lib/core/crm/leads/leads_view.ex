@@ -3,7 +3,17 @@ defmodule Core.Crm.Leads.LeadView do
   Struct representing a lead view entry with associated company info.
   """
   @derive {Jason.Encoder,
-           only: [:id, :ref_id, :type, :stage, :name, :industry, :domain]}
+           only: [
+             :id,
+             :ref_id,
+             :type,
+             :stage,
+             :name,
+             :industry,
+             :domain,
+             :logo,
+             :country
+           ]}
   defstruct [
     :id,
     :ref_id,
@@ -11,7 +21,9 @@ defmodule Core.Crm.Leads.LeadView do
     :stage,
     :name,
     :industry,
-    :domain
+    :domain,
+    :logo,
+    :country
   ]
 
   @type t :: %__MODULE__{
@@ -21,6 +33,8 @@ defmodule Core.Crm.Leads.LeadView do
           stage: Core.Crm.Leads.Lead.lead_stage(),
           name: String.t() | nil,
           industry: String.t() | nil,
-          domain: String.t() | nil
+          domain: String.t() | nil,
+          logo: String.t() | nil,
+          country: String.t() | nil
         }
 end
