@@ -21,7 +21,7 @@ permissions:
 
 jobs:
   deploy:
-    runs-on: ubicloud-standard-2
+    runs-on: ubicloud-standard-2-arm
     steps:
       - uses: actions/checkout@v4
         with:
