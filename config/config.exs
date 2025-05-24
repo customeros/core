@@ -13,7 +13,7 @@ config :core, Web.Endpoint,
     formats: [html: Web.ErrorHTML, json: Web.ErrorJSON],
     layout: false
   ],
-  pubsub_server: Realtime.PubSub,
+  pubsub_server: Core.PubSub,
   live_view: [signing_salt: "jVLoUB9r"]
 
 # Logger
@@ -23,12 +23,6 @@ config :logger, :console,
 
 # Phoenix
 config :phoenix, :json_library, Jason
-
-# OpenTelemetry
-config :opentelemetry, :processors,
-  otel_batch_processor: %{
-    exporter: {:otel_exporter_stdout, []}
-  }
 
 # Mailer
 config :swoosh,
@@ -40,17 +34,6 @@ config :core,
   ai: [
     anthropic_api_path: "https://api.anthropic.com/v1/messages",
     default_llm_timeout: 45_000
-  ],
-  jina: [
-    jina_api_path: "https://r.jina.ai/",
-    jina_api_key: System.get_env("JINA_API_KEY")
-  ],
-  puremd: [
-    puremd_api_path: "https://pure.md/",
-    puremd_api_key: System.get_env("PUREMD_API_KEY")
-  ],
-  ipdata: [
-    ipdata_api_key: System.get_env("IPDATA_API_KEY")
   ]
 
 # Esbuild configuration

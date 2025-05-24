@@ -34,7 +34,7 @@ end
 
 # Server configuration
 if get_env.("PHX_SERVER", nil),
-  do: config(:realtime, Web.Endpoint, server: true)
+  do: config(:core, Web.Endpoint, server: true)
 
 # Database configuration
 config :core, Core.Repo,
@@ -47,26 +47,8 @@ config :core, Core.Repo,
   show_sensitive_data_on_connection_error: true,
   pool_size: 10
 
-# OpenTelemetry configuration
-config :opentelemetry, :resource, service: %{name: "Realtime"}
-
-config :opentelemetry, :processors,
-  otel_batch_processor: %{
-    exporter: {
-      :opentelemetry_exporter,
-      %{
-        endpoints: [
-          {:http, get_env.("JAEGER_AGENT_HOST", "localhost"),
-           get_env_integer.("JAEGER_AGENT_PORT", "4318"), []}
-        ]
-      }
-    }
-  }
-
 # IPData and Snitcher configuration
-config :core, :ipdata,
-  api_url: "https://api.ipdata.co",
-  api_key: get_env.("IPDATA_API_KEY", nil)
+config :core, :ipdata, api_key: get_env.("IPDATA_API_KEY", nil)
 
 config :core, :snitcher,
   api_url: "https://api.snitcher.com",
@@ -138,9 +120,9 @@ config :ex_aws, :s3,
   secret_access_key: System.get_env("CLOUDFLARE_R2_ACCESS_KEY_SECRET"),
   region: "auto",
   scheme: "https://",
-  host: "#{System.get_env("CLOUDFLARE_R2_ACCOUNT_ID")}.r2.cloudflarestorage.com",
+  host:
+    "#{System.get_env("CLOUDFLARE_R2_ACCOUNT_ID")}.r2.cloudflarestorage.com",
   json_codec: Jason
 
 # Brandfetch configuration
-config :core, :brandfetch,
-  client_id: get_env.("BRANDFETCH_CLIENT_ID", nil)
+config :core, :brandfetch, client_id: get_env.("BRANDFETCH_CLIENT_ID", nil)
