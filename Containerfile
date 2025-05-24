@@ -126,9 +126,6 @@ COPY --from=builder --chown=nobody:root /app/_build/${MIX_ENV}/rel/core ./
 COPY scripts/build/entrypoint.sh /app/entrypoint.sh
 RUN chmod +x /app/entrypoint.sh
 
-# Verify the entrypoint script format
-RUN file /app/entrypoint.sh
-
 # Switch to non-root user
 USER nobody
 
