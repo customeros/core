@@ -4,7 +4,7 @@ ARG DEBIAN_VERSION=bookworm-20250428-slim
 ARG BUILDER_IMAGE="hexpm/elixir:${ELIXIR_VERSION}-erlang-${OTP_VERSION}-debian-${DEBIAN_VERSION}"
 ARG RUNNER_IMAGE="debian:${DEBIAN_VERSION}"
 
-FROM ${BUILDER_IMAGE} AS builder
+FROM --platform=linux/arm64 ${BUILDER_IMAGE} AS builder
 
 # Install build dependencies
 RUN apt-get update -y && \
@@ -17,10 +17,13 @@ ENV BUN_INSTALL="/root/.bun"
 RUN curl -fsSL https://bun.sh/install | bash
 ENV PATH="${BUN_INSTALL}/bin:$PATH"
 
+# Verify Bun installation for ARM64
+RUN bun --version && echo "Platform: $(uname -m)"
+
 # Set working directory to match your monorepo structure
 WORKDIR /app
 
-# Copy scripts directory for Bun 
+# Copy scripts directory for Bun
 COPY scripts /app/scripts
 
 # Build JS utilities with Bun
@@ -77,10 +80,13 @@ COPY config/runtime.exs config/
 # Create the release
 RUN mix release
 
-# Install Node.js and npm
+# Install Node.js and npm for ARM64
 RUN curl -fsSL https://deb.nodesource.com/setup_20.x | bash - && \
   apt-get install -y nodejs && \
   npm install -g npm@latest
+
+# Verify Node.js installation
+RUN node --version && npm --version && echo "Node architecture: $(node -e 'console.log(process.arch)')"
 
 # Install frontend dependencies
 COPY assets /app/assets
@@ -92,7 +98,7 @@ RUN mix assets.deploy
 #
 # Runner Stage
 #
-FROM ${RUNNER_IMAGE}
+FROM --platform=linux/arm64 ${RUNNER_IMAGE}
 
 # Install runtime dependencies
 RUN apt-get update -y && \
@@ -101,6 +107,7 @@ RUN apt-get update -y && \
 
 # Set the locale
 RUN sed -i '/en_US.UTF-8/s/^# //g' /etc/locale.gen && locale-gen
+
 ENV LANG=en_US.UTF-8
 ENV LANGUAGE=en_US:en
 ENV LC_ALL=en_US.UTF-8
@@ -118,6 +125,9 @@ COPY --from=builder --chown=nobody:root /app/_build/${MIX_ENV}/rel/core ./
 # Copy the entrypoint script
 COPY scripts/build/entrypoint.sh /app/entrypoint.sh
 RUN chmod +x /app/entrypoint.sh
+
+# Verify the entrypoint script format
+RUN file /app/entrypoint.sh
 
 # Switch to non-root user
 USER nobody
