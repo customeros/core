@@ -1,4 +1,7 @@
 defmodule Core.Research.Crawler do
+  @moduledoc """
+  Crawl a website and scrape it's content starting from root domain.
+  """
   require Logger
 
   @default_opts [
@@ -8,8 +11,20 @@ defmodule Core.Research.Crawler do
     concurrency: 5
   ]
 
-  def start(domain, opts \\ []) do
-    case Core.Utils.Domain.extract_base_domain(domain) do
+  @doc """
+  Starts a new web crawler from root domain.
+  Valid options are:
+    :max_depth 
+    :max_pages
+    :delay (between pages in ms)
+    :concurrency (number of pages to scrape at a time)
+
+  `{:ok, results}` returns a results map with the scraped URLs as keys and the scraped content as values
+  """
+  @spec start(String.t(), keyword()) :: {:ok, map()} | {:error, String.t()}
+
+  def start(domain, opts \\ []) when is_binary(domain) do
+    case Core.Utils.DomainExtractor.extract_base_domain(domain) do
       {:ok, base_domain} ->
         opts = Keyword.merge(@default_opts, opts)
 
@@ -97,58 +112,57 @@ defmodule Core.Research.Crawler do
 
   defp wait_for_task_completion(state) do
     receive do
-      {ref, result} ->
-        if MapSet.member?(state.task_refs, ref) do
-          # Clean up the completed task
-          Process.demonitor(ref, [:flush])
-
-          new_state = %{
-            state
-            | active_tasks: state.active_tasks - 1,
-              task_refs: MapSet.delete(state.task_refs, ref)
-          }
-
-          case result do
-            {:ok, url, depth, content} ->
-              # Add results and queue new links
-              updated_state = %{
-                new_state
-                | results: Map.put(new_state.results, url, content)
-              }
-
-              new_links = extract_new_links(Map.get(content, :links, []), depth, updated_state)
-
-              final_state = %{
-                updated_state
-                | queue: updated_state.queue ++ new_links
-              }
-
-              crawl_concurrent(final_state)
-
-            {:error, _url, _reason} ->
-              # Just continue without adding results
-              crawl_concurrent(new_state)
-          end
-        else
-          # Unknown task reference, ignore and continue waiting
-          wait_for_task_completion(state)
-        end
-
-      {:DOWN, ref, :process, _pid, _reason} ->
-        if MapSet.member?(state.task_refs, ref) do
-          # Task crashed, clean up
-          new_state = %{
-            state
-            | active_tasks: state.active_tasks - 1,
-              task_refs: MapSet.delete(state.task_refs, ref)
-          }
-
-          crawl_concurrent(new_state)
-        else
-          # Unknown task reference, ignore and continue waiting
-          wait_for_task_completion(state)
-        end
+      {ref, result} -> handle_task_result(state, ref, result)
+      {:DOWN, ref, :process, _pid, _reason} -> handle_task_crash(state, ref)
     end
+  end
+
+  defp handle_task_result(state, ref, result) do
+    if MapSet.member?(state.task_refs, ref) do
+      state
+      |> clean_up_task(ref)
+      |> process_result(result)
+      |> crawl_concurrent()
+    else
+      wait_for_task_completion(state)
+    end
+  end
+
+  defp handle_task_crash(state, ref) do
+    if MapSet.member?(state.task_refs, ref) do
+      state
+      |> clean_up_task(ref)
+      |> crawl_concurrent()
+    else
+      wait_for_task_completion(state)
+    end
+  end
+
+  defp clean_up_task(state, ref) do
+    Process.demonitor(ref, [:flush])
+
+    %{
+      state
+      | active_tasks: state.active_tasks - 1,
+        task_refs: MapSet.delete(state.task_refs, ref)
+    }
+  end
+
+  defp process_result(state, {:ok, url, depth, content}) do
+    state
+    |> add_results(url, content)
+    |> queue_new_links(content, depth)
+  end
+
+  defp process_result(state, {:error, _url, _reason}), do: state
+
+  defp add_results(state, url, content) do
+    %{state | results: Map.put(state.results, url, content)}
+  end
+
+  defp queue_new_links(state, content, depth) do
+    new_links = extract_new_links(Map.get(content, :links, []), depth, state)
+    %{state | queue: state.queue ++ new_links}
   end
 
   defp extract_new_links(links, depth, state) do
@@ -166,7 +180,7 @@ defmodule Core.Research.Crawler do
 
   defp scrape_url(url) do
     try do
-      with {:ok, valid_url} <- Core.Utils.Domain.to_https(url) do
+      with {:ok, valid_url} <- Core.Utils.UrlFormatter.to_https(url) do
         Core.Research.Scraper.scrape_webpage(valid_url)
       else
         {:error, reason} -> {:error, reason}
@@ -179,7 +193,7 @@ defmodule Core.Research.Crawler do
   end
 
   defp same_domain?(url, base_domain) when is_binary(base_domain) do
-    case Core.Utils.Domain.extract_base_domain(url) do
+    case Core.Utils.DomainExtractor.extract_base_domain(url) do
       {:ok, url_domain} ->
         String.ends_with?(url_domain, base_domain)
 
