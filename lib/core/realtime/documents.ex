@@ -87,7 +87,8 @@ defmodule Core.Realtime.Documents do
   end
 
   defp initialize_y_writing(doc_id, lexical_state) do
-    script_path = Application.app_dir(:realtime, "priv/scripts/convert_lexical_to_yjs")
+    script_path =
+      Application.app_dir(:core, "priv/scripts/convert_lexical_to_yjs")
 
     # Create a temporary file for the lexical state
     {:ok, temp_path} = Temp.path(%{suffix: ".json"})
@@ -103,7 +104,10 @@ defmodule Core.Realtime.Documents do
           Core.Realtime.YDoc.insert_update(doc_id, output)
 
         {error_output, exit_code} ->
-          Logger.error("Script execution failed (exit #{exit_code}): #{error_output}")
+          Logger.error(
+            "Script execution failed (exit #{exit_code}): #{error_output}"
+          )
+
           {:error, "Could not convert lexical state to Yjs document"}
       end
     after
@@ -126,7 +130,8 @@ defmodule Core.Realtime.Documents do
   defp maybe_initialize_ydoc(multi, nil), do: multi
 
   defp maybe_initialize_ydoc(multi, lexical_state) do
-    Ecto.Multi.run(multi, :initialize_y_writing, fn _repo, %{document: document} ->
+    Ecto.Multi.run(multi, :initialize_y_writing, fn _repo,
+                                                    %{document: document} ->
       initialize_y_writing(document.id, lexical_state)
     end)
   end

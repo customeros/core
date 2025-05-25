@@ -6,6 +6,6 @@ defmodule Web.Presence do
   docs for more details.
   """
   use Phoenix.Presence,
-    otp_app: :realtime,
-    pubsub_server: Realtime.PubSub
+    otp_app: :core,
+    pubsub_server: Core.PubSub
 end
