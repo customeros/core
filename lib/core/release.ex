@@ -7,6 +7,7 @@ defmodule Core.Release do
 
   def migrate do
     load_app()
+    ensure_repo_started()
 
     for repo <- repos() do
       {:ok, _, _} =
@@ -27,5 +28,10 @@ defmodule Core.Release do
 
   defp load_app do
     Application.load(@app)
+  end
+
+  defp ensure_repo_started do
+    # Ensure all dependencies are loaded
+    Application.ensure_all_started(@app)
   end
 end
