@@ -1,7 +1,7 @@
 defmodule Core.Auth.Users.User do
   use Ecto.Schema
   import Ecto.Changeset
-  alias Core.Utils.Domain
+  alias Core.Utils.DomainExtractor
   alias Core.Auth.PersonalEmailProviders
 
   @derive {Jason.Encoder,
@@ -58,16 +58,20 @@ defmodule Core.Auth.Users.User do
 
   defp validate_personal_email_domain(changeset) do
     case get_change(changeset, :email) do
-      nil -> changeset
+      nil ->
+        changeset
+
       email ->
-        case Domain.extract_domain_from_email(String.downcase(email)) do
+        case DomainExtractor.extract_domain_from_email(String.downcase(email)) do
           {:ok, domain} ->
             if PersonalEmailProviders.exists?(domain) do
               add_error(changeset, :email, "cannot use a personal email")
             else
               changeset
             end
-          {:error, _} -> changeset
+
+          {:error, _} ->
+            changeset
         end
     end
   end

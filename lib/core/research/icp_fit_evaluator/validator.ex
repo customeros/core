@@ -1,4 +1,4 @@
-defmodule Core.Research.Evaluator.FitValidator do
+defmodule Core.Research.IcpFitEvaluator.Validator do
   @valid_fits ["strong", "moderate", "not a fit"]
   @fit_atoms %{
     "strong" => :strong,
