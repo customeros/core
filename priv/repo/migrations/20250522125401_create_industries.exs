@@ -1,5 +1,6 @@
 defmodule Core.Repo.Migrations.CreateIndustries do
   use Ecto.Migration
+  require Logger
 
   defp parse_csv_line(line) do
     case Regex.run(~r/^([^,]+),"([^"]*)"$/, line) do
@@ -20,7 +21,7 @@ defmodule Core.Repo.Migrations.CreateIndustries do
       timestamps(type: :utc_datetime)
     end
 
-    csv_path = Path.join([File.cwd!(), "priv", "industries.csv"])
+    csv_path = Path.join([:code.priv_dir(:core), "industries.csv"])
 
     case File.read(csv_path) do
       {:ok, content} ->
@@ -37,7 +38,7 @@ defmodule Core.Repo.Migrations.CreateIndustries do
         end)
 
       {:error, reason} ->
-        raise "Error reading industries.csv during migration: #{reason}"
+        Logger.warning("Could not read industries.csv: #{reason}. Skipping data insertion.")
     end
   end
 

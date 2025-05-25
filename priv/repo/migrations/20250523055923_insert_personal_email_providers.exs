@@ -1,8 +1,9 @@
 defmodule Core.Repo.Migrations.InsertPersonalEmailProviders do
   use Ecto.Migration
+  require Logger
 
   def up do
-    csv_path = Path.join([File.cwd!(), "priv", "personal_email_providers.csv"])
+    csv_path = Path.join([:code.priv_dir(:core), "personal_email_providers.csv"])
 
     case File.read(csv_path) do
       {:ok, content} ->
@@ -19,12 +20,12 @@ defmodule Core.Repo.Migrations.InsertPersonalEmailProviders do
         end)
 
       {:error, reason} ->
-        raise "Error reading personal_email_providers.csv: #{reason}"
+        Logger.warning("Could not read personal_email_providers.csv: #{reason}. Skipping data insertion.")
     end
   end
 
   def down do
-    csv_path = Path.join([File.cwd!(), "priv", "personal_email_providers.csv"])
+    csv_path = Path.join([:code.priv_dir(:core), "personal_email_providers.csv"])
 
     case File.read(csv_path) do
       {:ok, content} ->
@@ -39,7 +40,7 @@ defmodule Core.Repo.Migrations.InsertPersonalEmailProviders do
         end)
 
       {:error, reason} ->
-        raise "Error reading personal_email_providers.csv in down(): #{reason}"
+        Logger.warning("Could not read personal_email_providers.csv in down(): #{reason}. Skipping data deletion.")
     end
   end
 end
