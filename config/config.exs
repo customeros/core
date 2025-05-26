@@ -34,6 +34,9 @@ config :core,
   ai: [
     anthropic_api_path: "https://api.anthropic.com/v1/messages",
     default_llm_timeout: 45_000
+  ],
+  slack: [
+    new_tenant_webhook_url: System.get_env("SLACK_NEW_TENANT_WEBHOOK_URL")
   ]
 
 # Esbuild configuration
