@@ -15,7 +15,24 @@ export type IconName =
   | 'target-04'
   | 'book-closed'
   | 'lightbulb-02'
-  | 'clipboard-check';
+  | 'clipboard-check'
+  | 'trash-01'
+  | 'link-external-02'
+  | 'bold-01'
+  | 'italic-01'
+  | 'strikethrough-01'
+  | 'underline-01'
+  | 'underline-strikethrough-01'
+  | 'code-01'
+  | 'link-01'
+  | 'subscript-01'
+  | 'list-bulleted'
+  | 'list-numbered'
+  | 'block-quote'
+  | 'arrow-block-down'
+  | 'arrow-block-up'
+  | 'expand-01'
+  | 'collapse-01';
 
 export const Icon = ({
   name,

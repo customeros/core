@@ -3,15 +3,10 @@ import { useEffect, ClipboardEvent } from 'react';
 import { $createLinkNode } from '@lexical/link';
 import { $generateNodesFromDOM } from '@lexical/html';
 import { useLexicalComposerContext } from '@lexical/react/LexicalComposerContext';
-import {
-  $getSelection,
-  PASTE_COMMAND,
-  $createTextNode,
-  $isRangeSelection,
-} from 'lexical';
+import { $getSelection, PASTE_COMMAND, $createTextNode, $isRangeSelection } from 'lexical';
 
-import { isValidUrl } from '@utils/urlValidation';
-import { convertPlainTextToHtml } from '@ui/form/Editor/utils/convertPlainTextToHtml';
+import { convertPlainTextToHtml } from 'src/components/Editor/utils/convertPlainTextToHtml';
+import { getExternalUrl } from '../utils/getExternalLink';
 
 export function LinkPastePlugin() {
   const [editor] = useLexicalComposerContext();
@@ -26,8 +21,10 @@ export function LinkPastePlugin() {
         const selectedText = selection.getTextContent().trim();
 
         if (!pastedData) return;
+        const externalUrl = getExternalUrl(pastedData);
+        const isValidUrl = new URL(pastedData) ? true : false;
 
-        if (selectedText.length && isValidUrl(pastedData)) {
+        if (selectedText.length && isValidUrl) {
           editor.update(() => {
             const linkNode = $createLinkNode(pastedData);
             const textNode = $createTextNode(selectedText || pastedData);
@@ -44,7 +41,7 @@ export function LinkPastePlugin() {
               const doc = parser.parseFromString(htmlData, 'text/html');
 
               // strip all formatting enforced by pre tags
-              doc.querySelectorAll('pre')?.forEach((preEl) => {
+              doc.querySelectorAll('pre')?.forEach(preEl => {
                 if (!preEl.querySelector('code')) {
                   const span = doc.createElement('div');
 
@@ -79,7 +76,7 @@ export function LinkPastePlugin() {
 
         return true;
       },
-      1,
+      1
     );
   }, [editor]);
 
