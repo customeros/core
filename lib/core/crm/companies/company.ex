@@ -22,6 +22,12 @@ defmodule Core.Crm.Companies.Company do
     field(:country_enrich_attempt_at, :utc_datetime)
     field(:logo_enrich_attempt_at, :utc_datetime)
 
+    # Enrichment attempt counters
+    field(:industry_enrichment_attempts, :integer, default: 0)
+    field(:name_enrichment_attempts, :integer, default: 0)
+    field(:country_enrichment_attempts, :integer, default: 0)
+    field(:logo_enrichment_attempts, :integer, default: 0)
+
     # LinkedIn fields
     field(:linkedin_id, :string)
     field(:linkedin_alias, :string)
@@ -47,6 +53,11 @@ defmodule Core.Crm.Companies.Company do
           name_enrich_attempt_at: DateTime.t() | nil,
           country_enrich_attempt_at: DateTime.t() | nil,
           logo_enrich_attempt_at: DateTime.t() | nil,
+          # Enrichment attempt counters
+          industry_enrichment_attempts: integer(),
+          name_enrichment_attempts: integer(),
+          country_enrichment_attempts: integer(),
+          logo_enrichment_attempts: integer(),
           # LinkedIn fields
           linkedin_id: String.t() | nil,
           linkedin_alias: String.t() | nil,
@@ -73,6 +84,10 @@ defmodule Core.Crm.Companies.Company do
       :name_enrich_attempt_at,
       :country_enrich_attempt_at,
       :logo_enrich_attempt_at,
+      :industry_enrichment_attempts,
+      :name_enrichment_attempts,
+      :country_enrichment_attempts,
+      :logo_enrichment_attempts,
       :linkedin_id,
       :linkedin_alias,
       :homepage_content
