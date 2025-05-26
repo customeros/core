@@ -36,7 +36,7 @@ defmodule Core.Ai.AskAi do
     - `{:error, error()}` - Error tuple with reason
 
   ## Examples
-      iex> request = %AskAIRequest{model: :claude_sonnet, prompt: "Hello"}
+      iex> request = %AskAIRequest{model: :anthropic_claude_3_sonnet, prompt: "Hello"}
       iex> config = %{api_key: "key", timeout: 5000}
       iex> Core.Ai.AskAi.ask(request, config)
       {:ok, "AI response"}
