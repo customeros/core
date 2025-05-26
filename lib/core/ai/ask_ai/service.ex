@@ -43,7 +43,7 @@ defmodule Core.Ai.AskAi do
         result
 
       nil ->
-        Task.Supervisor.terminate_child(Core.Ai.TaskSupervisor, task.pid)
+        Task.Supervisor.terminate_child(Core.Ai.AskAi.Supervisor, task.pid)
         {:error, :ai_request_timeout}
 
       {:exit, reason} ->
