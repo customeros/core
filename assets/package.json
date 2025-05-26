@@ -16,7 +16,12 @@
     "clsx": "^2.1.1",
     "react": "^18.3.1",
     "react-dom": "^18.3.1",
-    "react-toastify": "^11.0.5"
+    "react-toastify": "^11.0.5",
+    "@lexical/link": "^0.19.0",
+    "@lexical/react": "^0.19.0",
+    "phoenix": "^1.7.12",
+    "y-protocols": "^1.0.6",
+    "yjs": "^13.6.24"
   },
   "devDependencies": {
     "@types/node": "^22.15.21",
@@ -29,6 +34,8 @@
     "tailwindcss": "^4.0.0",
     "ts-node": "^10.9.2",
     "tsx": "^4.19.4",
-    "typescript": "^5.2.2"
+    "typescript": "^5.2.2",
+    "@types/phoenix": "^1.6.4"
+
   }
 }
