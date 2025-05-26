@@ -44,6 +44,7 @@ defmodule Core.MixProject do
       {:csv, "~> 3.2"},
       {:dialyxir, "~> 1.4", only: [:dev, :test], runtime: false},
       {:dns_cluster, "~> 0.2.0"},
+      {:earmark, "~> 1.4"},
       {:ecto_psql_extras, "~> 0.8"},
       {:ecto_sql, "~> 3.12"},
       {:floki, "~> 0.37.1"},
