@@ -320,31 +320,44 @@ defmodule Core.Crm.Companies.Enrich do
 
             # Construct Brandfetch URL
             brandfetch_url =
-              "https://cdn.brandfetch.io/#{company.primary_domain}/w/400/h/400?c=#{client_id}"
+              "https://cdn.brandfetch.io/#{company.primary_domain}/type/fallback/404/w/400/h/400?c=#{client_id}"
 
             # Download and store the logo
-            case Images.download_and_store(brandfetch_url, %{
-                   generate_name: true,
-                   path: "_companies"
-                 }) do
-              {:ok, storage_key} ->
-                # Update company with the logo storage key
-                {update_count, _} =
-                  Repo.update_all(
-                    from(c in Company, where: c.id == ^company_id),
-                    set: [logo_key: storage_key]
-                  )
+            case Images.download_image(brandfetch_url) do
+              {:ok, image_data} ->
+                # Only proceed with storage if we got actual image data
+                case Images.store_image(image_data, "image/jpeg", brandfetch_url, %{
+                       generate_name: true,
+                       path: "_companies"
+                     }) do
+                  {:ok, storage_key} ->
+                    # Update company with the logo storage key
+                    {update_count, _} =
+                      Repo.update_all(
+                        from(c in Company, where: c.id == ^company_id),
+                        set: [logo_key: storage_key]
+                      )
 
-                if update_count == 0 do
-                  Logger.error(
-                    "Failed to update logo key for company #{company_id} (domain: #{company.primary_domain})"
-                  )
+                    if update_count == 0 do
+                      Logger.error(
+                        "Failed to update logo key for company #{company_id} (domain: #{company.primary_domain})"
+                      )
+                    end
+
+                  {:error, reason} ->
+                    Logger.error(
+                      "Failed to store logo for company #{company_id} (domain: #{company.primary_domain}): #{inspect(reason)}"
+                    )
                 end
+
+              {:error, :image_not_found} ->
+                {:error, :image_not_found}
 
               {:error, reason} ->
                 Logger.error(
-                  "Failed to download and store logo for company #{company_id} (domain: #{company.primary_domain}): #{inspect(reason)}"
+                  "Failed to download logo for company #{company_id} (domain: #{company.primary_domain}): #{inspect(reason)}"
                 )
+                {:error, reason}
             end
           else
             Logger.error(
