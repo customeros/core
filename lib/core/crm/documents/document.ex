@@ -1,4 +1,4 @@
-defmodule Core.Realtime.Documents.Document do
+defmodule Core.Crm.Documents.Document do
   use Ecto.Schema
   import Ecto.Changeset
 
@@ -8,32 +8,41 @@ defmodule Core.Realtime.Documents.Document do
              :name,
              :body,
              :lexical_state,
-             :tenant,
+             :tenant_id,
              :user_id,
              :icon,
              :color,
-             :organization_id,
+             :ref_id,
              :inserted_at,
              :updated_at
            ]}
-  @primary_key {:id, :binary_id, autogenerate: true}
+  @primary_key {:id, :string, autogenerate: false}
   schema "documents" do
     field(:name, :string)
     field(:body, :string)
     field(:lexical_state, :string)
-    field(:tenant, :string)
-    field(:user_id, :binary_id)
+    field(:tenant_id, :string)
+    field(:user_id, :string)
     field(:icon, :string)
     field(:color, :string)
-    field(:organization_id, :string, virtual: true)
+    field(:ref_id, :string, virtual: true)
 
     timestamps(type: :utc_datetime)
   end
 
   def changeset(document, attrs) do
     document
-    |> cast(attrs, [:name, :body, :lexical_state, :tenant, :user_id, :icon, :color])
-    |> validate_required([:name, :tenant, :body, :user_id, :icon, :color])
+    |> cast(attrs, [
+      :name,
+      :body,
+      :lexical_state,
+      :tenant_id,
+      :user_id,
+      :icon,
+      :color
+    ])
+    |> maybe_put_id()
+    |> validate_required([:name, :tenant_id, :body, :user_id, :icon, :color])
   end
 
   def update_changeset(document, attrs) do
@@ -41,4 +50,14 @@ defmodule Core.Realtime.Documents.Document do
     |> cast(attrs, [:id, :name, :icon, :color])
     |> validate_required([:id, :name, :icon, :color])
   end
+
+  defp maybe_put_id(%Ecto.Changeset{data: %{id: nil}} = changeset) do
+    put_change(
+      changeset,
+      :id,
+      Core.Utils.IdGenerator.generate_id_21("doc")
+    )
+  end
+
+  defp maybe_put_id(changeset), do: changeset
 end

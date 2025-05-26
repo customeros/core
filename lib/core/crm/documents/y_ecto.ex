@@ -1,4 +1,4 @@
-defmodule Core.Realtime.YEcto do
+defmodule Core.Crm.Documents.YEcto do
   defmacro __using__(opts) do
     repo = opts[:repo]
     schema = opts[:schema]
@@ -33,13 +33,17 @@ defmodule Core.Realtime.YEcto do
       end
 
       def insert_update(doc_name, value) do
-        @repo.insert(%@schema{docName: doc_name, value: value, version: :v1})
+        @repo.insert(%@schema{
+          document_id: doc_name,
+          value: value,
+          version: :v1
+        })
       end
 
       def get_state_vector(doc_name) do
         query =
           from y in @schema,
-            where: y.docName == ^doc_name and y.version == :v1_sv,
+            where: y.document_id == ^doc_name and y.version == :v1_sv,
             select: y
 
         @repo.one(query)
@@ -53,14 +57,14 @@ defmodule Core.Realtime.YEcto do
       def clear_document(doc_name) do
         query =
           from y in @schema,
-            where: y.docName == ^doc_name
+            where: y.document_id == ^doc_name
 
         @repo.delete_all(query)
       end
 
       defp put_state_vector(doc_name, state_vector) do
         case get_state_vector(doc_name) do
-          nil -> %@schema{docName: doc_name, version: :v1_sv}
+          nil -> %@schema{document_id: doc_name, version: :v1_sv}
           state_vector -> state_vector
         end
         |> @schema.changeset(%{value: state_vector})
@@ -70,7 +74,7 @@ defmodule Core.Realtime.YEcto do
       defp get_updates(doc_name) do
         query =
           from y in @schema,
-            where: y.docName == ^doc_name and y.version == :v1,
+            where: y.document_id == ^doc_name and y.version == :v1,
             select: y,
             order_by: y.inserted_at
 
@@ -78,7 +82,12 @@ defmodule Core.Realtime.YEcto do
       end
 
       defp flush_document(doc_name, updates, sv, clock) do
-        @repo.insert(%@schema{docName: doc_name, value: updates, version: :v1})
+        @repo.insert(%@schema{
+          document_id: doc_name,
+          value: updates,
+          version: :v1
+        })
+
         put_state_vector(doc_name, sv)
         clear_updates_to(doc_name, clock)
       end
@@ -86,7 +95,7 @@ defmodule Core.Realtime.YEcto do
       defp clear_updates_to(doc_name, to) do
         query =
           from y in @schema,
-            where: y.docName == ^doc_name and y.inserted_at < ^to
+            where: y.document_id == ^doc_name and y.inserted_at < ^to
 
         @repo.delete_all(query)
       end

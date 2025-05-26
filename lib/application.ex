@@ -8,15 +8,12 @@ defmodule Core.Application do
       Supervisor.child_spec({Phoenix.PubSub, name: Core.PubSub},
         id: :core_pubsub
       ),
-      Supervisor.child_spec({Phoenix.PubSub, name: Realtime.PubSub},
-        id: :realtime_pubsub
-      ),
       {Task.Supervisor, name: Core.Researcher.IcpFitEvaluator.Supervisor},
       {Task.Supervisor, name: Core.Researcher.Crawler.Supervisor},
       {Task.Supervisor, name: Core.Researcher.Scraper.Supervisor},
       {Task.Supervisor, name: Core.Researcher.IcpBuilder.Supervisor},
       {Task.Supervisor, name: Core.Ai.AskAi.Supervisor},
-      Core.Realtime.ColorManager,
+      Core.Auth.Users.ColorManager,
       Core.Repo,
       Core.Researcher.Orchestrator,
       Core.Crm.Companies.Enrich,
@@ -42,7 +39,7 @@ defmodule Core.Application do
         children
       end
 
-    opts = [strategy: :one_for_one, name: Core.Realtime.Supervisor]
+    opts = [strategy: :one_for_one, name: Core.Supervisor]
     Supervisor.start_link(children, opts)
   end
 

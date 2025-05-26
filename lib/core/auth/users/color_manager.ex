@@ -1,4 +1,4 @@
-defmodule Core.Realtime.ColorManager do
+defmodule Core.Auth.Users.ColorManager do
   require Logger
   use GenServer
 
