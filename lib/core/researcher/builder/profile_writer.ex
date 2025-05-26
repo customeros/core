@@ -63,7 +63,7 @@ defmodule Core.Researcher.Builder.ProfileWriter do
     #{build_page_content_section(business_pages)}
     """
 
-    {prompt}
+    prompt
   end
 
   def build_company_analysis(business_pages) do

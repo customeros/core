@@ -8,7 +8,7 @@ defmodule Core.Researcher.Crawler do
     max_depth: 2,
     max_pages: 100,
     delay: 100,
-    concurrency: 3
+    concurrency: 2
   ]
 
   # 5 mins

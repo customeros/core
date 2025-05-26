@@ -35,11 +35,16 @@ defmodule Core.Auth.Tenants do
         # Notify Slack about new tenant
         Task.start(fn ->
           case Slack.notify_new_tenant(tenant.name, tenant.domain) do
-            :ok -> :ok
+            :ok ->
+              :ok
+
             {:error, reason} ->
-              Logger.error("Failed to send Slack notification for tenant #{tenant.name} creation: #{inspect(reason)}")
+              Logger.error(
+                "Failed to send Slack notification for tenant #{tenant.name} creation: #{inspect(reason)}"
+              )
           end
         end)
+
         result
 
       error ->
@@ -57,8 +62,13 @@ defmodule Core.Auth.Tenants do
   def create_tenant_and_build_icp(name, domain) do
     case create_tenant_and_return_id(name, domain) do
       {:ok, tenant_id} ->
-        tenant_id
-        |> Core.Research.Orchestrator.create_icp_for_tenant()
+        # start ICP building in background
+        Task.Supervisor.start_child(
+          Core.Researcher.IcpBuilder.Supervisor,
+          fn -> Core.Researcher.IcpBuilder.build_for_tenant(tenant_id) end
+        )
+
+        {:ok, tenant_id}
 
       {:error, changeset} ->
         {:error, changeset}
