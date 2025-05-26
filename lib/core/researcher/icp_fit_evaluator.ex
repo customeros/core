@@ -5,22 +5,27 @@ defmodule Core.Researcher.IcpFitEvaluator do
   alias Core.Researcher.Crawler
   alias Core.Researcher.IcpProfiles
   alias Core.Researcher.ScrapedWebpages
+  alias Core.Utils.PrimaryDomainFinder
 
   # 2 mins
   @icp_fit_timeout 2 * 60 * 1000
 
   def evaluate(tenant_id, domain) do
-    with {:ok, icp} <- IcpProfiles.get_by_tenant_id(tenant_id),
+    with {:ok, primary_domain} <-
+           PrimaryDomainFinder.get_primary_domain(domain),
+         {:ok, icp} <- IcpProfiles.get_by_tenant_id(tenant_id),
          {:ok, _scraped_data} <-
-           Crawler.start_sync(domain),
+           Crawler.start_sync(primary_domain),
          {:ok, pages} <-
-           ScrapedWebpages.get_business_pages_by_domain(domain,
+           ScrapedWebpages.get_business_pages_by_domain(primary_domain,
              limit: 10
            ),
-         {:ok, fit} <- get_icp_fit(domain, pages, icp) do
+         {:ok, fit} <-
+           get_icp_fit(primary_domain, pages, icp) do
       {:ok, fit}
     else
-      {:error, reason} -> {:error, reason}
+      {:error, reason} ->
+        {:error, reason}
     end
   end
 
@@ -49,7 +54,11 @@ defmodule Core.Researcher.IcpFitEvaluator do
         result
 
       nil ->
-        Task.Supervisor.terminate_child(Core.Researcher.IcpFitEvaluator.Supervisor, task.pid)
+        Task.Supervisor.terminate_child(
+          Core.Researcher.IcpFitEvaluator.Supervisor,
+          task.pid
+        )
+
         {:error, :ai_timeout}
 
       {:exit, reason} ->

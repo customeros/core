@@ -7,6 +7,7 @@ defmodule Core.Researcher.Webpages.ScrapedWebpage do
           url: String.t(),
           domain: String.t(),
           content: String.t(),
+          summary: String.t(),
           links: [String.t()],
           # Classification fields
           primary_topic: String.t() | nil,
@@ -30,6 +31,7 @@ defmodule Core.Researcher.Webpages.ScrapedWebpage do
     field(:url, :string)
     field(:domain, :string)
     field(:content, :string)
+    field(:summary, :string)
     field(:links, {:array, :string}, default: [])
 
     # Classification fields
@@ -53,6 +55,7 @@ defmodule Core.Researcher.Webpages.ScrapedWebpage do
 
   @required_fields [:url, :domain, :content]
   @optional_fields [
+    :summary,
     :links,
     :primary_topic,
     :secondary_topics,

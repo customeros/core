@@ -1,16 +1,13 @@
-defmodule Core.Ai.Webpage.ProfileIntent do
+defmodule Core.Researcher.Webpages.IntentGenerator do
   @moduledoc """
   Profiles webpage intent using AI.
   """
-
-  @callback profile_webpage_intent(url :: String.t(), content :: String.t()) ::
-              {:ok, %Core.Ai.Webpage.Intent{}} | {:error, term()}
 
   @model :claude_sonnet
   @model_temperature 0.2
   @max_tokens 1024
 
-  alias Core.Ai.Webpage.Intent
+  alias Core.Researcher.Webpages.Intent
 
   def profile_webpage_intent(url, content)
       when is_binary(content) and content != "" do

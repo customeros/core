@@ -55,15 +55,13 @@ defmodule Core.Researcher.Builder.ProfileWriter do
   end
 
   defp build_company_context_prompt(domain, business_pages) do
-    prompt = """
+    """
     Company Domain: #{domain}
 
     #{build_company_analysis(business_pages)}
 
     #{build_page_content_section(business_pages)}
     """
-
-    prompt
   end
 
   def build_company_analysis(business_pages) do
@@ -109,16 +107,32 @@ defmodule Core.Researcher.Builder.ProfileWriter do
   end
 
   defp build_individual_page_content(page, index) do
-    # Truncate content if it's too long to avoid token limits
-    truncated_content = truncate_content(page.content, 800)
+    # Use summary if available, otherwise fall back to truncated content
+    page_content = get_page_content(page)
 
     """
     PAGE #{index} (#{page.content_type || "unknown"}):
     URL: #{page.url}
     #{if page.primary_topic, do: "Topic: #{page.primary_topic}\n", else: ""}#{if page.value_proposition, do: "Value Prop: #{page.value_proposition}\n", else: ""}
     Content:
-    #{truncated_content}
+    #{page_content}
     """
+  end
+
+  defp get_page_content(page) do
+    cond do
+      # Prefer summary if it exists and is not empty
+      page.summary && String.trim(page.summary) != "" ->
+        page.summary
+
+      # Fall back to truncated content if no summary
+      page.content ->
+        truncate_content(page.content, 800)
+
+      # Handle case where neither exists
+      true ->
+        "No content available"
+    end
   end
 
   defp truncate_content(nil, _max_length), do: ""
