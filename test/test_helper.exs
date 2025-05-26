@@ -28,5 +28,9 @@ Mox.defmock(Core.Ai.Webpage.ProfileIntent.Mock,
   for: Core.Ai.Webpage.ProfileIntent.Behaviour
 )
 
+Mox.defmock(Core.WebTracker.IPIntelligence.Mock,
+  for: Core.WebTracker.IPIntelligenceBehaviour
+)
+
 # Ensure DataCase is loaded
 Code.require_file("test/support/data_case.ex")

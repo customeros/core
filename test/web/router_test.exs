@@ -12,6 +12,20 @@ defmodule Web.RouterTest do
   setup do
     # Delete any existing sessions for the visitor
     Core.Repo.delete_all(Core.WebTracker.Schemas.WebSession)
+
+    # Configure IPIntelligence mock
+    Core.WebTracker.IPIntelligence.Mock
+    |> stub(:get_company_info, fn _ip ->
+      {:ok, %{
+        ip_address: "127.0.0.1",
+        city: "Test City",
+        region: "Test Region",
+        country_code: "US",
+        is_threat: false,
+        is_mobile: false
+      }}
+    end)
+
     :ok
   end
 

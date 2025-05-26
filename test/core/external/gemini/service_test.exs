@@ -1,17 +1,14 @@
 defmodule Core.External.Gemini.ServiceTest do
   use Core.DataCase
   import Mox
+  import Core.External.Gemini.TestHelper
 
   # Make sure mocks are verified when the test exits
   setup :verify_on_exit!
 
   setup do
     # Set up test configuration for Gemini service
-    config = %{
-      gemini_api_key: "test_key",
-      gemini_api_path: "https://generativelanguage.googleapis.com/v1/models/gemini-pro:generateContent"
-    }
-
+    config = test_config()
     Application.put_env(:core, :ai, config)
 
     # Configure the mock to be used
@@ -24,12 +21,7 @@ defmodule Core.External.Gemini.ServiceTest do
 
   describe "ask/1" do
     test "with valid request returns successful response", %{config: config} do
-      request = %AskAIRequest{
-        model: :gemini_pro,
-        prompt: "What is 2+2?",
-        max_output_tokens: 100,
-        model_temperature: 0.7
-      }
+      request = valid_request()
 
       Core.External.Gemini.Service.Mock
       |> expect(:ask, fn ^request, ^config ->
@@ -41,13 +33,7 @@ defmodule Core.External.Gemini.ServiceTest do
     end
 
     test "with system prompt combines prompts correctly", %{config: config} do
-      request = %AskAIRequest{
-        model: :gemini_pro,
-        prompt: "What is 2+2?",
-        system_prompt: "You are a helpful math tutor.",
-        max_output_tokens: 100,
-        model_temperature: 0.7
-      }
+      request = request_with_system_prompt()
 
       Core.External.Gemini.Service.Mock
       |> expect(:ask, fn ^request, ^config ->
@@ -66,12 +52,12 @@ defmodule Core.External.Gemini.ServiceTest do
         model_temperature: 0.7
       }
 
-      assert {:error, "model must be :gemini_pro"} = Core.External.Gemini.Service.ask(request)
+      assert {:error, "model must be :google_gemini_pro"} = Core.External.Gemini.Service.ask(request)
     end
 
     test "with empty prompt returns error" do
       request = %AskAIRequest{
-        model: :gemini_pro,
+        model: :google_gemini_pro,
         prompt: "",
         max_output_tokens: 100,
         model_temperature: 0.7
@@ -82,7 +68,7 @@ defmodule Core.External.Gemini.ServiceTest do
 
     test "with nil prompt returns error" do
       request = %AskAIRequest{
-        model: :gemini_pro,
+        model: :google_gemini_pro,
         prompt: nil,
         max_output_tokens: 100,
         model_temperature: 0.7
@@ -92,12 +78,7 @@ defmodule Core.External.Gemini.ServiceTest do
     end
 
     test "handles API errors gracefully", %{config: config} do
-      request = %AskAIRequest{
-        model: :gemini_pro,
-        prompt: "What is 2+2?",
-        max_output_tokens: 100,
-        model_temperature: 0.7
-      }
+      request = valid_request()
 
       Core.External.Gemini.Service.Mock
       |> expect(:ask, fn ^request, ^config ->
@@ -108,12 +89,7 @@ defmodule Core.External.Gemini.ServiceTest do
     end
 
     test "handles invalid responses gracefully", %{config: config} do
-      request = %AskAIRequest{
-        model: :gemini_pro,
-        prompt: "What is 2+2?",
-        max_output_tokens: 100,
-        model_temperature: 0.7
-      }
+      request = valid_request()
 
       Core.External.Gemini.Service.Mock
       |> expect(:ask, fn ^request, ^config ->
@@ -124,12 +100,7 @@ defmodule Core.External.Gemini.ServiceTest do
     end
 
     test "handles HTTP errors gracefully", %{config: config} do
-      request = %AskAIRequest{
-        model: :gemini_pro,
-        prompt: "What is 2+2?",
-        max_output_tokens: 100,
-        model_temperature: 0.7
-      }
+      request = valid_request()
 
       Core.External.Gemini.Service.Mock
       |> expect(:ask, fn ^request, ^config ->
@@ -137,6 +108,28 @@ defmodule Core.External.Gemini.ServiceTest do
       end)
 
       assert {:error, {:http_error, "Connection refused"}} = Core.External.Gemini.Service.Mock.ask(request, config)
+    end
+
+    test "handles timeout gracefully", %{config: config} do
+      request = valid_request()
+
+      Core.External.Gemini.Service.Mock
+      |> expect(:ask, fn ^request, ^config ->
+        {:error, {:http_error, :timeout}}
+      end)
+
+      assert {:error, {:http_error, :timeout}} = Core.External.Gemini.Service.Mock.ask(request, config)
+    end
+
+    test "handles network errors gracefully", %{config: config} do
+      request = valid_request()
+
+      Core.External.Gemini.Service.Mock
+      |> expect(:ask, fn ^request, ^config ->
+        {:error, {:http_error, :econnrefused}}
+      end)
+
+      assert {:error, {:http_error, :econnrefused}} = Core.External.Gemini.Service.Mock.ask(request, config)
     end
   end
 end

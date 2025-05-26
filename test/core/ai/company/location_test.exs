@@ -1,9 +1,9 @@
-defmodule Core.AI.Company.IndustryTest do
+defmodule Core.AI.Company.LocationTest do
   @moduledoc """
-  Tests for the Core.AI.Company.Industry module.
+  Tests for the Core.AI.Company.Location module.
 
-  These tests verify that the industry identification functionality:
-  - Correctly identifies industries from company data
+  These tests verify that the location identification functionality:
+  - Correctly identifies country codes from company data
   - Handles invalid inputs appropriately
   - Manages API errors gracefully
   """
@@ -11,7 +11,7 @@ defmodule Core.AI.Company.IndustryTest do
   use Core.DataCase
   import Mox
 
-  alias Core.Crm.Companies.Enrichments.Industry
+  alias Core.Crm.Companies.Enrichments.Location
   alias Core.AITestHelper
 
   setup :verify_on_exit!
@@ -19,29 +19,29 @@ defmodule Core.AI.Company.IndustryTest do
     Core.AITestHelper.setup_ai_test()
   end
 
-  describe "identify/1" do
-    test "returns NAICS code for technology company with valid input" do
+  describe "identifyCountryCodeA2/1" do
+    test "returns country code for US company with valid input" do
       company_data = Core.AITestHelper.test_company_data().valid
-      expected_code = Core.AITestHelper.naics_codes().tech_consulting
+      expected_code = "US"
 
       expect(Core.Ai.AskAi.Mock, :ask_with_timeout, fn _request ->
         {:ok, expected_code}
       end)
 
-      assert {:ok, naics_code} = Industry.identify(company_data)
-      assert naics_code == expected_code
+      assert {:ok, country_code} = Location.identifyCountryCodeA2(company_data)
+      assert country_code == expected_code
     end
 
-    test "returns NAICS code for software company with valid input" do
+    test "returns country code for UK company with valid input" do
       company_data = Core.AITestHelper.test_company_data().valid
-      expected_code = Core.AITestHelper.naics_codes().software_development
+      expected_code = "GB"
 
       expect(Core.Ai.AskAi.Mock, :ask_with_timeout, fn _request ->
         {:ok, expected_code}
       end)
 
-      assert {:ok, naics_code} = Industry.identify(company_data)
-      assert naics_code == expected_code
+      assert {:ok, country_code} = Location.identifyCountryCodeA2(company_data)
+      assert country_code == expected_code
     end
 
     test "returns error for empty content" do
@@ -51,14 +51,18 @@ defmodule Core.AI.Company.IndustryTest do
         Core.AITestHelper.error_responses().invalid_request
       end)
 
-      assert {:error, reason} = Industry.identify(company_data)
+      assert {:error, reason} = Location.identifyCountryCodeA2(company_data)
       assert reason == {:invalid_request, "Invalid company data"}
     end
 
     test "returns error for nil content" do
       company_data = Core.AITestHelper.test_company_data().nil_content
 
-      assert {:error, reason} = Industry.identify(company_data)
+      expect(Core.Ai.AskAi.Mock, :ask_with_timeout, fn _request ->
+        {:error, {:invalid_request, "Invalid input format"}}
+      end)
+
+      assert {:error, reason} = Location.identifyCountryCodeA2(company_data)
       assert reason == {:invalid_request, "Invalid input format"}
     end
 
@@ -69,7 +73,7 @@ defmodule Core.AI.Company.IndustryTest do
         Core.AITestHelper.error_responses().api_error
       end)
 
-      assert {:error, reason} = Industry.identify(company_data)
+      assert {:error, reason} = Location.identifyCountryCodeA2(company_data)
       assert reason == "API error"
     end
   end

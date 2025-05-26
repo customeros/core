@@ -8,23 +8,31 @@ defmodule Core.DataCase do
 
   using do
     quote do
-      alias Core.Repo
-
+      # Import conveniences for testing with data
       import Ecto
       import Ecto.Changeset
       import Ecto.Query
       import Core.DataCase
+      import Core.External.Gemini.TestHelper
+      import Core.External.Firecrawl.TestHelper
+
+      # and other test helpers
+      import Mox
     end
   end
 
   setup tags do
-    :ok = Ecto.Adapters.SQL.Sandbox.checkout(Core.Repo)
-
-    unless tags[:async] do
-      Ecto.Adapters.SQL.Sandbox.mode(Core.Repo, {:shared, self()})
-    end
+    Core.DataCase.setup_sandbox(tags)
 
     :ok
+  end
+
+  @doc """
+  Sets up the sandbox based on the test tags.
+  """
+  def setup_sandbox(tags) do
+    pid = Ecto.Adapters.SQL.Sandbox.start_owner!(Core.Repo, shared: not tags[:async])
+    on_exit(fn -> Ecto.Adapters.SQL.Sandbox.stop_owner(pid) end)
   end
 
   @doc """
