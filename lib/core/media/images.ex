@@ -50,11 +50,14 @@ defmodule Core.Media.Images do
   Downloads an image from a URL.
   Returns {:ok, binary_data} or {:error, reason}
   """
-  @spec download_image(String.t()) :: {:ok, binary()} | {:error, term()}
+  @spec download_image(String.t()) :: {:ok, binary()} | {:error, :image_not_found} | {:error, term()}
   def download_image(url) do
     case Finch.build(:get, url, [], []) |> Finch.request(Core.Finch) do
       {:ok, %{status: 200, body: body}} ->
         {:ok, body}
+
+      {:ok, %{status: 404}} ->
+        {:error, :image_not_found}
 
       {:ok, %{status: status}} ->
         {:error, "HTTP request failed with status #{status}"}

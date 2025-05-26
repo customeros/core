@@ -6,6 +6,7 @@ defmodule Web.UserAuth do
   import Inertia.Controller
 
   alias Core.Auth.Users
+  alias Core.Auth.ApiTokens
 
   # Make the remember me cookie valid for 60 days.
   # If you want bump or reduce this value, also change
@@ -223,6 +224,24 @@ defmodule Web.UserAuth do
     end
   end
 
+  @doc """
+  API-oriented authentication that assumes session-based auth from same origin.
+  Returns JSON responses and doesn't use flash messages.
+  """
+  def require_authenticated_api_user(conn, _opts) do
+    case conn.assigns[:current_user] do
+      nil ->
+        conn
+        |> put_status(:unauthorized)
+        |> json(%{error: "Authentication required"})
+        |> halt()
+
+      user ->
+        conn
+        |> assign(:current_user, user)
+    end
+  end
+
   defp maybe_put_flash_error(conn, "/") do
     conn
   end
@@ -236,6 +255,130 @@ defmodule Web.UserAuth do
   end
 
   defp maybe_store_return_to(conn), do: conn
+
+  @doc """
+  Authenticates API requests using Bearer tokens.
+
+  Looks for Authorization header with Bearer token and validates it.
+  If valid, assigns the current_user and api_token to the connection.
+  """
+  def authenticate_bearer_token(conn, _opts) do
+    case get_req_header(conn, "authorization") do
+      ["Bearer " <> _token = auth_header] ->
+        case ApiTokens.verify_api_token(auth_header) do
+          {:ok, user, api_token} ->
+            conn
+            |> assign(:current_user, user)
+            |> assign(:api_token, api_token)
+            |> assign(:auth_method, :bearer_token)
+
+          {:error, :invalid_token} ->
+            conn
+            |> put_status(:unauthorized)
+            |> json(%{error: "Invalid or expired API token"})
+            |> halt()
+        end
+
+      [token] when is_binary(token) ->
+        # Handle tokens without "Bearer " prefix
+        case ApiTokens.verify_api_token(token) do
+          {:ok, user, api_token} ->
+            conn
+            |> assign(:current_user, user)
+            |> assign(:api_token, api_token)
+            |> assign(:auth_method, :bearer_token)
+
+          {:error, :invalid_token} ->
+            conn
+            |> put_status(:unauthorized)
+            |> json(%{error: "Invalid or expired API token"})
+            |> halt()
+        end
+
+      [] ->
+        conn
+        |> put_status(:unauthorized)
+        |> json(%{error: "Missing Authorization header"})
+        |> halt()
+
+      _other ->
+        conn
+        |> put_status(:unauthorized)
+        |> json(%{error: "Invalid Authorization header format"})
+        |> halt()
+    end
+  end
+
+  @doc """
+  Requires that the API token has a specific scope.
+
+  Should be used after authenticate_bearer_token/2.
+  """
+  def require_api_scope(conn, scope) when is_binary(scope) do
+    case conn.assigns[:api_token] do
+      nil ->
+        conn
+        |> put_status(:unauthorized)
+        |> json(%{error: "API token required"})
+        |> halt()
+
+      api_token ->
+        if ApiTokens.token_has_scope?(api_token, scope) do
+          conn
+        else
+          conn
+          |> put_status(:forbidden)
+          |> json(%{
+            error: "Insufficient permissions. Required scope: #{scope}"
+          })
+          |> halt()
+        end
+    end
+  end
+
+  def require_api_scope(conn, opts) do
+    scope = Keyword.fetch!(opts, :scope)
+    require_api_scope(conn, scope)
+  end
+
+  @doc """
+  Flexible authentication that supports both session and Bearer token auth.
+
+  Tries Bearer token first, then falls back to session authentication.
+  Useful for endpoints that need to support both web and API access.
+  """
+  def authenticate_user_flexible(conn, _opts) do
+    case get_req_header(conn, "authorization") do
+      ["Bearer " <> _token] ->
+        authenticate_bearer_token(conn, [])
+
+      [token] when is_binary(token) ->
+        authenticate_bearer_token(conn, [])
+
+      [] ->
+        # Fall back to session authentication
+        conn = fetch_current_user(conn, [])
+
+        case conn.assigns[:current_user] do
+          nil ->
+            conn
+            |> put_status(:unauthorized)
+            |> json(%{error: "Authentication required"})
+            |> halt()
+
+          user ->
+            conn
+            |> assign(:current_user, user)
+            |> assign(:auth_method, :session)
+        end
+
+      _other ->
+        conn
+        |> put_status(:unauthorized)
+        |> json(%{error: "Invalid Authorization header format"})
+        |> halt()
+    end
+  end
 
   defp signed_in_path(_conn), do: ~p"/"
 

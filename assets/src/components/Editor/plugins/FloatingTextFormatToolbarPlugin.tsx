@@ -21,18 +21,12 @@ import {
   SELECTION_CHANGE_COMMAND as ON_SELECTION_CHANGE,
 } from 'lexical';
 
-import { Bold01 } from '@ui/media/icons/Bold01';
-import { Link01 } from '@ui/media/icons/Link01';
-import { Italic01 } from '@ui/media/icons/Italic01';
-import { Tooltip } from '@ui/overlay/Tooltip/Tooltip';
-import { BlockQuote } from '@ui/media/icons/BlockQuote';
-import { ListBulleted } from '@ui/media/icons/ListBulleted';
-import { ListNumbered } from '@ui/media/icons/ListNumbered';
-import { Strikethrough01 } from '@ui/media/icons/Strikethrough01';
-import { FloatingToolbarButton } from '@ui/form/Editor/components';
-import { getSelectedNode } from '@ui/form/Editor/utils/getSelectedNode';
+import { Tooltip } from 'src/components/Tooltip';
+import { FloatingToolbarButton } from 'src/components/Editor/components';
+import { getSelectedNode } from 'src/components/Editor/utils/getSelectedNode';
 
 import { usePointerInteractions } from './../utils/usePointerInteractions';
+import { Icon } from 'src/components/Icon';
 
 const DEFAULT_DOM_ELEMENT = document.body;
 
@@ -132,16 +126,14 @@ export function FloatingMenu({ editor }: FloatingMenuComponentProps) {
           setIsBold(selection.hasFormat('bold'));
           setIsItalic(selection.hasFormat('italic'));
           setIsBlockquote(
-            selection
-              .getNodes()
-              .some((n) => $isQuoteNode(n) || $isQuoteNode(n.getParent())),
+            selection.getNodes().some(n => $isQuoteNode(n) || $isQuoteNode(n.getParent()))
           );
 
           let isUnordered = false;
           let isOrdered = false;
           // const isCheck = false;
 
-          selection.getNodes().forEach((node) => {
+          selection.getNodes().forEach(node => {
             let currentNode: LexicalNode | null = node;
 
             while (currentNode != null) {
@@ -187,39 +179,39 @@ export function FloatingMenu({ editor }: FloatingMenuComponentProps) {
   return (
     <div
       ref={menuRef}
-      className='flex items-center justify-between bg-grayModern-700 text-grayModern-25 border-[1px] border-grayModern-200 rounded-md p-1 gap-1'
+      className="flex items-center justify-between bg-grayModern-700 text-grayModern-25 border-[1px] border-grayModern-200 rounded-md p-1 gap-1"
     >
       <>
-        <Tooltip label='Bold: ⌘ + B'>
+        <Tooltip label="Bold: ⌘ + B">
           <div>
             <FloatingToolbarButton
               active={isBold}
-              aria-label='Format text to bold'
-              icon={<Bold01 className='text-inherit' />}
+              aria-label="Format text to bold"
+              icon={<Icon name="bold-01" />}
               onClick={() => {
                 editor.dispatchCommand(FORMAT_TEXT_COMMAND, 'bold');
               }}
             />
           </div>
         </Tooltip>
-        <Tooltip label='Italic: ⌘ + I'>
+        <Tooltip label="Italic: ⌘ + I">
           <div>
             <FloatingToolbarButton
               active={isItalic}
-              aria-label='Format text with italic'
-              icon={<Italic01 className='text-inherit' />}
+              aria-label="Format text with italic"
+              icon={<Icon name="italic-01" />}
               onClick={() => {
                 editor.dispatchCommand(FORMAT_TEXT_COMMAND, 'italic');
               }}
             />
           </div>
         </Tooltip>
-        <Tooltip label='Strikethrough: ⌘ + S'>
+        <Tooltip label="Strikethrough: ⌘ + S">
           <div>
             <FloatingToolbarButton
               active={isStrikethrough}
-              aria-label='Format text with a strikethrough'
-              icon={<Strikethrough01 className='text-inherit' />}
+              aria-label="Format text with a strikethrough"
+              icon={<Icon name="strikethrough-01" />}
               onClick={() => {
                 editor.dispatchCommand(FORMAT_TEXT_COMMAND, 'strikethrough');
               }}
@@ -230,16 +222,16 @@ export function FloatingMenu({ editor }: FloatingMenuComponentProps) {
           <FloatingToolbarButton
             active={isUnorderedList}
             onClick={toggleUnorderedList}
-            aria-label='Format text as an bullet list'
-            icon={<ListBulleted className='text-inherit' />}
+            aria-label="Format text as an bullet list"
+            icon={<Icon name="list-bulleted" />}
           />
         </div>
         <div>
           <FloatingToolbarButton
             active={isOrderedList}
             onClick={toggleOrderedList}
-            aria-label='Format text as an ordered list'
-            icon={<ListNumbered className='text-inherit' />}
+            aria-label="Format text as an ordered list"
+            icon={<Icon name="list-numbered" />}
           />
         </div>
         {/*<div>*/}
@@ -250,13 +242,13 @@ export function FloatingMenu({ editor }: FloatingMenuComponentProps) {
         {/*    icon={<CheckSquare className='text-inherit' />}*/}
         {/*  />*/}
         {/*</div>*/}
-        <Tooltip label='Link: ⌘ + K'>
+        <Tooltip label="Link: ⌘ + K">
           <div>
             <FloatingToolbarButton
               active={isLink}
               onClick={toggleLink}
-              aria-label='Insert or remove link'
-              icon={<Link01 className='text-inherit' />}
+              aria-label="Insert or remove link"
+              icon={<Icon name="link-01" />}
             />
           </div>
         </Tooltip>
@@ -264,8 +256,8 @@ export function FloatingMenu({ editor }: FloatingMenuComponentProps) {
           <FloatingToolbarButton
             active={isBlockquote}
             onClick={toggleBlockquote}
-            aria-label='Format text with block quote'
-            icon={<BlockQuote className='text-inherit' />}
+            aria-label="Format text with block quote"
+            icon={<Icon name="block-quote" />}
           />
         </div>
       </>
@@ -273,10 +265,7 @@ export function FloatingMenu({ editor }: FloatingMenuComponentProps) {
   );
 }
 
-export function FloatingMenuPlugin({
-  element,
-  variableOptions,
-}: FloatingMenuPluginProps) {
+export function FloatingMenuPlugin({ element, variableOptions }: FloatingMenuPluginProps) {
   const ref = useRef<HTMLDivElement | null>(null);
   const [coords, setCoords] = useState<FloatingMenuCoords>(undefined);
   const show = coords !== undefined;
@@ -286,8 +275,7 @@ export function FloatingMenuPlugin({
 
   const calculatePosition = useCallback(() => {
     const domSelection = getSelection();
-    const domRange =
-      domSelection?.rangeCount !== 0 && domSelection?.getRangeAt(0);
+    const domRange = domSelection?.rangeCount !== 0 && domSelection?.getRangeAt(0);
 
     if (!domRange || !ref.current || isPointerDown) return setCoords(undefined);
 
@@ -295,7 +283,7 @@ export function FloatingMenuPlugin({
       placement: 'top',
       middleware: [offset(8), shift()],
     })
-      .then((pos) => {
+      .then(pos => {
         setCoords({ x: pos.x, y: pos.y });
       })
       .catch(() => {
@@ -340,14 +328,14 @@ export function FloatingMenuPlugin({
         });
       }
     },
-    [editor],
+    [editor]
   );
 
   useEffect(() => {
     const unregisterCommand = editor.registerCommand(
       ON_SELECTION_CHANGE,
       $handleSelectionChange,
-      NORMAL_PRIORITY,
+      NORMAL_PRIORITY
     );
 
     document.addEventListener('mousedown', handleClickOutside);
@@ -366,7 +354,7 @@ export function FloatingMenuPlugin({
 
         return false;
       },
-      COMMAND_PRIORITY_HIGH,
+      COMMAND_PRIORITY_HIGH
     );
 
     return unregisterCommand;
@@ -397,7 +385,7 @@ export function FloatingMenuPlugin({
 
         return false;
       },
-      COMMAND_PRIORITY_NORMAL,
+      COMMAND_PRIORITY_NORMAL
     );
 
     return () => {
@@ -428,6 +416,6 @@ export function FloatingMenuPlugin({
     >
       <FloatingMenu editor={editor} variableOptions={variableOptions} />
     </div>,
-    element ?? DEFAULT_DOM_ELEMENT,
+    element ?? DEFAULT_DOM_ELEMENT
   );
 }

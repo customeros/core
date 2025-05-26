@@ -11,7 +11,10 @@ import {
   type DOMConversionOutput,
 } from 'lexical';
 
-import { SelectOption } from '@ui/utils/types';
+type SelectOption = {
+  label: string;
+  value: string;
+};
 
 export type SerializedHashtagNode = Spread<
   {
@@ -21,9 +24,7 @@ export type SerializedHashtagNode = Spread<
   SerializedTextNode
 >;
 
-function $convertHashtagElement(
-  domNode: HTMLElement,
-): DOMConversionOutput | null {
+function $convertHashtagElement(domNode: HTMLElement): DOMConversionOutput | null {
   const textContent = domNode.textContent;
   const id = domNode.getAttribute('data-hashtag-id');
 
@@ -134,8 +135,6 @@ export function $createHashtagNode(hashtag: SelectOption): HashtagNode {
   return $applyNodeReplacement(hashtagNode);
 }
 
-export function $isHashtagNode(
-  node: LexicalNode | null | undefined,
-): node is HashtagNode {
+export function $isHashtagNode(node: LexicalNode | null | undefined): node is HashtagNode {
   return node instanceof HashtagNode;
 }

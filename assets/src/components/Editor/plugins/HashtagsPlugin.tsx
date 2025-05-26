@@ -10,13 +10,16 @@ import {
   useBasicTypeaheadTriggerMatch,
 } from '@lexical/react/LexicalTypeaheadMenuPlugin';
 
-import { cn } from '@ui/utils/cn';
-import { SelectOption } from '@ui/utils/types';
+import { clsx } from 'clsx';
 
 import { $createHashtagNode } from '../nodes/HashtagNode';
 
-const PUNCTUATION =
-  '\\.,\\+\\*\\?\\$\\@\\|#{}\\(\\)\\^\\-\\[\\]\\\\/!%\'"~=<>_:;';
+type SelectOption = {
+  label: string;
+  value: string;
+};
+
+const PUNCTUATION = '\\.,\\+\\*\\?\\$\\@\\|#{}\\(\\)\\^\\-\\[\\]\\\\/!%\'"~=<>_:;';
 const NAME = '\\b[A-Z][^\\s' + PUNCTUATION + ']';
 
 const DocumentMentionsRegex = {
@@ -34,16 +37,7 @@ const VALID_CHARS = '[^' + TRIGGERS + PUNC + '\\s]';
 const LENGTH_LIMIT = 75;
 
 const HashSignMentionsRegex = new RegExp(
-  '(^|\\s|\\()(' +
-    '[' +
-    TRIGGERS +
-    ']' +
-    '((?:' +
-    VALID_CHARS +
-    '){0,' +
-    LENGTH_LIMIT +
-    '})' +
-    ')$',
+  '(^|\\s|\\()(' + '[' + TRIGGERS + ']' + '((?:' + VALID_CHARS + '){0,' + LENGTH_LIMIT + '})' + ')$'
 );
 
 // 50 is the longest alias length limit.
@@ -60,16 +54,13 @@ const HashSignMentionsRegexAliasRegex = new RegExp(
     '){0,' +
     ALIAS_LENGTH_LIMIT +
     '})' +
-    ')$',
+    ')$'
 );
 
 // At most, 5 suggestions are shown in the popup.
 const SUGGESTION_LIST_LENGTH_LIMIT = 5;
 
-function checkForHashSignMentions(
-  text: string,
-  minMatchLength: number,
-): MenuTextMatch | null {
+function checkForHashSignMentions(text: string, minMatchLength: number): MenuTextMatch | null {
   let match = HashSignMentionsRegex.exec(text);
 
   if (match === null) {
@@ -126,20 +117,20 @@ function HashtagsTypeaheadMenuItem({
   return (
     <li
       tabIndex={-1}
-      role='option'
+      role="option"
       key={option.key}
       onMouseDown={onClick}
       ref={option.setRefElement}
       aria-selected={isSelected}
       onMouseEnter={onMouseEnter}
       id={'typeahead-hashtag-item-' + index}
-      className={cn(
+      className={clsx(
         'flex gap-2 items-center text-start py-[6px] px-[10px] leading-[18px] text-grayModern-700  rounded-sm outline-none cursor-pointer hover:bg-grayModern-50 hover:rounded-md ',
         'data-[disabled]:opacity-50 data-[disabled]:cursor-not-allowed hover:data-[disabled]:bg-transparent',
-        isSelected && 'bg-grayModern-50 text-grayModern-700',
+        isSelected && 'bg-grayModern-50 text-grayModern-700'
       )}
     >
-      <span className='text'>{option.label}</span>
+      <span className="text">{option.label}</span>
     </li>
   );
 }
@@ -154,7 +145,7 @@ export default function NewHashtagsPlugin({
   options,
   onSearch,
   onCreate,
-}: HashtagsPluginProps): JSX.Element | null {
+}: HashtagsPluginProps): React.ReactNode | null {
   const [editor] = useLexicalComposerContext();
 
   const checkForSlashTriggerMatch = useBasicTypeaheadTriggerMatch('/', {
@@ -164,25 +155,23 @@ export default function NewHashtagsPlugin({
   const _options = useMemo(
     () =>
       (options.length ? options : [{ label: 'Create tag', value: 'temp' }])
-        .map((item) => new HashtagTypeaheadOption(item))
+        .map(item => new HashtagTypeaheadOption(item))
         .slice(0, SUGGESTION_LIST_LENGTH_LIMIT),
-    [options],
+    [options]
   );
 
   const onSelectOption = useCallback(
     (
       selectedOption: HashtagTypeaheadOption,
       nodeToReplace: TextNode | null,
-      closeMenu: () => void,
+      closeMenu: () => void
     ) => {
       editor.update(() => {
         const isCreating = selectedOption.value === 'temp';
 
         const hashtagNode = $createHashtagNode({
           value: selectedOption.value,
-          label: isCreating
-            ? nodeToReplace?.__text ?? ''
-            : selectedOption.label,
+          label: isCreating ? (nodeToReplace?.__text ?? '') : selectedOption.label,
         });
 
         if (isCreating) {
@@ -197,7 +186,7 @@ export default function NewHashtagsPlugin({
         closeMenu();
       });
     },
-    [editor],
+    [editor]
   );
 
   const checkForMentionMatch = useCallback(
@@ -210,7 +199,7 @@ export default function NewHashtagsPlugin({
 
       return getPossibleQueryMatch(text);
     },
-    [checkForSlashTriggerMatch, editor],
+    [checkForSlashTriggerMatch, editor]
   );
 
   return (
@@ -221,11 +210,11 @@ export default function NewHashtagsPlugin({
       onQueryChange={onSearch ?? (() => {})}
       menuRenderFn={(
         anchorElementRef,
-        { selectedIndex, selectOptionAndCleanUp, setHighlightedIndex },
+        { selectedIndex, selectOptionAndCleanUp, setHighlightedIndex }
       ) =>
         anchorElementRef.current
           ? ReactDOM.createPortal(
-              <div className='relative bg-white min-w-[250px] py-1.5 px-[6px] shadow-lg border rounded-md z-50'>
+              <div className="relative bg-white min-w-[250px] py-1.5 px-[6px] shadow-lg border rounded-md z-50">
                 <ul>
                   {_options.map((option, i: number) => (
                     <HashtagsTypeaheadMenuItem
@@ -244,7 +233,7 @@ export default function NewHashtagsPlugin({
                   ))}
                 </ul>
               </div>,
-              anchorElementRef.current,
+              anchorElementRef.current
             )
           : null
       }

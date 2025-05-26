@@ -1,10 +1,10 @@
 defmodule Web.Graphql.Resolvers.DocumentResolver do
-  alias Core.Realtime.Documents
+  alias Core.Crm.Documents
 
   def list_documents(_parent, %{organization_id: id}, %{
         context: ctx
       }) do
-    {:ok, Documents.list_by_organization(id, ctx.tenant)}
+    {:ok, Documents.list_by_ref(id, ctx.tenant)}
   end
 
   def get_document(_parent, %{id: id}, _ctx) do

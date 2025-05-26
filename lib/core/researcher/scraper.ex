@@ -17,14 +17,19 @@ defmodule Core.Researcher.Scraper do
       Application.get_env(:core, :firecrawl_service, Core.External.Firecrawl.Service)
 
   defp classify_service,
-    do: Application.get_env(:core, :classify_service, Core.Ai.Webpage.Classify)
+    do:
+      Application.get_env(
+        :core,
+        :classify_service,
+        Core.Researcher.Webpages.Classifier
+      )
 
   defp profile_intent_service,
     do:
       Application.get_env(
         :core,
         :profile_intent_service,
-        Core.Ai.Webpage.ProfileIntent
+        Core.Researcher.Webpages.IntentGenerator
       )
 
   def scrape_webpage(url) do
@@ -37,6 +42,7 @@ defmodule Core.Researcher.Scraper do
   defp fetch_and_process_webpage(url, timeout \\ @default_scraper_timeout) do
     task =
       Task.Supervisor.async(Core.Researcher.Scraper.Supervisor, fn ->
+        fetch_webpage_content(url)
         with {:error, _jina_reason} <- try_jina_service(url),
              {:error, _puremd_reason} <- try_puremd_service(url),
              {:error, firecrawl_reason} <- try_firecrawl_service(url) do
@@ -61,6 +67,27 @@ defmodule Core.Researcher.Scraper do
       {:exit, reason} ->
         {:error, "webpage_fetch_failed: #{inspect(reason)}"}
     end
+  end
+
+  defp fetch_webpage_content(url) do
+    with {:error, _jina_reason} <- try_jina_service(url),
+         {:error, puremd_reason} <- try_puremd_service(url) do
+      handle_fetch_error(puremd_reason)
+    else
+      {:ok, result} -> {:ok, result}
+    end
+  end
+
+  defp handle_fetch_error({:api_error, message}) do
+    {:error, "API Error: #{message}"}
+  end
+
+  defp handle_fetch_error(reason) when is_binary(reason) do
+    {:error, "Error: #{reason}"}
+  end
+
+  defp handle_fetch_error(reason) do
+    {:error, "Error: #{inspect(reason)}"}
   end
 
   defp try_jina_service(url) do
@@ -140,14 +167,16 @@ defmodule Core.Researcher.Scraper do
          content: content,
          classification: classification,
          intent: intent,
-         links: links
+         links: links,
+         summary: summary
        }) do
     case Core.Researcher.ScrapedWebpages.save_scraped_content(
            url,
            content,
            links,
            classification,
-           intent
+           intent,
+           summary
          ) do
       {:ok, saved_webpage} ->
         Logger.info("Successfully saved webpage data for #{url}")
@@ -184,7 +213,7 @@ defmodule Core.Researcher.Scraper do
     clean_content =
       Core.Researcher.Webpages.Cleaner.process_markdown_webpage(content)
 
-    # Start all 3 processes in parallel
+    # Start all 4 processes in parallel
     classification_task =
       Task.Supervisor.async(Core.Researcher.Scraper.Supervisor, fn ->
         classify_service().classify_webpage_content(domain, clean_content)
@@ -200,6 +229,14 @@ defmodule Core.Researcher.Scraper do
         Core.Researcher.Webpages.LinkExtractor.extract_links(clean_content)
       end)
 
+    summarize_task =
+      Task.Supervisor.async(Core.Researcher.Scraper.Supervisor, fn ->
+        Core.Researcher.Webpages.Summarizer.summarize_webpage(
+          url,
+          clean_content
+        )
+      end)
+
     # Wait for all tasks to complete
     with {:ok, classification} <-
            await_task(
@@ -209,13 +246,16 @@ defmodule Core.Researcher.Scraper do
            ),
          {:ok, intent} <-
            await_task(intent_task, @default_scraper_timeout, "intent"),
-         links <- await_task(links_task, 10_000, "links") do
+         links <- await_task(links_task, 10_000, "links"),
+         {:ok, summary} <-
+           await_task(summarize_task, @default_scraper_timeout, "summary") do
       {:ok,
        %{
          content: clean_content,
          classification: classification,
          intent: intent,
-         links: links
+         links: links,
+         summary: summary
        }}
     else
       {:error, reason} -> {:error, reason}
@@ -261,7 +301,7 @@ defmodule Core.Researcher.Scraper do
 
   defp build_classification_from_record(record) do
     if has_classification_data?(record) do
-      %Core.Ai.Webpage.Classification{
+      %Core.Researcher.Webpages.Classification{
         primary_topic: record.primary_topic,
         secondary_topics: record.secondary_topics || [],
         solution_focus: record.solution_focus || [],
@@ -278,7 +318,7 @@ defmodule Core.Researcher.Scraper do
 
   defp build_intent_from_record(record) do
     if has_intent_data?(record) do
-      %Core.Ai.Webpage.Intent{
+      %Core.Researcher.Webpages.Intent{
         problem_recognition: record.problem_recognition_score,
         solution_research: record.solution_research_score,
         evaluation: record.evaluation_score,

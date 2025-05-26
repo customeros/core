@@ -10,12 +10,11 @@ import {
   useBasicTypeaheadTriggerMatch,
 } from '@lexical/react/LexicalTypeaheadMenuPlugin';
 
-import { cn } from '@ui/utils/cn';
+import { clsx } from 'clsx';
 
 import { $createVariableNode } from '../nodes/VariableNode';
 
-const PUNCTUATION =
-  '\\.,\\+\\*\\?\\$\\@\\|#{}\\(\\)\\^\\-\\[\\]\\\\/!%\'"~=<>_:;';
+const PUNCTUATION = '\\.,\\+\\*\\?\\$\\@\\|#{}\\(\\)\\^\\-\\[\\]\\\\/!%\'"~=<>_:;';
 const NAME = '\\b[A-Z][^\\s' + PUNCTUATION + ']';
 
 const DocumentMentionsRegex = {
@@ -52,7 +51,7 @@ const VariableSignRegex = new RegExp(
     '){0,' +
     LENGTH_LIMIT +
     '})' +
-    ')$',
+    ')$'
 );
 
 // 50 is the longest alias length limit.
@@ -60,20 +59,10 @@ const ALIAS_LENGTH_LIMIT = 50;
 
 // Regex used to match alias.
 const VariableSignRegexAliasRegex = new RegExp(
-  '(^|\\s|\\()(' +
-    TRIGGERS +
-    '((?:' +
-    VALID_CHARS +
-    '){0,' +
-    ALIAS_LENGTH_LIMIT +
-    '})' +
-    ')$',
+  '(^|\\s|\\()(' + TRIGGERS + '((?:' + VALID_CHARS + '){0,' + ALIAS_LENGTH_LIMIT + '})' + ')$'
 );
 
-function checkForVariableSign(
-  text: string,
-  minMatchLength: number,
-): MenuTextMatch | null {
+function checkForVariableSign(text: string, minMatchLength: number): MenuTextMatch | null {
   let match = VariableSignRegex.exec(text);
 
   if (match === null) {
@@ -136,17 +125,17 @@ function VariablesTypeaheadMenuItem({
   return (
     <li
       tabIndex={-1}
-      role='option'
+      role="option"
       key={option.key}
       onMouseDown={onClick}
       ref={option.setRefElement}
       aria-selected={isSelected}
       onMouseEnter={onMouseEnter}
       id={'variable-item-' + index}
-      className={cn(
+      className={clsx(
         'flex gap-2 items-center text-start py-[6px] px-[10px] text-sm text-grayModern-700 rounded-sm outline-none cursor-pointer hover:bg-grayModern-50 hover:rounded-md ',
         'data-[disabled]:opacity-50 data-[disabled]:cursor-not-allowed hover:data-[disabled]:bg-transparent',
-        isSelected && 'bg-grayModern-50 text-grayModern-700',
+        isSelected && 'bg-grayModern-50 text-grayModern-700'
       )}
     >
       {option.name}
@@ -158,9 +147,7 @@ interface MentionsPluginProps {
   options: string[];
 }
 
-export default function VariablesPlugin({
-  options,
-}: MentionsPluginProps): JSX.Element | null {
+export default function VariablesPlugin({ options }: MentionsPluginProps): React.ReactNode | null {
   const [editor] = useLexicalComposerContext();
   const [queryString, setQueryString] = useState<string | null>(null);
 
@@ -171,12 +158,10 @@ export default function VariablesPlugin({
   const _options = useMemo(() => {
     const res = options
       .sort((a, b) => a.localeCompare(b))
-      .map((item) => new VariableTypeaheadOption(item));
+      .map(item => new VariableTypeaheadOption(item));
 
     if (queryString) {
-      return res.filter((item) =>
-        item.name.toLowerCase()?.includes(queryString?.toLowerCase()),
-      );
+      return res.filter(item => item.name.toLowerCase()?.includes(queryString?.toLowerCase()));
     }
 
     return res;
@@ -186,7 +171,7 @@ export default function VariablesPlugin({
     (
       selectedOption: VariableTypeaheadOption,
       nodeToReplace: TextNode | null,
-      closeMenu: () => void,
+      closeMenu: () => void
     ) => {
       editor.update(() => {
         const mentionNode = $createVariableNode(selectedOption.name);
@@ -198,7 +183,7 @@ export default function VariablesPlugin({
         closeMenu();
       });
     },
-    [editor],
+    [editor]
   );
 
   const checkForMentionMatch = useCallback(
@@ -211,7 +196,7 @@ export default function VariablesPlugin({
 
       return getPossibleQueryMatch(text);
     },
-    [checkForSlashTriggerMatch, editor],
+    [checkForSlashTriggerMatch, editor]
   );
 
   return (
@@ -222,11 +207,11 @@ export default function VariablesPlugin({
       triggerFn={checkForMentionMatch}
       menuRenderFn={(
         anchorElementRef,
-        { selectedIndex, selectOptionAndCleanUp, setHighlightedIndex },
+        { selectedIndex, selectOptionAndCleanUp, setHighlightedIndex }
       ) =>
         anchorElementRef.current && _options.length
           ? ReactDOM.createPortal(
-              <div className='relative bg-white min-w-[250px] py-1.5 px-[6px] shadow-lg border rounded-md z-50'>
+              <div className="relative bg-white min-w-[250px] py-1.5 px-[6px] shadow-lg border rounded-md z-50">
                 <ul>
                   {_options.map((option, i: number) => (
                     <VariablesTypeaheadMenuItem
@@ -245,7 +230,7 @@ export default function VariablesPlugin({
                   ))}
                 </ul>
               </div>,
-              anchorElementRef.current,
+              anchorElementRef.current
             )
           : null
       }

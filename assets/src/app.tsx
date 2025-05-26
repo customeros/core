@@ -5,7 +5,7 @@ import { createRoot } from 'react-dom/client';
 
 import axios from 'axios';
 
-import { Leads } from './pages/Leads';
+import { Leads } from './pages/Leads/Leads';
 import { Signin } from './pages/Signin';
 axios.defaults.xsrfHeaderName = 'x-csrf-token';
 

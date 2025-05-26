@@ -13,12 +13,7 @@ import {
 import { shift, offset, computePosition } from '@floating-ui/dom';
 import { mergeRegister, $findMatchingParent } from '@lexical/utils';
 import { useLexicalComposerContext } from '@lexical/react/LexicalComposerContext';
-import {
-  $isLinkNode,
-  $toggleLink,
-  $createLinkNode,
-  $isAutoLinkNode,
-} from '@lexical/link';
+import { $isLinkNode, $toggleLink, $createLinkNode, $isAutoLinkNode } from '@lexical/link';
 import {
   $getSelection,
   CLICK_COMMAND,
@@ -30,16 +25,15 @@ import {
   SELECTION_CHANGE_COMMAND,
 } from 'lexical';
 
-import { Input } from '@ui/form/Input';
-import { Trash01 } from '@ui/media/icons/Trash01';
-import { Divider } from '@ui/presentation/Divider';
-import { getExternalUrl } from '@utils/getExternalLink';
-import { LinkExternal02 } from '@ui/media/icons/LinkExternal02';
-import { FloatingToolbarButton } from '@ui/form/Editor/components';
+import { Input } from 'src/components/Input/Input';
+
+import { FloatingToolbarButton } from 'src/components/Editor/components';
 
 import { sanitizeUrl } from '../utils/url';
 import { getSelectedNode } from '../utils/getSelectedNode';
 import { usePointerInteractions } from '../utils/usePointerInteractions';
+import { Icon } from 'src/components/Icon/Icon';
+import { getExternalUrl } from '../utils/getExternalLink';
 
 const DEFAULT_DOM_ELEMENT = document.body;
 
@@ -129,10 +123,7 @@ export function FloatingLinkEditor({
 
   useEffect(() => {
     function handleClickOutside(event: MouseEvent) {
-      if (
-        editorRef.current &&
-        !editorRef.current?.contains(event.target as Node)
-      ) {
+      if (editorRef.current && !editorRef.current?.contains(event.target as Node)) {
         // todo - this condition could be more sofisticated
         if (linkUrl.trim().length || linkUrl !== 'https://') {
           handleLinkSubmission();
@@ -163,34 +154,35 @@ export function FloatingLinkEditor({
   return (
     <div
       ref={editorRef}
-      className='bg-grayModern-700 flex items-center min-w-[240px] max-w-[240px] p-1 pl-3 shadow-lg rounded-md'
+      className="bg-grayModern-700 flex items-center min-w-[240px] max-w-[240px] p-1 pl-3 shadow-lg rounded-md"
     >
       <Input
-        size='sm'
+        size="sm"
         ref={inputRef}
         value={linkUrl}
-        variant='unstyled'
-        placeholder='Enter a URL'
-        onMouseDown={(event) => event.stopPropagation()}
-        onChange={(event) => setLinkUrl(event.target.value)}
-        className='leading-none min-h-0 pointer-events-auto text-grayModern-25 overflow-ellipsis'
-        onKeyDown={(event) => {
+        variant="unstyled"
+        placeholder="Enter a URL"
+        onMouseDown={event => event.stopPropagation()}
+        onChange={event => setLinkUrl(event.target.value)}
+        className="leading-none min-h-0 pointer-events-auto text-grayModern-25 overflow-ellipsis"
+        onKeyDown={event => {
           monitorInputInteraction(event);
           event.stopPropagation();
         }}
-        onClick={(e) => {
+        onClick={e => {
           e.preventDefault();
           e.stopPropagation();
           inputRef?.current?.focus();
         }}
       />
-      <Divider className='w-[1px] h-3 border-b-0 border-l-[1px] border-grayModern-500 mx-2' />
+
+      <div className="w-[1px] h-3 border-b-0 border-l-[1px] border-gray-500 mx-2" />
 
       {!!linkUrl.trim().length && linkUrl.trim() !== 'https://' && (
         <FloatingToolbarButton
-          aria-label='Open link'
-          icon={<LinkExternal02 className='text-inherit' />}
-          onMouseDown={(event) => {
+          aria-label="Open link"
+          icon={<Icon name="link-external-02" />}
+          onMouseDown={event => {
             event.preventDefault();
             event.stopPropagation();
           }}
@@ -203,10 +195,10 @@ export function FloatingLinkEditor({
       )}
 
       <FloatingToolbarButton
-        aria-label='Delete link'
+        aria-label="Delete link"
         onClick={handleDeleteLink}
-        icon={<Trash01 className='text-inherit' />}
-        onMouseDown={(event) => {
+        icon={<Icon name="trash-01" />}
+        onMouseDown={event => {
           event.preventDefault();
           event.stopPropagation();
         }}
@@ -244,10 +236,7 @@ export function FloatingLinkEditorPlugin({
   const $handleSelectionChange = useCallback(() => {
     if (editor.isComposing()) return false;
 
-    if (
-      editor.getRootElement() !== document.activeElement ||
-      !isPointerReleased
-    ) {
+    if (editor.getRootElement() !== document.activeElement || !isPointerReleased) {
       setMenuPosition(null);
 
       return false;
@@ -258,18 +247,12 @@ export function FloatingLinkEditorPlugin({
     if ($isRangeSelection(selection)) {
       const node = getSelectedNode(selection);
       const linkParent = $findMatchingParent(node, $isLinkNode);
-      const linkNode = $isLinkNode(linkParent)
-        ? linkParent
-        : $isLinkNode(node)
-        ? node
-        : null;
+      const linkNode = $isLinkNode(linkParent) ? linkParent : $isLinkNode(node) ? node : null;
 
       if (linkNode) {
         setIsLink(true);
 
-        const element = editor.getElementByKey(
-          linkNode.getKey(),
-        ) as HTMLElement;
+        const element = editor.getElementByKey(linkNode.getKey()) as HTMLElement;
 
         if (element) {
           anchorRef.current = element;
@@ -296,11 +279,7 @@ export function FloatingLinkEditorPlugin({
           $handleSelectionChange();
         });
       }),
-      editor.registerCommand(
-        SELECTION_CHANGE_COMMAND,
-        $handleSelectionChange,
-        COMMAND_PRIORITY_LOW,
-      ),
+      editor.registerCommand(SELECTION_CHANGE_COMMAND, $handleSelectionChange, COMMAND_PRIORITY_LOW)
     );
   }, [editor, $handleSelectionChange]);
 
@@ -311,10 +290,7 @@ export function FloatingLinkEditorPlugin({
       if ($isRangeSelection(selection)) {
         const focusNode = getSelectedNode(selection);
         const focusLinkNode = $findMatchingParent(focusNode, $isLinkNode);
-        const focusAutoLinkNode = $findMatchingParent(
-          focusNode,
-          $isAutoLinkNode,
-        );
+        const focusAutoLinkNode = $findMatchingParent(focusNode, $isAutoLinkNode);
 
         if (!(focusLinkNode || focusAutoLinkNode)) {
           setIsLink(false);
@@ -323,8 +299,8 @@ export function FloatingLinkEditorPlugin({
         }
         const badNode = selection
           .getNodes()
-          .filter((node) => !$isLineBreakNode(node))
-          .find((node) => {
+          .filter(node => !$isLineBreakNode(node))
+          .find(node => {
             const linkNode = $findMatchingParent(node, $isLinkNode);
             const autoLinkNode = $findMatchingParent(node, $isAutoLinkNode);
 
@@ -352,7 +328,7 @@ export function FloatingLinkEditorPlugin({
 
       editor.registerCommand(
         CLICK_COMMAND,
-        (payload) => {
+        payload => {
           const selection = $getSelection();
 
           if ($isRangeSelection(selection)) {
@@ -366,9 +342,7 @@ export function FloatingLinkEditorPlugin({
             }
 
             if ($isLinkNode(linkNode) && !menuPosition) {
-              const element = editor.getElementByKey(
-                linkNode.getKey(),
-              ) as HTMLElement;
+              const element = editor.getElementByKey(linkNode.getKey()) as HTMLElement;
 
               if (element) {
                 anchorRef.current = element;
@@ -382,8 +356,8 @@ export function FloatingLinkEditorPlugin({
 
           return true;
         },
-        COMMAND_PRIORITY_HIGH,
-      ),
+        COMMAND_PRIORITY_HIGH
+      )
     );
   }, [editor]);
 
@@ -401,15 +375,9 @@ export function FloatingLinkEditorPlugin({
         zIndex: 9999,
       }}
     >
-      {isLink && (
-        <FloatingLinkEditor
-          isLink={isLink}
-          editor={editor}
-          setIsLink={setIsLink}
-        />
-      )}
+      {isLink && <FloatingLinkEditor isLink={isLink} editor={editor} setIsLink={setIsLink} />}
     </div>,
-    anchorElem,
+    anchorElem
   );
 }
 export default FloatingLinkEditorPlugin;
