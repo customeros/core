@@ -1,7 +1,6 @@
 defmodule Core.Crm.Companies.Enrichments.Location do
   require Logger
-  alias Core.Ai.AskAi
-  alias Core.Ai.AskAi.AskAIRequest
+  alias Core.Ai
 
   @system_prompt_country """
   I'm going to provide you metadata about a company, including their website content.
@@ -29,7 +28,7 @@ defmodule Core.Crm.Companies.Enrichments.Location do
   def identifyCountryCodeA2(%{domain: domain, homepage_content: content}) do
     prompt = build_prompt(domain, content)
 
-    request = %AskAIRequest{
+    request = %Ai.Request{
       model: :claude_sonnet,
       prompt: prompt,
       system_prompt: @system_prompt_country,
@@ -37,7 +36,7 @@ defmodule Core.Crm.Companies.Enrichments.Location do
       model_temperature: 0.1
     }
 
-    case AskAi.ask_with_timeout(request) do
+    case Ai.ask_with_timeout(request) do
       {:ok, response} ->
         # Clean and validate the response
         code =

@@ -12,7 +12,7 @@ defmodule Core.Application do
       {Task.Supervisor, name: Core.Researcher.Crawler.Supervisor},
       {Task.Supervisor, name: Core.Researcher.Scraper.Supervisor},
       {Task.Supervisor, name: Core.Researcher.IcpBuilder.Supervisor},
-      {Task.Supervisor, name: Core.Ai.AskAi.Supervisor},
+      {Task.Supervisor, name: Core.Ai.Supervisor},
       Core.Auth.Users.ColorManager,
       Core.Repo,
       Core.Researcher.Orchestrator,

@@ -1,10 +1,10 @@
-defmodule Core.Ai.AskAi.AskAIRequest do
+defmodule Core.Ai.Request do
   @derive Jason.Encoder
   @moduledoc """
   Represents a request to ask a question to an AI Model.
   """
 
-  @type model :: :claude_haiku | :claude_sonnet
+  @type model :: :claude_haiku | :claude_sonnet | :gemini_pro
 
   @type t :: %__MODULE__{
           model: model(),

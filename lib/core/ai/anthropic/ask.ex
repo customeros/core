@@ -1,6 +1,8 @@
-defmodule Core.External.Anthropic.Service do
-  alias Core.External.Anthropic.Models
-  alias Core.External.Anthropic.Config
+defmodule Core.Ai.Anthropic.Ask do
+  alias Core.Ai.Anthropic.ApiRequest
+  alias Core.Ai.Anthropic.Message
+  alias Core.Ai.Anthropic.Request
+  alias Core.Ai.Anthropic.Config
 
   require Logger
 
@@ -9,9 +11,13 @@ defmodule Core.External.Anthropic.Service do
   @content_type_header "content-type"
   @default_api_version "2023-06-01"
 
-  @spec ask(Models.AskAIRequest.t(), Config.t()) :: {:ok, String.t()} | {:error, any()}
-  def ask(%Models.AskAIRequest{} = message, %Config{} = config) do
-    with :ok <- Models.AskAIRequest.validate(message),
+  @haiku_version "claude-3-5-haiku-20241022"
+  @sonnet_version "claude-3-5-sonnet-20241022"
+
+  @spec ask(Request.t(), Config.t()) ::
+          {:ok, String.t()} | {:error, any()}
+  def ask(%Request{} = message, %Config{} = config) do
+    with :ok <- Request.validate(message),
          :ok <- Config.validate(config),
          {:ok, req_body} <- build_request(message),
          {:ok, response} <- execute(req_body, config) do
@@ -21,16 +27,16 @@ defmodule Core.External.Anthropic.Service do
     end
   end
 
-  defp build_request(%Models.AskAIRequest{} = message) do
+  defp build_request(%Request{} = message) do
     model_name =
       case message.model do
-        :claude_haiku -> "claude-3-5-haiku-20241022"
-        :claude_sonnet -> "claude-3-5-sonnet-20241022"
+        :claude_haiku -> @haiku_version
+        :claude_sonnet -> @sonnet_version
       end
 
-    request = %Models.AnthropicApiRequest{
+    request = %ApiRequest{
       model: model_name,
-      messages: [%Models.Message{role: "user", content: message.prompt}],
+      messages: [%Message{role: "user", content: message.prompt}],
       max_tokens: message.max_output_tokens,
       temperature: message.model_temperature
     }
@@ -98,7 +104,8 @@ defmodule Core.External.Anthropic.Service do
         {:error, {:api_error, "#{type}: #{message}"}}
 
       _ ->
-        {:error, {:http_error, "API request failed with status #{status}: #{body}"}}
+        {:error,
+         {:http_error, "API request failed with status #{status}: #{body}"}}
     end
   end
 end

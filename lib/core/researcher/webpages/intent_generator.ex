@@ -2,6 +2,7 @@ defmodule Core.Researcher.Webpages.IntentGenerator do
   @moduledoc """
   Profiles webpage intent using AI.
   """
+  alias Core.Ai
 
   @model :claude_sonnet
   @model_temperature 0.2
@@ -13,7 +14,7 @@ defmodule Core.Researcher.Webpages.IntentGenerator do
       when is_binary(content) and content != "" do
     {system_prompt, prompt} = build_profile_intent_prompts(url, content)
 
-    request = %Core.Ai.AskAi.AskAIRequest{
+    request = %Ai.Request{
       model: @model,
       prompt: prompt,
       system_prompt: system_prompt,
@@ -21,7 +22,7 @@ defmodule Core.Researcher.Webpages.IntentGenerator do
       model_temperature: @model_temperature
     }
 
-    case Core.Ai.AskAi.ask_with_timeout(request) do
+    case Ai.ask_with_timeout(request) do
       {:ok, answer} ->
         case parse_and_validate_response(answer) do
           {:ok, profile_intent} -> {:ok, profile_intent}

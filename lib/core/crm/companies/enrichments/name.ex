@@ -1,7 +1,6 @@
 defmodule Core.Crm.Companies.Enrichments.Name do
   require Logger
-  alias Core.Ai.AskAi
-  alias Core.Ai.AskAi.AskAIRequest
+  alias Core.Ai
 
   @system_prompt """
   I'm going to provide you metadata about a company, including their website content.
@@ -26,7 +25,7 @@ defmodule Core.Crm.Companies.Enrichments.Name do
   def identify(%{domain: domain, homepage_content: content}) do
     prompt = build_prompt(domain, content)
 
-    request = %AskAIRequest{
+    request = %Ai.Request{
       model: :claude_sonnet,
       prompt: prompt,
       system_prompt: @system_prompt,
@@ -34,7 +33,7 @@ defmodule Core.Crm.Companies.Enrichments.Name do
       model_temperature: 0.1
     }
 
-    case AskAi.ask_with_timeout(request) do
+    case Ai.ask_with_timeout(request) do
       {:ok, response} ->
         # Clean the response to ensure we only get the name
         name =

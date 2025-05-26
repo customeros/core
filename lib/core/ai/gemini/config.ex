@@ -1,4 +1,4 @@
-defmodule Core.External.Gemini.Config do
+defmodule Core.Ai.Gemini.Config do
   @type t :: %__MODULE__{
           api_path: String.t(),
           api_key: String.t(),

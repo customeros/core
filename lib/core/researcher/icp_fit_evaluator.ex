@@ -1,5 +1,5 @@
 defmodule Core.Researcher.IcpFitEvaluator do
-  alias Core.Ai.AskAi
+  alias Core.Ai
   alias Core.Researcher.IcpFitEvaluator.PromptBuilder
   alias Core.Researcher.IcpFitEvaluator.Validator
   alias Core.Researcher.Crawler
@@ -38,7 +38,7 @@ defmodule Core.Researcher.IcpFitEvaluator do
             PromptBuilder.build_prompts(domain, pages, icp)
 
           with {:ok, answer} <-
-                 AskAi.ask_with_timeout(
+                 Ai.ask_with_timeout(
                    PromptBuilder.build_request(system_prompt, prompt)
                  ),
                {:ok, fit} <- Validator.validate_and_parse(answer) do
