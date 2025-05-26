@@ -38,11 +38,37 @@ defmodule Web.Router do
     plug Web.Plugs.ValidateHeaders
   end
 
+  pipeline :dev do
+    plug :accepts, ["html"]
+    plug :fetch_session
+    plug :fetch_live_flash
+    plug :put_root_layout, html: {Web.Layouts, :root}
+    plug :protect_from_forgery
+    plug :put_secure_browser_headers
+  end
+
   # Health check endpoint
   scope "/", Web do
     pipe_through :public_api
 
     get "/health", HealthController, :index
+  end
+
+  # Enable LiveDashboard and Swoosh mailbox preview in development
+  if Application.compile_env(:core, :dev_routes) do
+    # If you want to use the LiveDashboard in production, you should put
+    # it behind authentication and allow only admins to access it.
+    # If your application does not have an admins-only section yet,
+    # you can use Plug.BasicAuth to set up some basic authentication
+    # as long as you are also using SSL (which you should anyway).
+    import Phoenix.LiveDashboard.Router
+
+    # Development tools (unauthenticated)
+    scope "/dev" do
+      pipe_through :dev
+      live_dashboard "/dashboard", metrics: Web.Telemetry
+      forward "/mailbox", Plug.Swoosh.MailboxPreview
+    end
   end
 
   # Signin routes (unprotected)
@@ -96,22 +122,5 @@ defmodule Web.Router do
          :create
 
     get "/organizations/:organization_id/documents", DocumentController, :index
-  end
-
-  # Enable LiveDashboard and Swoosh mailbox preview in development
-  if Application.compile_env(:core, :dev_routes) do
-    # If you want to use the LiveDashboard in production, you should put
-    # it behind authentication and allow only admins to access it.
-    # If your application does not have an admins-only section yet,
-    # you can use Plug.BasicAuth to set up some basic authentication
-    # as long as you are also using SSL (which you should anyway).
-    import Phoenix.LiveDashboard.Router
-
-    scope "/dev" do
-      pipe_through [:fetch_session, :protect_from_forgery]
-
-      live_dashboard "/dashboard", metrics: Web.Telemetry
-      forward "/mailbox", Plug.Swoosh.MailboxPreview
-    end
   end
 end
