@@ -1,4 +1,4 @@
-defmodule Core.AI.Company.Location do
+defmodule Core.Crm.Companies.Enrichments.Location do
   require Logger
   alias Core.Ai.AskAi
   alias Core.Ai.AskAi.AskAIRequest

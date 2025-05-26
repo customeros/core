@@ -1,4 +1,4 @@
-defmodule Core.AI.Company.Industry do
+defmodule Core.Crm.Companies.Enrichments.Industry do
   require Logger
   alias Core.Ai.AskAi
   alias Core.Ai.AskAi.AskAIRequest

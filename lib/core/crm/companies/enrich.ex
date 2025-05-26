@@ -8,6 +8,7 @@ defmodule Core.Crm.Companies.Enrich do
   alias Core.Research.Scraper
   alias Core.Crm.Industries
   alias Core.Media.Images
+  alias Core.Crm.Companies.Enrichments
 
   def start_link(_opts) do
     GenServer.start_link(__MODULE__, %{}, name: __MODULE__)
@@ -103,7 +104,7 @@ defmodule Core.Crm.Companies.Enrich do
 
           if count > 0 do
             # Get industry code from AI
-            case Core.AI.Company.Industry.identify(%{
+            case Enrichments.Industry.identify(%{
                    domain: company.primary_domain,
                    homepage_content: company.homepage_content
                  }) do
@@ -167,7 +168,7 @@ defmodule Core.Crm.Companies.Enrich do
 
           if count > 0 do
             # Get company name from AI
-            case Core.AI.Company.Name.identify(%{
+            case Enrichments.Name.identify(%{
                    domain: company.primary_domain,
                    homepage_content: company.homepage_content
                  }) do
@@ -219,7 +220,7 @@ defmodule Core.Crm.Companies.Enrich do
 
           if count > 0 do
             # Get country code from AI
-            case Core.AI.Company.Location.identifyCountryCodeA2(%{
+            case Enrichments.Location.identifyCountryCodeA2(%{
                    domain: company.primary_domain,
                    homepage_content: company.homepage_content
                  }) do
