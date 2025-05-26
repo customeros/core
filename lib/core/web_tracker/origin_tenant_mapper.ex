@@ -9,7 +9,8 @@ defmodule Core.WebTracker.OriginTenantMapper do
     "dashboard.kanda.co.uk" => "kandacouk",
     "infinity.co" => "infinityco",
     "nuso.cloud" => "nusocloud",
-    "nusocloud.eu" => "nusocloud"
+    "nusocloud.eu" => "nusocloud",
+    "customeros.ai" => "customerosai"
   }
 
   @doc """
