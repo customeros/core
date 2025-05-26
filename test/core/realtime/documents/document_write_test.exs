@@ -11,7 +11,7 @@ defmodule Core.Realtime.Documents.DocumentWriteTest do
       valid_attrs = %{
         docName: document.id,
         value: "Updated content",
-        version: :v1
+        version: "v1"
       }
 
       changeset = DocumentWrite.changeset(%DocumentWrite{}, valid_attrs)
