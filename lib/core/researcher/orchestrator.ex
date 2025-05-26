@@ -28,7 +28,6 @@ defmodule Core.Researcher.Orchestrator do
     Task.start(fn ->
       case Core.Researcher.IcpFitEvaluator.evaluate(tenant_id, domain) do
         {:ok, icp_fit} ->
-          dbg(icp_fit)
           process_icp_evaluation(tenant_id, lead_id, icp_fit)
 
         {:error, reason} ->
