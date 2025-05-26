@@ -42,39 +42,39 @@ defmodule Core.Crm.Companies.Enrich do
 
   def enrich_country(_), do: {:error, :invalid_company_id}
 
-  @spec enrich_logo(String.t()) :: :ok
-  def enrich_logo(company_id) when is_binary(company_id) do
-    GenServer.cast(__MODULE__, {:enrich_logo, company_id})
+  @spec enrich_icon(String.t()) :: :ok
+  def enrich_icon(company_id) when is_binary(company_id) do
+    GenServer.cast(__MODULE__, {:enrich_icon, company_id})
   end
 
-  def enrich_logo(_), do: {:error, :invalid_company_id}
+  def enrich_icon(_), do: {:error, :invalid_company_id}
 
   @doc """
-  Fetches companies that need logo enrichment.
+  Fetches companies that need icon enrichment.
 
   ## Parameters
     * `batch_size` - Number of records to return (default: 10)
 
   ## Returns
     * List of companies that:
-      - Have no logo_key
+      - Have no icon_key
       - Have not been attempted in the last 24 hours or have never been attempted
   """
-  @spec fetch_companies_for_logo_enrichment(integer()) :: [Company.t()]
-  def fetch_companies_for_logo_enrichment(batch_size \\ 10) do
+  @spec fetch_companies_for_icon_enrichment(integer()) :: [Company.t()]
+  def fetch_companies_for_icon_enrichment(batch_size \\ 10) do
     twenty_four_hours_ago = DateTime.add(DateTime.utc_now(), -24 * 60 * 60)
     ten_minutes_ago = DateTime.add(DateTime.utc_now(), -10 * 60)
     max_attempts = 5
 
     Company
-    |> where([c], is_nil(c.logo_key) or c.logo_key == "")
-    |> where([c], c.logo_enrichment_attempts < ^max_attempts)
+    |> where([c], is_nil(c.icon_key) or c.icon_key == "")
+    |> where([c], c.icon_enrichment_attempts < ^max_attempts)
     |> where(
       [c],
-      is_nil(c.logo_enrich_attempt_at) or c.logo_enrich_attempt_at < ^twenty_four_hours_ago
+      is_nil(c.icon_enrich_attempt_at) or c.icon_enrich_attempt_at < ^twenty_four_hours_ago
     )
     |> where([c], c.inserted_at < ^ten_minutes_ago)
-    |> order_by([c], asc: c.logo_enrich_attempt_at)
+    |> order_by([c], asc: c.icon_enrich_attempt_at)
     |> limit(^batch_size)
     |> Repo.all()
   end
@@ -111,8 +111,8 @@ defmodule Core.Crm.Companies.Enrich do
   end
 
   @impl true
-  def handle_cast({:enrich_logo, company_id}, state) do
-    Task.start(fn -> process_logo_enrichment(company_id) end)
+  def handle_cast({:enrich_icon, company_id}, state) do
+    Task.start(fn -> process_icon_enrichment(company_id) end)
     {:noreply, state}
   end
 
@@ -295,20 +295,20 @@ defmodule Core.Crm.Companies.Enrich do
     end
   end
 
-  defp process_logo_enrichment(company_id) do
+  defp process_icon_enrichment(company_id) do
     case Repo.get(Company, company_id) do
       nil ->
-        Logger.error("Company #{company_id} not found for logo enrichment")
+        Logger.error("Company #{company_id} not found for icon enrichment")
 
       company ->
-        if should_enrich_logo?(company) do
+        if should_enrich_icon?(company) do
           # Update both the attempt timestamp and increment attempts counter
           {count, _} =
             Repo.update_all(
               from(c in Company, where: c.id == ^company_id),
               [
-                set: [logo_enrich_attempt_at: DateTime.utc_now()],
-                inc: [logo_enrichment_attempts: 1]
+                set: [icon_enrich_attempt_at: DateTime.utc_now()],
+                inc: [icon_enrichment_attempts: 1]
               ]
             )
 
@@ -322,7 +322,7 @@ defmodule Core.Crm.Companies.Enrich do
             brandfetch_url =
               "https://cdn.brandfetch.io/#{company.primary_domain}/type/fallback/404/w/400/h/400?c=#{client_id}"
 
-            # Download and store the logo
+            # Download and store the icon
             case Images.download_image(brandfetch_url) do
               {:ok, image_data} ->
                 # Only proceed with storage if we got actual image data
@@ -331,22 +331,22 @@ defmodule Core.Crm.Companies.Enrich do
                        path: "_companies"
                      }) do
                   {:ok, storage_key} ->
-                    # Update company with the logo storage key
+                    # Update company with the icon storage key
                     {update_count, _} =
                       Repo.update_all(
                         from(c in Company, where: c.id == ^company_id),
-                        set: [logo_key: storage_key]
+                        set: [icon_key: storage_key]
                       )
 
                     if update_count == 0 do
                       Logger.error(
-                        "Failed to update logo key for company #{company_id} (domain: #{company.primary_domain})"
+                        "Failed to update icon key for company #{company_id} (domain: #{company.primary_domain})"
                       )
                     end
 
                   {:error, reason} ->
                     Logger.error(
-                      "Failed to store logo for company #{company_id} (domain: #{company.primary_domain}): #{inspect(reason)}"
+                      "Failed to store icon for company #{company_id} (domain: #{company.primary_domain}): #{inspect(reason)}"
                     )
                 end
 
@@ -355,18 +355,18 @@ defmodule Core.Crm.Companies.Enrich do
 
               {:error, reason} ->
                 Logger.error(
-                  "Failed to download logo for company #{company_id} (domain: #{company.primary_domain}): #{inspect(reason)}"
+                  "Failed to download icon for company #{company_id} (domain: #{company.primary_domain}): #{inspect(reason)}"
                 )
                 {:error, reason}
             end
           else
             Logger.error(
-              "Failed to mark logo enrichment attempt for company #{company_id}"
+              "Failed to mark icon enrichment attempt for company #{company_id}"
             )
           end
         else
           Logger.error(
-            "Skipping logo enrichment for company #{company_id}: #{logo_enrichment_skip_reason(company)}"
+            "Skipping icon enrichment for company #{company_id}: #{icon_enrichment_skip_reason(company)}"
           )
         end
     end
@@ -411,9 +411,9 @@ defmodule Core.Crm.Companies.Enrich do
     end
   end
 
-  defp should_enrich_logo?(company) do
+  defp should_enrich_icon?(company) do
     cond do
-      not is_nil(company.logo_key) and company.logo_key != "" ->
+      not is_nil(company.icon_key) and company.icon_key != "" ->
         false
 
       is_nil(company.primary_domain) or company.primary_domain == "" ->
@@ -463,10 +463,10 @@ defmodule Core.Crm.Companies.Enrich do
     end
   end
 
-  defp logo_enrichment_skip_reason(company) do
+  defp icon_enrichment_skip_reason(company) do
     cond do
-      not is_nil(company.logo_key) and company.logo_key != "" ->
-        "logo_key already set"
+      not is_nil(company.icon_key) and company.icon_key != "" ->
+        "icon_key already set"
 
       is_nil(company.primary_domain) or company.primary_domain == "" ->
         "no primary domain available"
@@ -510,7 +510,7 @@ defmodule Core.Crm.Companies.Enrich do
                     enrich_industry(company_id)
                     enrich_name(company_id)
                     enrich_country(company_id)
-                    enrich_logo(company_id)
+                    enrich_icon(company_id)
                   end
 
                 {:error, reason} ->
