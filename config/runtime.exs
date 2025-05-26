@@ -126,3 +126,7 @@ config :ex_aws, :s3,
 
 # Brandfetch configuration
 config :core, :brandfetch, client_id: get_env.("BRANDFETCH_CLIENT_ID", nil)
+
+# Slack configuration
+config :core, :slack,
+  new_tenant_webhook_url: get_env.("SLACK_NEW_TENANT_WEBHOOK_URL", nil)
