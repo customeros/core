@@ -41,6 +41,7 @@ defmodule Web.Router do
   scope "/", Web do
     pipe_through :browser
 
+    get "/", LeadsController, :index
     get "/icons.svg", IconsController, :index
     get "/favicon/*path", FaviconController, :serve
   end
@@ -48,7 +49,6 @@ defmodule Web.Router do
   scope "/", Web do
     pipe_through [:browser, :require_authenticated_user]
 
-    get "/", LeadsController, :index
     get "/leads/download", LeadsController, :download
   end
 
