@@ -49,7 +49,7 @@ defmodule Core.Researcher.IcpFitEvaluator do
         result
 
       nil ->
-        Task.Supervisor.terminate_child(MyApp.TaskSupervisor, task.pid)
+        Task.Supervisor.terminate_child(Core.Researcher.IcpFitEvaluator.Supervisor, task.pid)
         {:error, :ai_timeout}
 
       {:exit, reason} ->
