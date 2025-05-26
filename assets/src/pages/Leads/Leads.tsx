@@ -156,7 +156,7 @@ export const Leads = ({ companies }: LeadsProps) => {
       {docId && (
         <div
           className={clsx(
-            'border-l border-gray-200 h-full flex-shrink-0 transition-all duration-300 ease-in-out',
+            'border-l border-gray-200 h-screen flex-shrink-0 transition-all duration-300 ease-in-out',
             viewMode === 'focus' ? 'w-full' : 'w-[600px]'
           )}
         >
