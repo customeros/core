@@ -1,4 +1,4 @@
-defmodule Core.Research.Crawler do
+defmodule Core.Researcher.Crawler do
   @moduledoc """
   Crawl a website and scrape it's content starting from root domain.
   """
@@ -8,26 +8,53 @@ defmodule Core.Research.Crawler do
     max_depth: 2,
     max_pages: 100,
     delay: 100,
-    concurrency: 5
+    concurrency: 3
   ]
 
+  # 5 mins
+  @default_timeout 5 * 60 * 1000
+
   @doc """
-  Starts a new web crawler from root domain.
-  Valid options are:
-    :max_depth 
-    :max_pages
-    :delay (between pages in ms)
-    :concurrency (number of pages to scrape at a time)
-
-  `{:ok, results}` returns a results map with the scraped URLs as keys and the scraped content as values
+  Starts crawler in supervised task, returns task for caller control.
+  Caller can choose to wait with Task.await/2 or let it run in background.
   """
-  @spec start(String.t(), keyword()) :: {:ok, map()} | {:error, String.t()}
+  @spec start_async(String.t(), keyword()) :: Task.t()
+  def start_async(domain, opts \\ []) do
+    Task.Supervisor.async(Core.Researcher.Crawler.Supervisor, fn ->
+      opts = Keyword.merge(@default_opts, opts)
+      start(domain, opts)
+    end)
+  end
 
-  def start(domain, opts \\ []) when is_binary(domain) do
+  @doc """
+  Starts crawler and waits for completion with timeout.
+  Convenience function for synchronous usage with supervision benefits.
+  """
+  @spec start_sync(String.t(), keyword(), timeout()) ::
+          {:ok, map()} | {:error, String.t()}
+  def start_sync(domain, opts \\ [], timeout \\ @default_timeout) do
+    task = start_async(domain, opts)
+
+    case Task.yield(task, timeout) do
+      {:ok, result} ->
+        result
+
+      nil ->
+        Task.Supervisor.terminate_child(
+          Core.Researcher.Crawler.Supervisor,
+          task.pid
+        )
+
+        {:error, "crawler_timeout"}
+
+      {:exit, reason} ->
+        {:error, "crawler_failed: #{inspect(reason)}"}
+    end
+  end
+
+  defp start(domain, opts) when is_binary(domain) do
     case Core.Utils.DomainExtractor.extract_base_domain(domain) do
       {:ok, base_domain} ->
-        opts = Keyword.merge(@default_opts, opts)
-
         # Start crawling with concurrent workers
         crawl_concurrent(%{
           queue: [{domain, 0}],
@@ -80,7 +107,7 @@ defmodule Core.Research.Crawler do
     if MapSet.member?(state.visited, url) do
       crawl_concurrent(%{state | queue: rest})
     else
-      # Start async task
+      # Start async task for page processing
       task =
         Task.async(fn ->
           Logger.info("Crawling #{url} (depth: #{depth})")
@@ -181,7 +208,7 @@ defmodule Core.Research.Crawler do
   defp scrape_url(url) do
     try do
       with {:ok, valid_url} <- Core.Utils.UrlFormatter.to_https(url) do
-        Core.Research.Scraper.scrape_webpage(valid_url)
+        Core.Researcher.Scraper.scrape_webpage(valid_url)
       else
         {:error, reason} -> {:error, reason}
       end

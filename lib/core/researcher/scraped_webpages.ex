@@ -1,10 +1,10 @@
-defmodule Core.Research.ScrapedWebpages do
+defmodule Core.Researcher.ScrapedWebpages do
   @moduledoc """
   Database operations for scraped webpages.
   """
 
   alias Core.Repo
-  alias Core.Research.Webpages.ScrapedWebpage
+  alias Core.Researcher.Webpages.ScrapedWebpage
   alias Core.Ai.Webpage.Classification
   alias Core.Ai.Webpage.Intent
   import Ecto.Query

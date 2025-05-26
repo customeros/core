@@ -4,6 +4,7 @@ defmodule Core.Crm.Leads do
   """
 
   import Ecto.Query, warn: false
+  alias Ecto.Repo
   alias Core.Repo
   alias Core.Crm.Leads.{Lead, LeadView}
   alias Core.Auth.Tenants
@@ -14,6 +15,15 @@ defmodule Core.Crm.Leads do
           {:ok, Lead.t()} | {:error, :not_found}
   def get_by_ref_id(tenant_id, ref_id) do
     case Repo.get_by(Lead, tenant_id: tenant_id, ref_id: ref_id) do
+      nil -> {:error, :not_found}
+      %Lead{} = lead -> {:ok, lead}
+    end
+  end
+
+  @spec get_by_id(String.t(), String.t()) ::
+          {:ok, Lead.t()} | {:error, :not_found}
+  def get_by_id(tenant_id, lead_id) do
+    case Repo.get_by(Lead, tenant_id: tenant_id, id: lead_id) do
       nil -> {:error, :not_found}
       %Lead{} = lead -> {:ok, lead}
     end

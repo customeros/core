@@ -1,11 +1,11 @@
-defmodule Core.Research.IcpProfiles do
+defmodule Core.Researcher.IcpProfiles do
   @moduledoc """
   Database operations for ICP profiles.
   """
 
   alias Core.Icp.Builder.Profile
   alias Core.Repo
-  alias Core.Research.Profiles.Profile
+  alias Core.Researcher.Profiles.Profile
   import Ecto.Query
 
   ## Create ##

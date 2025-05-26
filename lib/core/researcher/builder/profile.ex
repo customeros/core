@@ -1,4 +1,4 @@
-defmodule Core.Research.Builder.Profile do
+defmodule Core.Researcher.Builder.Profile do
   @derive Jason.Encoder
 
   @type t :: %__MODULE__{

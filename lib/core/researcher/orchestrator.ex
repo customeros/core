@@ -1,8 +1,8 @@
-defmodule Core.Research.Orchestrator do
+defmodule Core.Researcher.Orchestrator do
   alias Task
   use GenServer
   require Logger
-  # Fixed: was **MODULE**
+
   @name __MODULE__
 
   def start_link(opts \\ []) do
@@ -14,8 +14,8 @@ defmodule Core.Research.Orchestrator do
     GenServer.cast(@name, {:create_tenant_icp, tenant_id})
   end
 
-  def evaluate_icp_fit(tenant_id, domain) do
-    GenServer.cast(@name, {:evaluate_icp_fit, tenant_id, domain})
+  def evaluate_icp_fit(tenant_id, lead_id, domain) do
+    GenServer.cast(@name, {:evaluate_icp_fit, tenant_id, lead_id, domain})
   end
 
   @impl true
@@ -24,41 +24,24 @@ defmodule Core.Research.Orchestrator do
   end
 
   @impl true
-  def handle_cast({:evaluate_icp_fit, tenant_id, domain}, state) do
+  def handle_cast({:evaluate_icp_fit, tenant_id, lead_id, domain}, state) do
     Task.start(fn ->
-      case Core.Research.IcpFitEvaluator.evaluate(tenant_id, domain) do
+      case Core.Researcher.IcpFitEvaluator.evaluate(tenant_id, domain) do
         {:ok, icp_fit} ->
-          Phoenix.PubSub.broadcast(
-            Core.PubSub,
-            "icp_fit",
-            {:icp_fit_evaluated, tenant_id, domain, icp_fit}
-          )
-
-          Logger.info(
-            "ICP fit evaluated for tenant #{tenant_id}, domain #{domain}: #{icp_fit}"
-          )
+          process_icp_evaluation(tenant_id, lead_id, icp_fit)
 
         {:error, reason} ->
-          Phoenix.PubSub.broadcast(
-            Core.PubSub,
-            "icp_fit",
-            {:icp_fit_failed, tenant_id, domain, reason}
-          )
-
-          Logger.error(
-            "ICP fit evaluation failed for tenant #{tenant_id}, domain #{domain}: #{reason}"
-          )
+          {:error, reason}
       end
     end)
 
-    # Added missing return tuple
     {:noreply, state}
   end
 
   @impl true
   def handle_cast({:create_tenant_icp, tenant_id}, state) do
     Task.start(fn ->
-      case Core.Research.IcpBuilder.build_for_tenant(tenant_id) do
+      case Core.Researcher.IcpBuilder.build_for_tenant(tenant_id) do
         {:ok, _profile} ->
           Phoenix.PubSub.broadcast(
             Core.PubSub,
@@ -81,4 +64,20 @@ defmodule Core.Research.Orchestrator do
 
     {:noreply, state}
   end
+
+  defp process_icp_evaluation(tenant_id, lead_id, icp_fit) do
+    with {:ok, lead} <- Core.Crm.Leads.get_by_id(tenant_id, lead_id),
+         stage <- determine_stage(icp_fit),
+         {:ok, updated_lead} <-
+           Core.Crm.Leads.update_lead(lead, %{stage: stage}) do
+      {:ok, updated_lead}
+    else
+      {:error, reason} -> {:error, reason}
+      nil -> {:error, :lead_not_found}
+    end
+  end
+
+  defp determine_stage(:strong), do: :education
+  defp determine_stage(:moderate), do: :education
+  defp determine_stage(:not_a_fit), do: :not_a_fit
 end

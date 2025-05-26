@@ -16,13 +16,15 @@ defmodule Core.Crm.Companies.Enrichments.Industry do
   """
 
   @type input :: %{
-    domain: String.t(),
-    homepage_content: String.t()
-  }
+          domain: String.t(),
+          homepage_content: String.t()
+        }
 
   @spec identify(input() | nil | map()) :: {:ok, String.t()} | {:error, term()}
   def identify(nil), do: {:error, {:invalid_request, "Input cannot be nil"}}
-  def identify(%{domain: domain, homepage_content: content}) when is_binary(domain) and is_binary(content) do
+
+  def identify(%{domain: domain, homepage_content: content})
+      when is_binary(domain) and is_binary(content) do
     prompt = build_prompt(domain, content)
 
     request = %AskAIRequest{
@@ -33,12 +35,13 @@ defmodule Core.Crm.Companies.Enrichments.Industry do
       model_temperature: 0.1
     }
 
-    case AskAi.ask(request) do
+    case AskAi.ask_with_timeout(request) do
       {:ok, response} ->
         # Clean the response to ensure we only get the code
-        code = response
-        |> String.trim()
-        |> String.replace(~r/[^0-9]/, "")
+        code =
+          response
+          |> String.trim()
+          |> String.replace(~r/[^0-9]/, "")
 
         if String.length(code) > 0 do
           {:ok, code}
@@ -51,6 +54,7 @@ defmodule Core.Crm.Companies.Enrichments.Industry do
         error
     end
   end
+
   def identify(_), do: {:error, {:invalid_request, "Invalid input format"}}
 
   defp build_prompt(domain, content) do
