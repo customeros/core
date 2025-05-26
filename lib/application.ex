@@ -19,6 +19,8 @@ defmodule Core.Application do
       Core.Repo,
       Core.Researcher.Orchestrator,
       Core.Crm.Companies.Enrich,
+      Core.Crm.Companies.CompanyEnricher,
+      Core.WebTracker.WebSessionCloser,
       Web.Endpoint,
       Web.Presence,
       Web.Telemetry,
@@ -26,8 +28,7 @@ defmodule Core.Application do
       ## 3rd party
       {DNSCluster,
        query: Application.get_env(:core, :dns_cluster_query) || :ignore},
-      {Finch, name: Core.Finch},
-      Core.WebTracker.WebSessionCloser
+      {Finch, name: Core.Finch}
     ]
 
     env = Application.get_env(:core, :app_env, :prod)
