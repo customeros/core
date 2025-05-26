@@ -2,7 +2,7 @@ defmodule Core.AI.Company.IndustryTest do
   use Core.DataCase
   import Mox
 
-  alias Core.AI.Company.Industry
+  alias Core.Crm.Companies.Enrichments.Industry
 
   # Make sure mocks are verified when the test exits
   setup :verify_on_exit!

@@ -7,8 +7,9 @@ import Config
 # Run `mix help test` for more information.
 config :core, Core.Repo,
   username: System.get_env("POSTGRES_USER", "postgres"),
-  password: System.get_env("POSTGRES_PASSWORD", "postgres"),
+  password: System.get_env("POSTGRES_PASSWORD", "password"),
   hostname: System.get_env("POSTGRES_HOST", "localhost"),
+  port: System.get_env("POSTGRES_PORT", "5555"),
   database: "core_test#{System.get_env("MIX_TEST_PARTITION")}",
   pool: Ecto.Adapters.SQL.Sandbox,
   pool_size: 10
@@ -47,3 +48,8 @@ config :core, :jina_service, Core.External.Jina.Service.Mock
 config :core, :puremd_service, Core.External.Puremd.Service.Mock
 config :core, :classify_service, Core.Ai.Webpage.Classify.Mock
 config :core, :profile_intent_service, Core.Ai.Webpage.ProfileIntent.Mock
+
+# Configure MIME types
+config :mime, :types, %{
+  "application/json" => ["json"]
+}
