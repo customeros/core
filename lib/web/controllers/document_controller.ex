@@ -1,7 +1,7 @@
 defmodule Web.DocumentController do
   use Web, :controller
   require Logger
-  alias Core.Realtime.Documents
+  alias Core.Crm.Documents
 
   def create(
         conn,
@@ -9,11 +9,11 @@ defmodule Web.DocumentController do
           "name" => _name,
           "body" => _body,
           "userId" => _user_id,
-          "tenant" => _tenant,
+          "tenantId" => _tenant_id,
           "icon" => _icon,
           "color" => _color,
           "lexicalState" => _lexical_state,
-          "organizationId" => _organization_id
+          "refId" => _ref_id
         } = params
       ) do
     handle_create(conn, params)
@@ -25,16 +25,16 @@ defmodule Web.DocumentController do
     |> send_resp(400, Jason.encode!(%{error: "Invalid request body"}))
   end
 
-  def index(conn, %{"organization_id" => organization_id}) do
-    tenant = get_req_header(conn, "x-tenant") |> List.first()
-    documents = Documents.list_by_organization(organization_id, tenant)
+  def index(conn, %{"refId" => ref_id}) do
+    tenant_id = get_req_header(conn, "x-tenant") |> List.first()
+    documents = Documents.list_by_ref(ref_id, tenant_id)
 
     json_response =
       documents
       |> Enum.map(fn doc ->
         if is_struct(doc), do: Map.from_struct(doc), else: doc
       end)
-      |> Enum.map(&Core.Realtime.Util.to_camel_case_map/1)
+      |> Enum.map(&Core.Utils.MapUtils.to_camel_case_map/1)
       |> Jason.encode!()
 
     conn
@@ -48,7 +48,7 @@ defmodule Web.DocumentController do
         json_response =
           document
           |> Map.from_struct()
-          |> Core.Realtime.Util.to_camel_case_map()
+          |> Core.Utils.MapUtils.to_camel_case_map()
           |> Jason.encode!()
 
         conn

@@ -26,12 +26,39 @@ defmodule Web.Router do
     plug :accepts, ["json"]
     plug :fetch_session
     plug :fetch_current_user
-    plug :require_authenticated_user
-    plug Web.Plugs.ValidateHeaders
+    plug :require_authenticated_api_user
   end
 
   pipeline :public_api do
     plug :accepts, ["json"]
+  end
+
+  pipeline :bearer_api do
+    plug :accepts, ["json"]
+    plug :authenticate_bearer_token
+  end
+
+  pipeline :bearer_api_read do
+    plug :accepts, ["json"]
+    plug :authenticate_bearer_token
+    plug :require_api_scope, scope: "read"
+  end
+
+  pipeline :bearer_api_write do
+    plug :accepts, ["json"]
+    plug :authenticate_bearer_token
+    plug :require_api_scope, scope: "write"
+  end
+
+  pipeline :bearer_api_admin do
+    plug :accepts, ["json"]
+    plug :authenticate_bearer_token
+    plug :require_api_scope, scope: "admin"
+  end
+
+  pipeline :flexible_api do
+    plug :accepts, ["json"]
+    plug :authenticate_user_flexible
   end
 
   pipeline :graphql do
@@ -111,7 +138,7 @@ defmodule Web.Router do
     post "/events", WebTrackerController, :create
   end
 
-  # Protected API routes (auth required)
+  # Protected API routes (session auth required)
   scope "/api", Web do
     pipe_through :api
 
@@ -122,5 +149,58 @@ defmodule Web.Router do
          :create
 
     get "/organizations/:organization_id/documents", DocumentController, :index
+  end
+
+  # Bearer token authenticated API routes
+  scope "/api/v1", Web do
+    pipe_through :bearer_api_read
+
+    # Read-only endpoints
+    get "/organizations/:organization_id/documents", DocumentController, :index
+  end
+
+  scope "/api/v1", Web do
+    pipe_through :bearer_api_write
+
+    # Write endpoints
+    post "/organizations/:organization_id/documents",
+         DocumentController,
+         :create
+
+    resources "/documents", DocumentController,
+      only: [:create, :update, :delete]
+  end
+
+  # Flexible authentication (supports both session and Bearer token)
+  scope "/api/v1", Web do
+    pipe_through :flexible_api
+
+    # Endpoints that work with both web sessions and API tokens
+    # get "/user/profile", UserController, :profile
+  end
+
+  # API token management (requires session authentication for security)
+  scope "/api", Web do
+    pipe_through :api
+
+    resources "/tokens", ApiTokenController,
+      only: [:index, :create, :show, :update, :delete]
+  end
+
+  # Enable LiveDashboard and Swoosh mailbox preview in development
+  if Application.compile_env(:core, :dev_routes) do
+    # If you want to use the LiveDashboard in production, you should put
+    # it behind authentication and allow only admins to access it.
+    # If your application does not have an admins-only section yet,
+    # you can use Plug.BasicAuth to set up some basic authentication
+    # as long as you are also using SSL (which you should anyway).
+    import Phoenix.LiveDashboard.Router
+
+    scope "/dev" do
+      pipe_through [:fetch_session, :protect_from_forgery]
+
+      live_dashboard "/dashboard", metrics: Web.Telemetry
+      forward "/mailbox", Plug.Swoosh.MailboxPreview
+    end
   end
 end

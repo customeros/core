@@ -1,29 +1,31 @@
-defmodule Core.Realtime.Documents do
+defmodule Core.Crm.Documents do
   @moduledoc """
   The Documents context.
   """
   import Ecto.Query, warn: false
   require Logger
   alias Core.Repo
-  alias Core.Realtime.Documents.{Document, OrganizationDocument}
+  alias Core.Crm.Documents.{Document, RefDocument}
 
-  def create_document(attrs \\ %{}, parseDto \\ false) do
+  def create_document(attrs \\ %{}, opts \\ []) do
+    parseDto = Keyword.get(opts, :parseDto, false)
+
     payload =
       case parseDto do
         true -> fromDto(attrs)
         _ -> attrs
       end
 
-    organization_id = Map.get(payload, :organization_id)
+    ref_id = Map.get(payload, :ref_id)
 
     Ecto.Multi.new()
     |> Ecto.Multi.insert(:document, Document.changeset(%Document{}, payload))
-    |> maybe_insert_organization_document(organization_id)
+    |> maybe_insert_ref_document(ref_id)
     |> maybe_initialize_ydoc(Map.get(payload, :lexical_state))
     |> Repo.transaction()
     |> case do
       {:ok, %{document: document} = result} ->
-        decorated_doc = %Document{document | organization_id: organization_id}
+        decorated_doc = %Document{document | ref_id: ref_id}
         {:ok, Map.put(result, :document, decorated_doc)}
 
       error ->
@@ -50,19 +52,19 @@ defmodule Core.Realtime.Documents do
     end
   end
 
-  def list_by_organization(organization_id, tenant) do
+  def list_by_ref(ref_id, tenant_id) do
     from(d in Document,
-      join: od in OrganizationDocument,
-      on: d.id == od.document_id,
-      where: od.organization_id == ^organization_id and d.tenant == ^tenant,
+      join: rd in RefDocument,
+      on: d.id == rd.document_id,
+      where: rd.ref_id == ^ref_id and d.tenant_id == ^tenant_id,
       select: %{
         id: d.id,
         name: d.name,
         icon: d.icon,
         color: d.color,
-        tenant: d.tenant,
+        tenant_id: d.tenant_id,
         user_id: d.user_id,
-        organization_id: od.organization_id,
+        ref_id: rd.ref_id,
         inserted_at: d.inserted_at,
         updated_at: d.updated_at
       }
@@ -101,7 +103,7 @@ defmodule Core.Realtime.Documents do
         {output, 0} ->
           Logger.info("Successfully converted lexical state to Yjs document")
 
-          Core.Realtime.YDoc.insert_update(doc_id, output)
+          Core.Crm.Documents.YDoc.insert_update(doc_id, output)
 
         {error_output, exit_code} ->
           Logger.error(
@@ -115,13 +117,13 @@ defmodule Core.Realtime.Documents do
     end
   end
 
-  defp maybe_insert_organization_document(multi, nil), do: multi
+  defp maybe_insert_ref_document(multi, nil), do: multi
 
-  defp maybe_insert_organization_document(multi, organization_id) do
-    Ecto.Multi.insert(multi, :organization_document, fn %{document: document} ->
-      %OrganizationDocument{}
-      |> OrganizationDocument.changeset(%{
-        organization_id: organization_id,
+  defp maybe_insert_ref_document(multi, ref_id) do
+    Ecto.Multi.insert(multi, :ref_document, fn %{document: document} ->
+      %RefDocument{}
+      |> RefDocument.changeset(%{
+        ref_id: ref_id,
         document_id: document.id
       })
     end)
@@ -140,13 +142,13 @@ defmodule Core.Realtime.Documents do
     %{
       "name" => name,
       "userId" => user_id,
-      "tenant" => tenant,
+      "tenantId" => tenant_id,
       "body" => body,
       "icon" => icon,
       "color" => color
     } = dto
 
-    organization_id = Map.get(dto, "organizationId", nil)
+    ref_id = Map.get(dto, "refId", nil)
 
     lexical_state =
       case Map.get(dto, "lexicalState", nil) do
@@ -158,11 +160,11 @@ defmodule Core.Realtime.Documents do
       name: name,
       body: body,
       user_id: user_id,
-      tenant: tenant,
+      tenant_id: tenant_id,
       icon: icon,
       color: color,
       lexical_state: lexical_state,
-      organization_id: organization_id
+      ref_id: ref_id
     }
   end
 end
