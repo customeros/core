@@ -77,7 +77,7 @@ defmodule Core.Auth.Users do
           {:ok, tenant} = Tenants.create_tenant(tenant_name, domain)
           tenant
 
-        tenant ->
+        {:ok, tenant} ->
           tenant
       end
 
