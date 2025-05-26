@@ -1,10 +1,11 @@
 defmodule Core.Researcher.IcpFitEvaluator.PromptBuilder do
+  alias Core.Ai
   @model :claude_sonnet
   @model_temperature 0.2
   @max_tokens 156
 
   def build_request(system_prompt, prompt) do
-    %Core.Ai.AskAi.AskAIRequest{
+    %Ai.Request{
       model: @model,
       prompt: prompt,
       system_prompt: system_prompt,

@@ -1,4 +1,5 @@
 defmodule Core.Researcher.Webpages.Summarizer do
+  alias Core.Ai
   @model :claude_sonnet
   @model_temperature 0.2
   @max_tokens 1024
@@ -6,7 +7,7 @@ defmodule Core.Researcher.Webpages.Summarizer do
   def summarize_webpage(url, content) when is_binary(content) do
     {system_prompt, prompt} = build_prompts(url, content)
 
-    request = %Core.Ai.AskAi.AskAIRequest{
+    request = %Ai.Request{
       model: @model,
       prompt: prompt,
       system_prompt: system_prompt,
@@ -14,7 +15,7 @@ defmodule Core.Researcher.Webpages.Summarizer do
       model_temperature: @model_temperature
     }
 
-    Core.Ai.AskAi.ask_with_timeout(request)
+    Ai.ask_with_timeout(request)
   end
 
   defp build_prompts(url, content) do

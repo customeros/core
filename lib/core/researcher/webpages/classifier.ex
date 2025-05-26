@@ -2,8 +2,9 @@ defmodule Core.Researcher.Webpages.Classifier do
   @moduledoc """
   Classifies webpage content using AI.
   """
+  alias Core.Ai
 
-  @model :claude_sonnet
+  @model :gemini_pro
   @model_temperature 0.2
   @max_tokens 1024
 
@@ -13,7 +14,7 @@ defmodule Core.Researcher.Webpages.Classifier do
     {system_prompt, prompt} =
       build_classify_webpage_prompts(url, content)
 
-    request = %Core.Ai.AskAi.AskAIRequest{
+    request = %Ai.Request{
       model: @model,
       prompt: prompt,
       system_prompt: system_prompt,
@@ -21,7 +22,7 @@ defmodule Core.Researcher.Webpages.Classifier do
       model_temperature: @model_temperature
     }
 
-    case Core.Ai.AskAi.ask_with_timeout(request) do
+    case Ai.ask_with_timeout(request) do
       {:ok, answer} ->
         case parse_and_validate_response(answer) do
           {:ok, classification} -> {:ok, classification}

@@ -1,7 +1,6 @@
 defmodule Core.Crm.Companies.Enrichments.Industry do
   require Logger
-  alias Core.Ai.AskAi
-  alias Core.Ai.AskAi.AskAIRequest
+  alias Core.Ai
 
   @system_prompt """
   I'm going to provide you metadata about a company, including their website content.
@@ -27,7 +26,7 @@ defmodule Core.Crm.Companies.Enrichments.Industry do
       when is_binary(domain) and is_binary(content) do
     prompt = build_prompt(domain, content)
 
-    request = %AskAIRequest{
+    request = %Ai.Request{
       model: :claude_sonnet,
       prompt: prompt,
       system_prompt: @system_prompt,
@@ -35,7 +34,7 @@ defmodule Core.Crm.Companies.Enrichments.Industry do
       model_temperature: 0.1
     }
 
-    case AskAi.ask_with_timeout(request) do
+    case Ai.ask_with_timeout(request) do
       {:ok, response} ->
         # Clean the response to ensure we only get the code
         code =

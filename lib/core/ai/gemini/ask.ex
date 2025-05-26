@@ -1,19 +1,19 @@
-defmodule Core.External.Gemini.Service do
-  alias Core.External.Gemini.Models
-  alias Core.External.Gemini.Config
+defmodule Core.Ai.Gemini.Ask do
+  alias Core.Ai.Gemini
 
   require Logger
 
-  @behaviour Core.External.Gemini.Behaviour
+  @behaviour Core.Ai.Gemini.Behaviour
 
   @api_key_param "key"
   @content_type_header "content-type"
 
   @impl true
-  @spec ask(Models.AskAIRequest.t(), Config.t()) :: {:ok, String.t()} | {:error, any()}
-  def ask(%Models.AskAIRequest{} = message, %Config{} = config) do
-    with :ok <- Models.AskAIRequest.validate(message),
-         :ok <- Config.validate(config),
+  @spec ask(Gemini.Request.t(), Gemini.Config.t()) ::
+          {:ok, String.t()} | {:error, any()}
+  def ask(%Gemini.Request{} = message, %Gemini.Config{} = config) do
+    with :ok <- Gemini.Request.validate(message),
+         :ok <- Gemini.Config.validate(config),
          {:ok, req_body} <- build_request(message),
          {:ok, response} <- execute(req_body, config) do
       {:ok, response}
@@ -23,11 +23,11 @@ defmodule Core.External.Gemini.Service do
   end
 
   @impl true
-  def ask(%Models.AskAIRequest{} = message) do
-    ask(message, Config.from_application_env())
+  def ask(%Gemini.Request{} = message) do
+    ask(message, Gemini.Config.from_application_env())
   end
 
-  defp build_request(%Models.AskAIRequest{} = message) do
+  defp build_request(%Gemini.Request{} = message) do
     prompt =
       if message.system_prompt && String.trim(message.system_prompt) != "" do
         """
@@ -39,16 +39,17 @@ defmodule Core.External.Gemini.Service do
         message.prompt
       end
 
-    request = %Models.GeminiApiRequest{
+    request = %Gemini.ApiRequest{
       contents: [
-        %Models.Content{
+        %Gemini.Content{
           role: "user",
-          parts: [%Models.Part{text: prompt}]
+          parts: [%Gemini.Content.Part{text: prompt}]
         }
       ],
-      generationConfig: %Models.GenerationConfig{
+      generationConfig: %Gemini.GenerationConfig{
         temperature: message.model_temperature,
-        maxOutputTokens: message.max_output_tokens
+        maxOutputTokens: message.max_output_tokens,
+        responseMimeType: "application/json"
       }
     }
 
@@ -105,7 +106,8 @@ defmodule Core.External.Gemini.Service do
         {:error, {:api_error, message}}
 
       _ ->
-        {:error, {:http_error, "API request failed with status #{status}: #{body}"}}
+        {:error,
+         {:http_error, "API request failed with status #{status}: #{body}"}}
     end
   end
 end

@@ -1,5 +1,6 @@
 defmodule Core.Researcher.Builder.ProfileWriter do
   alias Core.Researcher.Builder.ProfileValidator
+  alias Core.Ai
 
   @model :claude_sonnet
   @model_temperature 0.2
@@ -13,7 +14,7 @@ defmodule Core.Researcher.Builder.ProfileWriter do
            ),
          {system_prompt, prompt} <- build_prompts(domain, pages),
          {:ok, answer} <-
-           Core.Ai.AskAi.ask_with_timeout(build_request(system_prompt, prompt)),
+           Ai.ask_with_timeout(build_request(system_prompt, prompt)),
          {:ok, icp} <- ProfileValidator.validate_and_parse(answer) do
       {:ok, icp}
     else
@@ -22,7 +23,7 @@ defmodule Core.Researcher.Builder.ProfileWriter do
   end
 
   defp build_request(system_prompt, prompt) do
-    %Core.Ai.AskAi.AskAIRequest{
+    %Ai.Request{
       model: @model,
       prompt: prompt,
       system_prompt: system_prompt,

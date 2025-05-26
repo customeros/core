@@ -7,7 +7,7 @@ defmodule Core.Repo.Migrations.CreateScrapedWebpages do
       add :url, :string, null: false
       add :domain, :string, null: false
       add :content, :text, null: false
-      add :links, {:array, :string}, default: []
+      add :links, {:array, :text}, default: []
 
       # Classification fields
       add :primary_topic, :string
@@ -16,7 +16,7 @@ defmodule Core.Repo.Migrations.CreateScrapedWebpages do
       add :content_type, :string
       add :industry_vertical, :string
       add :key_pain_points, {:array, :string}, default: []
-      add :value_proposition, :string
+      add :value_proposition, :text
       add :referenced_customers, {:array, :string}, default: []
 
       # Profile intent scores (1-5 range)

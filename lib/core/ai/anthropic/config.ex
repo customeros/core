@@ -1,4 +1,4 @@
-defmodule Core.External.Anthropic.Config do
+defmodule Core.Ai.Anthropic.Config do
   @type t :: %__MODULE__{
           api_path: String.t(),
           api_key: String.t(),
