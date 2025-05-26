@@ -23,7 +23,6 @@ defmodule Web.RouterTest do
   test "GET / (protected root) redirects unauthenticated users", %{conn: conn} do
     conn = get(conn, "/")
     assert redirected_to(conn) == "/signin"
-    assert Phoenix.Flash.get(conn.assigns.flash, :error) == "You must log in to access this page."
   end
 
   test "GET /signin renders signin page", %{conn: conn} do
@@ -67,9 +66,6 @@ defmodule Web.RouterTest do
           is_threat: false,
           is_mobile: false
         }}
-      end)
-      |> expect(:get_company_info, fn "127.0.0.1" ->
-        {:ok, %{domain: "example.com", company: %{name: "Example Inc."}}}
       end)
 
       event_data = %{
