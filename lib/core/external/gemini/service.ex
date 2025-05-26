@@ -89,15 +89,21 @@ defmodule Core.External.Gemini.Service do
          [candidate | _] <- Map.get(decoded, "candidates", []),
          content <- Map.get(candidate, "content"),
          [part | _] <- Map.get(content, "parts", []),
-         text <- Map.get(part, "text") do
-      {:ok, String.trim(text)}
+         text <- Map.get(part, "text"),
+         json_text <- extract_json_from_markdown(text) do
+      {:ok, json_text}
     else
-      nil -> {:error, {:invalid_response, "No text content found in response"}}
-      _ -> {:error, {:invalid_response, "Invalid response format"}}
+      nil ->
+        Logger.error("No text content found in Gemini response: #{inspect(body)}")
+        {:error, {:invalid_response, "No text content found in response"}}
+      _ ->
+        Logger.error("Invalid response format from Gemini: #{inspect(body)}")
+        {:error, {:invalid_response, "Invalid response format"}}
     end
   end
 
   defp process_response(status, body) do
+    Logger.error("Gemini API error response: #{inspect(body)}")
     body
     |> Jason.decode(keys: :atoms)
     |> case do
@@ -106,6 +112,13 @@ defmodule Core.External.Gemini.Service do
 
       _ ->
         {:error, {:http_error, "API request failed with status #{status}: #{body}"}}
+    end
+  end
+
+  defp extract_json_from_markdown(text) do
+    case Regex.run(~r/```(?:json)?\s*(\{[\s\S]*?\})\s*```/, text) do
+      [_, json] -> String.trim(json)
+      nil -> text
     end
   end
 end

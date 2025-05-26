@@ -30,14 +30,15 @@ defmodule Core.Crm.Companies.Enrichments.Location do
     prompt = build_prompt(domain, content)
 
     request = %AskAIRequest{
-      model: :claude_sonnet,
+      model: :anthropic_claude_3_sonnet,
       prompt: prompt,
       system_prompt: @system_prompt_country,
       max_output_tokens: 250,
       model_temperature: 0.1
     }
 
-    case AskAi.ask_with_timeout(request) do
+    ai_service = Application.get_env(:core, :ai_service, AskAi)
+    case ai_service.ask_with_timeout(request) do
       {:ok, response} ->
         # Clean and validate the response
         code =

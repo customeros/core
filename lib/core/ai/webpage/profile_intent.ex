@@ -3,37 +3,69 @@ defmodule Core.Ai.Webpage.ProfileIntent do
   Profiles webpage intent using AI.
   """
 
+  require Logger
+
   @callback profile_webpage_intent(url :: String.t(), content :: String.t()) ::
               {:ok, %Core.Ai.Webpage.Intent{}} | {:error, term()}
 
-  @model :claude_sonnet
+  @behaviour Core.Ai.Webpage.ProfileIntent.Behaviour
+  @model :google_gemini_pro
+  @fallback_model :anthropic_claude_3_sonnet
   @model_temperature 0.2
   @max_tokens 1024
 
   alias Core.Ai.Webpage.Intent
 
-  def profile_webpage_intent(url, content)
-      when is_binary(content) and content != "" do
+  @impl true
+  def profile_webpage_intent(url, content) when is_binary(content) and content != "" do
     {system_prompt, prompt} = build_profile_intent_prompts(url, content)
 
-    request = %Core.Ai.AskAi.AskAIRequest{
-      model: @model,
+    case try_models([@model, @fallback_model], system_prompt, prompt) do
+      {:ok, intent} -> {:ok, intent}
+      {:error, reason} ->
+        Logger.error("Failed to profile intent for #{url}: #{inspect(reason)}")
+        {:error, reason}
+    end
+  end
+
+  defp try_models([model | remaining_models], system_prompt, prompt) do
+    request = build_request(model, system_prompt, prompt)
+
+    case Core.Ai.AskAi.ask_with_timeout(request) do
+      {:ok, answer} ->
+        case parse_and_validate_response(answer) do
+          {:ok, intent} -> {:ok, intent}
+          {:error, reason} ->
+            Logger.error("#{model} intent profiling failed: #{inspect(reason)}")
+            try_models(remaining_models, system_prompt, prompt)
+        end
+
+      {:error, {:invalid_request, reason}} ->
+        Logger.warn("#{model} configuration error: #{inspect(reason)}")
+        try_models(remaining_models, system_prompt, prompt)
+
+      {:error, {:unsupported_model, reason}} ->
+        Logger.warn("#{model} model error: #{inspect(reason)}")
+        try_models(remaining_models, system_prompt, prompt)
+
+      {:error, reason} ->
+        Logger.error("#{model} intent profiling failed: #{inspect(reason)}")
+        try_models(remaining_models, system_prompt, prompt)
+    end
+  end
+
+  defp try_models([], _system_prompt, _prompt) do
+    {:error, "All AI models failed to profile the intent. Please check the configuration and try again."}
+  end
+
+  defp build_request(model, system_prompt, prompt) do
+    %Core.Ai.AskAi.AskAIRequest{
+      model: model,
       prompt: prompt,
       system_prompt: system_prompt,
       max_output_tokens: @max_tokens,
       model_temperature: @model_temperature
     }
-
-    case Core.Ai.AskAi.ask_with_timeout(request) do
-      {:ok, answer} ->
-        case parse_and_validate_response(answer) do
-          {:ok, profile_intent} -> {:ok, profile_intent}
-          {:error, reason} -> {:error, {:validation_failed, reason}}
-        end
-
-      {:error, reason} ->
-        {:error, reason}
-    end
   end
 
   def profile_webpage_intent(_url, content) when content == "" do

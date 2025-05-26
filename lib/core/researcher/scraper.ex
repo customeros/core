@@ -12,6 +12,10 @@ defmodule Core.Researcher.Scraper do
     do:
       Application.get_env(:core, :puremd_service, Core.External.Puremd.Service)
 
+  defp firecrawl_service,
+    do:
+      Application.get_env(:core, :firecrawl_service, Core.External.Firecrawl.Service)
+
   defp classify_service,
     do: Application.get_env(:core, :classify_service, Core.Ai.Webpage.Classify)
 
@@ -34,8 +38,9 @@ defmodule Core.Researcher.Scraper do
     task =
       Task.Supervisor.async(Core.Researcher.Scraper.Supervisor, fn ->
         with {:error, _jina_reason} <- try_jina_service(url),
-             {:error, puremd_reason} <- try_puremd_service(url) do
-          {:error, "Both services failed - #{puremd_reason}"}
+             {:error, _puremd_reason} <- try_puremd_service(url),
+             {:error, firecrawl_reason} <- try_firecrawl_service(url) do
+          {:error, "All services failed - #{firecrawl_reason}"}
         else
           {:ok, result} -> {:ok, result}
         end
@@ -84,6 +89,27 @@ defmodule Core.Researcher.Scraper do
         Logger.warning("Puremd service failed for #{url}: #{error_message}")
         {:error, "Puremd failed: #{error_message}"}
     end
+  end
+
+  defp try_firecrawl_service(url) do
+    Logger.info("Attempting to fetch #{url} with Firecrawl service")
+
+    with {:ok, content} <- firecrawl_service().fetch_page(url),
+         {:ok, validated_content} <- validate_content(content) do
+      handle_scraped_content(url, validated_content)
+    else
+      {:error, {:decode_error, reason}} -> log_and_return_error(url, "Failed to decode response: #{inspect(reason)}")
+      {:error, {:api_error, status, body}} -> log_and_return_error(url, "API error #{status}: #{inspect(body)}")
+      {:error, {:request_failed, reason}} -> log_and_return_error(url, "Request failed: #{inspect(reason)}")
+      {:error, :empty_content} -> log_and_return_error(url, "Empty content received")
+      {:error, {:invalid_format, response}} -> log_and_return_error(url, "Invalid response format: #{inspect(response)}")
+      {:error, reason} -> log_and_return_error(url, format_error(reason))
+    end
+  end
+
+  defp log_and_return_error(url, message) do
+    Logger.warning("Firecrawl service failed for #{url}: #{message}")
+    {:error, message}
   end
 
   defp use_cached_content(record) do

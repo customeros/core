@@ -9,7 +9,7 @@ defmodule Core.External.Gemini.Models do
     Represents a request to ask a question to Gemini.
     """
 
-    @type model :: :gemini_pro
+    @type model :: :google_gemini_pro
 
     @type t :: %__MODULE__{
             model: model(),
@@ -32,11 +32,17 @@ defmodule Core.External.Gemini.Models do
     """
     def validate(%__MODULE__{} = request) do
       cond do
-        request.model != :gemini_pro ->
-          {:error, "model must be :gemini_pro"}
+        request.model != :google_gemini_pro ->
+          {:error, "model must be :google_gemini_pro"}
 
         is_nil(request.prompt) or request.prompt == "" ->
           {:error, "prompt cannot be empty"}
+
+        not is_nil(request.model_temperature) and (request.model_temperature < 0.0 or request.model_temperature > 1.0) ->
+          {:error, "temperature must be between 0.0 and 1.0"}
+
+        not is_nil(request.max_output_tokens) and (request.max_output_tokens < 1 or request.max_output_tokens > 2048) ->
+          {:error, "max_output_tokens must be between 1 and 2048"}
 
         true ->
           :ok

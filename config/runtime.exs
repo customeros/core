@@ -4,7 +4,11 @@ import Config
 get_env = fn key, default -> System.get_env(key, default) end
 
 get_env_integer = fn key, default ->
-  String.to_integer(get_env.(key, default))
+  case get_env.(key, default) do
+    "" -> nil
+    nil -> nil
+    val -> String.to_integer(val)
+  end
 end
 
 get_env_boolean = fn key, default ->
@@ -95,6 +99,10 @@ config :core, :jina,
 config :core, :puremd,
   puremd_api_path: "https://pure.md/",
   puremd_api_key: get_env.("PUREMD_API_KEY", nil)
+
+# Firecrawl configuration
+config :core, :firecrawl,
+  api_key: get_env.("FIRECRAWL_API_KEY", nil)
 
 if get_env.("POSTMARK_API_KEY", nil) in [nil, ""] do
   config :swoosh, :api_client, false

@@ -3,39 +3,69 @@ defmodule Core.Ai.Webpage.Classify do
   Classifies webpage content using AI.
   """
 
+  require Logger
+
   @callback classify_webpage_content(url :: String.t(), content :: String.t()) ::
               {:ok, %Core.Ai.Webpage.Classification{}} | {:error, term()}
 
   @behaviour Core.Ai.Webpage.Classify.Behaviour
-  @model :claude_sonnet
+  @model :google_gemini_pro
+  @fallback_model :anthropic_claude_3_sonnet
   @model_temperature 0.2
   @max_tokens 1024
 
   alias Core.Ai.Webpage.Classification
 
   @impl true
-  def classify_webpage_content(url, content) when is_binary(content) do
-    {system_prompt, prompt} =
-      build_classify_webpage_prompts(url, content)
+  def classify_webpage_content(url, content) when is_binary(content) and content != "" do
+    {system_prompt, prompt} = build_classify_webpage_prompts(url, content)
 
-    request = %Core.Ai.AskAi.AskAIRequest{
-      model: @model,
-      prompt: prompt,
-      system_prompt: system_prompt,
-      max_output_tokens: @max_tokens,
-      model_temperature: @model_temperature
-    }
+    case try_models([@model, @fallback_model], system_prompt, prompt) do
+      {:ok, classification} -> {:ok, classification}
+      {:error, reason} ->
+        Logger.error("Failed to classify content for #{url}: #{inspect(reason)}")
+        {:error, reason}
+    end
+  end
+
+  defp try_models([model | remaining_models], system_prompt, prompt) do
+    request = build_request(model, system_prompt, prompt)
 
     case Core.Ai.AskAi.ask_with_timeout(request) do
       {:ok, answer} ->
         case parse_and_validate_response(answer) do
           {:ok, classification} -> {:ok, classification}
-          {:error, reason} -> {:error, {:validation_failed, reason}}
+          {:error, reason} ->
+            Logger.error("#{model} classification failed: #{inspect(reason)}")
+            try_models(remaining_models, system_prompt, prompt)
         end
 
+      {:error, {:invalid_request, reason}} ->
+        Logger.warn("#{model} configuration error: #{inspect(reason)}")
+        try_models(remaining_models, system_prompt, prompt)
+
+      {:error, {:unsupported_model, reason}} ->
+        Logger.warn("#{model} model error: #{inspect(reason)}")
+        try_models(remaining_models, system_prompt, prompt)
+
       {:error, reason} ->
-        {:error, reason}
+        Logger.error("#{model} classification failed: #{inspect(reason)}")
+        try_models(remaining_models, system_prompt, prompt)
     end
+  end
+
+  defp try_models([], _system_prompt, _prompt) do
+    {:error, "All AI models failed to classify the content. Please check the configuration and try again."}
+  end
+
+  defp build_request(model, system_prompt, prompt) do
+    %Core.Ai.AskAi.AskAIRequest{
+      model: model,
+      prompt: prompt,
+      system_prompt: system_prompt,
+      max_output_tokens: @max_tokens,
+      model_temperature: @model_temperature
+    }
   end
 
   defp parse_and_validate_response(response) when is_binary(response) do

@@ -48,6 +48,14 @@ config :core, :jina_service, Core.External.Jina.Service.Mock
 config :core, :puremd_service, Core.External.Puremd.Service.Mock
 config :core, :classify_service, Core.Ai.Webpage.Classify.Mock
 config :core, :profile_intent_service, Core.Ai.Webpage.ProfileIntent.Mock
+config :core, :http_client, Core.External.HttpClient.Mock
+config :core, :ai_service, Core.Ai.AskAi.Mock
+
+# Configure AI service for testing
+config :core, :anthropic_api_key, "test-key"
+config :core, :anthropic_api_path, "http://test-url"
+config :core, :gemini_api_key, "test-key"
+config :core, :gemini_api_path, "http://test-url"
 
 # Configure MIME types
 config :mime, :types, %{
