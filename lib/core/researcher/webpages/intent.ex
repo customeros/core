@@ -1,5 +1,4 @@
-defmodule Core.Ai.Webpage.Intent do
-  @derive Jason.Encoder
+defmodule Core.Researcher.Webpages.Intent do
   @type buyer_journey_stage :: 1..5
   @type t :: %__MODULE__{
           problem_recognition: buyer_journey_stage(),

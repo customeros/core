@@ -1,19 +1,14 @@
-defmodule Core.Ai.Webpage.Classify do
+defmodule Core.Researcher.Webpages.Classifier do
   @moduledoc """
   Classifies webpage content using AI.
   """
 
-  @callback classify_webpage_content(url :: String.t(), content :: String.t()) ::
-              {:ok, %Core.Ai.Webpage.Classification{}} | {:error, term()}
-
-  @behaviour Core.Ai.Webpage.Classify.Behaviour
   @model :claude_sonnet
   @model_temperature 0.2
   @max_tokens 1024
 
-  alias Core.Ai.Webpage.Classification
+  alias Core.Researcher.Webpages.Classification
 
-  @impl true
   def classify_webpage_content(url, content) when is_binary(content) do
     {system_prompt, prompt} =
       build_classify_webpage_prompts(url, content)

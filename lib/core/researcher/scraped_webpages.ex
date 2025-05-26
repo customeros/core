@@ -5,8 +5,8 @@ defmodule Core.Researcher.ScrapedWebpages do
 
   alias Core.Repo
   alias Core.Researcher.Webpages.ScrapedWebpage
-  alias Core.Ai.Webpage.Classification
-  alias Core.Ai.Webpage.Intent
+  alias Core.Researcher.Webpages.Classification
+  alias Core.Researcher.Webpages.Intent
   import Ecto.Query
 
   ## Create ##
@@ -15,7 +15,8 @@ defmodule Core.Researcher.ScrapedWebpages do
         content,
         links,
         classification \\ nil,
-        intent \\ nil
+        intent \\ nil,
+        summary \\ nil
       ) do
     domain = extract_domain(url)
 
@@ -24,7 +25,8 @@ defmodule Core.Researcher.ScrapedWebpages do
         url: url,
         domain: domain,
         content: content,
-        links: links
+        links: links,
+        summary: summary
       }
       |> maybe_add_classification(classification)
       |> maybe_add_intent(intent)
@@ -92,8 +94,6 @@ defmodule Core.Researcher.ScrapedWebpages do
     end
   end
 
-  # Private helper functions
-
   @spec get_business_pages_by_domain(String.t(), keyword()) ::
           {:ok, [ScrapedWebpage.t()]} | {:error, :not_found}
 
@@ -115,6 +115,8 @@ defmodule Core.Researcher.ScrapedWebpages do
       pages -> {:ok, pages}
     end
   end
+
+  # Private helper functions
 
   defp business_pages_query(domain, content_types) do
     from w in ScrapedWebpage,

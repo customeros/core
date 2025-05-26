@@ -11,12 +11,14 @@ defmodule Core.Crm.Leads.Lead do
           | :ready_to_buy
           | :customer
           | :not_a_fit
+  @type icp_fit :: :strong | :moderate
   @type t :: %__MODULE__{
           id: String.t(),
           tenant_id: String.t(),
           ref_id: String.t(),
           type: lead_type,
           stage: lead_stage,
+          icp_fit: icp_fit,
           inserted_at: DateTime.t(),
           updated_at: DateTime.t()
         }
@@ -26,6 +28,7 @@ defmodule Core.Crm.Leads.Lead do
     field(:tenant_id, :string)
     field(:ref_id, :string)
     field(:type, Ecto.Enum, values: [:contact, :company])
+    field(:icp_fit, Ecto.Enum, values: [:strong, :moderate])
 
     field(:stage, Ecto.Enum,
       values: [

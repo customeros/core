@@ -1,4 +1,4 @@
-defmodule Core.Ai.Webpage.Classification do
+defmodule Core.Researcher.Webpages.Classification do
   @derive Jason.Encoder
 
   @type content_type ::
