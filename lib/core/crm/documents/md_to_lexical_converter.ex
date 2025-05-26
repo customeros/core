@@ -12,7 +12,7 @@ defmodule Core.Crm.Documents.MdToLexicalConverter do
   ## Examples
 
       iex> markdown = "# Hello World\\n\\nThis is a paragraph."
-      iex> MarkdownToLexical.convert(markdown)
+      iex> MdToLexicalConverter.convert(markdown)
       "{\"root\":{\"children\":[...],\"type\":\"root\"}}"
   """
   def convert(markdown_string) do
