@@ -47,7 +47,7 @@ defmodule Core.Researcher.Scraper do
 
       nil ->
         Task.Supervisor.terminate_child(
-          Core.Researcher.TaskSupervisor,
+          Core.Researcher.Scraper.Supervisor,
           task.pid
         )
 
