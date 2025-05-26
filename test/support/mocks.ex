@@ -24,4 +24,7 @@ defmodule Core.Mocks do
   Mox.defmock(Core.Scraper.Repository.Mock, for: Core.Scraper.Repository.Behaviour)
   Mox.defmock(Core.Ai.Webpage.Classify.Mock, for: Core.Ai.Webpage.Classify.Behaviour)
   Mox.defmock(Core.Ai.Webpage.ProfileIntent.Mock, for: Core.Ai.Webpage.ProfileIntent.Behaviour)
+
+  # Gemini Service Mock
+  Mox.defmock(Core.External.Gemini.Service.Mock, for: Core.External.Gemini.Behaviour)
 end

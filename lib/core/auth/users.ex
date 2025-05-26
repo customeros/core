@@ -74,11 +74,13 @@ defmodule Core.Auth.Users do
     tenant =
       case Tenants.get_tenant_by_name(tenant_name) do
         {:error, :not_found} ->
-          {:ok, tenant} = Tenants.create_tenant(tenant_name, domain)
-          tenant
+          {:ok, tenant_id} =
+            Tenants.create_tenant_and_build_icp(tenant_name, domain)
 
-        {:ok, tenant} ->
-          tenant
+          tenant_id
+
+        {:ok, tenant_id} ->
+          tenant_id
       end
 
     # Now register user (optionally you could associate the user with the tenant)

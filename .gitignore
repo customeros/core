@@ -45,6 +45,7 @@ priv/scripts/*
 .lexical
 
 .env
+.env.local
 .mise*
 
 .*.bun-build

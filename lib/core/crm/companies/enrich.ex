@@ -5,9 +5,10 @@ defmodule Core.Crm.Companies.Enrich do
 
   alias Core.Repo
   alias Core.Crm.Companies.Company
-  alias Core.Research.Scraper
+  alias Core.Researcher.Scraper
   alias Core.Crm.Industries
   alias Core.Media.Images
+  alias Core.Crm.Companies.Enrichments
 
   def start_link(_opts) do
     GenServer.start_link(__MODULE__, %{}, name: __MODULE__)
@@ -47,6 +48,36 @@ defmodule Core.Crm.Companies.Enrich do
   end
 
   def enrich_logo(_), do: {:error, :invalid_company_id}
+
+  @doc """
+  Fetches companies that need logo enrichment.
+
+  ## Parameters
+    * `batch_size` - Number of records to return (default: 10)
+
+  ## Returns
+    * List of companies that:
+      - Have no logo_key
+      - Have not been attempted in the last 24 hours or have never been attempted
+  """
+  @spec fetch_companies_for_logo_enrichment(integer()) :: [Company.t()]
+  def fetch_companies_for_logo_enrichment(batch_size \\ 10) do
+    twenty_four_hours_ago = DateTime.add(DateTime.utc_now(), -24 * 60 * 60)
+    ten_minutes_ago = DateTime.add(DateTime.utc_now(), -10 * 60)
+    max_attempts = 5
+
+    Company
+    |> where([c], is_nil(c.logo_key) or c.logo_key == "")
+    |> where([c], c.logo_enrichment_attempts < ^max_attempts)
+    |> where(
+      [c],
+      is_nil(c.logo_enrich_attempt_at) or c.logo_enrich_attempt_at < ^twenty_four_hours_ago
+    )
+    |> where([c], c.inserted_at < ^ten_minutes_ago)
+    |> order_by([c], asc: c.logo_enrich_attempt_at)
+    |> limit(^batch_size)
+    |> Repo.all()
+  end
 
   # Server Callbacks
 
@@ -94,16 +125,18 @@ defmodule Core.Crm.Companies.Enrich do
 
       company ->
         if should_enrich_industry?(company) do
-          # Safely update only the industry_enrich_attempt_at field
           {count, _} =
             Repo.update_all(
               from(c in Company, where: c.id == ^company_id),
-              set: [industry_enrich_attempt_at: DateTime.utc_now()]
+              [
+                set: [industry_enrich_attempt_at: DateTime.utc_now()],
+                inc: [industry_enrichment_attempts: 1]
+              ]
             )
 
           if count > 0 do
             # Get industry code from AI
-            case Core.AI.Company.Industry.identify(%{
+            case Enrichments.Industry.identify(%{
                    domain: company.primary_domain,
                    homepage_content: company.homepage_content
                  }) do
@@ -158,16 +191,18 @@ defmodule Core.Crm.Companies.Enrich do
 
       company ->
         if should_enrich_name?(company) do
-          # Safely update only the name_enrich_attempt_at field
           {count, _} =
             Repo.update_all(
               from(c in Company, where: c.id == ^company_id),
-              set: [name_enrich_attempt_at: DateTime.utc_now()]
+              [
+                set: [name_enrich_attempt_at: DateTime.utc_now()],
+                inc: [name_enrichment_attempts: 1]
+              ]
             )
 
           if count > 0 do
             # Get company name from AI
-            case Core.AI.Company.Name.identify(%{
+            case Enrichments.Name.identify(%{
                    domain: company.primary_domain,
                    homepage_content: company.homepage_content
                  }) do
@@ -210,16 +245,18 @@ defmodule Core.Crm.Companies.Enrich do
 
       company ->
         if should_enrich_country?(company) do
-          # Safely update only the country_enrich_attempt_at field
           {count, _} =
             Repo.update_all(
               from(c in Company, where: c.id == ^company_id),
-              set: [country_enrich_attempt_at: DateTime.utc_now()]
+              [
+                set: [country_enrich_attempt_at: DateTime.utc_now()],
+                inc: [country_enrichment_attempts: 1]
+              ]
             )
 
           if count > 0 do
             # Get country code from AI
-            case Core.AI.Company.Location.identifyCountryCodeA2(%{
+            case Enrichments.Location.identifyCountryCodeA2(%{
                    domain: company.primary_domain,
                    homepage_content: company.homepage_content
                  }) do
@@ -265,11 +302,14 @@ defmodule Core.Crm.Companies.Enrich do
 
       company ->
         if should_enrich_logo?(company) do
-          # Safely update only the logo_enrich_attempt_at field
+          # Update both the attempt timestamp and increment attempts counter
           {count, _} =
             Repo.update_all(
               from(c in Company, where: c.id == ^company_id),
-              set: [logo_enrich_attempt_at: DateTime.utc_now()]
+              [
+                set: [logo_enrich_attempt_at: DateTime.utc_now()],
+                inc: [logo_enrichment_attempts: 1]
+              ]
             )
 
           if count > 0 do

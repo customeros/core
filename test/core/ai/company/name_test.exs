@@ -18,7 +18,7 @@ defmodule Core.AI.Company.NameTest do
     :ok
   end
 
-  alias Core.AI.Company.Name
+  alias Core.Crm.Companies.Enrichments.Name
 
   describe "identify/1" do
     test "with valid company data returns name" do

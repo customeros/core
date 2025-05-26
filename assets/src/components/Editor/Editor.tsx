@@ -47,6 +47,7 @@ import { YjsUndoPlugin } from './plugins/YjsUndoPlugin';
 import FloatingLinkEditorPlugin from './plugins/FloatingLinkEditorPlugin';
 import { FloatingMenuPlugin } from './plugins/FloatingTextFormatToolbarPlugin';
 import clsx from 'clsx';
+import clsx from 'node_modules/clsx/clsx';
 
 const theme: EditorThemeClasses = {
   paragraph: 'my-3',
@@ -142,6 +143,9 @@ interface EditorProps extends VariantProps<typeof contentEditableVariants> {
   onKeyDown?: (e: React.KeyboardEvent<HTMLDivElement>) => void;
   onUndoStateChange?: (canUndo: boolean, canRedo: boolean) => void;
   undoRef?: React.RefObject<{
+
+  undoRef?: React.MutableRefObject<{
+
     undo: () => void;
     redo: () => void;
   } | null>;

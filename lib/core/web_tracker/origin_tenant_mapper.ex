@@ -9,11 +9,12 @@ defmodule Core.WebTracker.OriginTenantMapper do
     "dashboard.kanda.co.uk" => "kandacouk",
     "infinity.co" => "infinityco",
     "nuso.cloud" => "nusocloud",
-    "nusocloud.eu" => "nusocloud"
+    "nusocloud.eu" => "nusocloud",
+    "customeros.ai" => "customerosai"
   }
 
   @doc """
-  Checks if an origin is whitelisted and returns its associated tenant.
+  Checks if given origin is whitelisted and returns its associated tenant.
   """
   def get_tenant_for_origin(origin) when is_binary(origin) do
     case Map.get(@whitelisted_origins, origin) do

@@ -3,7 +3,7 @@ defmodule Core.Crm.Companies do
   alias Core.Crm.Companies.Company
   alias Core.Crm.Companies.Enrich
   alias Core.Utils.IdGenerator
-  alias Core.Utils.PrimaryDomain
+  alias Core.Utils.PrimaryDomainFinder
 
   @spec get_or_create_by_domain(any()) ::
           {:ok, Company.t()} | {:error, Ecto.Changeset.t() | String.t()}
@@ -11,11 +11,8 @@ defmodule Core.Crm.Companies do
     do: {:error, "domain must be a string"}
 
   def get_or_create_by_domain(domain) when is_binary(domain) do
-    case PrimaryDomain.primary_domain_check(domain) do
-      {_, ""} ->
-        {:error, "not a valid domain"}
-
-      {_, primary_domain} ->
+    case PrimaryDomainFinder.get_primary_domain(domain) do
+      {:ok, primary_domain} when primary_domain != "" ->
         case get_by_primary_domain(primary_domain) do
           nil ->
             # Company doesn't exist, create it
@@ -25,6 +22,9 @@ defmodule Core.Crm.Companies do
             # Company exists, return it
             {:ok, company}
         end
+
+      _ ->
+        {:error, "not a valid domain"}
     end
   end
 

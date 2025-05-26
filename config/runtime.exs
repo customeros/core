@@ -48,7 +48,9 @@ config :core, Core.Repo,
   pool_size: 10
 
 # IPData and Snitcher configuration
-config :core, :ipdata, api_key: get_env.("IPDATA_API_KEY", nil)
+config :core, :ipdata,
+  api_key: get_env.("IPDATA_API_KEY", nil),
+  api_url: "https://api.ipdata.co"
 
 config :core, :snitcher,
   api_url: "https://api.snitcher.com",
@@ -57,7 +59,9 @@ config :core, :snitcher,
 # AI configuration
 config :core, :ai,
   anthropic_api_path: "https://api.anthropic.com/v1/messages",
-  anthropic_api_key: get_env.("ANTHROPIC_API_KEY", nil)
+  anthropic_api_key: get_env.("ANTHROPIC_API_KEY", nil),
+  gemini_api_path: "https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent",
+  gemini_api_key: get_env.("GEMINI_API_KEY", nil)
 
 # Production environment specific configuration
 if config_env() == :prod do
@@ -124,5 +128,12 @@ config :ex_aws, :s3,
     "#{System.get_env("CLOUDFLARE_R2_ACCOUNT_ID")}.r2.cloudflarestorage.com",
   json_codec: Jason
 
+# Configure ExAws to use our custom HTTP client
+config :ex_aws, :http_client, Core.HttpClient.AwsHttpClient
+
 # Brandfetch configuration
 config :core, :brandfetch, client_id: get_env.("BRANDFETCH_CLIENT_ID", nil)
+
+# Slack configuration
+config :core, :slack,
+  new_tenant_webhook_url: get_env.("SLACK_NEW_TENANT_WEBHOOK_URL", nil)

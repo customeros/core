@@ -10,7 +10,7 @@ defmodule Core.Crm.Leads.LeadTest do
 
     test "list_by_tenant_id/1 returns all leads for tenant" do
       lead = lead_fixture()
-      assert [found_lead] = Core.Crm.Leads.list_by_tenant_id(lead.tenant_id)
+      assert {:ok, [found_lead]} = Core.Crm.Leads.list_by_tenant_id(lead.tenant_id)
       assert found_lead.id == lead.id
     end
 
@@ -47,7 +47,7 @@ defmodule Core.Crm.Leads.LeadTest do
     test "get_by_ref_id/2 returns the lead with given ref_id" do
       lead = lead_fixture()
 
-      assert found_lead =
+      assert {:ok, found_lead} =
                Core.Crm.Leads.get_by_ref_id(lead.tenant_id, lead.ref_id)
 
       assert found_lead.id == lead.id

@@ -210,12 +210,23 @@ defmodule Core.WebTracker do
     Logger.info("Found company for domain #{domain}: #{company.name}")
 
     with {:ok, db_company} <- Companies.get_or_create_by_domain(domain),
-         {:ok, _lead} <-
+         {:ok, lead} <-
            Core.Crm.Leads.get_or_create(tenant, %{
              ref_id: db_company.id,
              type: :company
            }) do
-      Core.Research.Orchestrator.evaluate_icp_fit(tenant, domain)
+      case Core.Auth.Tenants.get_tenant_by_name(tenant) do
+        {:ok, tenant} ->
+          Core.Researcher.Orchestrator.evaluate_icp_fit(
+            tenant.id,
+            lead.id,
+            domain
+          )
+
+        {:error, reason} ->
+          {:error, reason}
+      end
+
       {:ok}
     else
       {:error, reason} ->
