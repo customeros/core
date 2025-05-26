@@ -215,7 +215,7 @@ defmodule Web.UserAuth do
         |> halt()
       else
         conn
-        |> put_flash(:error, "You must log in to access this page.")
+        |> maybe_put_flash_error(conn.request_path)
         |> maybe_store_return_to()
         |> redirect(to: ~p"/signin")
         |> halt()
@@ -223,13 +223,12 @@ defmodule Web.UserAuth do
     end
   end
 
-  defp put_token_in_session(conn, token) do
+  defp maybe_put_flash_error(conn, "/") do
     conn
-    |> put_session(:user_token, token)
-    |> put_session(
-      :live_socket_id,
-      "users_sessions:#{Base.url_encode64(token)}"
-    )
+  end
+
+  defp maybe_put_flash_error(conn, _path) do
+    put_flash(conn, :error, "You must log in to access this page.")
   end
 
   defp maybe_store_return_to(%{method: "GET"} = conn) do
@@ -239,4 +238,13 @@ defmodule Web.UserAuth do
   defp maybe_store_return_to(conn), do: conn
 
   defp signed_in_path(_conn), do: ~p"/"
+
+  defp put_token_in_session(conn, token) do
+    conn
+    |> put_session(:user_token, token)
+    |> put_session(
+      :live_socket_id,
+      "users_sessions:#{Base.url_encode64(token)}"
+    )
+  end
 end
