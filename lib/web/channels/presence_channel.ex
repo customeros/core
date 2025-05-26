@@ -5,7 +5,7 @@ defmodule Web.PresenceChannel do
   require Logger
   require Enum
   use Web, :channel
-  alias Core.Realtime.ColorManager
+  alias Core.Auth.Users.ColorManager
   alias Web.Presence
 
   @impl true

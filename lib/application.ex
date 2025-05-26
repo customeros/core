@@ -13,7 +13,7 @@ defmodule Core.Application do
       {Task.Supervisor, name: Core.Researcher.Scraper.Supervisor},
       {Task.Supervisor, name: Core.Researcher.IcpBuilder.Supervisor},
       {Task.Supervisor, name: Core.Ai.AskAi.Supervisor},
-      Core.Realtime.ColorManager,
+      Core.Auth.Users.ColorManager,
       Core.Repo,
       Core.Researcher.Orchestrator,
       Core.Crm.Companies.Enrich,
