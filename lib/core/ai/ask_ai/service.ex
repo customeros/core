@@ -47,9 +47,16 @@ defmodule Core.Ai.AskAi do
          :ok <- validate_config(config),
          {:ok, service} <- get_service(request.model),
          {:ok, provider_request} <- convert_request(request),
-         {:ok, provider_config} <- convert_config(request.model, config),
-         {:ok, response} <- service.ask(provider_request, provider_config) do
-      {:ok, response}
+         {:ok, provider_config} <- convert_config(request.model, config) do
+      # Wrap the service call in a Task with timeout
+      task = Task.async(fn -> service.ask(provider_request, provider_config) end)
+
+      case Task.await(task, config.timeout) do
+        {:ok, response} -> {:ok, response}
+        {:error, reason} -> {:error, reason}
+        {:exit, :timeout} -> {:error, {:timeout, "Request timed out after #{config.timeout}ms"}}
+        {:exit, reason} -> {:error, {:service_error, reason}}
+      end
     end
   end
 
