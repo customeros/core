@@ -6,9 +6,8 @@ defmodule Core.WebTracker.WebSessionCloser do
   require Logger
   alias Core.WebTracker.WebSessions
 
-  # Default interval is 2 minutes
   @default_interval_ms 2 * 60 * 1000
-  # Process 100 sessions at a time by default
+  @short_interval_ms 5 * 1000
   @default_batch_size 100
 
   def start_link(opts \\ []) do
@@ -16,35 +15,32 @@ defmodule Core.WebTracker.WebSessionCloser do
   end
 
   @impl true
-  def init(opts) do
-    interval_ms = Keyword.get(opts, :interval_ms, @default_interval_ms)
-    batch_size = Keyword.get(opts, :batch_size, @default_batch_size)
-
+  def init(_opts) do
     # Schedule the first check
-    schedule_check(interval_ms)
+    schedule_check(@default_interval_ms)
 
-    {:ok, %{interval_ms: interval_ms, batch_size: batch_size}}
+    {:ok, %{}}
   end
 
   @impl true
-  def handle_info(:check_sessions, %{interval_ms: interval_ms, batch_size: batch_size} = state) do
-    close_inactive_sessions(batch_size)
-    schedule_check(interval_ms)
+  def handle_info(:check_sessions, state) do
+    # Get sessions that need to be closed
+    sessions = WebSessions.get_sessions_to_close(@default_batch_size)
+    session_count = length(sessions)
+
+    # Close each session and log the result
+    Enum.each(sessions, &close_session/1)
+
+    # Choose interval based on whether we hit the batch size
+    next_interval_ms = if session_count == @default_batch_size, do: @short_interval_ms, else: @default_interval_ms
+    schedule_check(next_interval_ms)
+
     {:noreply, state}
   end
 
   # Schedule the next check
   defp schedule_check(interval_ms) do
     Process.send_after(self(), :check_sessions, interval_ms)
-  end
-
-  # Close inactive sessions
-  defp close_inactive_sessions(batch_size) do
-    # Get sessions that need to be closed
-    sessions = WebSessions.get_sessions_to_close(batch_size)
-
-    # Close each session and log the result
-    Enum.each(sessions, &close_session/1)
   end
 
   defp close_session(session) do
