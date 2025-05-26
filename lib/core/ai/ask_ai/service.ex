@@ -51,11 +51,18 @@ defmodule Core.Ai.AskAi do
       # Wrap the service call in a Task with timeout
       task = Task.async(fn -> service.ask(provider_request, provider_config) end)
 
-      case Task.await(task, config.timeout) do
-        {:ok, response} -> {:ok, response}
-        {:error, reason} -> {:error, reason}
-        {:exit, :timeout} -> {:error, {:timeout, "Request timed out after #{config.timeout}ms"}}
-        {:exit, reason} -> {:error, {:service_error, reason}}
+      try do
+        case Task.await(task, config.timeout) do
+          {:ok, response} -> {:ok, response}
+          {:error, reason} -> {:error, reason}
+        end
+      rescue
+        Task.TimeoutError ->
+          Task.shutdown(task)
+          {:error, {:timeout, "Request timed out after #{config.timeout}ms"}}
+        e in RuntimeError ->
+          Task.shutdown(task)
+          {:error, {:service_error, e.message}}
       end
     end
   end
