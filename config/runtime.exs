@@ -48,7 +48,9 @@ config :core, Core.Repo,
   pool_size: 10
 
 # IPData and Snitcher configuration
-config :core, :ipdata, api_key: get_env.("IPDATA_API_KEY", nil)
+config :core, :ipdata,
+  api_key: get_env.("IPDATA_API_KEY", nil),
+  api_url: "https://api.ipdata.co"
 
 config :core, :snitcher,
   api_url: "https://api.snitcher.com",
