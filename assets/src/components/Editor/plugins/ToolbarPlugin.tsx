@@ -18,23 +18,15 @@ import {
   $createParagraphNode,
   SELECTION_CHANGE_COMMAND,
 } from 'lexical';
+import { IconButton } from 'src/components/IconButton';
+import { Icon } from 'src/components/Icon/Icon';
+import clsx from 'clsx';
 
-import { cn } from '@ui/utils/cn.ts';
-import { Icon } from '@ui/media/Icon';
-import { Bold01 } from '@ui/media/icons/Bold01';
-import { IconButton } from '@ui/form/IconButton';
-import { Italic01 } from '@ui/media/icons/Italic01';
-import { BlockQuote } from '@ui/media/icons/BlockQuote';
-import { ListBulleted } from '@ui/media/icons/ListBulleted';
-import { ListNumbered } from '@ui/media/icons/ListNumbered';
-import { Strikethrough01 } from '@ui/media/icons/Strikethrough01';
-
-const activeStyle =
-  'bg-grayModern-100 text-grayModern-700 hover:bg-grayModern-100';
+const activeStyle = 'bg-grayModern-100 text-grayModern-700 hover:bg-grayModern-100';
 
 const LowPriority = 1;
 
-export default function ToolbarPlugin(): JSX.Element {
+export default function ToolbarPlugin(): React.ReactNode {
   const [editor] = useLexicalComposerContext();
   const [isStrikethrough, setIsStrikethrough] = useState(false);
   const [isBlockquote, setIsBlockquote] = useState(false);
@@ -57,9 +49,7 @@ export default function ToolbarPlugin(): JSX.Element {
     setIsStrikethrough(selection.hasFormat('strikethrough'));
 
     const nodes = selection.getNodes();
-    const existingQuote = nodes.some(
-      (node) => $isQuoteNode(node) || $isQuoteNode(node.getParent()),
-    );
+    const existingQuote = nodes.some(node => $isQuoteNode(node) || $isQuoteNode(node.getParent()));
 
     setIsBlockquote(existingQuote);
 
@@ -67,7 +57,7 @@ export default function ToolbarPlugin(): JSX.Element {
     let isOrdered = false;
     // const isCheck = false;
 
-    selection.getNodes().forEach((node) => {
+    selection.getNodes().forEach(node => {
       let currentNode: LexicalNode | null = node;
 
       while (currentNode != null) {
@@ -109,25 +99,25 @@ export default function ToolbarPlugin(): JSX.Element {
 
         return false;
       },
-      LowPriority,
+      LowPriority
     );
     editor.registerCommand(
       CAN_UNDO_COMMAND,
-      (payload) => {
+      payload => {
         setCanUndo(payload);
 
         return false;
       },
-      LowPriority,
+      LowPriority
     );
     editor.registerCommand(
       CAN_REDO_COMMAND,
-      (payload) => {
+      payload => {
         setCanRedo(payload);
 
         return false;
       },
-      LowPriority,
+      LowPriority
     );
   }, [editor, updateToolbar]);
 
@@ -143,10 +133,7 @@ export default function ToolbarPlugin(): JSX.Element {
         return;
       }
 
-      if (
-        (type === 'number' && !isOrderedList) ||
-        (type === 'bullet' && !isUnorderedList)
-      ) {
+      if ((type === 'number' && !isOrderedList) || (type === 'bullet' && !isUnorderedList)) {
         $setBlocksType(selection, () => $createListNode(type));
       } else {
         $setBlocksType(selection, () => $createParagraphNode());
@@ -171,118 +158,118 @@ export default function ToolbarPlugin(): JSX.Element {
   };
 
   return (
-    <div className='flex items-center'>
+    <div className="flex items-center">
       <IconButton
-        size='xs'
-        variant='ghost'
-        aria-label='Undo'
-        icon={<Icon name='arrow-block-down' className='text-inherit' />}
-        className={cn('rounded-sm', {
+        size="xs"
+        variant="ghost"
+        aria-label="Undo"
+        icon={<Icon name="arrow-block-down" className="text-inherit" />}
+        className={clsx('rounded-sm', {
           [activeStyle]: canUndo,
         })}
-        onMouseDown={(e) => {
+        onMouseDown={e => {
           e.preventDefault();
           editor.dispatchCommand(UNDO_COMMAND, undefined);
         }}
       />
 
       <IconButton
-        size='xs'
-        variant='ghost'
-        aria-label='Redo'
-        icon={<Icon name='arrow-block-up' className='text-inherit' />}
-        className={cn('rounded-sm', {
+        size="xs"
+        variant="ghost"
+        aria-label="Redo"
+        icon={<Icon name="arrow-block-up" className="text-inherit" />}
+        className={clsx('rounded-sm', {
           [activeStyle]: canRedo,
         })}
-        onMouseDown={(e) => {
+        onMouseDown={e => {
           e.preventDefault();
           editor.dispatchCommand(REDO_COMMAND, undefined);
         }}
       />
 
       <IconButton
-        size='xs'
-        variant='ghost'
-        aria-label='Format text to bold'
-        icon={<Bold01 className='text-inherit' />}
-        className={cn('rounded-sm', {
+        size="xs"
+        variant="ghost"
+        aria-label="Format text to bold"
+        icon={<Icon name="bold-01" className="text-inherit" />}
+        className={clsx('rounded-sm', {
           [activeStyle]: isBold,
         })}
-        onMouseDown={(e) => {
+        onMouseDown={e => {
           e.preventDefault();
           formatText('bold');
         }}
       />
 
       <IconButton
-        size='xs'
-        variant='ghost'
-        aria-label='Format text with italic'
-        icon={<Italic01 className='text-inherit' />}
-        className={cn('rounded-sm', {
+        size="xs"
+        variant="ghost"
+        aria-label="Format text with italic"
+        icon={<Icon name="italic-01" className="text-inherit" />}
+        className={clsx('rounded-sm', {
           [activeStyle]: isItalic,
         })}
-        onMouseDown={(e) => {
+        onMouseDown={e => {
           e.preventDefault();
           formatText('italic');
         }}
       />
 
       <IconButton
-        size='xs'
-        variant='ghost'
-        aria-label='Format text with a strikethrough'
-        icon={<Strikethrough01 className='text-inherit' />}
-        className={cn('rounded-sm', {
+        size="xs"
+        variant="ghost"
+        aria-label="Format text with a strikethrough"
+        icon={<Icon name="strikethrough-01" className="text-inherit" />}
+        className={clsx('rounded-sm', {
           [activeStyle]: isStrikethrough,
         })}
-        onMouseDown={(e) => {
+        onMouseDown={e => {
           e.preventDefault();
           formatText('strikethrough');
         }}
       />
 
-      <div className='h-5 w-[1px] bg-grayModern-400 mx-1' />
+      <div className="h-5 w-[1px] bg-grayModern-400 mx-1" />
 
       <IconButton
-        size='xs'
-        variant='ghost'
-        aria-label='Format text as an bullet list'
-        icon={<ListBulleted className='text-inherit' />}
-        className={cn('rounded-sm', {
+        size="xs"
+        variant="ghost"
+        aria-label="Format text as an bullet list"
+        icon={<Icon name="list-bulleted" className="text-inherit" />}
+        className={clsx('rounded-sm', {
           [activeStyle]: isUnorderedList,
         })}
-        onMouseDown={(e) => {
+        onMouseDown={e => {
           e.preventDefault();
           formatList('bullet');
         }}
       />
 
       <IconButton
-        size='xs'
-        variant='ghost'
-        aria-label='Format text as an ordered list'
-        icon={<ListNumbered className='text-inherit' />}
-        className={cn('rounded-sm', {
+        size="xs"
+        variant="ghost"
+        aria-label="Format text as an ordered list"
+        icon={<Icon name="list-numbered" className="text-inherit" />}
+        className={clsx('rounded-sm', {
           [activeStyle]: isOrderedList,
         })}
-        onMouseDown={(e) => {
+        onMouseDown={e => {
           e.preventDefault();
           formatList('number');
         }}
       />
 
-      <div className='h-5 w-[1px] bg-grayModern-400 mx-0.5' />
+      <div className="h-5 w-[1px] bg-grayModern-400 mx-0.5" />
 
       <IconButton
-        size='xs'
-        variant='ghost'
-        aria-label='Format text with block quote'
-        icon={<BlockQuote className='text-inherit' />}
-        className={cn('rounded-sm', {
+        size="xs"
+        variant="ghost"
+        aria-label="Format text with block quote"
+        icon={<Icon name="block-quote" className="text-inherit" />}
+        className={clsx('rounded-sm', {
           [activeStyle]: isBlockquote,
         })}
-        onMouseDown={(e) => {
+        onMouseDown={e => {
           e.preventDefault();
           formatQuote();
         }}

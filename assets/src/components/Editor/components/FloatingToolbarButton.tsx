@@ -1,5 +1,6 @@
-import { cn } from '@ui/utils/cn.ts';
-import { IconButton, IconButtonProps } from '@ui/form/IconButton';
+import clsx from 'clsx';
+
+import { IconButton, IconButtonProps } from 'src/components/IconButton/IconButton';
 
 interface FloatingToolbarButtonProps extends IconButtonProps {
   active?: boolean;
@@ -14,16 +15,16 @@ export const FloatingToolbarButton = ({
   return (
     <IconButton
       {...rest}
-      size='xs'
+      size="xs"
       icon={icon}
-      variant='ghost'
+      variant="ghost"
       onClick={onClick}
       style={{ pointerEvents: 'all' }}
-      className={cn(
+      className={clsx(
         'rounded-sm text-grayModern-100 hover:text-inherit focus:text-inherit hover:bg-grayModern-600 focus:bg-grayModern-600 focus:text-grayModern-100 hover:text-grayModern-100',
         {
           'bg-grayModern-600 text-grayModern-100': active,
-        },
+        }
       )}
     />
   );

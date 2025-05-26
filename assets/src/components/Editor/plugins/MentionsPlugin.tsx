@@ -10,13 +10,12 @@ import {
   useBasicTypeaheadTriggerMatch,
 } from '@lexical/react/LexicalTypeaheadMenuPlugin';
 
-import { cn } from '@ui/utils/cn';
-import { Avatar } from '@ui/media/Avatar';
+import { clsx } from 'clsx';
+import { Avatar } from 'src/components/Avatar/Avatar';
 
 import { $createMentionNode } from '../nodes/MentionNode';
 
-const PUNCTUATION =
-  '\\.,\\+\\*\\?\\$\\@\\|#{}\\(\\)\\^\\-\\[\\]\\\\/!%\'"~=<>_:;';
+const PUNCTUATION = '\\.,\\+\\*\\?\\$\\@\\|#{}\\(\\)\\^\\-\\[\\]\\\\/!%\'"~=<>_:;';
 const NAME = '\\b[A-Z][^\\s' + PUNCTUATION + ']';
 
 const DocumentMentionsRegex = {
@@ -55,7 +54,7 @@ const AtSignMentionsRegex = new RegExp(
     '){0,' +
     LENGTH_LIMIT +
     '})' +
-    ')$',
+    ')$'
 );
 
 // 50 is the longest alias length limit.
@@ -72,16 +71,13 @@ const AtSignMentionsRegexAliasRegex = new RegExp(
     '){0,' +
     ALIAS_LENGTH_LIMIT +
     '})' +
-    ')$',
+    ')$'
 );
 
 // At most, 5 suggestions are shown in the popup.
 const SUGGESTION_LIST_LENGTH_LIMIT = 5;
 
-function checkForAtSignMentions(
-  text: string,
-  minMatchLength: number,
-): MenuTextMatch | null {
+function checkForAtSignMentions(text: string, minMatchLength: number): MenuTextMatch | null {
   let match = AtSignMentionsRegex.exec(text);
 
   if (match === null) {
@@ -113,9 +109,9 @@ function getPossibleQueryMatch(text: string): MenuTextMatch | null {
 
 class MentionTypeaheadOption extends MenuOption {
   name: string;
-  picture: JSX.Element;
+  picture: React.ReactNode;
 
-  constructor(name: string, picture: JSX.Element) {
+  constructor(name: string, picture: React.ReactNode) {
     super(name);
     this.name = name;
     this.picture = picture;
@@ -138,21 +134,21 @@ function MentionsTypeaheadMenuItem({
   return (
     <li
       tabIndex={-1}
-      role='option'
+      role="option"
       key={option.key}
       onMouseDown={onClick}
       ref={option.setRefElement}
       aria-selected={isSelected}
       onMouseEnter={onMouseEnter}
       id={'typeahead-item-' + index}
-      className={cn(
+      className={clsx(
         'flex gap-2 items-center text-start py-[6px] px-[10px] leading-[18px] text-grayModern-700  rounded-sm outline-none cursor-pointer hover:bg-grayModern-50 hover:rounded-md ',
         'data-[disabled]:opacity-50 data-[disabled]:cursor-not-allowed hover:data-[disabled]:bg-transparent',
-        isSelected && 'bg-grayModern-50 text-grayModern-700',
+        isSelected && 'bg-grayModern-50 text-grayModern-700'
       )}
     >
       {option.picture}
-      <span className='text'>{option.name}</span>
+      <span className="text">{option.name}</span>
     </li>
   );
 }
@@ -165,7 +161,7 @@ interface MentionsPluginProps {
 export default function NewMentionsPlugin({
   options,
   onSearch,
-}: MentionsPluginProps): JSX.Element | null {
+}: MentionsPluginProps): React.ReactNode | null {
   const [editor] = useLexicalComposerContext();
 
   const checkForSlashTriggerMatch = useBasicTypeaheadTriggerMatch('/', {
@@ -176,21 +172,17 @@ export default function NewMentionsPlugin({
     () =>
       options
         .map(
-          (item) =>
-            new MentionTypeaheadOption(
-              item,
-              <Avatar size='xs' name={item} textSize='xs' />,
-            ),
+          item => new MentionTypeaheadOption(item, <Avatar size="xs" name={item} textSize="xs" />)
         )
         .slice(0, SUGGESTION_LIST_LENGTH_LIMIT),
-    [options],
+    [options]
   );
 
   const onSelectOption = useCallback(
     (
       selectedOption: MentionTypeaheadOption,
       nodeToReplace: TextNode | null,
-      closeMenu: () => void,
+      closeMenu: () => void
     ) => {
       editor.update(() => {
         const mentionNode = $createMentionNode(selectedOption.name);
@@ -202,7 +194,7 @@ export default function NewMentionsPlugin({
         closeMenu();
       });
     },
-    [editor],
+    [editor]
   );
 
   const checkForMentionMatch = useCallback(
@@ -215,7 +207,7 @@ export default function NewMentionsPlugin({
 
       return getPossibleQueryMatch(text);
     },
-    [checkForSlashTriggerMatch, editor],
+    [checkForSlashTriggerMatch, editor]
   );
 
   return (
@@ -226,11 +218,11 @@ export default function NewMentionsPlugin({
       onQueryChange={onSearch ?? (() => {})}
       menuRenderFn={(
         anchorElementRef,
-        { selectedIndex, selectOptionAndCleanUp, setHighlightedIndex },
+        { selectedIndex, selectOptionAndCleanUp, setHighlightedIndex }
       ) =>
         anchorElementRef.current && _options.length
           ? ReactDOM.createPortal(
-              <div className='relative bg-white min-w-[250px] py-1.5 px-[6px] shadow-lg border rounded-md z-50'>
+              <div className="relative bg-white min-w-[250px] py-1.5 px-[6px] shadow-lg border rounded-md z-50">
                 <ul>
                   {_options.map((option, i: number) => (
                     <MentionsTypeaheadMenuItem
@@ -249,7 +241,7 @@ export default function NewMentionsPlugin({
                   ))}
                 </ul>
               </div>,
-              anchorElementRef.current,
+              anchorElementRef.current
             )
           : null
       }
