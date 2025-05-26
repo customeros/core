@@ -1,5 +1,5 @@
-defmodule Core.Research.Builder.ProfileWriter do
-  alias Core.Research.Builder.ProfileValidator
+defmodule Core.Researcher.Builder.ProfileWriter do
+  alias Core.Researcher.Builder.ProfileValidator
 
   @model :claude_sonnet
   @model_temperature 0.2
@@ -7,13 +7,13 @@ defmodule Core.Research.Builder.ProfileWriter do
 
   def generate_icp(domain) when is_binary(domain) do
     with {:ok, pages} <-
-           Core.Research.ScrapedWebpages.get_business_pages_by_domain(
+           Core.Researcher.ScrapedWebpages.get_business_pages_by_domain(
              domain,
              limit: 10
            ),
          {system_prompt, prompt} <- build_prompts(domain, pages),
          {:ok, answer} <-
-           Core.Ai.AskAi.ask(build_request(system_prompt, prompt)),
+           Core.Ai.AskAi.ask_with_timeout(build_request(system_prompt, prompt)),
          {:ok, icp} <- ProfileValidator.validate_and_parse(answer) do
       {:ok, icp}
     else

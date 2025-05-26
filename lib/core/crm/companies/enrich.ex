@@ -5,7 +5,7 @@ defmodule Core.Crm.Companies.Enrich do
 
   alias Core.Repo
   alias Core.Crm.Companies.Company
-  alias Core.Research.Scraper
+  alias Core.Researcher.Scraper
   alias Core.Crm.Industries
   alias Core.Media.Images
   alias Core.Crm.Companies.Enrichments

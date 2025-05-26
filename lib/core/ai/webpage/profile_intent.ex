@@ -24,7 +24,7 @@ defmodule Core.Ai.Webpage.ProfileIntent do
       model_temperature: @model_temperature
     }
 
-    case Core.Ai.AskAi.ask(request) do
+    case Core.Ai.AskAi.ask_with_timeout(request) do
       {:ok, answer} ->
         case parse_and_validate_response(answer) do
           {:ok, profile_intent} -> {:ok, profile_intent}

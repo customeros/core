@@ -21,9 +21,9 @@ defmodule Core.Crm.Companies.Enrichments.Location do
   """
 
   @type input :: %{
-    domain: String.t(),
-    homepage_content: String.t()
-  }
+          domain: String.t(),
+          homepage_content: String.t()
+        }
 
   @spec identifyCountryCodeA2(input()) :: {:ok, String.t()} | {:error, term()}
   def identifyCountryCodeA2(%{domain: domain, homepage_content: content}) do
@@ -37,13 +37,15 @@ defmodule Core.Crm.Companies.Enrichments.Location do
       model_temperature: 0.1
     }
 
-    case AskAi.ask(request) do
+    case AskAi.ask_with_timeout(request) do
       {:ok, response} ->
         # Clean and validate the response
-        code = response
-        |> String.trim()
-        |> String.upcase()
-        |> String.replace(~r/[^A-Z]/, "") # Remove any non-letters
+        code =
+          response
+          |> String.trim()
+          |> String.upcase()
+          # Remove any non-letters
+          |> String.replace(~r/[^A-Z]/, "")
 
         if String.length(code) == 2 do
           {:ok, code}

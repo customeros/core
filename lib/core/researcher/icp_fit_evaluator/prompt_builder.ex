@@ -1,4 +1,4 @@
-defmodule Core.Research.IcpFitEvaluator.PromptBuilder do
+defmodule Core.Researcher.IcpFitEvaluator.PromptBuilder do
   @model :claude_sonnet
   @model_temperature 0.2
   @max_tokens 156
@@ -29,9 +29,9 @@ defmodule Core.Research.IcpFitEvaluator.PromptBuilder do
 
     Lead's Website: #{domain}
 
-    #{Core.Research.Builder.ProfileWriter.build_company_analysis(business_pages)}
+    #{Core.Researcher.Builder.ProfileWriter.build_company_analysis(business_pages)}
 
-    #{Core.Research.Builder.ProfileWriter.build_page_content_section(business_pages)}
+    #{Core.Researcher.Builder.ProfileWriter.build_page_content_section(business_pages)}
     """
 
     {system_prompt, prompt}

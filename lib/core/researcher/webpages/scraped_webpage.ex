@@ -1,4 +1,4 @@
-defmodule Core.Research.Webpages.ScrapedWebpage do
+defmodule Core.Researcher.Webpages.ScrapedWebpage do
   use Ecto.Schema
   import Ecto.Changeset
 

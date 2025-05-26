@@ -1,7 +1,9 @@
-defmodule Core.Research.Scraper do
+defmodule Core.Researcher.Scraper do
   require Logger
 
   @error_unprocessable "unable to scrape webpage"
+  # 1 min
+  @default_scraper_timeout 60 * 1000
 
   defp jina_service,
     do: Application.get_env(:core, :jina_service, Core.External.Jina.Service)
@@ -22,18 +24,37 @@ defmodule Core.Research.Scraper do
       )
 
   def scrape_webpage(url) do
-    case Core.Research.ScrapedWebpages.get_by_url(url) do
+    case Core.Researcher.ScrapedWebpages.get_by_url(url) do
       {:error, :not_found} -> fetch_and_process_webpage(url)
       {:ok, existing_record} -> use_cached_content(existing_record)
     end
   end
 
-  defp fetch_and_process_webpage(url) do
-    with {:error, _jina_reason} <- try_jina_service(url),
-         {:error, puremd_reason} <- try_puremd_service(url) do
-      {:error, "Both services failed - #{puremd_reason}"}
-    else
-      {:ok, result} -> {:ok, result}
+  defp fetch_and_process_webpage(url, timeout \\ @default_scraper_timeout) do
+    task =
+      Task.Supervisor.async(Core.Researcher.Scraper.Supervisor, fn ->
+        with {:error, _jina_reason} <- try_jina_service(url),
+             {:error, puremd_reason} <- try_puremd_service(url) do
+          {:error, "Both services failed - #{puremd_reason}"}
+        else
+          {:ok, result} -> {:ok, result}
+        end
+      end)
+
+    case Task.yield(task, timeout) do
+      {:ok, result} ->
+        result
+
+      nil ->
+        Task.Supervisor.terminate_child(
+          Core.Researcher.TaskSupervisor,
+          task.pid
+        )
+
+        {:error, "webpage_fetch_timeout"}
+
+      {:exit, reason} ->
+        {:error, "webpage_fetch_failed: #{inspect(reason)}"}
     end
   end
 
@@ -95,7 +116,7 @@ defmodule Core.Research.Scraper do
          intent: intent,
          links: links
        }) do
-    case Core.Research.ScrapedWebpages.save_scraped_content(
+    case Core.Researcher.ScrapedWebpages.save_scraped_content(
            url,
            content,
            links,
@@ -134,17 +155,35 @@ defmodule Core.Research.Scraper do
   defp process_webpage(url, content) do
     domain = extract_domain(url)
 
-    with clean_content <-
-           Core.Research.Webpages.Cleaner.process_markdown_webpage(content),
-         {:ok, classification} <-
-           classify_service().classify_webpage_content(domain, clean_content),
-         {:ok, intent} <-
-           profile_intent_service().profile_webpage_intent(
-             domain,
-             clean_content
+    clean_content =
+      Core.Researcher.Webpages.Cleaner.process_markdown_webpage(content)
+
+    # Start all 3 processes in parallel
+    classification_task =
+      Task.Supervisor.async(Core.Researcher.Scraper.Supervisor, fn ->
+        classify_service().classify_webpage_content(domain, clean_content)
+      end)
+
+    intent_task =
+      Task.Supervisor.async(Core.Researcher.Scraper.Supervisor, fn ->
+        profile_intent_service().profile_webpage_intent(domain, clean_content)
+      end)
+
+    links_task =
+      Task.Supervisor.async(Core.Researcher.Scraper.Supervisor, fn ->
+        Core.Researcher.Webpages.LinkExtractor.extract_links(clean_content)
+      end)
+
+    # Wait for all tasks to complete
+    with {:ok, classification} <-
+           await_task(
+             classification_task,
+             @default_scraper_timeout,
+             "classification"
            ),
-         links <-
-           Core.Research.Webpages.LinkExtractor.extract_links(clean_content) do
+         {:ok, intent} <-
+           await_task(intent_task, @default_scraper_timeout, "intent"),
+         links <- await_task(links_task, 10_000, "links") do
       {:ok,
        %{
          content: clean_content,
@@ -153,11 +192,25 @@ defmodule Core.Research.Scraper do
          links: links
        }}
     else
-      {:error, {:validation_failed, reason}} ->
-        {:error, "Validation failed: #{reason}"}
+      {:error, reason} -> {:error, reason}
+    end
+  end
 
-      invalid_result ->
-        {:error, "Content processing failed: #{inspect(invalid_result)}"}
+  defp await_task(task, timeout, task_name) do
+    case Task.yield(task, timeout) do
+      {:ok, result} ->
+        result
+
+      nil ->
+        Task.Supervisor.terminate_child(
+          Core.Researcher.Scraper.Supervisor,
+          task.pid
+        )
+
+        {:error, "#{task_name}_timeout"}
+
+      {:exit, reason} ->
+        {:error, "#{task_name}_failed: #{inspect(reason)}"}
     end
   end
 

@@ -1,5 +1,5 @@
-defmodule Core.Research.Builder.ProfileValidator do
-  alias Core.Research.Builder.Profile
+defmodule Core.Researcher.Builder.ProfileValidator do
+  alias Core.Researcher.Builder.Profile
 
   @doc """
   Validates and parses the AI response into a Profile struct.

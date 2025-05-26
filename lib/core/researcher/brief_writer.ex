@@ -1,4 +1,4 @@
-defmodule Core.Research.BriefWriter do
+defmodule Core.Researcher.BriefWriter do
 end
 
 # get ideal customer profile for tenant

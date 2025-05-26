@@ -1,4 +1,4 @@
-defmodule Core.Research.Webpages.LinkExtractor do
+defmodule Core.Researcher.Webpages.LinkExtractor do
   def extract_links(links_section) do
     links_section
     |> String.split("\n")

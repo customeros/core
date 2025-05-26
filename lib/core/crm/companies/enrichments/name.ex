@@ -18,9 +18,9 @@ defmodule Core.Crm.Companies.Enrichments.Name do
   """
 
   @type input :: %{
-    domain: String.t(),
-    homepage_content: String.t()
-  }
+          domain: String.t(),
+          homepage_content: String.t()
+        }
 
   @spec identify(input()) :: {:ok, String.t()} | {:error, term()}
   def identify(%{domain: domain, homepage_content: content}) do
@@ -34,13 +34,16 @@ defmodule Core.Crm.Companies.Enrichments.Name do
       model_temperature: 0.1
     }
 
-    case AskAi.ask(request) do
+    case AskAi.ask_with_timeout(request) do
       {:ok, response} ->
         # Clean the response to ensure we only get the name
-        name = response
-        |> String.trim()
-        |> String.replace(~r/\n.*$/, "") # Remove any additional lines
-        |> String.replace(~r/^["']|["']$/, "") # Remove surrounding quotes if any
+        name =
+          response
+          |> String.trim()
+          # Remove any additional lines
+          |> String.replace(~r/\n.*$/, "")
+          # Remove surrounding quotes if any
+          |> String.replace(~r/^["']|["']$/, "")
 
         if String.length(name) > 0 do
           {:ok, name}

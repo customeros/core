@@ -1,4 +1,4 @@
-defmodule Core.Research.Webpages.Cleaner do
+defmodule Core.Researcher.Webpages.Cleaner do
   defmodule DocumentSection do
     @moduledoc """
     Represents a section of a document with its heading and content.
