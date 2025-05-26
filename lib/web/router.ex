@@ -14,6 +14,14 @@ defmodule Web.Router do
     plug Inertia.Plug
   end
 
+  pipeline :redirect_if_authenticated do
+    plug :redirect_if_user_is_authenticated
+  end
+
+  pipeline :require_authenticated do
+    plug :require_authenticated_user
+  end
+
   pipeline :api do
     plug :accepts, ["json"]
     plug :fetch_session
@@ -37,27 +45,27 @@ defmodule Web.Router do
     get "/health", HealthController, :index
   end
 
-  # Browser routes
+  # Signin routes (unprotected)
   scope "/", Web do
-    pipe_through :browser
-
-    get "/", LeadsController, :index
-    get "/icons.svg", IconsController, :index
-    get "/favicon/*path", FaviconController, :serve
-  end
-
-  scope "/", Web do
-    pipe_through [:browser, :require_authenticated_user]
-
-    get "/leads/download", LeadsController, :download
-  end
-
-  scope "/", Web do
-    pipe_through [:browser, :redirect_if_user_is_authenticated]
+    pipe_through [:browser, :redirect_if_authenticated]
 
     get "/signin", AuthController, :index
     post "/signin", AuthController, :send_magic_link
     get "/signin/token/:token", AuthController, :signin_with_token
+  end
+
+  # Protected routes (require authentication)
+  scope "/", Web do
+    pipe_through [:browser, :require_authenticated]
+
+    get "/", LandingController, :redirect
+    get "/leads", LeadsController, :index
+    get "/leads/download", LeadsController, :download
+    get "/icons.svg", IconsController, :index
+    get "/favicon/*path", FaviconController, :serve
+
+    # Catch-all route for undefined paths
+    get "/*path", LandingController, :redirect
   end
 
   scope "/graphql" do
