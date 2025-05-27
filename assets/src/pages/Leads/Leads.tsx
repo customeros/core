@@ -196,7 +196,7 @@ export const Leads = memo(({ companies }: LeadsProps) => {
               </div>
               <div
                 className={clsx(
-                  'border-l h-[calc(100vh-98px)] flex-shrink-1 transition-all border-t duration-300 ease-in-out',
+                  'border-l h-[calc(100vh-98px)] flex-shrink-1 transition-all border-t duration-300 ease-in-out pl-6 pr-4',
                   viewMode === 'focus' && 'w-full',
                   viewMode === 'focus' && 'border-transparent',
                   hasDocParam ? 'opacity-100 w-[600px]' : 'opacity-0 w-0'
