@@ -1,7 +1,7 @@
 import { useMemo, useState } from 'react';
 
 import clsx from 'clsx';
-import { router, usePage } from '@inertiajs/react';
+import { router } from '@inertiajs/react';
 
 import { Button } from '../../components/Button/Button';
 import { Icon, IconName } from '../../components/Icon/Icon';
@@ -37,7 +37,6 @@ const countryCodeToEmoji = (code: string) => {
 
 export const Leads = ({ companies }: LeadsProps) => {
   const [selectedStage, setSelectedStage] = useState<string>('');
-  const page = usePage();
   const docId = new URLSearchParams(window.location.search).get('doc');
   const viewMode = new URLSearchParams(window.location.search).get('viewMode');
 
@@ -45,8 +44,6 @@ export const Leads = ({ companies }: LeadsProps) => {
     () => (selectedStage ? companies.filter(c => c.stage === selectedStage) : companies),
     [selectedStage, companies]
   );
-
-  console.log(page);
 
   return (
     <div
