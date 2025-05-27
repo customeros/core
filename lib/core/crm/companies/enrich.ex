@@ -71,7 +71,8 @@ defmodule Core.Crm.Companies.Enrich do
     |> where([c], c.icon_enrichment_attempts < ^max_attempts)
     |> where(
       [c],
-      is_nil(c.icon_enrich_attempt_at) or c.icon_enrich_attempt_at < ^twenty_four_hours_ago
+      is_nil(c.icon_enrich_attempt_at) or
+        c.icon_enrich_attempt_at < ^twenty_four_hours_ago
     )
     |> where([c], c.inserted_at < ^ten_minutes_ago)
     |> order_by([c], asc: c.icon_enrich_attempt_at)
@@ -128,10 +129,8 @@ defmodule Core.Crm.Companies.Enrich do
           {count, _} =
             Repo.update_all(
               from(c in Company, where: c.id == ^company_id),
-              [
-                set: [industry_enrich_attempt_at: DateTime.utc_now()],
-                inc: [industry_enrichment_attempts: 1]
-              ]
+              set: [industry_enrich_attempt_at: DateTime.utc_now()],
+              inc: [industry_enrichment_attempts: 1]
             )
 
           if count > 0 do
@@ -194,10 +193,8 @@ defmodule Core.Crm.Companies.Enrich do
           {count, _} =
             Repo.update_all(
               from(c in Company, where: c.id == ^company_id),
-              [
-                set: [name_enrich_attempt_at: DateTime.utc_now()],
-                inc: [name_enrichment_attempts: 1]
-              ]
+              set: [name_enrich_attempt_at: DateTime.utc_now()],
+              inc: [name_enrichment_attempts: 1]
             )
 
           if count > 0 do
@@ -241,52 +238,51 @@ defmodule Core.Crm.Companies.Enrich do
   defp process_country_enrichment(company_id) do
     case Repo.get(Company, company_id) do
       nil ->
-        Logger.warning("Company #{company_id} not found for country enrichment")
+        Logger.error("Company #{company_id} not found for country enrichment")
 
       company ->
         if should_enrich_country?(company) do
-          {count, _} =
+          {_count, _} =
             Repo.update_all(
               from(c in Company, where: c.id == ^company_id),
-              [
-                set: [country_enrich_attempt_at: DateTime.utc_now()],
-                inc: [country_enrichment_attempts: 1]
-              ]
+              set: [country_enrich_attempt_at: DateTime.utc_now()],
+              inc: [country_enrichment_attempts: 1]
             )
 
-          if count > 0 do
-            # Get country code from AI
-            case Enrichments.Location.identifyCountryCodeA2(%{
-                   domain: company.primary_domain,
-                   homepage_content: company.homepage_content
-                 }) do
-              {:ok, country_code_a2} ->
-                # Ensure country code is uppercase before saving
-                country_code_a2_uppercase = String.upcase(country_code_a2)
+          # Get country code from AI
+          case Enrichments.Location.identifyCountryCodeA2(%{
+                 domain: company.primary_domain,
+                 homepage_content: company.homepage_content
+               }) do
+            {:ok, "XX"} ->
+              :ok
 
-                # Update company with the identified country code
-                {update_count, _} =
-                  Repo.update_all(
-                    from(c in Company, where: c.id == ^company_id),
-                    set: [country_a2: country_code_a2_uppercase]
-                  )
+            {:ok, country_code_a2} ->
+              # Ensure country code is uppercase before saving
+              country_code_a2_uppercase = String.upcase(country_code_a2)
 
-                if update_count == 0 do
-                  Logger.error(
-                    "Failed to update country for company #{company_id} (domain: #{company.primary_domain})"
-                  )
-                end
-
-              {:error, reason} ->
-                Logger.error(
-                  "Failed to get country code from AI for company #{company_id} (domain: #{company.primary_domain}): #{inspect(reason)}"
+              # Update company with the identified country code
+              {update_count, _} =
+                Repo.update_all(
+                  from(c in Company, where: c.id == ^company_id),
+                  set: [country_a2: country_code_a2_uppercase]
                 )
-            end
-          else
-            Logger.error(
-              "Failed to mark country enrichment attempt for company #{company_id}"
-            )
+
+              if update_count == 0 do
+                Logger.error(
+                  "Failed to update country for company #{company_id} (domain: #{company.primary_domain})"
+                )
+              end
+
+            {:error, reason} ->
+              Logger.error(
+                "Failed to get country code from AI for company #{company_id} (domain: #{company.primary_domain}): #{inspect(reason)}"
+              )
           end
+        else
+          Logger.error(
+            "Failed to mark country enrichment attempt for company #{company_id}"
+          )
         else
           Logger.info(
             "Skipping country enrichment for company #{company_id}: #{country_enrichment_skip_reason(company)}"
@@ -306,10 +302,8 @@ defmodule Core.Crm.Companies.Enrich do
           {count, _} =
             Repo.update_all(
               from(c in Company, where: c.id == ^company_id),
-              [
-                set: [icon_enrich_attempt_at: DateTime.utc_now()],
-                inc: [icon_enrichment_attempts: 1]
-              ]
+              set: [icon_enrich_attempt_at: DateTime.utc_now()],
+              inc: [icon_enrichment_attempts: 1]
             )
 
           if count > 0 do
@@ -326,10 +320,15 @@ defmodule Core.Crm.Companies.Enrich do
             case Images.download_image(brandfetch_url) do
               {:ok, image_data} ->
                 # Only proceed with storage if we got actual image data
-                case Images.store_image(image_data, "image/jpeg", brandfetch_url, %{
-                       generate_name: true,
-                       path: "_companies"
-                     }) do
+                case Images.store_image(
+                       image_data,
+                       "image/jpeg",
+                       brandfetch_url,
+                       %{
+                         generate_name: true,
+                         path: "_companies"
+                       }
+                     ) do
                   {:ok, storage_key} ->
                     # Update company with the icon storage key
                     {update_count, _} =
@@ -357,6 +356,7 @@ defmodule Core.Crm.Companies.Enrich do
                 Logger.error(
                   "Failed to download icon for company #{company_id} (domain: #{company.primary_domain}): #{inspect(reason)}"
                 )
+
                 {:error, reason}
             end
           else
