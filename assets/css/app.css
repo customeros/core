@@ -306,6 +306,235 @@
   --color-pink-800: #9e165f;
   --color-pink-900: #851651;
   --color-pink-950: #4e0d30;
+  --animate-pulse-opacity: pulseOpacity 1s ease-in-out infinite;
+  @keyframes pulseOpacity {
+    from {
+      opacity: 0.3;
+    }
+    to {
+      opacity: 0.7;
+    }
+  }
+
+  --animate-wave: wave 1s linear infinite;
+  @keyframes wave {
+    0% {
+      transform: rotate(0deg);
+    }
+    100% {
+      transform: rotate(360deg);
+    }
+  }
+
+  --animate-slide-down-fade: slideDownAndFade 300ms ease-out;
+  @keyframes slideDownAndFade {
+    from {
+      opacity: 0;
+      transform: translateY(-2px);
+    }
+    to {
+      opacity: 1;
+      transform: translateY(0);
+    }
+  }
+
+  --animate-slide-left-fade: slideLeftAndFade 300ms ease-out;
+  @keyframes slideLeftAndFade {
+    from {
+      opacity: 0;
+      transform: translateX(30%);
+    }
+    to {
+      opacity: 1;
+      transform: translateX(0);
+    }
+  }
+
+  --animate-slide-up-fade: slideUpAndFade 300ms ease-out;
+  @keyframes slideUpAndFade {
+    from {
+      opacity: 0;
+      transform: translateY(2px);
+    }
+    to {
+      opacity: 1;
+      transform: translateY(0);
+    }
+  }
+
+  --animate-slide-right-fade: slideRightAndFade 300ms ease-out;
+  @keyframes slideRightAndFade {
+    from {
+      opacity: 0;
+      transform: translateX(-2px);
+    }
+    to {
+      opacity: 1;
+      transform: translateX(0);
+    }
+  }
+
+  --animate-slide-out-left-fade: slideOutLeftFade 400ms ease-in;
+  @keyframes slideOutLeftFade {
+    0% {
+      opacity: 1;
+      transform: translateX(0);
+      width: 100%;
+    }
+    100% {
+      opacity: 0;
+      transform: translateX(-100%);
+      width: 0%;
+    }
+  }
+
+  --animate-slide-in-right-fade: slideInRightFade 400ms ease-out;
+  @keyframes slideInRightFade {
+    0% {
+      opacity: 0;
+      transform: translateX(-100%);
+      width: 0%;
+    }
+    100% {
+      opacity: 1;
+      transform: translateX(0);
+      width: 100%;
+    }
+  }
+
+  --animate-overlay-show: overlayShow 200ms ease-out;
+  @keyframes overlayShow {
+    from {
+      opacity: 0;
+    }
+    to {
+      opacity: 1;
+    }
+  }
+
+  --animate-content-show-top: contentShowTop 300ms ease-out;
+  @keyframes contentShowTop {
+    from {
+      opacity: 0;
+      transform: translate(-50%, -4%) scale(0.96);
+    }
+    to {
+      opacity: 1;
+      transform: translate(-50%, 0%) scale(1);
+    }
+  }
+
+  --animate-content-show-center: contentShowCenter 300ms ease-out;
+  @keyframes contentShowCenter {
+    from {
+      opacity: 0;
+      transform: translate(-50%, -48%) scale(0.96);
+    }
+    to {
+      opacity: 1;
+      transform: translate(-50%, -50%) scale(1);
+    }
+  }
+
+  --animate-collapse-down: collapseDown 250ms ease-out;
+  @keyframes collapseDown {
+    from {
+      height: 0;
+      opacity: 0;
+    }
+    to {
+      height: var(--radix-collapsible-content-height);
+      opacity: 1;
+    }
+  }
+
+  --animate-collapse-up: collapseUp 250ms ease-in;
+  @keyframes collapseUp {
+    from {
+      height: var(--radix-collapsible-content-height);
+      opacity: 1;
+    }
+    to {
+      height: 0;
+      opacity: 0;
+    }
+  }
+
+  --animate-slide-down: slideDown 300ms ease-out;
+  @keyframes slideDown {
+    from {
+      opacity: 0;
+      transform: translateY(-10px);
+    }
+    to {
+      opacity: 1;
+      transform: translateY(0);
+    }
+  }
+
+  --animate-slide-up: slideUp 300ms ease-out;
+  @keyframes slideUp {
+    from {
+      opacity: 0;
+      transform: translateY(10px);
+    }
+    to {
+      opacity: 1;
+      transform: translateY(0);
+    }
+  }
+
+  --animate-fade-in: fadeIn 300ms ease-out;
+  @keyframes fadeIn {
+    0% {
+      opacity: 0;
+    }
+    100% {
+      opacity: 1;
+    }
+  }
+
+  --animate-fade-out: fadeOut 300ms ease-in;
+  @keyframes fadeOut {
+    0% {
+      opacity: 1;
+    }
+    100% {
+      opacity: 0;
+    }
+  }
+
+  --animate-focus: focus 200ms ease-out;
+  @keyframes focus {
+    from {
+      background: var(--color-primary-50);
+    }
+    to {
+      background: transparent;
+    }
+  }
+
+  --animate-slide-left: slideLeft 300ms ease-out;
+  @keyframes slideLeft {
+    from {
+      opacity: 0;
+      transform: translateX(20%);
+    }
+    to {
+      opacity: 1;
+      transform: translateX(0);
+    }
+  }
+
+  --animate-fade-out-filtered-grayscale: fadeOutFilteredGrayscale 400ms ease-in;
+  @keyframes fadeOutFilteredGrayscale {
+    from {
+      filter: grayscale(100%) blur(4px);
+    }
+    to {
+      filter: grayscale(0%) blur(0px);
+    }
+  }
 }
 @layer base {
   body {

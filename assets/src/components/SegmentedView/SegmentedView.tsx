@@ -18,7 +18,7 @@ export const SegmentedView = ({
   handleClearFilter,
 }: SegmentedViewProps) => {
   return (
-    <div className="bg-gray-100 w-full flex justify-between py-2 px-[28px] items-center">
+    <div className="flex py-1 bg-gray-100  items-center justify-between mx-auto rounded-[4px] px-6">
       <div className="flex items-center space-x-3 h-[30px]">
         <div className="flex-shrink-0">{icon}</div>
         <h3 className="font-medium">{label}</h3>
@@ -28,8 +28,8 @@ export const SegmentedView = ({
         <Button
           colorScheme="gray"
           variant="ghost"
-          size="xs"
-          leftIcon={<Icon name="download-02" />}
+          size="xxs"
+          leftIcon={<Icon name="x-close" />}
           onClick={handleClearFilter}
         >
           Clear filter

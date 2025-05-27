@@ -35,7 +35,7 @@ import { LexicalComposer, InitialConfigType } from '@lexical/react/LexicalCompos
 import { LinkPastePlugin } from './plugins/PastePlugin';
 import ToolbarPlugin from './plugins/ToolbarPlugin.tsx';
 import TextNodeTransformer from './nodes/TextTransformar.ts';
-import { PhoenixSocketContext } from './utils/SocketProvider.tsx';
+import { PhoenixSocketContext } from '../../providers/SocketProvider.tsx';
 
 import { nodes } from './nodes/nodes';
 import { HashtagNode } from './nodes/HashtagNode';

@@ -1,0 +1,98 @@
+import { useState, useEffect } from 'react';
+
+import { clsx } from 'clsx';
+import { router } from '@inertiajs/react';
+import { Icon, IconName } from 'src/components/Icon';
+import { Editor } from 'src/components/Editor/Editor';
+import { IconButton } from 'src/components/IconButton';
+import {
+  ScrollAreaRoot,
+  ScrollAreaThumb,
+  ScrollAreaViewport,
+  ScrollAreaScrollbar,
+} from 'src/components/ScrollArea';
+
+export const DocumentEditor = () => {
+  const [viewMode, setViewMode] = useState('default');
+  const [isClosing, setIsClosing] = useState(false);
+  const docId = new URLSearchParams(window.location.search).get('doc');
+  const urlViewMode = new URLSearchParams(window.location.search).get('viewMode');
+
+  useEffect(() => {
+    if (urlViewMode) {
+      setViewMode(urlViewMode);
+    }
+  }, [urlViewMode]);
+
+  const handleViewModeChange = () => {
+    const params = new URLSearchParams(window.location.search);
+    if (viewMode === 'default') {
+      params.set('viewMode', 'focus');
+      setViewMode('focus');
+    } else {
+      params.delete('viewMode');
+      setViewMode('default');
+    }
+    router.visit(window.location.pathname + '?' + params.toString(), { preserveState: true });
+  };
+
+  const closeEditor = () => {
+    setIsClosing(true);
+    requestAnimationFrame(() => {
+      router.visit('/');
+    });
+  };
+
+  if (isClosing) {
+    return <div className="hidden" />;
+  }
+
+  return (
+    <>
+      <ScrollAreaRoot>
+        <ScrollAreaViewport>
+          <div className="relative w-full h-full bg-white ">
+            <div className={clsx('relative bg-white h-full mx-auto pt-2')}>
+              <div className="flex items-center w-full justify-end mb-3">
+                <IconButton
+                  size="xs"
+                  variant="ghost"
+                  aria-label="toggle view mode"
+                  onClick={handleViewModeChange}
+                  icon={<Icon name={viewMode === 'default' ? 'expand-01' : 'collapse-01'} />}
+                />
+                <IconButton
+                  size="xs"
+                  variant="ghost"
+                  onClick={closeEditor}
+                  aria-label="close document"
+                  icon={<Icon name="x-close" />}
+                />
+              </div>
+
+              {!isClosing && <Editor useYjs={false} namespace="leads" />}
+
+              <div className="h-20 w-full"></div>
+            </div>
+          </div>
+        </ScrollAreaViewport>
+        <ScrollAreaScrollbar orientation="vertical">
+          <ScrollAreaThumb />
+        </ScrollAreaScrollbar>
+      </ScrollAreaRoot>
+    </>
+  );
+};
+
+// const colorMap: Record<string, string[]> = {
+//   grayModern: ['hover:ring-grayModern-400', 'bg-grayModern-50', 'text-grayModern-500'],
+//   error: ['hover:ring-error-400', 'bg-error-50', 'text-error-500'],
+//   warning: ['hover:ring-warning-400', 'bg-warning-50', 'text-warning-500'],
+//   success: ['hover:ring-success-400', 'bg-success-50', 'text-success-500'],
+//   grayWarm: ['hover:ring-grayWarm-400', 'bg-grayWarm-50', 'text-grayWarm-500'],
+//   moss: ['hover:ring-moss-400', 'bg-moss-50', 'text-moss-500'],
+//   blueLight: ['hover:ring-blueLight-400', 'bg-blueLight-50', 'text-blueLight-500'],
+//   indigo: ['hover:ring-indigo-400', 'bg-indigo-50', 'text-indigo-500'],
+//   violet: ['hover:ring-violet-400', 'bg-violet-50', 'text-violet-500'],
+//   pink: ['hover:ring-pink-400', 'bg-pink-50', 'text-pink-500'],
+// };
