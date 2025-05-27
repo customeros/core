@@ -7,7 +7,7 @@ defmodule Core.Crm.Companies.Enrich do
   alias Core.Crm.Companies.Company
   alias Core.Researcher.Scraper
   alias Core.Crm.Industries
-  alias Core.Media.Images
+  alias Core.Utils.Media.Images
   alias Core.Crm.Companies.Enrichments
 
   def start_link(_opts) do

@@ -16,6 +16,7 @@ defmodule Core.WebTracker.OriginTenantMapper do
   @doc """
   Checks if given origin is whitelisted and returns its associated tenant.
   """
+  @spec get_tenant_for_origin(String.t()) :: {:ok, String.t()} | {:error, :origin_not_configured}
   def get_tenant_for_origin(origin) when is_binary(origin) do
     case Map.get(@whitelisted_origins, origin) do
       nil -> {:error, :origin_not_configured}
@@ -28,6 +29,7 @@ defmodule Core.WebTracker.OriginTenantMapper do
   @doc """
   Returns true if the origin is in the whitelist.
   """
+  @spec whitelisted?(String.t()) :: boolean()
   def whitelisted?(origin) when is_binary(origin) do
     case get_tenant_for_origin(origin) do
       {:ok, _tenant} -> true

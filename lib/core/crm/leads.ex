@@ -9,7 +9,7 @@ defmodule Core.Crm.Leads do
   alias Core.Crm.Leads.{Lead, LeadView}
   alias Core.Auth.Tenants
   alias Core.Crm.Companies.Company
-  alias Core.Media.Images
+  alias Core.Utils.Media.Images
 
   @spec get_by_ref_id(tenant_id :: String.t(), ref_id :: String.t()) ::
           {:ok, Lead.t()} | {:error, :not_found}
