@@ -173,6 +173,7 @@ If you encounter database connection issues:
 1. Ensure PostgreSQL is running: `docker compose ps`
 2. Check logs: `docker compose logs postgres`
 3. Restart PostgreSQL: `docker compose restart postgres`
+4. Ensure that you have set the PostgresSQL environment variables
 
 ### Asset Compilation Issues
 
