@@ -1,4 +1,4 @@
-defmodule Core.Media.Images do
+defmodule Core.Utils.Media.Images do
   require Logger
 
   @type storage_opts :: %{
