@@ -12,7 +12,8 @@ defmodule Core.Crm.Leads.LeadView do
              :industry,
              :domain,
              :logo,
-             :country
+             :country,
+             :country_name
            ]}
   defstruct [
     :id,
@@ -23,7 +24,8 @@ defmodule Core.Crm.Leads.LeadView do
     :industry,
     :domain,
     :logo,
-    :country
+    :country,
+    :country_name
   ]
 
   @type t :: %__MODULE__{
@@ -35,6 +37,7 @@ defmodule Core.Crm.Leads.LeadView do
           industry: String.t() | nil,
           domain: String.t() | nil,
           logo: String.t() | nil,
-          country: String.t() | nil
+          country: String.t() | nil,
+          country_name: String.t() | nil
         }
 end
