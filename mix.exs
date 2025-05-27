@@ -62,6 +62,7 @@ defmodule Core.MixProject do
       {:opentelemetry_bandit, "~> 0.2"},
       {:opentelemetry_exporter, "~> 1.8"},
       {:opentelemetry_phoenix, "~> 2.0"},
+      {:opentelemetry_ecto, "~> 1.2.0"},
       {:phoenix, "~> 1.7.20"},
       {:phoenix_ecto, "~> 4.6"},
       {:phoenix_html, "~> 4.2"},
