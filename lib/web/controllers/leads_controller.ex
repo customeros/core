@@ -23,12 +23,22 @@ defmodule Web.LeadsController do
         %{
           "name" => company.name,
           "country" => company.country,
+          "country_name" => company.country_name,
           "domain" => company.domain,
           "industry" => company.industry,
           "stage" => company.stage
         }
       end)
-      |> CSV.encode(headers: ["name", "country", "domain", "industry", "stage"])
+      |> CSV.encode(
+        headers: [
+          "name",
+          "country",
+          "country_name",
+          "domain",
+          "industry",
+          "stage"
+        ]
+      )
       |> Enum.to_list()
       |> Enum.join("\n")
 

@@ -1,12 +1,11 @@
 import { useMemo, useState } from 'react';
 
 import clsx from 'clsx';
-import { usePage, router } from '@inertiajs/react';
+import { router } from '@inertiajs/react';
 
 import { Button } from '../../components/Button/Button';
 import { Icon, IconName } from '../../components/Icon/Icon';
 import { SegmentedView } from '../../components/SegmentedView/SegmentedView';
-import { Editor } from 'src/components/Editor/Editor';
 import { DocumentEditor } from './DocumentEditor';
 
 interface LeadsProps {
@@ -16,6 +15,7 @@ interface LeadsProps {
     count: number;
     stage: string;
     country: string;
+    country_name: string;
     domain: string;
     industry: string;
   }[];
@@ -37,7 +37,6 @@ const countryCodeToEmoji = (code: string) => {
 
 export const Leads = ({ companies }: LeadsProps) => {
   const [selectedStage, setSelectedStage] = useState<string>('');
-  const page = usePage();
   const docId = new URLSearchParams(window.location.search).get('doc');
   const viewMode = new URLSearchParams(window.location.search).get('viewMode');
 
