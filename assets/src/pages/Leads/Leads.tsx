@@ -10,7 +10,7 @@ import { DocumentEditor } from './DocumentEditor';
 
 interface LeadsProps {
   companies: {
-    logo: string;
+    icon: string;
     name: string;
     count: number;
     stage: string;
@@ -125,7 +125,7 @@ export const Leads = ({ companies }: LeadsProps) => {
                     className="flex w-full hover:bg-gray-100 items-center"
                   >
                     <div className="flex pl-6 items-center justify-center">
-                      <img src={c.logo} alt={c.name} className="w-10 h-10 rounded-full" />
+                      <img src={c.icon} alt={c.name} className="w-10 h-10 rounded-full" />
                     </div>
                     <p
                       className="flex-1 py-2 px-6 cursor-pointer hover:text-primary-600"

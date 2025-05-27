@@ -2,6 +2,16 @@ defmodule Core.Auth.Tenants.Tenant do
   use Ecto.Schema
   import Ecto.Changeset
 
+  @derive {Jason.Encoder,
+           only: [
+             :id,
+             :name,
+             :domain,
+             :workspace_name,
+             :workspace_icon_key,
+             :inserted_at,
+             :updated_at
+           ]}
   @primary_key {:id, :string, autogenerate: false}
   schema "tenants" do
     field(:name, :string)
