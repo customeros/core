@@ -8,6 +8,7 @@ defmodule Core.Auth.Tenants do
   alias Core.Repo
   alias Core.Auth.Tenants.Tenant
   alias Core.Notifications.Slack
+  alias Core.Crm.Companies
 
   ## Database getters
 
@@ -25,6 +26,26 @@ defmodule Core.Auth.Tenants do
     end
   end
 
+  @spec set_tenant_workspace_name(binary(), binary()) :: :ok | {:error, any()}
+  def set_tenant_workspace_name(tenant_id, workspace_name) when is_binary(tenant_id) do
+    case get_tenant_by_id(tenant_id) do
+      {:ok, tenant} ->
+        tenant
+        |> Tenant.changeset(%{workspace_name: workspace_name})
+        |> Repo.update()
+        |> case do
+          {:ok, _} -> :ok
+          {:error, reason} ->
+            Logger.error(
+              "Failed to update tenant workspace name for #{tenant.name}: #{inspect(reason)}"
+            )
+            {:error, reason}
+        end
+      {:error, :not_found} ->
+        {:error, :tenant_not_found}
+    end
+  end
+
   ## Tenant registration
 
   def create_tenant(name, domain) do
@@ -32,19 +53,8 @@ defmodule Core.Auth.Tenants do
          |> Tenant.changeset(%{name: name, domain: domain})
          |> Repo.insert() do
       {:ok, tenant} = result ->
-        # Notify Slack about new tenant
-        Task.start(fn ->
-          case Slack.notify_new_tenant(tenant.name, tenant.domain) do
-            :ok ->
-              :ok
-
-            {:error, reason} ->
-              Logger.error(
-                "Failed to send Slack notification for tenant #{tenant.name} creation: #{inspect(reason)}"
-              )
-          end
-        end)
-
+        notify_slack_new_tenant(tenant)
+        process_company_for_tenant(tenant)
         result
 
       error ->
@@ -73,5 +83,34 @@ defmodule Core.Auth.Tenants do
       {:error, changeset} ->
         {:error, changeset}
     end
+  end
+
+  defp notify_slack_new_tenant(tenant) do
+    Task.start(fn ->
+      case Slack.notify_new_tenant(tenant.name, tenant.domain) do
+        :ok ->
+          :ok
+        {:error, reason} ->
+          Logger.error(
+            "Failed to send Slack notification for tenant #{tenant.name} creation: #{inspect(reason)}"
+          )
+      end
+    end)
+  end
+
+  defp process_company_for_tenant(tenant) do
+    Task.start(fn ->
+      case Companies.get_or_create_by_domain(tenant.domain) do
+       {:ok, company} ->
+         if is_binary(company.name) and company.name != "" do
+           set_tenant_workspace_name(tenant.id, company.name)
+         end
+         :ok
+       {:error, reason} ->
+        Logger.error(
+          "Failed to create company for tenant #{tenant.name}: #{inspect(reason)}"
+        )
+      end
+    end)
   end
 end

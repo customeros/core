@@ -6,16 +6,19 @@ defmodule Core.Auth.Tenants.Tenant do
   schema "tenants" do
     field(:name, :string)
     field(:domain, :string)
+    field(:workspace_name, :string)
+    field(:workspace_icon_key, :string)
 
     timestamps(type: :utc_datetime)
   end
 
   def changeset(%__MODULE__{} = tenant, attrs) do
     tenant
-    |> cast(attrs, [:id, :name, :domain])
+    |> cast(attrs, [:id, :name, :domain, :workspace_name, :workspace_icon_key])
     |> maybe_put_id()
     |> validate_required([:id, :name, :domain])
     |> validate_length(:name, max: 160)
+    |> validate_length(:workspace_name, max: 160)
     |> unique_constraint(:name)
   end
 
