@@ -11,6 +11,7 @@ defmodule Web.UserSocket do
 
   channel "organization_presence:*", Web.OrganizationViewChannel
   channel "finder:*", Web.FinderChannel
+  channel "documents:*", Web.Channels.DocumentsChannel
 
   # Socket params are passed from the client and can
   # be used to verify and authenticate a user. After
@@ -34,16 +35,8 @@ defmodule Web.UserSocket do
   # end
 
   @impl true
-  def connect(params, socket, _connect_info) do
-    if authorized(params["token"]) do
-      {:ok, socket}
-    else
-      {:error, %{reason: "unauthorized"}}
-    end
-  end
-
-  defp authorized(token) do
-    token == System.get_env("API_TOKEN")
+  def connect(_params, socket, _connect_info) do
+    {:ok, socket}
   end
 
   # Socket id's are topics that allow you to identify all sockets for a given user:

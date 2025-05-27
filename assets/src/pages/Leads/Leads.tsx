@@ -1,12 +1,13 @@
-import { useMemo, useState } from 'react';
+import { useMemo, useState, lazy, memo, useCallback } from 'react';
 
 import clsx from 'clsx';
-import { router } from '@inertiajs/react';
+import { router, usePage } from '@inertiajs/react';
 
-import { Button } from '../../components/Button/Button';
 import { Icon, IconName } from '../../components/Icon/Icon';
 import { SegmentedView } from '../../components/SegmentedView/SegmentedView';
-import { DocumentEditor } from './DocumentEditor';
+import { Tooltip } from 'src/components/Tooltip';
+import { Header } from './components/Header';
+import { RootLayout } from 'src/layouts/Root';
 
 interface LeadsProps {
   companies: {
@@ -18,6 +19,7 @@ interface LeadsProps {
     country_name: string;
     domain: string;
     industry: string;
+    document_id: string;
   }[];
 }
 
@@ -30,13 +32,27 @@ const stages = [
 ];
 
 const countryCodeToEmoji = (code: string) => {
-  return code
-    .toUpperCase()
-    .replace(/./g, char => String.fromCodePoint(127397 + char.charCodeAt(0)));
+  if (!code || code.toLowerCase() === 'xx') {
+    return '🌐';
+  }
+  try {
+    return code
+      .toUpperCase()
+      .replace(/./g, char => String.fromCodePoint(127397 + char.charCodeAt(0)));
+  } catch {
+    return '🌐';
+  }
 };
+const DocumentEditor = lazy(() =>
+  import('./components/DocumentEditor/DocumentEditor').then(module => ({
+    default: module.DocumentEditor,
+  }))
+);
 
-export const Leads = ({ companies }: LeadsProps) => {
+export const Leads = memo(({ companies }: LeadsProps) => {
+  const page = usePage();
   const [selectedStage, setSelectedStage] = useState<string>('');
+  const hasDocParam = new URLSearchParams(window.location.search).has('doc');
   const docId = new URLSearchParams(window.location.search).get('doc');
   const viewMode = new URLSearchParams(window.location.search).get('viewMode');
 
@@ -45,123 +61,155 @@ export const Leads = ({ companies }: LeadsProps) => {
     [selectedStage, companies]
   );
 
+  const handleOpenDocument = useCallback((company: { document_id: string }) => {
+    const params = new URLSearchParams(window.location.search);
+    const currentDocId = params.get('doc');
+
+    if (currentDocId === company.document_id) {
+      params.delete('doc');
+    } else {
+      params.set('doc', company.document_id ?? '');
+    }
+
+    router.visit(window.location.pathname + '?' + params.toString(), {
+      preserveState: true,
+      replace: true,
+      preserveScroll: true,
+    });
+  }, []);
+
   return (
-    <div
-      className={clsx(
-        'flex h-full overflow-hidden relative bg-white p-0 transition-[width] duration-300 ease-in-out',
-        'w-full'
-      )}
-    >
-      <div className="flex-1 flex flex-col overflow-y-auto">
-        <div className="w-full border-b border-gray-200">
-          <div className="flex justify-between items-center w-full py-2 px-4">
-            <h1 className="">Leads</h1>
-            <div className="flex gap-2">
-              {/* <Button colorScheme="primary" size="xs" leftIcon={<Icon name="rocket-02" />}>
-                Add Lead
-              </Button> */}
-              <Button
-                colorScheme="gray"
-                size="xs"
-                leftIcon={<Icon name="download-02" />}
-                onClick={() => {
-                  window.location.href = '/leads/download';
-                }}
+    <RootLayout>
+      <div className="flex h-full">
+        <div className="h-[47px] w-[10%] bg-transparent border-b border-gray-200 [border-image:linear-gradient(to_left,theme(colors.gray.200),transparent)_1]" />
+        <div
+          className={clsx(
+            'flex h-full overflow-hidden relative bg-white p-0 transition-[width] duration-300 ease-in-out',
+            'w-[80%]'
+          )}
+        >
+          <div className="w-full">
+            <Header />
+
+            <div className="flex w-full items-center justify-center mb-2">
+              {stages.map((stage, index) => {
+                const count = companies.filter(c => c.stage === stage.value).length;
+                return (
+                  <div
+                    key={stage.value}
+                    className={clsx(
+                      'flex-1 flex items-center justify-center rounded-md bg-primary-100 cursor-pointer min-h-[12px]',
+                      index > 0 && 'ml-[-10px]',
+                      selectedStage === stage.value && 'bg-primary-200'
+                    )}
+                    style={{
+                      height: `${count ? count * 5 : 15}px`,
+                      zIndex: 10 - index,
+                      maxHeight: '100px',
+                    }}
+                    onClick={() => setSelectedStage(stage.value)}
+                  >
+                    <div className="flex text-center text-primary-700">
+                      <span>
+                        {stage.label}
+                        <span className="mx-1">•</span>
+                      </span>
+                      <span>{count}</span>
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+
+            <div className="flex-1 flex">
+              <div
+                className={clsx(
+                  'flex-1 overflow-y-auto text-nowrap duration-300 ease-in-out',
+                  viewMode === 'focus' && 'opacity-0'
+                )}
               >
-                Download
-              </Button>
+                {stages
+                  .filter(stage => !selectedStage || stage.value === selectedStage)
+                  .map(stage => (
+                    <div key={stage.value} className="flex flex-col w-full">
+                      <div className="mb-2">
+                        <SegmentedView
+                          icon={<Icon name={stage.icon as IconName} className="text-gray-500" />}
+                          label={stage.label}
+                          count={companies.filter(c => c.stage === stage.value).length}
+                          isSelected={selectedStage === stage.value}
+                          handleClearFilter={() => setSelectedStage('')}
+                        />
+                      </div>
+                      {filteredCompanies
+                        .filter(c => c.stage === stage.value)
+                        .map(c => (
+                          <div
+                            key={c.document_id || c.name}
+                            className="flex items-center w-full h-full"
+                          >
+                            <div className="flex items-center gap-2 pl-5">
+                              {c.icon ? (
+                                <img
+                                  key={c.icon}
+                                  src={c.icon}
+                                  alt={c.name}
+                                  className="size-6 object-contain border border-gray-200 rounded"
+                                  loading="lazy"
+                                />
+                              ) : (
+                                <div className="size-6 flex items-center justify-center border border-gray-200 rounded">
+                                  <Icon name="building-06" />
+                                </div>
+                              )}
+                              <p
+                                className="py-2 px-4 cursor-pointer font-medium"
+                                onClick={() => {
+                                  handleOpenDocument(c);
+                                }}
+                              >
+                                {c.name}
+                              </p>
+                            </div>
+                            <p className="flex-4 text-right mr-2">
+                              <span className="bg-gray-100 w-fit px-2 py-1 rounded-[4px] max-w-[100px] truncate">
+                                {c.industry || 'Not found'}
+                              </span>
+                            </p>
+                            <p
+                              className="min-w-[200px] text-right cursor-pointer hover:underline"
+                              onClick={() => {
+                                window.open(`https://${c.domain}`, '_blank');
+                              }}
+                            >
+                              {c.domain}
+                            </p>
+                            <Tooltip label={c.country_name ?? 'Not found'}>
+                              <p className="mr-2 text-center text-gray-500">
+                                \{countryCodeToEmoji(c.country)}
+                              </p>
+                            </Tooltip>
+                          </div>
+                        ))}
+                    </div>
+                  ))}
+              </div>
+              <div
+                className={clsx(
+                  'border-l h-[calc(100vh-98px)] flex-shrink-1 transition-all border-t duration-300 ease-in-out',
+                  viewMode === 'focus' && 'w-full',
+                  viewMode === 'focus' && 'border-transparent',
+                  hasDocParam ? 'opacity-100 w-[600px]' : 'opacity-0 w-0'
+                )}
+              >
+                {hasDocParam && <DocumentEditor />}
+              </div>
             </div>
           </div>
         </div>
 
-        <div className="w-[70%] max-h-[100px] flex items-center justify-center my-3 mx-auto">
-          {stages.map((stage, index) => {
-            const count = companies.filter(c => c.stage === stage.value).length;
-            return (
-              <div
-                key={stage.value}
-                className={clsx(
-                  'flex-1 flex items-center justify-center rounded-md bg-primary-100 cursor-pointer',
-                  index > 0 && 'ml-[-5px]',
-                  selectedStage === stage.value && 'bg-primary-200'
-                )}
-                style={{
-                  height: `${count ? count * 5 : 15}px`,
-                  zIndex: 10 - index,
-                  maxHeight: '100px',
-                }}
-                onClick={() => setSelectedStage(stage.value)}
-              >
-                <div className="flex text-center text-primary-700">
-                  <span>
-                    {stage.label}
-                    <span className="mx-1">•</span>
-                  </span>
-                  <span>{count}</span>
-                </div>
-              </div>
-            );
-          })}
-        </div>
-
-        {stages
-          .filter(stage => !selectedStage || stage.value === selectedStage)
-          .map(stage => (
-            <div key={stage.value} className="w-full">
-              <div className="mb-2">
-                <SegmentedView
-                  icon={<Icon name={stage.icon as IconName} className="text-gray-500" />}
-                  label={stage.label}
-                  count={companies.filter(c => c.stage === stage.value).length}
-                  isSelected={selectedStage === stage.value}
-                  handleClearFilter={() => setSelectedStage('')}
-                />
-              </div>
-              {filteredCompanies
-                .filter(c => c.stage === stage.value)
-                .map(c => (
-                  <div
-                    key={crypto.randomUUID()}
-                    className="flex w-full hover:bg-gray-100 items-center"
-                  >
-                    <div className="flex pl-6 items-center justify-center">
-                      <img src={c.icon} alt={c.name} className="w-10 h-10 rounded-full" />
-                    </div>
-                    <p
-                      className="flex-1 py-2 px-6 cursor-pointer hover:text-primary-600"
-                      onClick={() => {
-                        const params = new URLSearchParams(window.location.search);
-                        params.set('doc', c.name.toLowerCase().replace(/\s+/g, '-'));
-                        router.visit(window.location.pathname + '?' + params.toString(), {
-                          preserveState: true,
-                          replace: true,
-                        });
-                      }}
-                    >
-                      {c.name}
-                    </p>
-                    <p className="flex mr-6 text-gray-500">{countryCodeToEmoji(c.country)}</p>
-                    <p className="flex-1 text-gray-500">{c.domain}</p>
-                    <p className="flex-1 ">
-                      <span className="bg-gray-100 w-fit px-2 py-1 rounded-[4px]">
-                        {c.industry}
-                      </span>
-                    </p>
-                  </div>
-                ))}
-            </div>
-          ))}
+        <div className="h-[47px] w-[10%] bg-transparent border-b border-gray-200 [border-image:linear-gradient(to_right,theme(colors.gray.200),transparent)_1]" />
       </div>
-      {docId && (
-        <div
-          className={clsx(
-            'border-l border-gray-200 h-screen flex-shrink-0 transition-all duration-300 ease-in-out',
-            viewMode === 'focus' ? 'w-full' : 'w-[600px]'
-          )}
-        >
-          <DocumentEditor />
-        </div>
-      )}
-    </div>
+    </RootLayout>
   );
-};
+});

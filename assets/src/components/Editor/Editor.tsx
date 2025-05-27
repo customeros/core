@@ -35,7 +35,7 @@ import { LexicalComposer, InitialConfigType } from '@lexical/react/LexicalCompos
 import { LinkPastePlugin } from './plugins/PastePlugin';
 import ToolbarPlugin from './plugins/ToolbarPlugin.tsx';
 import TextNodeTransformer from './nodes/TextTransformar.ts';
-import { PhoenixSocketContext } from './utils/SocketProvider.tsx';
+import { PhoenixSocketContext } from '../../providers/SocketProvider.tsx';
 
 import { nodes } from './nodes/nodes';
 import { HashtagNode } from './nodes/HashtagNode';
@@ -86,7 +86,7 @@ const theme: EditorThemeClasses = {
     underline: 'editor-textUnderline',
     underlineStrikethrough: 'editor-textUnderlineStrikethrough',
   },
-  quote: 'border-l-[2px] border-grayModern-300 pl-3 my-3',
+  quote: 'border-l-[2px] border-gray-300 pl-3 my-3',
 };
 
 const onError = (error: Error) => {
@@ -266,7 +266,7 @@ export const Editor = forwardRef<LexicalEditor | null, EditorProps>(
           return doc;
         })();
 
-        const provider = new PhoenixChannelProvider(socket!, `Document:${id}`, doc);
+        const provider = new PhoenixChannelProvider(socket!, `documents:${id}`, doc);
 
         provider.on('status', e => {
           setConnectionStatus(e.status);
@@ -354,7 +354,7 @@ export const Editor = forwardRef<LexicalEditor | null, EditorProps>(
                     size,
                     className: placeholderClassName,
                   }),
-                  'absolute top-0 text-grayModern-400'
+                  'absolute top-0 text-gray-400'
                 )}
               >
                 {placeholder}

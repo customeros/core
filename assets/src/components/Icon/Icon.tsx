@@ -32,7 +32,8 @@ export type IconName =
   | 'arrow-block-down'
   | 'arrow-block-up'
   | 'expand-01'
-  | 'collapse-01';
+  | 'collapse-01'
+  | 'building-06';
 
 export const Icon = ({
   name,

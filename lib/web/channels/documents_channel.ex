@@ -51,7 +51,7 @@ defmodule Web.Channels.DocumentsChannel do
     case :global.whereis_name({__MODULE__, doc_name}) do
       :undefined ->
         SharedDoc.start(
-          [doc_name: doc_name, persistence: Realtime.EctoPersistence],
+          [doc_name: doc_name, persistence: Core.Crm.Documents.EctoPersistence],
           name: {:global, {__MODULE__, doc_name}}
         )
 
