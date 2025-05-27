@@ -14,6 +14,7 @@ defmodule Core.Auth.Users.UserNotifier do
         html_body: opts[:html_body],
         text_body: opts[:text_body]
       )
+      |> Swoosh.Email.put_provider_option(:track_opens, false)
       |> Swoosh.Email.put_provider_option(:track_links, "None")
 
     email_with_options =
