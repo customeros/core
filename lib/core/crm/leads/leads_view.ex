@@ -11,7 +11,7 @@ defmodule Core.Crm.Leads.LeadView do
              :name,
              :industry,
              :domain,
-             :logo,
+             :icon,
              :country,
              :country_name
            ]}
@@ -23,7 +23,7 @@ defmodule Core.Crm.Leads.LeadView do
     :name,
     :industry,
     :domain,
-    :logo,
+    :icon,
     :country,
     :country_name
   ]
@@ -36,7 +36,7 @@ defmodule Core.Crm.Leads.LeadView do
           name: String.t() | nil,
           industry: String.t() | nil,
           domain: String.t() | nil,
-          logo: String.t() | nil,
+          icon: String.t() | nil,
           country: String.t() | nil,
           country_name: String.t() | nil
         }

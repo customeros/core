@@ -55,16 +55,13 @@ defmodule Core.Crm.Leads do
         industry: c.industry,
         domain: c.primary_domain,
         country: c.country_a2,
-        logo_key: c.icon_key
+        icon_key: c.icon_key
       }
     )
     |> Repo.all()
     |> Enum.map(fn lead_data ->
       # Generate CDN URL for icon if icon_key exists
-      logo =
-        if lead_data.logo_key,
-          do: Images.get_cdn_url(lead_data.logo_key),
-          else: nil
+      icon = Images.get_cdn_url(lead_data.icon_key)
 
       country_name =
         if lead_data.country do
@@ -76,10 +73,10 @@ defmodule Core.Crm.Leads do
           nil
         end
 
-      struct(
-        LeadView,
+      LeadView
+      |> struct(
         lead_data
-        |> Map.put(:logo, logo)
+        |> Map.put(:icon, icon)
         |> Map.put(:country_name, country_name)
       )
     end)

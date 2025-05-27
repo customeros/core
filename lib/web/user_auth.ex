@@ -7,6 +7,7 @@ defmodule Web.UserAuth do
 
   alias Core.Auth.Users
   alias Core.Auth.ApiTokens
+  alias Core.Auth.Tenants
 
   # Make the remember me cookie valid for 60 days.
   # If you want bump or reduce this value, also change
@@ -92,7 +93,14 @@ defmodule Web.UserAuth do
   """
   def fetch_current_user(conn, _opts) do
     {user_token, conn} = ensure_user_token(conn)
-    user = user_token && Users.get_user_by_session_token(user_token)
+
+    user =
+      user_token &&
+        case Users.get_user_by_session_token(user_token) do
+          nil -> nil
+          user -> Map.put(user, :salut, "asd")
+        end
+
     assign(conn, :current_user, user)
   end
 
@@ -206,8 +214,17 @@ defmodule Web.UserAuth do
   """
   def require_authenticated_user(conn, _opts) do
     if conn.assigns[:current_user] do
+      current_user = conn.assigns[:current_user]
+
+      tenant =
+        case Tenants.get_tenant_by_id(current_user.tenant_id) do
+          {:ok, tenant} -> tenant
+          _ -> nil
+        end
+
       conn
-      |> assign_prop(:current_user, conn.assigns[:current_user])
+      |> assign_prop(:current_user, current_user)
+      |> assign_prop(:tenant, tenant)
     else
       if get_req_header(conn, "accept") == ["application/json"] do
         conn

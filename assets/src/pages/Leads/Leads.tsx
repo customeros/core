@@ -1,7 +1,7 @@
 import { useMemo, useState } from 'react';
 
 import clsx from 'clsx';
-import { router } from '@inertiajs/react';
+import { router, usePage } from '@inertiajs/react';
 
 import { Button } from '../../components/Button/Button';
 import { Icon, IconName } from '../../components/Icon/Icon';
@@ -10,7 +10,7 @@ import { DocumentEditor } from './DocumentEditor';
 
 interface LeadsProps {
   companies: {
-    logo: string;
+    icon: string;
     name: string;
     count: number;
     stage: string;
@@ -37,6 +37,7 @@ const countryCodeToEmoji = (code: string) => {
 
 export const Leads = ({ companies }: LeadsProps) => {
   const [selectedStage, setSelectedStage] = useState<string>('');
+  const page = usePage();
   const docId = new URLSearchParams(window.location.search).get('doc');
   const viewMode = new URLSearchParams(window.location.search).get('viewMode');
 
@@ -44,6 +45,8 @@ export const Leads = ({ companies }: LeadsProps) => {
     () => (selectedStage ? companies.filter(c => c.stage === selectedStage) : companies),
     [selectedStage, companies]
   );
+
+  console.log(page);
 
   return (
     <div
@@ -125,7 +128,7 @@ export const Leads = ({ companies }: LeadsProps) => {
                     className="flex w-full hover:bg-gray-100 items-center"
                   >
                     <div className="flex pl-6 items-center justify-center">
-                      <img src={c.logo} alt={c.name} className="w-10 h-10 rounded-full" />
+                      <img src={c.icon} alt={c.name} className="w-10 h-10 rounded-full" />
                     </div>
                     <p
                       className="flex-1 py-2 px-6 cursor-pointer hover:text-primary-600"
