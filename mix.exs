@@ -91,6 +91,7 @@ defmodule Core.MixProject do
       clean: ["deps.clean --unused --unlock"],
       dev: ["compile.script", "phx.server", "assets.setup", "assets.build"],
       "ecto.setup": ["ecto.create", "ecto.migrate"],
+      "ecto.seed": ["run priv/repo/seeds.exs"],
       proto: ["proto.fetch", "proto.gen"],
       setup: ["deps.get", "ecto.setup"],
       tidy: ["deps.get"],
