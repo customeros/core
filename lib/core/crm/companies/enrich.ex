@@ -280,10 +280,6 @@ defmodule Core.Crm.Companies.Enrich do
               )
           end
         else
-          Logger.error(
-            "Failed to mark country enrichment attempt for company #{company_id}"
-          )
-        else
           Logger.info(
             "Skipping country enrichment for company #{company_id}: #{country_enrichment_skip_reason(company)}"
           )
