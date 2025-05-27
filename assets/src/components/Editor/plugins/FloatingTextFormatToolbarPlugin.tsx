@@ -179,7 +179,7 @@ export function FloatingMenu({ editor }: FloatingMenuComponentProps) {
   return (
     <div
       ref={menuRef}
-      className="flex items-center justify-between bg-grayModern-700 text-grayModern-25 border-[1px] border-grayModern-200 rounded-md p-1 gap-1"
+      className="flex items-center justify-between bg-gray-700 text-gray-25 border-[1px] border-gray-200 rounded-md p-1 gap-1"
     >
       <>
         <Tooltip label="Bold: ⌘ + B">
@@ -187,7 +187,7 @@ export function FloatingMenu({ editor }: FloatingMenuComponentProps) {
             <FloatingToolbarButton
               active={isBold}
               aria-label="Format text to bold"
-              icon={<Icon name="bold-01" />}
+              icon={<Icon name="bold-01" className="text-gray-100" />}
               onClick={() => {
                 editor.dispatchCommand(FORMAT_TEXT_COMMAND, 'bold');
               }}
@@ -199,7 +199,7 @@ export function FloatingMenu({ editor }: FloatingMenuComponentProps) {
             <FloatingToolbarButton
               active={isItalic}
               aria-label="Format text with italic"
-              icon={<Icon name="italic-01" />}
+              icon={<Icon name="italic-01" className="text-gray-100" />}
               onClick={() => {
                 editor.dispatchCommand(FORMAT_TEXT_COMMAND, 'italic');
               }}
@@ -211,7 +211,7 @@ export function FloatingMenu({ editor }: FloatingMenuComponentProps) {
             <FloatingToolbarButton
               active={isStrikethrough}
               aria-label="Format text with a strikethrough"
-              icon={<Icon name="strikethrough-01" />}
+              icon={<Icon name="strikethrough-01" className="text-gray-100" />}
               onClick={() => {
                 editor.dispatchCommand(FORMAT_TEXT_COMMAND, 'strikethrough');
               }}
@@ -223,7 +223,7 @@ export function FloatingMenu({ editor }: FloatingMenuComponentProps) {
             active={isUnorderedList}
             onClick={toggleUnorderedList}
             aria-label="Format text as an bullet list"
-            icon={<Icon name="list-bulleted" />}
+            icon={<Icon name="list-bulleted" className="text-gray-100" />}
           />
         </div>
         <div>
@@ -231,7 +231,7 @@ export function FloatingMenu({ editor }: FloatingMenuComponentProps) {
             active={isOrderedList}
             onClick={toggleOrderedList}
             aria-label="Format text as an ordered list"
-            icon={<Icon name="list-numbered" />}
+            icon={<Icon name="list-numbered" className="text-gray-100" />}
           />
         </div>
         {/*<div>*/}
@@ -248,7 +248,7 @@ export function FloatingMenu({ editor }: FloatingMenuComponentProps) {
               active={isLink}
               onClick={toggleLink}
               aria-label="Insert or remove link"
-              icon={<Icon name="link-01" />}
+              icon={<Icon name="link-01" className="text-gray-100" />}
             />
           </div>
         </Tooltip>
@@ -257,7 +257,7 @@ export function FloatingMenu({ editor }: FloatingMenuComponentProps) {
             active={isBlockquote}
             onClick={toggleBlockquote}
             aria-label="Format text with block quote"
-            icon={<Icon name="block-quote" />}
+            icon={<Icon name="block-quote" className="text-gray-100" />}
           />
         </div>
       </>

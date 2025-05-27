@@ -1,12 +1,13 @@
-import { useMemo, useState, lazy } from 'react';
+import { useMemo, useState, lazy, memo, useCallback } from 'react';
 
 import clsx from 'clsx';
-import { router } from '@inertiajs/react';
+import { router, usePage } from '@inertiajs/react';
 
 import { Icon, IconName } from '../../components/Icon/Icon';
 import { SegmentedView } from '../../components/SegmentedView/SegmentedView';
 import { Tooltip } from 'src/components/Tooltip';
 import { Header } from './components/Header';
+import { RootLayout } from 'src/layouts/Root';
 
 interface LeadsProps {
   companies: {
@@ -18,6 +19,7 @@ interface LeadsProps {
     country_name: string;
     domain: string;
     industry: string;
+    document_id: string;
   }[];
 }
 
@@ -46,8 +48,11 @@ const DocumentEditor = lazy(() =>
     default: module.DocumentEditor,
   }))
 );
-export const Leads = ({ companies }: LeadsProps) => {
+
+export const Leads = memo(({ companies }: LeadsProps) => {
+  const page = usePage();
   const [selectedStage, setSelectedStage] = useState<string>('');
+  const hasDocParam = new URLSearchParams(window.location.search).has('doc');
   const docId = new URLSearchParams(window.location.search).get('doc');
   const viewMode = new URLSearchParams(window.location.search).get('viewMode');
 
@@ -56,26 +61,25 @@ export const Leads = ({ companies }: LeadsProps) => {
     [selectedStage, companies]
   );
 
-  const handleOpenDocument = (company: { name: string }) => {
+  const handleOpenDocument = useCallback((company: { document_id: string }) => {
     const params = new URLSearchParams(window.location.search);
+    const currentDocId = params.get('doc');
 
-    if (params.has('doc')) {
+    if (currentDocId === company.document_id) {
       params.delete('doc');
-      router.visit(window.location.pathname + '?' + params.toString(), {
-        preserveState: true,
-        replace: true,
-      });
     } else {
-      params.set('doc', company.name.toLowerCase().replace(/\s+/g, '-'));
-      router.visit(window.location.pathname + '?' + params.toString(), {
-        preserveState: true,
-        replace: true,
-      });
+      params.set('doc', company.document_id ?? '');
     }
-  };
+
+    router.visit(window.location.pathname + '?' + params.toString(), {
+      preserveState: true,
+      replace: true,
+      preserveScroll: true,
+    });
+  }, []);
 
   return (
-    <>
+    <RootLayout>
       <div className="flex h-full">
         <div className="h-[47px] w-[10%] bg-transparent border-b border-gray-200 [border-image:linear-gradient(to_left,theme(colors.gray.200),transparent)_1]" />
         <div
@@ -141,15 +145,17 @@ export const Leads = ({ companies }: LeadsProps) => {
                         .filter(c => c.stage === stage.value)
                         .map(c => (
                           <div
-                            key={crypto.randomUUID()}
+                            key={c.document_id || c.name}
                             className="flex items-center w-full h-full"
                           >
                             <div className="flex items-center gap-2 pl-5">
                               {c.icon ? (
                                 <img
+                                  key={c.icon}
                                   src={c.icon}
                                   alt={c.name}
                                   className="size-6 object-contain border border-gray-200 rounded"
+                                  loading="lazy"
                                 />
                               ) : (
                                 <div className="size-6 flex items-center justify-center border border-gray-200 rounded">
@@ -193,11 +199,10 @@ export const Leads = ({ companies }: LeadsProps) => {
                   'border-l h-[calc(100vh-98px)] flex-shrink-1 transition-all border-t duration-300 ease-in-out',
                   viewMode === 'focus' && 'w-full',
                   viewMode === 'focus' && 'border-transparent',
-                  docId && 'opacity-100 w-[600px]',
-                  !docId && 'opacity-0 w-0'
+                  hasDocParam ? 'opacity-100 w-[600px]' : 'opacity-0 w-0'
                 )}
               >
-                <DocumentEditor />
+                {hasDocParam && <DocumentEditor />}
               </div>
             </div>
           </div>
@@ -205,6 +210,6 @@ export const Leads = ({ companies }: LeadsProps) => {
 
         <div className="h-[47px] w-[10%] bg-transparent border-b border-gray-200 [border-image:linear-gradient(to_right,theme(colors.gray.200),transparent)_1]" />
       </div>
-    </>
+    </RootLayout>
   );
-};
+});

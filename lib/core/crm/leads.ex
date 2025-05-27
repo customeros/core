@@ -46,6 +46,8 @@ defmodule Core.Crm.Leads do
       where: l.tenant_id == ^tenant_id and l.type == :company,
       join: c in Company,
       on: c.id == l.ref_id,
+      left_join: rd in "refs_documents",
+      on: rd.ref_id == l.ref_id,
       select: %{
         id: l.id,
         ref_id: l.ref_id,
@@ -55,7 +57,8 @@ defmodule Core.Crm.Leads do
         industry: c.industry,
         domain: c.primary_domain,
         country: c.country_a2,
-        icon_key: c.icon_key
+        icon_key: c.icon_key,
+        document_id: rd.document_id
       }
     )
     |> Repo.all()

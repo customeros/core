@@ -70,7 +70,12 @@ export const DocumentEditor = () => {
                 />
               </div>
 
-              {!isClosing && <Editor useYjs={false} namespace="leads" />}
+              {!isClosing && docId && <Editor documentId={docId} useYjs={true} namespace="leads" />}
+              {!docId && (
+                <div className="flex items-center justify-center h-full">
+                  Preparing account brief...
+                </div>
+              )}
 
               <div className="h-20 w-full"></div>
             </div>
@@ -85,7 +90,7 @@ export const DocumentEditor = () => {
 };
 
 // const colorMap: Record<string, string[]> = {
-//   grayModern: ['hover:ring-grayModern-400', 'bg-grayModern-50', 'text-grayModern-500'],
+//   gray: ['hover:ring-gray-400', 'bg-gray-50', 'text-gray-500'],
 //   error: ['hover:ring-error-400', 'bg-error-50', 'text-error-500'],
 //   warning: ['hover:ring-warning-400', 'bg-warning-50', 'text-warning-500'],
 //   success: ['hover:ring-success-400', 'bg-success-50', 'text-success-500'],

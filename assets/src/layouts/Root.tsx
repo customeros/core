@@ -2,6 +2,7 @@ import { useEffect } from 'react';
 import { useForm, usePage } from '@inertiajs/react';
 import { cssTransition, ToastContainer } from 'react-toastify';
 import { toastSuccess, toastError } from '../components/Toast';
+import { PhoenixSocketProvider } from '../providers/SocketProvider';
 
 type FlashType = 'error' | 'success';
 
@@ -25,7 +26,7 @@ export const RootLayout = ({ children }: { children: React.ReactNode }) => {
   }, [props.flash]);
 
   return (
-    <>
+    <PhoenixSocketProvider>
       <ToastContainer
         limit={3}
         theme="colored"
@@ -40,6 +41,6 @@ export const RootLayout = ({ children }: { children: React.ReactNode }) => {
         })}
       />
       {children}
-    </>
+    </PhoenixSocketProvider>
   );
 };

@@ -154,7 +154,7 @@ export function FloatingLinkEditor({
   return (
     <div
       ref={editorRef}
-      className="bg-grayModern-700 flex items-center min-w-[240px] max-w-[240px] p-1 pl-3 shadow-lg rounded-md"
+      className="bg-gray-700 flex items-center min-w-[240px] max-w-[240px] p-1 pl-3 shadow-lg rounded-md"
     >
       <Input
         size="sm"
@@ -164,7 +164,7 @@ export function FloatingLinkEditor({
         placeholder="Enter a URL"
         onMouseDown={event => event.stopPropagation()}
         onChange={event => setLinkUrl(event.target.value)}
-        className="leading-none min-h-0 pointer-events-auto text-grayModern-25 overflow-ellipsis"
+        className="leading-none min-h-0 pointer-events-auto text-gray-25 overflow-ellipsis"
         onKeyDown={event => {
           monitorInputInteraction(event);
           event.stopPropagation();
@@ -181,7 +181,7 @@ export function FloatingLinkEditor({
       {!!linkUrl.trim().length && linkUrl.trim() !== 'https://' && (
         <FloatingToolbarButton
           aria-label="Open link"
-          icon={<Icon name="link-external-02" />}
+          icon={<Icon name="link-external-02" className="text-gray-100" />}
           onMouseDown={event => {
             event.preventDefault();
             event.stopPropagation();
@@ -197,7 +197,7 @@ export function FloatingLinkEditor({
       <FloatingToolbarButton
         aria-label="Delete link"
         onClick={handleDeleteLink}
-        icon={<Icon name="trash-01" />}
+        icon={<Icon name="trash-01" className="text-gray-100" />}
         onMouseDown={event => {
           event.preventDefault();
           event.stopPropagation();

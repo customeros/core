@@ -22,7 +22,7 @@ import { IconButton } from 'src/components/IconButton';
 import { Icon } from 'src/components/Icon/Icon';
 import clsx from 'clsx';
 
-const activeStyle = 'bg-grayModern-100 text-grayModern-700 hover:bg-grayModern-100';
+const activeStyle = 'bg-gray-100 text-gray-700 hover:bg-gray-100';
 
 const LowPriority = 1;
 
@@ -229,7 +229,7 @@ export default function ToolbarPlugin(): React.ReactNode {
         }}
       />
 
-      <div className="h-5 w-[1px] bg-grayModern-400 mx-1" />
+      <div className="h-5 w-[1px] bg-gray-400 mx-1" />
 
       <IconButton
         size="xs"
@@ -259,7 +259,7 @@ export default function ToolbarPlugin(): React.ReactNode {
         }}
       />
 
-      <div className="h-5 w-[1px] bg-grayModern-400 mx-0.5" />
+      <div className="h-5 w-[1px] bg-gray-400 mx-0.5" />
 
       <IconButton
         size="xs"
