@@ -4,10 +4,12 @@
   "type": "module",
   "private": true,
   "scripts": {
-    "compile": "bun build --compile ./convert_lexical_to_yjs.ts --output ../priv/scripts/convert_lexical_to_yjs"
+    "compile": "bun build --compile ./convert_lexical_to_yjs.ts --output ../priv/scripts/convert_lexical_to_yjs && bun build --compile ./convet_md_to_lexical.ts --output ../priv/scripts/convert_md_to_lexical"
   },
   "devDependencies": {
-    "@types/bun": "latest"
+    "@types/bun": "latest",
+    "@types/jsdom": "^21.1.7",
+    "@types/marked": "^6.0.0"
   },
   "peerDependencies": {
     "typescript": "^5"
@@ -21,6 +23,8 @@
     "@lexical/yjs": "^0.27.1",
     "lexical": "^0.27.1",
     "y-protocols": "^1.0.6",
-    "yjs": "^13.6.24"
+    "yjs": "^13.6.24",
+    "jsdom": "^26.1.0",
+    "marked": "^15.0.12"
   }
 }
