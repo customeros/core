@@ -8,12 +8,13 @@ defmodule Core.Auth.Users.UserNotifier do
   def deliver(opts) do
     email =
       new(
-        from: {"CustomerOS Support", "contact@customeros.ai"},
+        from: {"CustomerOS", "notification@app.customeros.ai"},
         to: opts[:to],
         subject: opts[:subject],
         html_body: opts[:html_body],
         text_body: opts[:text_body]
       )
+      |> Swoosh.Email.put_provider_option(:track_links, "None")
 
     email_with_options =
       case opts[:message_stream] do

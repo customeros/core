@@ -73,7 +73,7 @@ defmodule Core.Auth.Users do
     tenant_name = extract_tenant_name(email)
     domain = extract_domain(email)
 
-    tenant =
+    tenant_id =
       case Tenants.get_tenant_by_name(tenant_name) do
         {:error, :not_found} ->
           {:ok, tenant_id} =
@@ -81,21 +81,21 @@ defmodule Core.Auth.Users do
 
           tenant_id
 
-        {:ok, tenant_id} ->
-          tenant_id
+        {:ok, tenant} ->
+          tenant.id
       end
 
     # Now register user (optionally you could associate the user with the tenant)
     result =
       %User{}
-      |> User.registration_changeset(Map.put(attrs, :tenant_id, tenant.id))
+      |> User.registration_changeset(Map.put(attrs, :tenant_id, tenant_id))
       |> Repo.insert()
 
     case result do
       {:ok, _user} ->
         # Notify Slack about new user
         Task.start(fn ->
-          case Slack.notify_new_user(email, tenant.name) do
+          case Slack.notify_new_user(email, tenant_name) do
             :ok ->
               :ok
 
