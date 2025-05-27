@@ -53,7 +53,7 @@ defmodule Core.Notifications.Slack do
             fields: [
               %{
                 type: "mrkdwn",
-                text: "*Tenant Name:*\n#{name}"
+                text: "*Tenant:*\n#{name}"
               },
               %{
                 type: "mrkdwn",
@@ -109,7 +109,7 @@ defmodule Core.Notifications.Slack do
               },
               %{
                 type: "mrkdwn",
-                text: "*Tenant Name:*\n#{tenant}"
+                text: "*Tenant:*\n#{tenant}"
               },
             ]
           },
