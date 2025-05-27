@@ -12,7 +12,6 @@ defmodule Web.DocumentController do
           "tenantId" => _tenant_id,
           "icon" => _icon,
           "color" => _color,
-          "lexicalState" => _lexical_state,
           "refId" => _ref_id
         } = params
       ) do

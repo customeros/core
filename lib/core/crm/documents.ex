@@ -18,10 +18,36 @@ defmodule Core.Crm.Documents do
 
     ref_id = Map.get(payload, :ref_id)
 
+    lexical_state =
+      case Map.get(payload, :lexical_state, nil) do
+        nil ->
+          case Map.get(payload, :body, nil) do
+            nil ->
+              nil
+
+            body ->
+              case convert_md_to_lexical(body) do
+                {:ok, state} ->
+                  state
+
+                {:error, _} ->
+                  nil
+              end
+          end
+
+        existing_lexical_state ->
+          existing_lexical_state
+      end
+
+    payload_with_lexical_state = Map.put(payload, :lexical_state, lexical_state)
+
     Ecto.Multi.new()
-    |> Ecto.Multi.insert(:document, Document.changeset(%Document{}, payload))
+    |> Ecto.Multi.insert(
+      :document,
+      Document.changeset(%Document{}, payload_with_lexical_state)
+    )
     |> maybe_insert_ref_document(ref_id)
-    |> maybe_initialize_ydoc(Map.get(payload, :lexical_state))
+    |> maybe_initialize_ydoc(lexical_state)
     |> Repo.transaction()
     |> case do
       {:ok, %{document: document} = result} ->
@@ -111,6 +137,35 @@ defmodule Core.Crm.Documents do
           )
 
           {:error, "Could not convert lexical state to Yjs document"}
+      end
+    after
+      File.rm(temp_path)
+    end
+  end
+
+  defp convert_md_to_lexical(md_content) do
+    script_path =
+      Application.app_dir(:core, "priv/scripts/convert_md_to_lexical")
+
+    # Create a temporary file for the markdown content
+    {:ok, temp_path} = Temp.path(%{suffix: ".md"})
+    File.write!(temp_path, md_content)
+
+    try do
+      # Pass the file path directly without the @ symbol
+      case System.cmd("sh", ["-c", "#{script_path} #{temp_path}"],
+             stderr_to_stdout: true
+           ) do
+        {output, 0} ->
+          Logger.info("Successfully converted markdown to lexical state")
+          {:ok, output}
+
+        {error_output, exit_code} ->
+          Logger.error(
+            "Script execution failed (exit #{exit_code}): #{error_output}"
+          )
+
+          {:error, "Could not convert markdown to lexical state"}
       end
     after
       File.rm(temp_path)
