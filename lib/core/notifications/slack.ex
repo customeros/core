@@ -27,11 +27,11 @@ defmodule Core.Notifications.Slack do
   end
 
   @doc """
-  Sends a notification about a new tenant registration.
+  Send a notification about a new tenant registration.
   Includes tenant name, domain, and registration timestamp.
   """
   @spec notify_new_tenant(String.t(), String.t()) :: :ok | {:error, :webhook_not_configured | :slack_api_error | Finch.Error.t()}
-  def notify_new_tenant(name, domain) when is_binary(name) and is_binary(domain) do
+  def notify_new_tenant(name, domain) when is_binary(name) and is_binary(domain) and name != "" and domain != "" do
     webhook_url = Application.get_env(:core, :slack)[:new_tenant_webhook_url]
 
     unless webhook_url do
@@ -76,4 +76,57 @@ defmodule Core.Notifications.Slack do
       send_message(webhook_url, message)
     end
   end
+  def notify_new_tenant(_, _), do: {:error, :invalid_input}
+
+  @doc """
+  Send a notification about a new user registration.
+  Includes user email, tenant name, and registration timestamp.
+  """
+  @spec notify_new_user(String.t(), String.t()) :: :ok | {:error, :webhook_not_configured | :slack_api_error | Finch.Error.t()}
+  def notify_new_user(email, tenant) when is_binary(email) and is_binary(tenant) and email != "" and tenant != "" do
+    webhook_url = Application.get_env(:core, :slack)[:new_user_webhook_url]
+
+    unless webhook_url do
+      Logger.warning("Slack new user webhook URL not configured")
+      {:error, :webhook_not_configured}
+    else
+      message = %{
+        blocks: [
+          %{
+            type: "header",
+            text: %{
+              type: "plain_text",
+              text: "👤 New User Registration",
+              emoji: true
+            }
+          },
+          %{
+            type: "section",
+            fields: [
+              %{
+                type: "mrkdwn",
+                text: "*Email:*\n#{email}"
+              },
+              %{
+                type: "mrkdwn",
+                text: "*Tenant Name:*\n#{tenant}"
+              },
+            ]
+          },
+          %{
+            type: "context",
+            elements: [
+              %{
+                type: "mrkdwn",
+                text: "Registered at: #{DateTime.utc_now() |> Calendar.strftime("%Y-%m-%d %H:%M:%S UTC")}"
+              }
+            ]
+          }
+        ]
+      }
+
+      send_message(webhook_url, message)
+    end
+  end
+  def notify_new_user(_, _), do: {:error, :invalid_input}
 end

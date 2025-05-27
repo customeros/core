@@ -4,7 +4,9 @@ defmodule Core.Auth.Users do
   """
 
   import Ecto.Query, warn: false
+  require Logger
   alias Core.Repo
+  alias Core.Notifications.Slack
 
   alias Core.Auth.Users.{User, UserToken, UserNotifier}
   alias Core.Auth.Tenants
@@ -84,9 +86,31 @@ defmodule Core.Auth.Users do
       end
 
     # Now register user (optionally you could associate the user with the tenant)
-    %User{}
-    |> User.registration_changeset(Map.put(attrs, :tenant_id, tenant.id))
-    |> Repo.insert()
+    result =
+      %User{}
+      |> User.registration_changeset(Map.put(attrs, :tenant_id, tenant.id))
+      |> Repo.insert()
+
+    case result do
+      {:ok, _user} ->
+        # Notify Slack about new user
+        Task.start(fn ->
+          case Slack.notify_new_user(email, tenant.name) do
+            :ok ->
+              :ok
+
+            {:error, reason} ->
+              Logger.error(
+                "Failed to send Slack notification for user #{email} creation: #{inspect(reason)}"
+              )
+          end
+        end)
+
+        result
+
+      error ->
+        error
+    end
   end
 
   defp extract_tenant_name(email) do
