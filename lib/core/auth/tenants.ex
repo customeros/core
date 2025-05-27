@@ -123,10 +123,18 @@ defmodule Core.Auth.Tenants do
     Task.start(fn ->
       case Companies.get_or_create_by_domain(tenant.domain) do
        {:ok, company} ->
-         if is_binary(company.name) and company.name != "" do
-           set_tenant_workspace_name(tenant.id, company.name)
+         # If company was just created (no enrichment timestamps), wait a bit for enrichment
+         if is_nil(company.name_enrich_attempt_at) or is_nil(company.icon_enrich_attempt_at) do
+           # Wait up to 15 seconds for enrichment to complete
+           Process.sleep(15_000)
+           # Fetch fresh company data
+           case Repo.get(Companies.Company, company.id) do
+             nil -> :ok
+             updated_company -> set_workspace_data_from_company(tenant, updated_company)
+           end
+         else
+           set_workspace_data_from_company(tenant, company)
          end
-         copy_company_icon_to_tenant(tenant, company)
          :ok
        {:error, reason} ->
         Logger.error(
@@ -134,6 +142,11 @@ defmodule Core.Auth.Tenants do
         )
       end
     end)
+  end
+
+  defp set_workspace_data_from_company(tenant, company) do
+    set_tenant_workspace_name(tenant.id, company.name)
+    copy_company_icon_to_tenant(tenant, company)
   end
 
   defp copy_company_icon_to_tenant(tenant, company) when is_binary(company.icon_key) and company.icon_key != "" do
