@@ -42,11 +42,20 @@ defmodule Core.Crm.Leads do
 
   @spec list_view_by_tenant_id(tenant_id :: String.t()) :: [LeadView.t()]
   def list_view_by_tenant_id(tenant_id) do
+    # Subquery to get the most recent document for each ref_id
+    latest_doc =
+      from rd in "refs_documents",
+        group_by: rd.ref_id,
+        select: %{
+          ref_id: rd.ref_id,
+          document_id: max(rd.document_id)
+        }
+
     from(l in Lead,
       where: l.tenant_id == ^tenant_id and l.type == :company,
       join: c in Company,
       on: c.id == l.ref_id,
-      left_join: rd in "refs_documents",
+      left_join: rd in subquery(latest_doc),
       on: rd.ref_id == l.ref_id,
       select: %{
         id: l.id,
