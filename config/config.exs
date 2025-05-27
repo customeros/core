@@ -5,6 +5,17 @@ config :core,
   ecto_repos: [Core.Repo],
   generators: [timestamp_type: :utc_datetime]
 
+# OpenTelemetry configuration for SigNoz
+config :opentelemetry, :resource, service: %{name: System.get_env("OTEL_SERVICE_NAME", "customeros-core")}
+
+config :opentelemetry, :processors,
+  otel_batch_processor: %{
+    exporter: {
+      :opentelemetry_exporter,
+      %{endpoints: [System.get_env("OTEL_EXPORTER_OTLP_ENDPOINT")]}
+    }
+  }
+
 # Web endpoint
 config :core, Web.Endpoint,
   url: [host: "localhost"],

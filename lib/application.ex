@@ -4,6 +4,9 @@ defmodule Core.Application do
 
   @impl true
   def start(_type, _args) do
+    OpentelemetryPhoenix.setup(adapter: :bandit)
+    OpentelemetryEcto.setup([:core, :repo])
+
     children = [
       Supervisor.child_spec({Phoenix.PubSub, name: Core.PubSub},
         id: :core_pubsub
