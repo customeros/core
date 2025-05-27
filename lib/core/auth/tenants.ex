@@ -9,6 +9,7 @@ defmodule Core.Auth.Tenants do
   alias Core.Auth.Tenants.Tenant
   alias Core.Notifications.Slack
   alias Core.Crm.Companies
+  alias Core.Utils.Media.Images
 
   ## Database getters
 
@@ -38,6 +39,26 @@ defmodule Core.Auth.Tenants do
           {:error, reason} ->
             Logger.error(
               "Failed to update tenant workspace name for #{tenant.name}: #{inspect(reason)}"
+            )
+            {:error, reason}
+        end
+      {:error, :not_found} ->
+        {:error, :tenant_not_found}
+    end
+  end
+
+  @spec set_tenant_workspace_icon_key(binary(), binary()) :: :ok | {:error, any()}
+  defp set_tenant_workspace_icon_key(tenant_id, icon_key) when is_binary(tenant_id) do
+    case get_tenant_by_id(tenant_id) do
+      {:ok, tenant} ->
+        tenant
+        |> Tenant.changeset(%{workspace_icon_key: icon_key})
+        |> Repo.update()
+        |> case do
+          {:ok, _} -> :ok
+          {:error, reason} ->
+            Logger.error(
+              "Failed to update tenant workspace icon for #{tenant.name}: #{inspect(reason)}"
             )
             {:error, reason}
         end
@@ -105,6 +126,7 @@ defmodule Core.Auth.Tenants do
          if is_binary(company.name) and company.name != "" do
            set_tenant_workspace_name(tenant.id, company.name)
          end
+         copy_company_icon_to_tenant(tenant, company)
          :ok
        {:error, reason} ->
         Logger.error(
@@ -113,4 +135,27 @@ defmodule Core.Auth.Tenants do
       end
     end)
   end
+
+  defp copy_company_icon_to_tenant(tenant, company) when is_binary(company.icon_key) and company.icon_key != "" do
+    with cdn_url when not is_nil(cdn_url) <- Images.get_cdn_url(company.icon_key),
+         {:ok, storage_key} <- Images.download_and_store(
+           cdn_url,
+           %{
+             generate_name: true,
+             path: "#{tenant.name}/workspace"
+           }
+         ),
+         :ok <- set_tenant_workspace_icon_key(tenant.id, storage_key) do
+      :ok
+    else
+      nil -> :ok
+      {:error, reason} ->
+        Logger.error(
+          "Failed to copy company icon to tenant #{tenant.name}: #{inspect(reason)}"
+        )
+        {:error, reason}
+    end
+  end
+
+  defp copy_company_icon_to_tenant(_tenant, _company), do: :ok
 end
