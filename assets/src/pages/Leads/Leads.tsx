@@ -43,6 +43,7 @@ const countryCodeToEmoji = (code: string) => {
     return '🌐';
   }
 };
+
 const DocumentEditor = lazy(() =>
   import('./components/DocumentEditor/DocumentEditor').then(module => ({
     default: module.DocumentEditor,
@@ -196,13 +197,14 @@ export const Leads = memo(({ companies }: LeadsProps) => {
             </div>
             <div
               className={clsx(
-                'border-l h-[calc(100vh-100px)] flex-shrink-1 transition-all border-t duration-300 ease-in-out',
-                viewMode === 'focus' && 'w-full',
-                viewMode === 'focus' && 'border-transparent',
-                hasDocParam ? 'opacity-100 w-[600px] pl-6 pr-6' : 'opacity-0 w-0'
+                'border-l h-[calc(100vh-100px)] transition-all border-t duration-300 ease-in-out',
+                viewMode === 'focus' && 'w-full border-transparent',
+                hasDocParam
+                  ? 'opacity-100 w-[728px] translate-x-[0px]'
+                  : 'opacity-0 w-[0px] translate-x-[728px]'
               )}
             >
-              {hasDocParam && <DocumentEditor />}
+              <DocumentEditor />
             </div>
           </div>
         </div>

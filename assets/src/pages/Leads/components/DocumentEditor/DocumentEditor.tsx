@@ -51,8 +51,8 @@ export const DocumentEditor = () => {
     <>
       <ScrollAreaRoot>
         <ScrollAreaViewport>
-          <div className="relative w-full h-full bg-white ">
-            <div className="relative bg-white h-full mx-auto pt-[2px]">
+          <div className="relative w-full h-full bg-white px-6">
+            <div className="relative bg-white h-full mx-auto pt-[2px] w-full min-w-[680px] max-w-[680px]">
               <div className="flex items-center w-full justify-end mb-3">
                 <IconButton
                   size="xs"
