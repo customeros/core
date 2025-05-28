@@ -5,6 +5,7 @@ defmodule Core.Auth.Tenants do
 
   import Ecto.Query, warn: false
   require Logger
+  require OpenTelemetry.Tracer
   alias Core.Repo
   alias Core.Auth.Tenants.Tenant
   alias Core.Notifications.Slack
