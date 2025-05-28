@@ -307,7 +307,8 @@
   --color-pink-800: #9e165f;
   --color-pink-900: #851651;
   --color-pink-950: #4e0d30;
-  --animate-pulse-opacity: pulseOpacity 1s ease-in-out infinite;
+
+  --animate-pulseOpacity: pulseOpacity 1s ease-in-out infinite;
   @keyframes pulseOpacity {
     from {
       opacity: 0.3;
@@ -327,7 +328,7 @@
     }
   }
 
-  --animate-slide-down-fade: slideDownAndFade 300ms ease-out;
+  --animate-slideDownFade: slideDownAndFade 300ms ease-out;
   @keyframes slideDownAndFade {
     from {
       opacity: 0;
@@ -339,7 +340,7 @@
     }
   }
 
-  --animate-slide-left-fade: slideLeftAndFade 300ms ease-out;
+  --animate-slideLeftFade: slideLeftAndFade 300ms ease-out;
   @keyframes slideLeftAndFade {
     from {
       opacity: 0;
@@ -351,7 +352,7 @@
     }
   }
 
-  --animate-slide-up-fade: slideUpAndFade 300ms ease-out;
+  --animate-slideUpFade: slideUpAndFade 300ms ease-out;
   @keyframes slideUpAndFade {
     from {
       opacity: 0;
@@ -363,7 +364,7 @@
     }
   }
 
-  --animate-slide-right-fade: slideRightAndFade 300ms ease-out;
+  --animate-slideRightFade: slideRightAndFade 300ms ease-out;
   @keyframes slideRightAndFade {
     from {
       opacity: 0;
@@ -375,7 +376,7 @@
     }
   }
 
-  --animate-slide-out-left-fade: slideOutLeftFade 400ms ease-in;
+  --animate-slideOutLeftFade: slideOutLeftFade 400ms ease-in;
   @keyframes slideOutLeftFade {
     0% {
       opacity: 1;
@@ -389,7 +390,7 @@
     }
   }
 
-  --animate-slide-in-right-fade: slideInRightFade 400ms ease-out;
+  --animate-slideInRightFade: slideInRightFade 400ms ease-out;
   @keyframes slideInRightFade {
     0% {
       opacity: 0;
@@ -403,7 +404,7 @@
     }
   }
 
-  --animate-overlay-show: overlayShow 200ms ease-out;
+  --animate-overlayShow: overlayShow 200ms ease-out;
   @keyframes overlayShow {
     from {
       opacity: 0;
@@ -413,7 +414,7 @@
     }
   }
 
-  --animate-content-show-top: contentShowTop 300ms ease-out;
+  --animate-contentShowTop: contentShowTop 300ms ease-out;
   @keyframes contentShowTop {
     from {
       opacity: 0;
@@ -425,7 +426,7 @@
     }
   }
 
-  --animate-content-show-center: contentShowCenter 300ms ease-out;
+  --animate-contentShowCenter: contentShowCenter 300ms ease-out;
   @keyframes contentShowCenter {
     from {
       opacity: 0;
@@ -437,7 +438,7 @@
     }
   }
 
-  --animate-collapse-down: collapseDown 250ms ease-out;
+  --animate-collapseDown: collapseDown 100ms ease-out;
   @keyframes collapseDown {
     from {
       height: 0;
@@ -449,7 +450,7 @@
     }
   }
 
-  --animate-collapse-up: collapseUp 250ms ease-in;
+  --animate-collapseUp: collapseUp 100ms ease-in;
   @keyframes collapseUp {
     from {
       height: var(--radix-collapsible-content-height);
@@ -461,7 +462,7 @@
     }
   }
 
-  --animate-slide-down: slideDown 300ms ease-out;
+  --animate-slideDown: slideDown 300ms ease-out;
   @keyframes slideDown {
     from {
       opacity: 0;
@@ -473,7 +474,7 @@
     }
   }
 
-  --animate-slide-up: slideUp 300ms ease-out;
+  --animate-slideUp: slideUp 300ms ease-out;
   @keyframes slideUp {
     from {
       opacity: 0;
@@ -485,7 +486,7 @@
     }
   }
 
-  --animate-fade-in: fadeIn 300ms ease-out;
+  --animate-fadeIn: fadeIn 300ms ease-out;
   @keyframes fadeIn {
     0% {
       opacity: 0;
@@ -495,7 +496,7 @@
     }
   }
 
-  --animate-fade-out: fadeOut 300ms ease-in;
+  --animate-fadeOut: fadeOut 300ms ease-in;
   @keyframes fadeOut {
     0% {
       opacity: 1;
@@ -515,7 +516,7 @@
     }
   }
 
-  --animate-slide-left: slideLeft 300ms ease-out;
+  --animate-slideLeft: slideLeft 300ms ease-out;
   @keyframes slideLeft {
     from {
       opacity: 0;
@@ -527,7 +528,7 @@
     }
   }
 
-  --animate-fade-out-filtered-grayscale: fadeOutFilteredGrayscale 400ms ease-in;
+  --animate-fadeOutFilteredGrayscale: fadeOutFilteredGrayscale 400ms ease-in;
   @keyframes fadeOutFilteredGrayscale {
     from {
       filter: grayscale(100%) blur(4px);

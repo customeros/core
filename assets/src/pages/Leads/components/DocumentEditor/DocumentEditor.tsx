@@ -1,8 +1,7 @@
 import { useState, useEffect } from 'react';
 
-import { clsx } from 'clsx';
 import { router } from '@inertiajs/react';
-import { Icon, IconName } from 'src/components/Icon';
+import { Icon } from 'src/components/Icon';
 import { Editor } from 'src/components/Editor/Editor';
 import { IconButton } from 'src/components/IconButton';
 import {
@@ -14,7 +13,6 @@ import {
 
 export const DocumentEditor = () => {
   const [viewMode, setViewMode] = useState('default');
-  const [isClosing, setIsClosing] = useState(false);
   const docId = new URLSearchParams(window.location.search).get('doc');
   const urlViewMode = new URLSearchParams(window.location.search).get('viewMode');
 
@@ -37,27 +35,25 @@ export const DocumentEditor = () => {
   };
 
   const closeEditor = () => {
-    setIsClosing(true);
-    requestAnimationFrame(() => {
-      router.visit('/');
+    router.visit('/leads', {
+      preserveState: true,
+      replace: true,
+      preserveScroll: true,
     });
   };
-
-  if (isClosing) {
-    return <div className="hidden" />;
-  }
 
   return (
     <>
       <ScrollAreaRoot>
         <ScrollAreaViewport>
           <div className="relative w-full h-full bg-white px-6">
-            <div className="relative bg-white h-full mx-auto pt-[2px] w-full min-w-[680px] max-w-[680px]">
-              <div className="flex items-center w-full justify-end mb-3">
+            <div className="relative bg-white h-full mx-auto pt-[2px] w-full md:min-w-[680px] max-w-[680px]">
+              <div className="flex items-center w-full justify-end mb-3 gap-2">
                 <IconButton
                   size="xs"
                   variant="ghost"
                   aria-label="toggle view mode"
+                  className="hidden md:flex"
                   onClick={handleViewModeChange}
                   icon={<Icon name={viewMode === 'default' ? 'expand-01' : 'collapse-01'} />}
                 />
@@ -70,8 +66,9 @@ export const DocumentEditor = () => {
                 />
               </div>
 
-              {!isClosing && docId && <Editor documentId={docId} useYjs={true} namespace="leads" />}
-              {!docId && (
+              {docId ? (
+                <Editor documentId={docId} useYjs={true} namespace="leads" />
+              ) : (
                 <div className="flex items-center justify-center h-full">
                   Preparing account brief...
                 </div>
