@@ -87,7 +87,7 @@ export const Leads = memo(({ companies }: LeadsProps) => {
         )}
       >
         <div className="w-full">
-          <div className="flex w-full items-center justify-center mb-2">
+          <div className="flex w-full items-center justify-center mb-2 px-4 2xl:px-0">
             {stages.map((stage, index) => {
               const count = companies.filter(c => c.stage === stage.value).length;
               return (
@@ -117,7 +117,7 @@ export const Leads = memo(({ companies }: LeadsProps) => {
             })}
           </div>
 
-          <div className="flex-1 flex">
+          <div className="flex-1 flex w-full">
             <div
               className={clsx(
                 'flex-1 overflow-y-auto text-nowrap duration-300 ease-in-out',
