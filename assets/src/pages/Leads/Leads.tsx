@@ -94,7 +94,7 @@ export const Leads = memo(({ companies }: LeadsProps) => {
                 <div
                   key={stage.value}
                   className={clsx(
-                    'flex-1 flex items-center justify-center rounded-md bg-primary-100 cursor-pointer min-h-[12px]',
+                    'flex-1 flex items-center justify-center rounded-md bg-primary-100 cursor-pointer min-h-[14px]',
                     index > 0 && 'ml-[-10px]',
                     selectedStage === stage.value && 'bg-primary-200'
                   )}
@@ -159,7 +159,7 @@ export const Leads = memo(({ companies }: LeadsProps) => {
                               </div>
                             )}
                             <p
-                              className="py-2 px-4 cursor-pointer font-medium"
+                              className="py-2 px-2 cursor-pointer font-medium"
                               onClick={() => {
                                 handleOpenDocument(c);
                               }}
@@ -167,22 +167,26 @@ export const Leads = memo(({ companies }: LeadsProps) => {
                               {c.name}
                             </p>
                           </div>
-                          <p className="flex-4 text-right mr-2">
-                            <span className="bg-gray-100 w-fit px-2 py-1 rounded-[4px] max-w-[100px] truncate">
-                              {c.industry || 'Not found'}
-                            </span>
+                          <p className="flex-4 text-right mr-4">
+                            {c.industry ? (
+                              <span className="bg-gray-100 w-fit px-2 py-1 rounded-[4px] max-w-[100px] truncate">
+                                {c.industry}
+                              </span>
+                            ) : (
+                              <span>Not found</span>
+                            )}
                           </p>
                           <p
-                            className="min-w-[200px] text-right cursor-pointer hover:underline"
+                            className="text-right cursor-pointer hover:underline"
                             onClick={() => {
                               window.open(`https://${c.domain}`, '_blank');
                             }}
                           >
                             {c.domain}
                           </p>
-                          <Tooltip label={c.country_name ?? 'Not found'}>
-                            <p className="mr-2 text-center text-gray-500">
-                              \{countryCodeToEmoji(c.country)}
+                          <Tooltip label={c.country_name ?? 'Country not found'}>
+                            <p className="mr-5 text-center text-gray-500 ml-4">
+                              {countryCodeToEmoji(c.country)}
                             </p>
                           </Tooltip>
                         </div>
@@ -192,10 +196,10 @@ export const Leads = memo(({ companies }: LeadsProps) => {
             </div>
             <div
               className={clsx(
-                'border-l h-[calc(100vh-98px)] flex-shrink-1 transition-all border-t duration-300 ease-in-out',
+                'border-l h-[calc(100vh-100px)] flex-shrink-1 transition-all border-t duration-300 ease-in-out',
                 viewMode === 'focus' && 'w-full',
                 viewMode === 'focus' && 'border-transparent',
-                hasDocParam ? 'opacity-100 w-[600px] pl-6 pr-4' : 'opacity-0 w-0'
+                hasDocParam ? 'opacity-100 w-[600px] pl-6 pr-6' : 'opacity-0 w-0'
               )}
             >
               {hasDocParam && <DocumentEditor />}

@@ -52,7 +52,7 @@ export const DocumentEditor = () => {
       <ScrollAreaRoot>
         <ScrollAreaViewport>
           <div className="relative w-full h-full bg-white ">
-            <div className={clsx('relative bg-white h-full mx-auto pt-2')}>
+            <div className="relative bg-white h-full mx-auto pt-[2px]">
               <div className="flex items-center w-full justify-end mb-3">
                 <IconButton
                   size="xs"
