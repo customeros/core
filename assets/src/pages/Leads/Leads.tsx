@@ -142,7 +142,7 @@ export const Leads = memo(({ companies }: LeadsProps) => {
                       .map(c => (
                         <div
                           key={c.document_id || c.name}
-                          className="flex items-center w-full h-full"
+                          className="flex items-center w-full h-full hover:bg-gray-75"
                         >
                           <div className="flex items-center gap-2 pl-5">
                             {c.icon ? (
