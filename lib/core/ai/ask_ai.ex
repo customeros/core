@@ -1,4 +1,5 @@
 defmodule Core.Ai do
+  require OpenTelemetry.Tracer
   alias Core.Ai.Anthropic
   alias Core.Ai.Gemini
 
@@ -21,18 +22,31 @@ defmodule Core.Ai do
         request,
         timeout \\ @default_timeout
       ) do
-    task = ask_async(request)
+    OpenTelemetry.Tracer.with_span "ai.ask_with_timeout" do
+      OpenTelemetry.Tracer.set_attributes([
+        {"ai.model", request.model},
+        {"ai.timeout_ms", timeout},
+        {"ai.max_tokens", request.max_output_tokens},
+        {"ai.temperature", request.model_temperature},
+        {"ai.has_system_prompt", not is_nil(request.system_prompt)}
+      ])
 
-    case Task.yield(task, timeout) do
-      {:ok, result} ->
-        result
+      task = ask_async(request)
 
-      nil ->
-        Task.Supervisor.terminate_child(Core.Ai.Supervisor, task.pid)
-        {:error, :ai_request_timeout}
+      case Task.yield(task, timeout) do
+        {:ok, result} ->
+          OpenTelemetry.Tracer.set_status(:ok)
+          result
 
-      {:exit, reason} ->
-        {:error, {:ai_request_failed, reason}}
+        nil ->
+          OpenTelemetry.Tracer.set_status(:error, "ai_request_timeout")
+          Task.Supervisor.terminate_child(Core.Ai.Supervisor, task.pid)
+          {:error, :ai_request_timeout}
+
+        {:exit, reason} ->
+          OpenTelemetry.Tracer.set_status(:error, "ai_request_failed")
+          {:error, {:ai_request_failed, reason}}
+      end
     end
   end
 
@@ -41,9 +55,18 @@ defmodule Core.Ai do
   """
   @spec ask_async(Ai.Request.t()) :: Task.t()
   def ask_async(request) do
-    Task.Supervisor.async(Core.Ai.Supervisor, fn ->
-      ask(request)
-    end)
+    OpenTelemetry.Tracer.with_span "ai.ask_async" do
+      OpenTelemetry.Tracer.set_attributes([
+        {"ai.model", request.model},
+        {"ai.max_tokens", request.max_output_tokens},
+        {"ai.temperature", request.model_temperature},
+        {"ai.has_system_prompt", not is_nil(request.system_prompt)}
+      ])
+
+      Task.Supervisor.async(Core.Ai.Supervisor, fn ->
+        ask(request)
+      end)
+    end
   end
 
   # Private functions
