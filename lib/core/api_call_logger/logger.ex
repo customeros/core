@@ -1,9 +1,11 @@
 defmodule Core.ApiCallLogger.Logger do
   @moduledoc """
   Handles logging of external API calls made with Finch.
+  Includes OpenTelemetry tracing for all requests.
   """
 
   require Logger
+  require OpenTelemetry.Tracer
   alias Core.Repo
   alias Core.ApiCallLogger.Schema
   alias Core.Utils.IdGenerator
@@ -15,27 +17,53 @@ defmodule Core.ApiCallLogger.Logger do
 
   @doc """
   Makes a Finch request and logs its details.
+  Automatically creates spans for tracing.
   """
   @spec request(Finch.Request.t(), vendor()) :: {:ok, Finch.Response.t()} | {:error, term()}
   def request(request, vendor)
   def request(%Finch.Request{} = request, vendor) when is_binary(vendor) and byte_size(vendor) > 0 do
     start_time = System.monotonic_time()
 
-    try do
-      case Finch.request(request, Core.Finch) do
-        {:ok, response} = result ->
-          log_success(vendor, request, response, start_time)
-          result
+    OpenTelemetry.Tracer.with_span "http_client.request" do
+      OpenTelemetry.Tracer.set_attributes([
+        {"http.method", to_string(request.method)},
+        {"http.url", construct_url(request)},
+        {"http.vendor", vendor},
+        {"http.target", request.path}
+      ])
 
-        {:error, reason} = error ->
-          log_error(vendor, request, reason, start_time)
-          error
+      try do
+        case Finch.request(request, Core.Finch) do
+          {:ok, response} = result ->
+            OpenTelemetry.Tracer.set_attributes([
+              {"http.status_code", response.status},
+              {"result.success", response.status in 200..299}
+            ])
+            OpenTelemetry.Tracer.set_status(if response.status in 200..299, do: :ok, else: :unset)
+            log_success(vendor, request, response, start_time)
+            result
+
+          {:error, reason} = error ->
+            OpenTelemetry.Tracer.set_attributes([
+              {"result.success", false},
+              {"error.type", "request_failed"}
+            ])
+            OpenTelemetry.Tracer.set_status(:error, "request_failed")
+            log_error(vendor, request, reason, start_time)
+            error
+        end
+      rescue
+        e ->
+          OpenTelemetry.Tracer.set_attributes([
+            {"result.success", false},
+            {"error.type", "exception"},
+            {"error.message", Exception.message(e)}
+          ])
+          OpenTelemetry.Tracer.set_status(:error, "exception")
+          Logger.error("Request failed with exception: #{inspect(e)}")
+          log_error(vendor, request, e, start_time)
+          {:error, :request_failed}
       end
-    rescue
-      e ->
-        Logger.error("Request failed with exception: #{inspect(e)}")
-        log_error(vendor, request, e, start_time)
-        {:error, :request_failed}
     end
   end
 
