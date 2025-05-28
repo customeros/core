@@ -9,6 +9,7 @@ defmodule Core.WebTracker do
   - Event storage
   """
   require Logger
+  require OpenTelemetry.Tracer
 
   alias Core.WebTracker.WebSessions
   alias Core.WebTracker.WebTrackerEvents
@@ -20,12 +21,20 @@ defmodule Core.WebTracker do
   """
   @spec process_new_event(map()) :: {:ok, map()} | {:error, atom(), String.t()}
   def process_new_event(attrs) when is_map(attrs) do
-    attrs
-    |> validate_event_params()
-    |> get_or_create_session()
-    |> create_event()
-    |> enrich_with_company_data()
-    |> format_response()
+    OpenTelemetry.Tracer.with_span "web_tracker.process_event" do
+      OpenTelemetry.Tracer.set_attributes([
+        {"event.type", attrs.event_type},
+        {"tenant", attrs.tenant},
+        {"visitor.id", attrs.visitor_id}
+      ])
+
+      attrs
+      |> validate_event_params()
+      |> get_or_create_session()
+      |> create_event()
+      |> enrich_with_company_data()
+      |> format_response()
+    end
   end
 
   def process_new_event(_),
@@ -33,7 +42,20 @@ defmodule Core.WebTracker do
 
   ## Pipeline Steps ##
 
-  defp validate_event_params(
+  defp validate_event_params(attrs) do
+    OpenTelemetry.Tracer.with_span "web_tracker.validate_event_params" do
+      case validate_event_params_impl(attrs) do
+        {:ok, ^attrs} = result ->
+          OpenTelemetry.Tracer.set_status(:ok)
+          result
+        {:error, :bad_request, reason} = result ->
+          OpenTelemetry.Tracer.set_status(:error, reason)
+          result
+      end
+    end
+  end
+
+  defp validate_event_params_impl(
          %{
            tenant: tenant,
            visitor_id: visitor_id,
@@ -68,100 +90,138 @@ defmodule Core.WebTracker do
     {:ok, attrs}
   end
 
-  defp validate_event_params(_) do
+  defp validate_event_params_impl(_) do
     {:error, :bad_request, "invalid or missing parameters"}
   end
 
   defp get_or_create_session({:error, _, _} = error), do: error
 
   defp get_or_create_session({:ok, attrs}) do
-    case WebSessions.get_active_session(
-           attrs.tenant,
-           attrs.visitor_id,
-           attrs.origin
-         ) do
-      nil -> create_new_session(attrs)
-      session -> {:ok, attrs, session}
+    OpenTelemetry.Tracer.with_span "web_tracker.get_or_create_session" do
+      OpenTelemetry.Tracer.set_attributes([
+        {"tenant", attrs.tenant},
+        {"visitor.id", attrs.visitor_id},
+        {"origin", attrs.origin}
+      ])
+
+      case WebSessions.get_active_session(
+             attrs.tenant,
+             attrs.visitor_id,
+             attrs.origin
+           ) do
+        nil ->
+          OpenTelemetry.Tracer.set_attributes([{"session.status", "new"}])
+          create_new_session(attrs)
+        session ->
+          OpenTelemetry.Tracer.set_attributes([{"session.status", "existing"}])
+          {:ok, attrs, session}
+      end
     end
   end
 
   defp create_new_session(attrs) do
-    attrs
-    |> validate_ip_safety()
-    |> create_session_with_ip_data()
+    OpenTelemetry.Tracer.with_span "web_tracker.create_new_session" do
+      attrs
+      |> validate_ip_safety()
+      |> create_session_with_ip_data()
+    end
   end
 
   defp validate_ip_safety(attrs) do
-    ip_intelligence_mod = get_ip_intelligence_module()
+    OpenTelemetry.Tracer.with_span "web_tracker.validate_ip" do
+      OpenTelemetry.Tracer.set_attributes([{"ip", attrs.ip}])
 
-    case ip_intelligence_mod.get_ip_data(attrs.ip) do
-      {:ok, ip_data} ->
-        if ip_data.is_threat do
-          {:error, :forbidden, "ip is a threat"}
-        else
-          {:ok, attrs, ip_data}
-        end
+      ip_intelligence_mod = get_ip_intelligence_module()
 
-      {:error, reason} ->
-        Logger.error("Failed to get IP data: #{inspect(reason)}")
-        {:error, :internal_server_error, "failed to process request"}
+      case ip_intelligence_mod.get_ip_data(attrs.ip) do
+        {:ok, ip_data} ->
+          if ip_data.is_threat do
+            OpenTelemetry.Tracer.set_status(:error, "ip_is_threat")
+            {:error, :forbidden, "ip is a threat"}
+          else
+            OpenTelemetry.Tracer.set_status(:ok)
+            {:ok, attrs, ip_data}
+          end
+
+        {:error, reason} ->
+          Logger.error("Failed to get IP data: #{inspect(reason)}")
+          OpenTelemetry.Tracer.set_status(:error, "ip_data_fetch_failed")
+          {:error, :internal_server_error, "failed to process request"}
+      end
     end
   end
 
   defp create_session_with_ip_data({:error, _, _} = error), do: error
 
   defp create_session_with_ip_data({:ok, attrs, ip_data}) do
-    session_attrs = %{
-      tenant: attrs.tenant,
-      visitor_id: attrs.visitor_id,
-      origin: attrs.origin,
-      ip: attrs.ip,
-      city: ip_data.city,
-      region: ip_data.region,
-      country_code: ip_data.country_code,
-      is_mobile: ip_data.is_mobile,
-      last_event_type: attrs.event_type
-    }
+    OpenTelemetry.Tracer.with_span "web_tracker.create_session" do
+      session_attrs = %{
+        tenant: attrs.tenant,
+        visitor_id: attrs.visitor_id,
+        origin: attrs.origin,
+        ip: attrs.ip,
+        city: ip_data.city,
+        region: ip_data.region,
+        country_code: ip_data.country_code,
+        is_mobile: ip_data.is_mobile,
+        last_event_type: attrs.event_type
+      }
 
-    case WebSessions.create(session_attrs) do
-      {:ok, session} ->
-        {:ok, attrs, session}
+      case WebSessions.create(session_attrs) do
+        {:ok, session} ->
+          OpenTelemetry.Tracer.set_status(:ok)
+          {:ok, attrs, session}
 
-      {:error, _changeset} ->
-        {:error, :internal_server_error, "failed to create session"}
+        {:error, _changeset} ->
+          OpenTelemetry.Tracer.set_status(:error, "session_creation_failed")
+          {:error, :internal_server_error, "failed to create session"}
+      end
     end
   end
 
   defp create_event({:error, _, _} = error), do: error
 
   defp create_event({:ok, attrs, session}) do
-    event_attrs = build_event_attrs(attrs, session)
+    OpenTelemetry.Tracer.with_span "web_tracker.create_event" do
+      event_attrs = build_event_attrs(attrs, session)
 
-    with {:ok, _event} <- WebTrackerEvents.create(event_attrs),
-         {:ok, _session} <-
-           WebSessions.update_last_event(session, attrs.event_type) do
-      {:ok, attrs, session, :event_created}
-    else
-      {:error, _changeset} ->
-        {:error, :internal_server_error, "failed to create event"}
+      with {:ok, _event} <- WebTrackerEvents.create(event_attrs),
+           {:ok, _session} <-
+             WebSessions.update_last_event(session, attrs.event_type) do
+        OpenTelemetry.Tracer.set_status(:ok)
+        {:ok, attrs, session, :event_created}
+      else
+        {:error, _changeset} ->
+          OpenTelemetry.Tracer.set_status(:error, "event_creation_failed")
+          {:error, :internal_server_error, "failed to create event"}
+      end
     end
   end
 
   defp enrich_with_company_data({:error, _, _} = error), do: error
 
   defp enrich_with_company_data({:ok, attrs, session, :event_created}) do
-    # Only enrich for new sessions (not existing ones)
-    if session.inserted_at == session.updated_at do
-      fetch_and_process_company_data(attrs.ip, attrs.tenant)
-    end
+    OpenTelemetry.Tracer.with_span "web_tracker.enrich_company_data" do
+      # Only enrich for new sessions (not existing ones)
+      if session.inserted_at == session.updated_at do
+        OpenTelemetry.Tracer.set_attributes([{"enrichment.type", "new_session"}])
+        fetch_and_process_company_data(attrs.ip, attrs.tenant)
+      else
+        OpenTelemetry.Tracer.set_attributes([{"enrichment.type", "existing_session"}])
+      end
 
-    {:ok, session}
+      OpenTelemetry.Tracer.set_status(:ok)
+      {:ok, session}
+    end
   end
 
   defp format_response({:error, _, _} = error), do: error
 
   defp format_response({:ok, session}) do
-    {:ok, %{status: :accepted, session_id: session.id}}
+    OpenTelemetry.Tracer.with_span "web_tracker.format_response" do
+      OpenTelemetry.Tracer.set_status(:ok)
+      {:ok, %{status: :accepted, session_id: session.id}}
+    end
   end
 
   ## Helper Functions ##
