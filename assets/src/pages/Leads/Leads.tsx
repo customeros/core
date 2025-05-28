@@ -1,13 +1,18 @@
-import { useMemo, useState, lazy, memo, useCallback } from 'react';
+import { useState, lazy, memo, useCallback, useMemo } from 'react';
 
-import clsx from 'clsx';
-import { router, usePage } from '@inertiajs/react';
+import { router } from '@inertiajs/react';
 
 import { Icon, IconName } from '../../components/Icon/Icon';
 import { SegmentedView } from '../../components/SegmentedView/SegmentedView';
 import { Tooltip } from 'src/components/Tooltip';
 import { Header } from './components/Header';
 import { RootLayout } from 'src/layouts/Root';
+import { cn } from 'src/utils/cn';
+import {
+  CollapsibleRoot,
+  CollapsibleContent,
+  CollapsibleTrigger,
+} from 'src/components/Collapsible';
 
 interface LeadsProps {
   companies: {
@@ -43,6 +48,7 @@ const countryCodeToEmoji = (code: string) => {
     return '🌐';
   }
 };
+
 const DocumentEditor = lazy(() =>
   import('./components/DocumentEditor/DocumentEditor').then(module => ({
     default: module.DocumentEditor,
@@ -50,16 +56,23 @@ const DocumentEditor = lazy(() =>
 );
 
 export const Leads = memo(({ companies }: LeadsProps) => {
-  const page = usePage();
   const [selectedStage, setSelectedStage] = useState<string>('');
+  const [selectedAccordion, setSelectedAccordion] = useState<string>('');
   const hasDocParam = new URLSearchParams(window.location.search).has('doc');
-  const docId = new URLSearchParams(window.location.search).get('doc');
   const viewMode = new URLSearchParams(window.location.search).get('viewMode');
 
   const filteredCompanies = useMemo(
     () => (selectedStage ? companies.filter(c => c.stage === selectedStage) : companies),
     [selectedStage, companies]
   );
+
+  const isSelected = (stage: string) => {
+    return !!selectedStage && selectedStage === stage;
+  };
+
+  const isAccordionSelected = (stage: string) => {
+    return !!selectedAccordion && selectedAccordion === stage;
+  };
 
   const handleOpenDocument = useCallback((company: { document_id: string }) => {
     const params = new URLSearchParams(window.location.search);
@@ -81,19 +94,15 @@ export const Leads = memo(({ companies }: LeadsProps) => {
   return (
     <RootLayout>
       <Header />
-      <div
-        className={clsx(
-          'flex h-full overflow-hidden relative bg-white p-0 transition-[width] duration-300 ease-in-out w-full 2xl:w-[1440px] 2xl:mx-auto mt-2'
-        )}
-      >
+      <div className="flex h-full overflow-hidden relative bg-white p-0 transition-[width] duration-300 ease-in-out w-full 2xl:w-[1440px] 2xl:mx-auto md:mt-2 animate-fadeIn">
         <div className="w-full">
-          <div className="flex w-full items-center justify-center mb-2 px-4 2xl:px-0">
+          <div className="w-full items-center justify-center mb-2 px-4 2xl:px-0 hidden md:flex">
             {stages.map((stage, index) => {
               const count = companies.filter(c => c.stage === stage.value).length;
               return (
                 <div
                   key={stage.value}
-                  className={clsx(
+                  className={cn(
                     'flex-1 flex items-center justify-center rounded-md bg-primary-100 cursor-pointer min-h-[14px]',
                     index > 0 && 'ml-[-10px]',
                     selectedStage === stage.value && 'bg-primary-200'
@@ -118,91 +127,103 @@ export const Leads = memo(({ companies }: LeadsProps) => {
           </div>
 
           <div className="flex-1 flex w-full">
-            <div
-              className={clsx(
-                'flex-1 overflow-y-auto text-nowrap duration-300 ease-in-out',
-                viewMode === 'focus' && 'opacity-0'
-              )}
-            >
+            <div className="flex-1 overflow-y-auto text-nowrap">
               {stages
                 .filter(stage => !selectedStage || stage.value === selectedStage)
-                .map(stage => (
-                  <div key={stage.value} className="flex flex-col w-full">
-                    <div className="mb-2">
+                .map((stage, index) => (
+                  <CollapsibleRoot
+                    key={stage.value}
+                    defaultOpen
+                    open={selectedAccordion ? isAccordionSelected(stage.value) : true}
+                    className="flex flex-col w-full"
+                  >
+                    <CollapsibleTrigger className="w-full">
                       <SegmentedView
-                        icon={<Icon name={stage.icon as IconName} className="text-gray-500" />}
                         label={stage.label}
+                        className={index === 0 ? 'mt-0' : ''}
+                        isSelected={isSelected(stage.value) || isAccordionSelected(stage.value)}
                         count={companies.filter(c => c.stage === stage.value).length}
-                        isSelected={selectedStage === stage.value}
-                        handleClearFilter={() => setSelectedStage('')}
+                        icon={<Icon name={stage.icon as IconName} className="text-gray-500" />}
+                        handleClearFilter={() => {
+                          setSelectedStage('');
+                          setSelectedAccordion('');
+                        }}
+                        onClick={() => {
+                          setSelectedAccordion(stage.value);
+                        }}
                       />
-                    </div>
-                    {filteredCompanies
-                      .filter(c => c.stage === stage.value)
-                      .map(c => (
-                        <div
-                          key={c.document_id || c.name}
-                          className="flex items-center w-full h-full hover:bg-gray-75"
-                        >
-                          <div className="flex items-center gap-2 pl-5">
-                            {c.icon ? (
-                              <img
-                                key={c.icon}
-                                src={c.icon}
-                                alt={c.name}
-                                className="size-6 object-contain border border-gray-200 rounded"
-                                loading="lazy"
-                              />
-                            ) : (
-                              <div className="size-6 flex items-center justify-center border border-gray-200 rounded">
-                                <Icon name="building-06" />
-                              </div>
-                            )}
+                    </CollapsibleTrigger>
+                    <CollapsibleContent className="bg-white">
+                      {filteredCompanies
+                        .filter(c => c.stage === stage.value)
+                        .map((c, index) => (
+                          <div
+                            key={c.document_id || c.name}
+                            className="flex items-center w-full relative group hover:bg-gray-50"
+                            style={{ zIndex: 100 - index }}
+                          >
+                            <div className="flex items-center gap-2 pl-5 min-w-0 flex-1 md:flex-none md:flex-shrink-0 bg-white group-hover:bg-gray-50">
+                              {c.icon ? (
+                                <img
+                                  key={c.icon}
+                                  src={c.icon}
+                                  alt={c.name}
+                                  className="size-6 object-contain border border-gray-200 rounded flex-shrink-0"
+                                  loading="lazy"
+                                />
+                              ) : (
+                                <div className="size-6 flex items-center justify-center border border-gray-200 rounded flex-shrink-0">
+                                  <Icon name="building-06" />
+                                </div>
+                              )}
+                              <p
+                                className="py-2 px-2 cursor-pointer font-medium truncate"
+                                onClick={() => {
+                                  handleOpenDocument(c);
+                                }}
+                              >
+                                {c.name}
+                              </p>
+                            </div>
+                            <p className="flex-4 text-right mr-4 min-w-0 flex-shrink-0 bg-white hidden md:block group-hover:bg-gray-50">
+                              {c.industry ? (
+                                <span className="bg-gray-100 w-fit px-2 py-1 rounded-[4px] max-w-[100px] truncate">
+                                  {c.industry}
+                                </span>
+                              ) : (
+                                <span>Not found</span>
+                              )}
+                            </p>
+
                             <p
-                              className="py-2 px-2 cursor-pointer font-medium"
+                              className="text-right cursor-pointer hover:underline min-w-0 flex-1 md:flex-none md:flex-shrink-0 bg-white px-2 py-1 group-hover:bg-gray-50"
                               onClick={() => {
-                                handleOpenDocument(c);
+                                window.open(`https://${c.domain}`, '_blank');
                               }}
                             >
-                              {c.name}
+                              {c.domain}
                             </p>
+                            <Tooltip label={c.country_name ?? 'Country not found'}>
+                              <p className="text-center text-gray-500 flex-shrink-0 bg-white py-2 pl-1 pr-5 group-hover:bg-gray-50">
+                                {countryCodeToEmoji(c.country)}
+                              </p>
+                            </Tooltip>
                           </div>
-                          <p className="flex-4 text-right mr-4">
-                            {c.industry ? (
-                              <span className="bg-gray-100 w-fit px-2 py-1 rounded-[4px] max-w-[100px] truncate">
-                                {c.industry}
-                              </span>
-                            ) : (
-                              <span>Not found</span>
-                            )}
-                          </p>
-                          <p
-                            className="text-right cursor-pointer hover:underline"
-                            onClick={() => {
-                              window.open(`https://${c.domain}`, '_blank');
-                            }}
-                          >
-                            {c.domain}
-                          </p>
-                          <Tooltip label={c.country_name ?? 'Country not found'}>
-                            <p className="mr-5 text-center text-gray-500 ml-4">
-                              {countryCodeToEmoji(c.country)}
-                            </p>
-                          </Tooltip>
-                        </div>
-                      ))}
-                  </div>
+                        ))}
+                    </CollapsibleContent>
+                  </CollapsibleRoot>
                 ))}
             </div>
             <div
-              className={clsx(
-                'border-l h-[calc(100vh-100px)] flex-shrink-1 transition-all border-t duration-300 ease-in-out',
-                viewMode === 'focus' && 'w-full',
-                viewMode === 'focus' && 'border-transparent',
-                hasDocParam ? 'opacity-100 w-[600px] pl-6 pr-6' : 'opacity-0 w-0'
+              className={cn(
+                'border-l h-[calc(100vh-100px)] transition-all border-t duration-300 ease-in-out',
+                viewMode === 'focus' && 'w-full border-transparent',
+                hasDocParam
+                  ? 'opacity-100 w-[728px] translate-x-[0px]'
+                  : 'opacity-0 w-[0px] translate-x-[728px]'
               )}
             >
-              {hasDocParam && <DocumentEditor />}
+              <DocumentEditor />
             </div>
           </div>
         </div>
