@@ -7,6 +7,7 @@ import axios from 'axios';
 
 import { Leads } from './pages/Leads/Leads';
 import { Signin } from './pages/Signin';
+
 axios.defaults.xsrfHeaderName = 'x-csrf-token';
 
 const pages = {

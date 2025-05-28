@@ -98,7 +98,7 @@ defmodule Web.UserAuth do
       user_token &&
         case Users.get_user_by_session_token(user_token) do
           nil -> nil
-          user -> Map.put(user, :salut, "asd")
+          user -> user
         end
 
     assign(conn, :current_user, user)

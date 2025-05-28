@@ -1,9 +1,10 @@
 defmodule Core.Crm.Companies do
   require OpenTelemetry.Tracer
-  alias Core.Repo
   alias Core.Crm.Companies.Company
   alias Core.Crm.Companies.Enrich
+  alias Core.Repo
   alias Core.Utils.IdGenerator
+  alias Core.Utils.Media.Images
   alias Core.Utils.PrimaryDomainFinder
 
   @spec get_or_create_by_domain(any()) ::
@@ -35,7 +36,8 @@ defmodule Core.Crm.Companies do
     end
   end
 
-  defp create_company_and_trigger_scraping(primary_domain) when is_binary(primary_domain) do
+  defp create_company_and_trigger_scraping(primary_domain)
+       when is_binary(primary_domain) do
     OpenTelemetry.Tracer.with_span "company_service.create_company_and_trigger_scraping" do
       OpenTelemetry.Tracer.set_attributes([
         {"primary_domain", primary_domain}
@@ -64,10 +66,11 @@ defmodule Core.Crm.Companies do
         {"domain", domain}
       ])
 
-      result = %Company{primary_domain: domain}
-      |> Map.put(:id, IdGenerator.generate_id_21(Company.id_prefix()))
-      |> Company.changeset(%{})
-      |> Repo.insert()
+      result =
+        %Company{primary_domain: domain}
+        |> Map.put(:id, IdGenerator.generate_id_21(Company.id_prefix()))
+        |> Company.changeset(%{})
+        |> Repo.insert()
 
       case result do
         {:ok, company} ->
@@ -79,6 +82,7 @@ defmodule Core.Crm.Companies do
             {"result.success", false},
             {"error.type", "validation_failed"}
           ])
+
           OpenTelemetry.Tracer.set_status(:error, "validation_failed")
           {:error, :validation_failed}
       end
@@ -101,6 +105,15 @@ defmodule Core.Crm.Companies do
       ])
 
       result
+    end
+  end
+
+  @spec get_icon_url(String.t()) ::
+          {:ok, String.t() | nil} | {:error, :not_found}
+  def get_icon_url(company_id) do
+    case Repo.get(Company, company_id) do
+      nil -> {:error, :not_found}
+      %Company{} = company -> {:ok, Images.get_cdn_url(company.icon_key)}
     end
   end
 end

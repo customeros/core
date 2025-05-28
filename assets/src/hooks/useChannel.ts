@@ -4,7 +4,7 @@ import { useState, useEffect, useContext } from 'react';
 
 import { Presence } from 'phoenix';
 import { usePage } from '@inertiajs/react';
-import { PhoenixSocketContext } from '../../providers/SocketProvider';
+import { PhoenixSocketContext } from '../providers/SocketProvider';
 
 type Meta = {
   color: string;
@@ -33,8 +33,8 @@ export const useChannel = (channelName: string) => {
   const [presence, setPresence] = useState<PresenceDiff | null>(null);
   const presentUsers = parsePresentUsers(presenceState || []);
 
-  const user_id = (page?.props?.user as User)?.id ?? '';
-  const username = (page?.props?.user as User)?.email;
+  const user_id = (page?.props?.currentUser as User)?.id ?? '';
+  const username = (page?.props?.currentUser as User)?.email;
 
   useEffect(() => {
     if (!socket || !user_id) return;
