@@ -9,6 +9,7 @@ defmodule Core.Crm.Companies.CompanyEnricher do
   """
   use GenServer
   require Logger
+  require OpenTelemetry.Tracer
 
   alias Core.Crm.Companies.Enrich
 
@@ -29,21 +30,22 @@ defmodule Core.Crm.Companies.CompanyEnricher do
 
   @impl true
   def handle_info(:enrich_companies, state) do
-    companiesForIconEnrichment = Enrich.fetch_companies_for_icon_enrichment(@default_batch_size)
-    company_count = length(companiesForIconEnrichment)
+    OpenTelemetry.Tracer.with_span "company_enricher.enrich_companies" do
+      companiesForIconEnrichment = Enrich.fetch_companies_for_icon_enrichment(@default_batch_size)
+      OpenTelemetry.Tracer.set_attributes([
+        {"companies.found", length(companiesForIconEnrichment)},
+        {"batch.size", @default_batch_size},
+        {"enrichment.type", "icon"}
+      ])
 
-    # Enrich each company's icon
-    Enum.each(companiesForIconEnrichment, &enrich_company_icon/1)
+      # Enrich each company's icon
+      Enum.each(companiesForIconEnrichment, &enrich_company_icon/1)
 
-    # Log the batch processing result
-    if company_count > 0 do
-      Logger.info("Processed #{company_count} companies for icon enrichment")
+      # Schedule the next check
+      schedule_check(@default_interval_ms)
+
+      {:noreply, state}
     end
-
-    # Schedule the next check
-    schedule_check(@default_interval_ms)
-
-    {:noreply, state}
   end
 
   # Schedule the next check
@@ -52,10 +54,25 @@ defmodule Core.Crm.Companies.CompanyEnricher do
   end
 
   defp enrich_company_icon(company) do
-    case Enrich.enrich_icon(company.id) do
-      :ok -> :ok
-      {:error, reason} ->
-        Logger.error("Failed to start icon enrichment for company: #{company.id} (domain: #{company.primary_domain}), reason: #{inspect(reason)}")
+    OpenTelemetry.Tracer.with_span "company_enricher.enrich_icon" do
+      OpenTelemetry.Tracer.set_attributes([
+        {"company.id", company.id},
+        {"company.domain", company.primary_domain}
+      ])
+
+      case Enrich.enrich_icon(company.id) do
+        :ok ->
+          OpenTelemetry.Tracer.set_status(:ok)
+          :ok
+
+        {:error, reason} ->
+          OpenTelemetry.Tracer.set_status(:error, "enrichment_failed")
+          OpenTelemetry.Tracer.set_attributes([
+            {"error.reason", inspect(reason)}
+          ])
+          Logger.error("Failed to start icon enrichment for company: #{company.id} (domain: #{company.primary_domain}), reason: #{inspect(reason)}")
+          {:error, reason}
+      end
     end
   end
 end
