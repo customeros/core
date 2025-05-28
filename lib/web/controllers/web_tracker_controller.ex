@@ -1,6 +1,7 @@
 defmodule Web.WebTrackerController do
   use Web, :controller
   require Logger
+  require OpenTelemetry.Tracer
 
   alias Core.WebTracker
   alias Core.WebTracker.OriginValidator
@@ -11,75 +12,96 @@ defmodule Web.WebTrackerController do
 
   @spec create(Plug.Conn.t(), map()) :: Plug.Conn.t()
   def create(conn, params) do
-    # Header values used only for validation
-    header_origin = conn.assigns.origin
-    header_user_agent = conn.assigns.user_agent
-    header_referer = conn.assigns.referer
+    OpenTelemetry.Tracer.with_span "web_tracker.create_event" do
+      # Add request attributes to the span
+      OpenTelemetry.Tracer.set_attributes([
+        {"http.method", "POST"},
+        {"http.route", "/v1/events"},
+        {"http.target", "/v1/events"},
+        {"visitor.id", Map.get(params, "visitorId")},
+        {"event.type", Map.get(params, "eventType")}
+      ])
 
-    visitor_id = Map.get(params, "visitorId")
+      # Header values used only for validation
+      header_origin = conn.assigns.origin
+      header_user_agent = conn.assigns.user_agent
+      header_referer = conn.assigns.referer
 
-    with {:ok, visitor_id} <- validate_visitor_id(visitor_id),
-         :ok <- validate_origin(header_origin),
-         {:ok, tenant} <- OriginTenantMapper.get_tenant_for_origin(header_origin),
-         :ok <- WebTracker.check_bot(header_user_agent),
-         :ok <- WebTracker.check_suspicious(header_referer),
-         # Create event params with body values
-         {:ok, event_params} <- WebTrackerParams.new(Map.merge(params, %{
-           "tenant" => tenant,
-           "visitor_id" => visitor_id
-         })) do
+      visitor_id = Map.get(params, "visitorId")
 
-      case WebTracker.process_new_event(event_params) do
-        {:ok, result} ->
+      with {:ok, visitor_id} <- validate_visitor_id(visitor_id),
+           :ok <- validate_origin(header_origin),
+           {:ok, tenant} <- OriginTenantMapper.get_tenant_for_origin(header_origin),
+           :ok <- WebTracker.check_bot(header_user_agent),
+           :ok <- WebTracker.check_suspicious(header_referer),
+           # Create event params with body values
+           {:ok, event_params} <- WebTrackerParams.new(Map.merge(params, %{
+             "tenant" => tenant,
+             "visitor_id" => visitor_id
+           })) do
+
+        case WebTracker.process_new_event(event_params) do
+          {:ok, result} ->
+            OpenTelemetry.Tracer.set_status(:ok)
+            conn
+            |> put_status(:accepted)
+            |> json(%{accepted: true, session_id: result.session_id})
+
+          {:error, :forbidden, _message} ->
+            OpenTelemetry.Tracer.set_status(:error, "forbidden")
+            conn
+            |> put_status(:forbidden)
+            |> json(%{error: "forbidden", details: "request blocked"})
+
+          {:error, :bad_request, message} ->
+            OpenTelemetry.Tracer.set_status(:error, "bad_request")
+            conn
+            |> put_status(:bad_request)
+            |> json(%{error: "bad_request", details: message})
+
+          {:error, _status, _message} ->
+            OpenTelemetry.Tracer.set_status(:error, "internal_server_error")
+            conn
+            |> put_status(:internal_server_error)
+            |> json(%{error: "internal_server_error", details: "something went wrong"})
+        end
+      else
+        {:error, :missing_visitor_id} ->
+          OpenTelemetry.Tracer.set_status(:error, "missing_visitor_id")
           conn
-          |> put_status(:accepted)
-          |> json(%{accepted: true, session_id: result.session_id})
+          |> put_status(:bad_request)
+          |> json(%{error: "bad_request", details: "missing visitor_id"})
 
-        {:error, :forbidden, _message} ->
+        {:error, :bot} ->
+          OpenTelemetry.Tracer.set_status(:error, "bot_detected")
           conn
           |> put_status(:forbidden)
-          |> json(%{error: "forbidden", details: "request blocked"})
+          |> json(%{error: "forbidden", details: "bot detected"})
 
-        {:error, :bad_request, message} ->
+        {:error, :suspicious} ->
+          OpenTelemetry.Tracer.set_status(:error, "suspicious_referrer")
+          conn
+          |> put_status(:forbidden)
+          |> json(%{error: "forbidden", details: "suspicious referrer"})
+
+        {:error, :origin_ignored} ->
+          OpenTelemetry.Tracer.set_status(:error, "origin_ignored")
+          conn
+          |> put_status(:forbidden)
+          |> json(%{error: "forbidden", details: "origin explicitly ignored"})
+
+        {:error, :origin_not_configured} ->
+          OpenTelemetry.Tracer.set_status(:error, "origin_not_configured")
+          conn
+          |> put_status(:forbidden)
+          |> json(%{error: "forbidden", details: "origin not configured"})
+
+        {:error, message} when is_binary(message) ->
+          OpenTelemetry.Tracer.set_status(:error, message)
           conn
           |> put_status(:bad_request)
           |> json(%{error: "bad_request", details: message})
-
-        {:error, _status, _message} ->
-          conn
-          |> put_status(:internal_server_error)
-          |> json(%{error: "internal_server_error", details: "something went wrong"})
       end
-    else
-      {:error, :missing_visitor_id} ->
-        conn
-        |> put_status(:bad_request)
-        |> json(%{error: "bad_request", details: "missing visitor_id"})
-
-      {:error, :bot} ->
-        conn
-        |> put_status(:forbidden)
-        |> json(%{error: "forbidden", details: "bot detected"})
-
-      {:error, :suspicious} ->
-        conn
-        |> put_status(:forbidden)
-        |> json(%{error: "forbidden", details: "suspicious referrer"})
-
-      {:error, :origin_ignored} ->
-        conn
-        |> put_status(:forbidden)
-        |> json(%{error: "forbidden", details: "origin explicitly ignored"})
-
-      {:error, :origin_not_configured} ->
-        conn
-        |> put_status(:forbidden)
-        |> json(%{error: "forbidden", details: "origin not configured"})
-
-      {:error, message} when is_binary(message) ->
-        conn
-        |> put_status(:bad_request)
-        |> json(%{error: "bad_request", details: message})
     end
   end
 
