@@ -247,11 +247,9 @@ defmodule Core.WebTracker do
   end
 
   defp fetch_and_process_company_data(ip, tenant) do
-    # Get the current span context before starting the task
     span_ctx = OpenTelemetry.Tracer.current_span_ctx()
 
     Task.start(fn ->
-      # Set the span context in the new process
       OpenTelemetry.Tracer.set_current_span(span_ctx)
 
       OpenTelemetry.Tracer.with_span "web_tracker.fetch_and_process_company_data" do
