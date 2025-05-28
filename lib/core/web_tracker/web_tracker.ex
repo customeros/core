@@ -164,7 +164,8 @@ defmodule Core.WebTracker do
         region: ip_data.region,
         country_code: ip_data.country_code,
         is_mobile: ip_data.is_mobile,
-        last_event_type: attrs.event_type
+        last_event_type: attrs.event_type,
+        just_created: true
       }
 
       case WebSessions.create(session_attrs) do
@@ -202,8 +203,8 @@ defmodule Core.WebTracker do
 
   defp enrich_with_company_data({:ok, attrs, session, :event_created}) do
     OpenTelemetry.Tracer.with_span "web_tracker.enrich_with_company_data" do
-      # Only enrich for new sessions (not existing ones)
-      if session.inserted_at == session.updated_at do
+      # Only enrich for new sessions using just_created flag
+      if session.just_created do
         OpenTelemetry.Tracer.set_attributes([{"enrichment.type", "new_session"}])
         fetch_and_process_company_data(attrs.ip, attrs.tenant)
       else
@@ -218,10 +219,7 @@ defmodule Core.WebTracker do
   defp format_response({:error, _, _} = error), do: error
 
   defp format_response({:ok, session}) do
-    OpenTelemetry.Tracer.with_span "web_tracker.format_response" do
-      OpenTelemetry.Tracer.set_status(:ok)
-      {:ok, %{status: :accepted, session_id: session.id}}
-    end
+    {:ok, %{status: :accepted, session_id: session.id}}
   end
 
   ## Helper Functions ##
