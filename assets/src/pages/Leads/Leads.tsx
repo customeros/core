@@ -216,11 +216,11 @@ export const Leads = memo(({ companies }: LeadsProps) => {
             </div>
             <div
               className={cn(
-                'border-l h-[calc(100vh-100px)] transition-all border-t duration-300 ease-in-out',
-                viewMode === 'focus' && 'w-full border-transparent',
+                'border-l h-[calc(100vh-100px)] flex-shrink-1 transition-all border-t duration-300 ease-in-out',
                 hasDocParam
                   ? 'opacity-100 w-[728px] translate-x-[0px]'
-                  : 'opacity-0 w-[0px] translate-x-[728px]'
+                  : 'opacity-0 w-[0px] translate-x-[728px]',
+                viewMode === 'focus' && 'w-full border-transparent'
               )}
             >
               <DocumentEditor />
