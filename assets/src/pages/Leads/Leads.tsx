@@ -14,18 +14,12 @@ import {
   CollapsibleTrigger,
 } from 'src/components/Collapsible';
 
+import { Lead, Tenant, User } from 'src/types';
+
 interface LeadsProps {
-  companies: {
-    icon: string;
-    name: string;
-    count: number;
-    stage: string;
-    country: string;
-    country_name: string;
-    domain: string;
-    industry: string;
-    document_id: string;
-  }[];
+  companies: Lead[];
+  currentUser: User;
+  tenant: Tenant;
 }
 
 const stages = [
