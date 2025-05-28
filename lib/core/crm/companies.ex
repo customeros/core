@@ -1,4 +1,5 @@
 defmodule Core.Crm.Companies do
+  require OpenTelemetry.Tracer
   alias Core.Repo
   alias Core.Crm.Companies.Company
   alias Core.Crm.Companies.Enrich
@@ -11,27 +12,44 @@ defmodule Core.Crm.Companies do
     do: {:error, "domain must be a string"}
 
   def get_or_create_by_domain(domain) when is_binary(domain) do
-    case PrimaryDomainFinder.get_primary_domain(domain) do
-      {:ok, primary_domain} when primary_domain != "" ->
-        case get_by_primary_domain(primary_domain) do
-          nil ->
-            # Company doesn't exist, create it
-            create_company_and_trigger_scraping(primary_domain)
+    OpenTelemetry.Tracer.with_span "company_service.get_or_create_by_domain" do
+      OpenTelemetry.Tracer.set_attributes([
+        {"domain", domain}
+      ])
 
-          company ->
-            # Company exists, return it
-            {:ok, company}
-        end
+      case PrimaryDomainFinder.get_primary_domain(domain) do
+        {:ok, primary_domain} when primary_domain != "" ->
+          case get_by_primary_domain(primary_domain) do
+            nil ->
+              create_company_and_trigger_scraping(primary_domain)
 
-      _ ->
-        {:error, "not a valid domain"}
+            company ->
+              OpenTelemetry.Tracer.set_status(:ok)
+              {:ok, company}
+          end
+
+        _ ->
+          OpenTelemetry.Tracer.set_status(:error, "invalid_domain")
+          {:error, "not a valid domain"}
+      end
     end
   end
 
   defp create_company_and_trigger_scraping(primary_domain) when is_binary(primary_domain) do
-    with {:ok, company} <- create_with_domain(primary_domain) do
-      Enrich.scrape_homepage(company.id)
-      {:ok, company}
+    OpenTelemetry.Tracer.with_span "company_service.create_company_and_trigger_scraping" do
+      OpenTelemetry.Tracer.set_attributes([
+        {"primary_domain", primary_domain}
+      ])
+
+      with {:ok, company} <- create_with_domain(primary_domain) do
+        Enrich.scrape_homepage(company.id)
+        OpenTelemetry.Tracer.set_status(:ok)
+        {:ok, company}
+      else
+        {:error, reason} = error ->
+          OpenTelemetry.Tracer.set_status(:error, "creation_failed")
+          error
+      end
     end
   end
 
@@ -41,16 +59,43 @@ defmodule Core.Crm.Companies do
     do: {:error, "domain must be a string"}
 
   def create_with_domain(domain) when is_binary(domain) do
-    %Company{primary_domain: domain}
-    |> Map.put(:id, IdGenerator.generate_id_21(Company.id_prefix()))
-    |> Company.changeset(%{})
-    |> Repo.insert()
+    OpenTelemetry.Tracer.with_span "company_service.create_with_domain" do
+      OpenTelemetry.Tracer.set_attributes([
+        {"domain", domain}
+      ])
+
+      result = %Company{primary_domain: domain}
+      |> Map.put(:id, IdGenerator.generate_id_21(Company.id_prefix()))
+      |> Company.changeset(%{})
+      |> Repo.insert()
+
+      case result do
+        {:ok, company} ->
+          OpenTelemetry.Tracer.set_status(:ok)
+          result
+        {:error, changeset} ->
+          OpenTelemetry.Tracer.set_status(:error, "validation_failed")
+          result
+      end
+    end
   end
 
   @spec get_by_primary_domain(any()) :: Company.t() | nil
   def get_by_primary_domain(domain) when not is_binary(domain), do: nil
 
   def get_by_primary_domain(domain) when is_binary(domain) do
-    Repo.get_by(Company, primary_domain: domain)
+    OpenTelemetry.Tracer.with_span "company_service.get_by_primary_domain" do
+      OpenTelemetry.Tracer.set_attributes([
+        {"domain", domain}
+      ])
+
+      result = Repo.get_by(Company, primary_domain: domain)
+
+      OpenTelemetry.Tracer.set_attributes([
+        {"result.found", result != nil}
+      ])
+
+      result
+    end
   end
 end
