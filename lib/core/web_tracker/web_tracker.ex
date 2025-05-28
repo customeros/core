@@ -128,7 +128,7 @@ defmodule Core.WebTracker do
   end
 
   defp validate_ip_safety(attrs) do
-    OpenTelemetry.Tracer.with_span "web_tracker.validate_ip" do
+    OpenTelemetry.Tracer.with_span "web_tracker.validate_ip_safety" do
       OpenTelemetry.Tracer.set_attributes([{"ip", attrs.ip}])
 
       ip_intelligence_mod = get_ip_intelligence_module()
@@ -154,7 +154,7 @@ defmodule Core.WebTracker do
   defp create_session_with_ip_data({:error, _, _} = error), do: error
 
   defp create_session_with_ip_data({:ok, attrs, ip_data}) do
-    OpenTelemetry.Tracer.with_span "web_tracker.create_session" do
+    OpenTelemetry.Tracer.with_span "web_tracker.create_session_with_ip_data" do
       session_attrs = %{
         tenant: attrs.tenant,
         visitor_id: attrs.visitor_id,
@@ -201,7 +201,7 @@ defmodule Core.WebTracker do
   defp enrich_with_company_data({:error, _, _} = error), do: error
 
   defp enrich_with_company_data({:ok, attrs, session, :event_created}) do
-    OpenTelemetry.Tracer.with_span "web_tracker.enrich_company_data" do
+    OpenTelemetry.Tracer.with_span "web_tracker.enrich_with_company_data" do
       # Only enrich for new sessions (not existing ones)
       if session.inserted_at == session.updated_at do
         OpenTelemetry.Tracer.set_attributes([{"enrichment.type", "new_session"}])

@@ -46,7 +46,7 @@ defmodule Core.Crm.Companies do
         OpenTelemetry.Tracer.set_status(:ok)
         {:ok, company}
       else
-        {:error, reason} = error ->
+        {:error, _reason} = error ->
           OpenTelemetry.Tracer.set_status(:error, "creation_failed")
           error
       end
@@ -72,10 +72,15 @@ defmodule Core.Crm.Companies do
       case result do
         {:ok, company} ->
           OpenTelemetry.Tracer.set_status(:ok)
-          result
-        {:error, changeset} ->
+          {:ok, company}
+
+        {:error, _changeset} ->
+          OpenTelemetry.Tracer.set_attributes([
+            {"result.success", false},
+            {"error.type", "validation_failed"}
+          ])
           OpenTelemetry.Tracer.set_status(:error, "validation_failed")
-          result
+          {:error, :validation_failed}
       end
     end
   end
