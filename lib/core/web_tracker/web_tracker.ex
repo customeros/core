@@ -247,15 +247,24 @@ defmodule Core.WebTracker do
   end
 
   defp fetch_and_process_company_data(ip, tenant) do
+    # Get the current span context before starting the task
+    span_ctx = OpenTelemetry.Tracer.current_span_ctx()
+
     Task.start(fn ->
-      ip_intelligence_mod = get_ip_intelligence_module()
+      # Set the span context in the new process
+      OpenTelemetry.Tracer.set_current_span(span_ctx)
 
-      case ip_intelligence_mod.get_company_info(ip) do
-        {:ok, %{domain: domain, company: company}} ->
-          process_company_info(domain, company, tenant)
+      OpenTelemetry.Tracer.with_span "web_tracker.fetch_and_process_company_data" do
+        ip_intelligence_mod = get_ip_intelligence_module()
 
-        {:error, reason} ->
-          Logger.error("Failed to get company info: #{inspect(reason)}")
+        case ip_intelligence_mod.get_company_info(ip) do
+          {:ok, %{domain: domain, company: company}} ->
+            process_company_info(domain, company, tenant)
+
+          {:error, reason} ->
+            OpenTelemetry.Tracer.set_status(:error, "company_info_fetch_failed")
+            Logger.error("Failed to get company info: #{inspect(reason)}")
+        end
       end
     end)
   end
@@ -265,32 +274,43 @@ defmodule Core.WebTracker do
   end
 
   defp process_company_info(domain, company, tenant) do
-    Logger.info("Found company for domain #{domain}: #{company.name}")
+    OpenTelemetry.Tracer.with_span "web_tracker.process_company_info" do
+      OpenTelemetry.Tracer.set_attributes([
+        {"company.domain", domain},
+        {"company.name", company.name},
+        {"tenant", tenant}
+      ])
 
-    with {:ok, db_company} <- Companies.get_or_create_by_domain(domain),
-         {:ok, lead} <-
-           Core.Crm.Leads.get_or_create(tenant, %{
-             ref_id: db_company.id,
-             type: :company
-           }) do
-      case Core.Auth.Tenants.get_tenant_by_name(tenant) do
-        {:ok, tenant} ->
-          Core.Researcher.Orchestrator.evaluate_icp_fit(
-            tenant.id,
-            lead.id,
-            domain
-          )
+      Logger.info("Found company for domain #{domain}: #{company.name}")
 
+      with {:ok, db_company} <- Companies.get_or_create_by_domain(domain),
+           {:ok, lead} <-
+             Core.Crm.Leads.get_or_create(tenant, %{
+               ref_id: db_company.id,
+               type: :company
+             }) do
+        case Core.Auth.Tenants.get_tenant_by_name(tenant) do
+          {:ok, tenant} ->
+            Core.Researcher.Orchestrator.evaluate_icp_fit(
+              tenant.id,
+              lead.id,
+              domain
+            )
+            OpenTelemetry.Tracer.set_status(:ok)
+
+          {:error, reason} ->
+            OpenTelemetry.Tracer.set_status(:error, "tenant_not_found")
+            {:error, reason}
+        end
+
+        {:ok}
+      else
         {:error, reason} ->
-          {:error, reason}
+          OpenTelemetry.Tracer.set_status(:error, "lead_creation_failed")
+          Logger.error(
+            "Failed to create lead for company #{company.name}: #{inspect(reason)}"
+          )
       end
-
-      {:ok}
-    else
-      {:error, reason} ->
-        Logger.error(
-          "Failed to create lead for company #{company.name}: #{inspect(reason)}"
-        )
     end
   end
 
