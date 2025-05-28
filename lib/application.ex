@@ -4,7 +4,7 @@ defmodule Core.Application do
 
   @impl true
   def start(_type, _args) do
-      OpentelemetryPhoenix.setup(adapter: :bandit)
+    OpentelemetryPhoenix.setup(adapter: :bandit)
     OpentelemetryEcto.setup([:core, :repo])
 
     children = [
