@@ -19,6 +19,7 @@ defmodule Core.WebTracker.Schemas.WebSession do
     field :origin, :string
     field :active, :boolean, default: true
     field :metadata, :map, default: %{}
+    field :just_created, :boolean, virtual: true, default: false
 
     # IP information
     field :ip, :string
@@ -43,6 +44,7 @@ defmodule Core.WebTracker.Schemas.WebSession do
     origin: String.t(),
     active: boolean(),
     metadata: map(),
+    just_created: boolean(),
     # IP information
     ip: String.t() | nil,
     city: String.t() | nil,
@@ -69,7 +71,7 @@ defmodule Core.WebTracker.Schemas.WebSession do
   def changeset(session, attrs) do
     session
     |> cast(attrs, [
-      :id, :tenant, :visitor_id, :origin, :active, :metadata,
+      :id, :tenant, :visitor_id, :origin, :active, :metadata, :just_created,
       :ip, :city, :region, :country_code, :is_mobile,
       :started_at, :ended_at, :last_event_at, :last_event_type
     ])
