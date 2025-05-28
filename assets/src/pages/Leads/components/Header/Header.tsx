@@ -3,8 +3,10 @@ import { Icon } from 'src/components/Icon/Icon';
 
 export const Header = () => {
   return (
-    <div className="w-full mx-auto">
-      <div className="flex justify-between items-center w-full py-2 px-4 border-b border-gray-200 mb-2">
+    <div className="flex w-full">
+      <div className="h-[1px] mb-[-0px] bg-gradient-to-l from-gray-200 to-transparent self-end 2xl:w-[calc((100%-1440px)/2)]" />
+
+      <div className="flex justify-between items-center border-b border-gray-200 w-full 2xl:w-[1440px] 2xl:mx-auto py-2 px-4">
         <h1 className="">Leads</h1>
         <div className="flex gap-2">
           <Button
@@ -19,6 +21,8 @@ export const Header = () => {
           </Button>
         </div>
       </div>
+
+      <div className="h-[1px] mb-[-0px] bg-gradient-to-r from-gray-200 to-transparent self-end 2xl:w-[calc((100%-1440px)/2)]" />
     </div>
   );
 };
