@@ -136,13 +136,17 @@ defmodule Core.Auth.Tenants do
   end
 
   defp start_slack_notification_task(tenant) do
+    span_ctx = OpenTelemetry.Tracer.current_span_ctx()
     Task.Supervisor.start_child(Core.TaskSupervisor, fn ->
+      OpenTelemetry.Tracer.set_current_span(span_ctx)
       notify_slack_new_tenant(tenant)
     end)
   end
 
   defp start_company_processing_task(tenant) do
+    span_ctx = OpenTelemetry.Tracer.current_span_ctx()
     Task.Supervisor.start_child(Core.TaskSupervisor, fn ->
+      OpenTelemetry.Tracer.set_current_span(span_ctx)
       process_company_for_tenant(tenant)
     end)
   end
@@ -154,9 +158,6 @@ defmodule Core.Auth.Tenants do
   end
 
   defp notify_slack_new_tenant(tenant) do
-    span_ctx = OpenTelemetry.Tracer.current_span_ctx()
-    OpenTelemetry.Tracer.set_current_span(span_ctx)
-
     OpenTelemetry.Tracer.with_span "tenants.notify_slack_new_tenant" do
       case Slack.notify_new_tenant(tenant.name, tenant.domain) do
         :ok ->
@@ -175,9 +176,6 @@ defmodule Core.Auth.Tenants do
   end
 
   defp process_company_for_tenant(tenant) do
-    span_ctx = OpenTelemetry.Tracer.current_span_ctx()
-    OpenTelemetry.Tracer.set_current_span(span_ctx)
-
     OpenTelemetry.Tracer.with_span "tenants.process_company_for_tenant" do
       case Companies.get_or_create_by_domain(tenant.domain) do
         {:ok, company} ->
