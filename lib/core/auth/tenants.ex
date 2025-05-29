@@ -7,6 +7,7 @@ defmodule Core.Auth.Tenants do
   require Logger
   require OpenTelemetry.Tracer
 
+  alias Core.Researcher.IcpBuilder
   alias Core.Repo
   alias Core.Auth.Tenants.Tenant
   alias Core.Notifications.Slack
@@ -100,25 +101,6 @@ defmodule Core.Auth.Tenants do
     end
   end
 
-  def create_tenant_and_return_id(name, domain) do
-    case create_tenant(name, domain) do
-      {:ok, tenant} -> {:ok, tenant.id}
-      {:error, changeset} -> {:error, changeset}
-    end
-  end
-
-  def create_tenant_and_build_icp(name, domain) do
-    case create_tenant_and_return_id(name, domain) do
-      {:ok, tenant_id} ->
-        # Start ICP building in background
-        start_icp_building_task(tenant_id)
-        {:ok, tenant_id}
-
-      {:error, changeset} ->
-        {:error, changeset}
-    end
-  end
-
   ## Private functions
 
   defp insert_tenant(name, domain) do
@@ -128,14 +110,12 @@ defmodule Core.Auth.Tenants do
   end
 
   defp start_post_creation_tasks(tenant) do
-    # Start Slack notification
-    start_slack_notification_task(tenant)
-
-    # Start company processing
-    start_company_processing_task(tenant)
+    notify_slack_new_tenant_start(tenant)
+    process_company_for_tenant_start(tenant)
+    IcpBuilder.tenant_icp_start(tenant.id)
   end
 
-  defp start_slack_notification_task(tenant) do
+  defp notify_slack_new_tenant_start(tenant) do
     span_ctx = OpenTelemetry.Tracer.current_span_ctx()
     Task.Supervisor.start_child(Core.TaskSupervisor, fn ->
       OpenTelemetry.Tracer.set_current_span(span_ctx)
@@ -143,17 +123,12 @@ defmodule Core.Auth.Tenants do
     end)
   end
 
-  defp start_company_processing_task(tenant) do
+  defp process_company_for_tenant_start(tenant) do
     span_ctx = OpenTelemetry.Tracer.current_span_ctx()
+
     Task.Supervisor.start_child(Core.TaskSupervisor, fn ->
       OpenTelemetry.Tracer.set_current_span(span_ctx)
       process_company_for_tenant(tenant)
-    end)
-  end
-
-  defp start_icp_building_task(tenant_id) do
-    Task.Supervisor.start_child(Core.TaskSupervisor, fn ->
-      Core.Researcher.IcpBuilder.build_for_tenant(tenant_id)
     end)
   end
 
@@ -201,7 +176,7 @@ defmodule Core.Auth.Tenants do
   defp wait_for_enrichment_if_needed(company) do
     if needs_enrichment?(company) do
       Logger.info(
-        "Waiting for company enrichment to complete: #{company.domain}"
+        "Waiting for company enrichment to complete: #{company.primary_domain}"
       )
 
       Process.sleep(@company_enrichment_timeout)

@@ -77,7 +77,7 @@ defmodule Core.Auth.Users do
       case Tenants.get_tenant_by_name(tenant_name) do
         {:error, :not_found} ->
           {:ok, tenant_id} =
-            Tenants.create_tenant_and_build_icp(tenant_name, domain)
+            Tenants.create_tenant(tenant_name, domain)
 
           tenant_id
 
