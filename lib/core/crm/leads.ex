@@ -4,6 +4,7 @@ defmodule Core.Crm.Leads do
   """
 
   import Ecto.Query, warn: false
+  require OpenTelemetry.Tracer
   alias Ecto.Repo
   alias Core.Repo
   alias Core.Crm.Leads.{Lead, LeadView}
@@ -42,56 +43,62 @@ defmodule Core.Crm.Leads do
 
   @spec list_view_by_tenant_id(tenant_id :: String.t()) :: [LeadView.t()]
   def list_view_by_tenant_id(tenant_id) do
-    # Subquery to get the most recent document for each ref_id
-    latest_doc =
-      from rd in "refs_documents",
-        group_by: rd.ref_id,
+    OpenTelemetry.Tracer.with_span "core.crm.leads:list_view_by_tenant_id" do
+      OpenTelemetry.Tracer.set_attributes([
+        {"tenant.id", tenant_id}
+      ])
+
+      # Subquery to get the most recent document for each ref_id
+      latest_doc =
+        from rd in "refs_documents",
+          group_by: rd.ref_id,
+          select: %{
+            ref_id: rd.ref_id,
+            document_id: max(rd.document_id)
+          }
+
+      from(l in Lead,
+        where: l.tenant_id == ^tenant_id and l.type == :company,
+        join: c in Company,
+        on: c.id == l.ref_id,
+        left_join: rd in subquery(latest_doc),
+        on: rd.ref_id == l.ref_id,
         select: %{
-          ref_id: rd.ref_id,
-          document_id: max(rd.document_id)
+          id: l.id,
+          ref_id: l.ref_id,
+          type: l.type,
+          stage: l.stage,
+          name: c.name,
+          industry: c.industry,
+          domain: c.primary_domain,
+          country: c.country_a2,
+          icon_key: c.icon_key,
+          document_id: rd.document_id
         }
-
-    from(l in Lead,
-      where: l.tenant_id == ^tenant_id and l.type == :company,
-      join: c in Company,
-      on: c.id == l.ref_id,
-      left_join: rd in subquery(latest_doc),
-      on: rd.ref_id == l.ref_id,
-      select: %{
-        id: l.id,
-        ref_id: l.ref_id,
-        type: l.type,
-        stage: l.stage,
-        name: c.name,
-        industry: c.industry,
-        domain: c.primary_domain,
-        country: c.country_a2,
-        icon_key: c.icon_key,
-        document_id: rd.document_id
-      }
-    )
-    |> Repo.all()
-    |> Enum.map(fn lead_data ->
-      # Generate CDN URL for icon if icon_key exists
-      icon = Images.get_cdn_url(lead_data.icon_key)
-
-      country_name =
-        if lead_data.country do
-          case Countriex.get_by(:alpha2, lead_data.country) do
-            %{name: name} -> name
-            _ -> nil
-          end
-        else
-          nil
-        end
-
-      LeadView
-      |> struct(
-        lead_data
-        |> Map.put(:icon, icon)
-        |> Map.put(:country_name, country_name)
       )
-    end)
+      |> Repo.all()
+      |> Enum.map(fn lead_data ->
+        # Generate CDN URL for icon if icon_key exists
+        icon = Images.get_cdn_url(lead_data.icon_key)
+
+        country_name =
+          if lead_data.country do
+            case Countriex.get_by(:alpha2, lead_data.country) do
+              %{name: name} -> name
+              _ -> nil
+            end
+          else
+            nil
+          end
+
+        LeadView
+        |> struct(
+          lead_data
+          |> Map.put(:icon, icon)
+          |> Map.put(:country_name, country_name)
+        )
+      end)
+    end
   end
 
   def get_or_create(tenant, attrs) do
