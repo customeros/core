@@ -66,10 +66,7 @@ defmodule Core.Crm.Companies.CompanyEnricher do
           :ok
 
         {:error, reason} ->
-          OpenTelemetry.Tracer.set_status(:error, "enrichment_failed")
-          OpenTelemetry.Tracer.set_attributes([
-            {"error.reason", inspect(reason)}
-          ])
+          OpenTelemetry.Tracer.set_status(:error, inspect(reason))
           Logger.error("Failed to start icon enrichment for company: #{company.id} (domain: #{company.primary_domain}), reason: #{inspect(reason)}")
           {:error, reason}
       end
