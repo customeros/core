@@ -4,7 +4,8 @@ defmodule Core.Crm.Leads.Lead do
 
   @type lead_type :: :contact | :company
   @type lead_stage ::
-          :target
+          :pending
+          | :target
           | :education
           | :solution
           | :evaluation
@@ -32,6 +33,7 @@ defmodule Core.Crm.Leads.Lead do
 
     field(:stage, Ecto.Enum,
       values: [
+        :pending,
         :target,
         :education,
         :solution,
@@ -40,7 +42,7 @@ defmodule Core.Crm.Leads.Lead do
         :not_a_fit,
         :customer
       ],
-      default: :target
+      default: :pending
     )
 
     timestamps(type: :utc_datetime)
