@@ -1,13 +1,9 @@
-import { useChannel } from 'src/hooks/useChannel';
+import { usePresence } from 'src/providers/PresenceProvider';
 import { UserHexagon } from '../UserHexagon';
 
-interface UserPresenceProps {
-  channelName: string;
-}
+export const UserPresence = () => {
+  const { presentUsers, currentUserId } = usePresence();
 
-export const UserPresence = ({ channelName }: UserPresenceProps) => {
-  const { presentUsers, currentUserId } = useChannel(channelName);
-  console.log(presentUsers);
   return (
     <div className="flex gap-1">
       {presentUsers.map((user, idx) => {

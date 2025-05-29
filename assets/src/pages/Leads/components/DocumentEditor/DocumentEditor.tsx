@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 
 import { router } from '@inertiajs/react';
 import { Icon } from 'src/components/Icon';
@@ -10,11 +10,31 @@ import {
   ScrollAreaViewport,
   ScrollAreaScrollbar,
 } from 'src/components/ScrollArea';
+import { usePresence } from 'src/providers/PresenceProvider';
+import { usePage } from '@inertiajs/react';
+import { Tenant } from 'src/types';
 
 export const DocumentEditor = () => {
+  const page = usePage();
+  const tenantId = (page.props.tenant as Tenant).id;
   const [viewMode, setViewMode] = useState('default');
   const docId = new URLSearchParams(window.location.search).get('doc');
   const urlViewMode = new URLSearchParams(window.location.search).get('viewMode');
+
+  const { presentUsers, currentUserId } = usePresence();
+
+  const presenceUser = useMemo(() => {
+    const found = presentUsers.find(u => u.user_id === currentUserId);
+
+    if (!found?.username || !found?.color) return undefined;
+
+    return {
+      username: found.username,
+      cursorColor: found.color,
+    };
+  }, [currentUserId, presentUsers]);
+
+  console.log('presenceUser', presenceUser);
 
   useEffect(() => {
     if (urlViewMode) {
@@ -67,7 +87,13 @@ export const DocumentEditor = () => {
               </div>
 
               {docId ? (
-                <Editor documentId={docId} useYjs={true} namespace="leads" />
+                <Editor
+                  documentId={docId}
+                  useYjs={true}
+                  namespace="leads"
+                  user={presenceUser}
+                  key={docId}
+                />
               ) : (
                 <div className="flex items-center justify-center h-full">
                   Preparing account brief...
