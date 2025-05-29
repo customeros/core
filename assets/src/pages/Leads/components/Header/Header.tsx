@@ -1,13 +1,16 @@
 import { useMemo, useState } from 'react';
-import { router } from '@inertiajs/react';
+import { router, usePage } from '@inertiajs/react';
 
 import { Button } from 'src/components/Button';
 import { Icon } from 'src/components/Icon/Icon';
 import { useEventsChannel, LeadCreatedEvent } from 'src/hooks';
+import { UserPresence } from '../UserPresence/UserPresence';
+import { Tenant } from 'src/types';
 
 export const Header = () => {
   const [createdLeadIcons, setCreatedLeadIcons] = useState<string[]>([]);
-
+  const page = usePage();
+  const tenantId = (page.props.tenant as Tenant).id;
   useEventsChannel<LeadCreatedEvent>(event => {
     if (event.type === 'lead_created') {
       console.log(event);
@@ -37,6 +40,7 @@ export const Header = () => {
       <div className="flex justify-between items-center border-b border-gray-200 w-full 2xl:w-[1440px] 2xl:mx-auto py-2 px-4">
         <h1 className="">Leads</h1>
         <div className="flex gap-2">
+          <UserPresence channelName={`leads:${tenantId}`} />
           <Button
             colorScheme="gray"
             size="xs"

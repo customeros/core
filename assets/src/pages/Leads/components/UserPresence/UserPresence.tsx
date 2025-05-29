@@ -1,0 +1,26 @@
+import { useChannel } from 'src/hooks/useChannel';
+import { UserHexagon } from '../UserHexagon';
+
+interface UserPresenceProps {
+  channelName: string;
+}
+
+export const UserPresence = ({ channelName }: UserPresenceProps) => {
+  const { presentUsers, currentUserId } = useChannel(channelName);
+  console.log(presentUsers);
+  return (
+    <div className="flex gap-1">
+      {presentUsers.map((user, idx) => {
+        return (
+          <UserHexagon
+            id={user?.user_id ?? ''}
+            color={user?.color ?? ''}
+            name={user?.username ?? ''}
+            key={`${user?.user_id}-${idx}`}
+            isCurrent={user?.user_id === currentUserId}
+          />
+        );
+      })}
+    </div>
+  );
+};
