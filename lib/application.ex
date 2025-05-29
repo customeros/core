@@ -5,7 +5,7 @@ defmodule Core.Application do
   @impl true
   def start(_type, _args) do
     OpentelemetryPhoenix.setup(adapter: :bandit)
-    OpentelemetryEcto.setup([:core, :repo])
+    OpentelemetryEcto.setup([:core, :repo], db_statement: :enabled)
 
     children = [
       {Phoenix.PubSub, name: Core.PubSub},
