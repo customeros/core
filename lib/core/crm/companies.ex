@@ -18,20 +18,40 @@ defmodule Core.Crm.Companies do
         {"domain", domain}
       ])
 
-      case PrimaryDomainFinder.get_primary_domain(domain) do
-        {:ok, primary_domain} when primary_domain != "" ->
-          case get_by_primary_domain(primary_domain) do
-            nil ->
-              create_company_and_trigger_scraping(primary_domain)
+      # First check if company exists with this exact domain
+      case get_by_primary_domain(domain) do
+        %Company{} = company ->
+          OpenTelemetry.Tracer.set_status(:ok)
+          OpenTelemetry.Tracer.set_attributes([
+            {"company.found_by", "exact_domain"}
+          ])
+          {:ok, company}
 
-            company ->
-              OpenTelemetry.Tracer.set_status(:ok)
-              {:ok, company}
+        nil ->
+          # If not found by exact domain, proceed with primary domain check
+          case PrimaryDomainFinder.get_primary_domain(domain) do
+            {:ok, primary_domain} when primary_domain != "" ->
+              case get_by_primary_domain(primary_domain) do
+                nil ->
+                  OpenTelemetry.Tracer.set_attributes([
+                    {"company.found_by", "primary_domain"},
+                    {"company.status", "created"}
+                  ])
+                  create_company_and_trigger_scraping(primary_domain)
+
+                company ->
+                  OpenTelemetry.Tracer.set_status(:ok)
+                  OpenTelemetry.Tracer.set_attributes([
+                    {"company.found_by", "primary_domain"},
+                    {"company.status", "existing"}
+                  ])
+                  {:ok, company}
+              end
+
+            _ ->
+              OpenTelemetry.Tracer.set_status(:error, "invalid_domain")
+              {:error, "not a valid domain"}
           end
-
-        _ ->
-          OpenTelemetry.Tracer.set_status(:error, "invalid_domain")
-          {:error, "not a valid domain"}
       end
     end
   end

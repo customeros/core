@@ -21,6 +21,7 @@ defmodule Core.Application do
       Core.Researcher.Orchestrator,
       Core.Crm.Companies.Enrich,
       Core.Crm.Companies.CompanyEnricher,
+      Core.Crm.Companies.CompanyDomainProcessor,
       Core.WebTracker.WebSessionCloser,
       Web.Endpoint,
       Web.Presence,
