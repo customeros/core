@@ -7,6 +7,7 @@ defmodule Core.Crm.Companies.CompanyEnrich do
   alias Core.Crm.Companies.Enrichments
   alias Core.Crm.Industries
   alias Core.Utils.Errors
+  alias Core.Utils.Media.Images
 
   def enrich_industry_task(company_id) do
     span_ctx = OpenTelemetry.Tracer.current_span_ctx()
@@ -110,6 +111,7 @@ defmodule Core.Crm.Companies.CompanyEnrich do
                   OpenTelemetry.Tracer.set_attributes([
                     {"error.reason", inspect(reason)}
                   ])
+
                   {:error, reason}
               end
             else
@@ -209,6 +211,7 @@ defmodule Core.Crm.Companies.CompanyEnrich do
                   OpenTelemetry.Tracer.set_attributes([
                     {"error.reason", inspect(reason)}
                   ])
+
                   {:error, reason}
               end
             else
@@ -318,6 +321,7 @@ defmodule Core.Crm.Companies.CompanyEnrich do
                   OpenTelemetry.Tracer.set_attributes([
                     {"error.reason", inspect(reason)}
                   ])
+
                   {:error, reason}
               end
             else
@@ -329,6 +333,136 @@ defmodule Core.Crm.Companies.CompanyEnrich do
 
               Logger.error(
                 "Failed to mark country enrichment attempt for company #{company_id}"
+              )
+
+              Errors.error(:update_failed)
+            end
+          else
+            :ok
+          end
+      end
+    end
+  end
+
+  def enrich_icon_task(company_id) do
+    span_ctx = OpenTelemetry.Tracer.current_span_ctx()
+
+    Task.Supervisor.start_child(Core.TaskSupervisor, fn ->
+      OpenTelemetry.Tracer.set_current_span(span_ctx)
+      enrich_icon(company_id)
+    end)
+  end
+
+  def enrich_icon(company_id) do
+    OpenTelemetry.Tracer.with_span "company_enrich.enrich_icon" do
+      OpenTelemetry.Tracer.set_attributes([
+        {"company.id", company_id}
+      ])
+
+      case Repo.get(Company, company_id) do
+        nil ->
+          OpenTelemetry.Tracer.set_status(:error, :not_found)
+
+          OpenTelemetry.Tracer.set_attributes([
+            {"error.reason", "Company not found"}
+          ])
+
+          Logger.error("Company #{company_id} not found for country enrichment")
+
+          Errors.error(:not_found)
+
+        company ->
+          if should_enrich_icon?(company) do
+            {count, _} =
+              Repo.update_all(
+                from(c in Company, where: c.id == ^company_id),
+                set: [icon_enrich_attempt_at: DateTime.utc_now()],
+                inc: [icon_enrichment_attempts: 1]
+              )
+
+            if count > 0 do
+              # Get Brandfetch client ID from configuration
+              client_id =
+                Application.get_env(:core, :brandfetch)[:client_id] ||
+                  raise "BRANDFETCH_CLIENT_ID is not configured"
+
+              # Construct Brandfetch URL
+              brandfetch_url =
+                "https://cdn.brandfetch.io/#{company.primary_domain}/type/fallback/404/w/400/h/400?c=#{client_id}"
+
+              # Download and store the icon
+              case Images.download_image(brandfetch_url) do
+                {:ok, image_data} ->
+                  # Only proceed with storage if we got actual image data
+                  case Images.store_image(
+                         image_data,
+                         "image/jpeg",
+                         brandfetch_url,
+                         %{
+                           generate_name: true,
+                           path: "_companies"
+                         }
+                       ) do
+                    {:ok, storage_key} ->
+                      # Update company with the icon storage key
+                      {update_count, _} =
+                        Repo.update_all(
+                          from(c in Company, where: c.id == ^company_id),
+                          set: [icon_key: storage_key]
+                        )
+
+                      if update_count == 0 do
+                        OpenTelemetry.Tracer.set_status(:error, :update_failed)
+
+                        OpenTelemetry.Tracer.set_attributes([
+                          {"error.reason", "Failed to update company icon key"}
+                        ])
+
+                        Logger.error(
+                          "Failed to update icon key for company #{company_id} (domain: #{company.primary_domain})"
+                        )
+
+                        Errors.error(:update_failed)
+                      else
+                        :ok
+                      end
+
+                    {:error, reason} ->
+                      OpenTelemetry.Tracer.set_status(:error, inspect(reason))
+
+                      OpenTelemetry.Tracer.set_attributes([
+                        {"error.reason", inspect(reason)}
+                      ])
+
+                      Logger.error(
+                        "Failed to store icon for company #{company_id} (domain: #{company.primary_domain}): #{inspect(reason)}"
+                      )
+
+                      {:error, reason}
+                  end
+
+                {:error, reason} ->
+                  OpenTelemetry.Tracer.set_status(:error, inspect(reason))
+
+                  OpenTelemetry.Tracer.set_attributes([
+                    {"error.reason", inspect(reason)}
+                  ])
+
+                  Logger.error(
+                    "Failed to download icon for company #{company_id} (domain: #{company.primary_domain}): #{inspect(reason)}"
+                  )
+
+                  {:error, reason}
+              end
+            else
+              OpenTelemetry.Tracer.set_status(:error, :update_failed)
+
+              OpenTelemetry.Tracer.set_attributes([
+                {"error.reason", "Failed to update company enrichment attempt"}
+              ])
+
+              Logger.error(
+                "Failed to mark icon enrichment attempt for company #{company_id}"
               )
 
               Errors.error(:update_failed)
@@ -424,4 +558,24 @@ defmodule Core.Crm.Companies.CompanyEnrich do
   end
 
   defp should_enrich_country?(_), do: false
+
+  @spec should_enrich_icon?(%Company{}) :: boolean()
+  defp should_enrich_icon?(%Company{} = company) do
+    OpenTelemetry.Tracer.with_span "company_enrich.should_enrich_icon?" do
+      OpenTelemetry.Tracer.set_attributes([
+        {"company.id", company.id},
+        {"company.domain", company.primary_domain}
+      ])
+
+      result = is_nil(company.icon_key) or company.icon_key == ""
+
+      OpenTelemetry.Tracer.set_attributes([
+        {"result", result}
+      ])
+
+      result
+    end
+  end
+
+  defp should_enrich_icon?(_), do: false
 end

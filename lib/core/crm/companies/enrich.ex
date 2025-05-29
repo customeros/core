@@ -1,12 +1,12 @@
 defmodule Core.Crm.Companies.Enrich do
   use GenServer
   require Logger
+  require OpenTelemetry.Tracer
   import Ecto.Query
 
   alias Core.Repo
   alias Core.Crm.Companies.Company
   alias Core.Researcher.Scraper
-  alias Core.Utils.Media.Images
   alias Core.Crm.Companies.CompanyEnrich
 
   def start_link(_opts) do
@@ -20,13 +20,6 @@ defmodule Core.Crm.Companies.Enrich do
 
   def scrape_homepage(_), do: {:error, :invalid_company_id}
 
-  @spec enrich_icon(String.t()) :: :ok
-  def enrich_icon(company_id) when is_binary(company_id) do
-    GenServer.cast(__MODULE__, {:enrich_icon, company_id})
-  end
-
-  def enrich_icon(_), do: {:error, :invalid_company_id}
-
   # Server Callbacks
 
   @impl true
@@ -38,120 +31,6 @@ defmodule Core.Crm.Companies.Enrich do
   def handle_cast({:scrape_homepage, company_id}, state) do
     Task.start(fn -> process_homepage_scraping(company_id) end)
     {:noreply, state}
-  end
-
-  @impl true
-  def handle_cast({:enrich_icon, company_id}, state) do
-    Task.start(fn -> process_icon_enrichment(company_id) end)
-    {:noreply, state}
-  end
-
-  # Private Functions
-  defp process_icon_enrichment(company_id) do
-    case Repo.get(Company, company_id) do
-      nil ->
-        Logger.error("Company #{company_id} not found for icon enrichment")
-
-      company ->
-        if should_enrich_icon?(company) do
-          # Update both the attempt timestamp and increment attempts counter
-          {count, _} =
-            Repo.update_all(
-              from(c in Company, where: c.id == ^company_id),
-              set: [icon_enrich_attempt_at: DateTime.utc_now()],
-              inc: [icon_enrichment_attempts: 1]
-            )
-
-          if count > 0 do
-            # Get Brandfetch client ID from configuration
-            client_id =
-              Application.get_env(:core, :brandfetch)[:client_id] ||
-                raise "BRANDFETCH_CLIENT_ID is not configured"
-
-            # Construct Brandfetch URL
-            brandfetch_url =
-              "https://cdn.brandfetch.io/#{company.primary_domain}/type/fallback/404/w/400/h/400?c=#{client_id}"
-
-            # Download and store the icon
-            case Images.download_image(brandfetch_url) do
-              {:ok, image_data} ->
-                # Only proceed with storage if we got actual image data
-                case Images.store_image(
-                       image_data,
-                       "image/jpeg",
-                       brandfetch_url,
-                       %{
-                         generate_name: true,
-                         path: "_companies"
-                       }
-                     ) do
-                  {:ok, storage_key} ->
-                    # Update company with the icon storage key
-                    {update_count, _} =
-                      Repo.update_all(
-                        from(c in Company, where: c.id == ^company_id),
-                        set: [icon_key: storage_key]
-                      )
-
-                    if update_count == 0 do
-                      Logger.error(
-                        "Failed to update icon key for company #{company_id} (domain: #{company.primary_domain})"
-                      )
-                    end
-
-                  {:error, reason} ->
-                    Logger.error(
-                      "Failed to store icon for company #{company_id} (domain: #{company.primary_domain}): #{inspect(reason)}"
-                    )
-                end
-
-              {:error, :image_not_found} ->
-                {:error, :image_not_found}
-
-              {:error, reason} ->
-                Logger.error(
-                  "Failed to download icon for company #{company_id} (domain: #{company.primary_domain}): #{inspect(reason)}"
-                )
-
-                {:error, reason}
-            end
-          else
-            Logger.error(
-              "Failed to mark icon enrichment attempt for company #{company_id}"
-            )
-          end
-        else
-          Logger.error(
-            "Skipping icon enrichment for company #{company_id}: #{icon_enrichment_skip_reason(company)}"
-          )
-        end
-    end
-  end
-
-  defp should_enrich_icon?(company) do
-    cond do
-      not is_nil(company.icon_key) and company.icon_key != "" ->
-        false
-
-      is_nil(company.primary_domain) or company.primary_domain == "" ->
-        false
-
-      true ->
-        true
-    end
-  end
-
-  defp icon_enrichment_skip_reason(company) do
-    cond do
-      not is_nil(company.icon_key) and company.icon_key != "" ->
-        "icon_key already set"
-
-      is_nil(company.primary_domain) or company.primary_domain == "" ->
-        "no primary domain available"
-
-      true ->
-        "unknown"
-    end
   end
 
   defp process_homepage_scraping(company_id) do
@@ -188,7 +67,7 @@ defmodule Core.Crm.Companies.Enrich do
                     CompanyEnrich.enrich_industry_task(company_id)
                     CompanyEnrich.enrich_name_task(company_id)
                     CompanyEnrich.enrich_country_task(company_id)
-                    enrich_icon(company_id)
+                    CompanyEnrich.enrich_icon_task(company_id)
                   end
 
                 {:error, reason} ->
