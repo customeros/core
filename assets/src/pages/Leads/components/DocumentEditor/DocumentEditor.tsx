@@ -34,8 +34,6 @@ export const DocumentEditor = () => {
     };
   }, [currentUserId, presentUsers]);
 
-  console.log('presenceUser', presenceUser);
-
   useEffect(() => {
     if (urlViewMode) {
       setViewMode(urlViewMode);
