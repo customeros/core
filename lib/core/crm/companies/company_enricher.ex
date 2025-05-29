@@ -12,10 +12,9 @@ defmodule Core.Crm.Companies.CompanyEnricher do
   require OpenTelemetry.Tracer
   import Ecto.Query
 
-  alias Core.Crm.Companies.Enrich
-  alias Core.Crm.Companies.CompanyEnrich
-  alias Core.Crm.Companies.Company
   alias Core.Repo
+  alias Core.Crm.Companies.Company
+  alias Core.Crm.Companies.CompanyEnrich
 
   # 1 minute
   @default_interval_ms 60 * 1000
@@ -84,7 +83,7 @@ defmodule Core.Crm.Companies.CompanyEnricher do
         {"company.domain", company.primary_domain}
       ])
 
-      case Enrich.enrich_icon(company.id) do
+      case CompanyEnrich.enrich_icon(company.id) do
         :ok ->
           OpenTelemetry.Tracer.set_status(:ok)
           :ok
