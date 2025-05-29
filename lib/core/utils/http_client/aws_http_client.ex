@@ -1,4 +1,4 @@
-defmodule Core.HttpClient.AwsHttpClient do
+defmodule Core.Utils.HttpClient.AwsHttpClient do
   @moduledoc """
   Custom HTTP client for ExAws using Finch.
   Implements the ExAws.Request.HttpClient behaviour.
