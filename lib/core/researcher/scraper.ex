@@ -1,109 +1,90 @@
 defmodule Core.Researcher.Scraper do
   require Logger
+  alias Core.Researcher.Scraper.Jina
+  alias Core.Researcher.Scraper.Puremd
+  alias Core.Researcher.Scraper.ContentProcessor
+  alias Core.Researcher.Errors
+  alias Core.Researcher.Webpages.Cleaner
 
-  @error_unprocessable "unable to scrape webpage"
-  # 1 min
-  @default_scraper_timeout 60 * 1000
-
-  defp jina_service,
-    do: Application.get_env(:core, :jina_service, Core.External.Jina.Service)
-
-  defp puremd_service,
-    do:
-      Application.get_env(:core, :puremd_service, Core.External.Puremd.Service)
-
-  defp classify_service,
-    do:
-      Application.get_env(
-        :core,
-        :classify_service,
-        Core.Researcher.Webpages.Classifier
-      )
-
-  defp profile_intent_service,
-    do:
-      Application.get_env(
-        :core,
-        :profile_intent_service,
-        Core.Researcher.Webpages.IntentGenerator
-      )
+  # 50 seconds
+  @scraper_timeout 50 * 1000
 
   def scrape_webpage(url) do
     case Core.Researcher.ScrapedWebpages.get_by_url(url) do
-      {:error, :not_found} -> fetch_and_process_webpage(url)
       {:ok, existing_record} -> use_cached_content(existing_record)
+      {:error, :not_found} -> fetch_and_process_webpage(url)
     end
   end
 
-  defp fetch_and_process_webpage(url, timeout \\ @default_scraper_timeout) do
-    task =
-      Task.Supervisor.async(Core.Researcher.Scraper.Supervisor, fn ->
-        fetch_webpage_content(url)
-      end)
-
-    case Task.yield(task, timeout) do
-      {:ok, result} ->
-        result
-
-      nil ->
-        Task.Supervisor.terminate_child(
-          Core.Researcher.Scraper.Supervisor,
-          task.pid
-        )
-
-        {:error, "webpage_fetch_timeout"}
-
-      {:exit, reason} ->
-        {:error, "webpage_fetch_failed: #{inspect(reason)}"}
+  defp fetch_and_process_webpage(url) do
+    with {:ok, content} <- fetch_webpage(url),
+         task <-
+           ContentProcessor.handle_scraped_content_supervised(content, url),
+         result <- Task.await(task, @scraper_timeout) do
+      result
+    else
+      {:error, reason} -> Errors.error(reason)
     end
   end
 
-  defp fetch_webpage_content(url) do
+  defp fetch_webpage(url) do
     with {:error, _jina_reason} <- try_jina_service(url),
          {:error, puremd_reason} <- try_puremd_service(url) do
       handle_fetch_error(puremd_reason)
     else
-      {:ok, result} -> {:ok, result}
+      {:ok, content} ->
+        clean_content =
+          content
+          |> Cleaner.process_markdown_webpage()
+
+        {:ok, clean_content}
     end
   end
 
-  defp handle_fetch_error({:api_error, message}) do
-    {:error, "API Error: #{message}"}
+  defp handle_fetch_error({:http_error, message}) do
+    Errors.error("HTTP Error: #{message}")
   end
 
   defp handle_fetch_error(reason) when is_binary(reason) do
-    {:error, "Error: #{reason}"}
+    Errors.error(reason)
   end
 
   defp handle_fetch_error(reason) do
-    {:error, "Error: #{inspect(reason)}"}
+    Errors.error("Error: #{inspect(reason)}")
   end
 
   defp try_jina_service(url) do
     Logger.info("Attempting to fetch #{url} with Jina service")
-
-    with {:ok, content} <- jina_service().fetch_page(url),
-         {:ok, validated_content} <- validate_content(content) do
-      handle_scraped_content(url, validated_content)
-    else
-      {:error, reason} ->
-        error_message = format_error(reason)
-        Logger.warning("Jina service failed for #{url}: #{error_message}")
-        {:error, "Jina failed: #{error_message}"}
-    end
+    task = Jina.fetch_page_supervised(url)
+    await_scraped_webpage(url, task, @scraper_timeout, "Jina webscraper")
   end
 
   defp try_puremd_service(url) do
-    Logger.info("Attempting to fetch #{url} with Puremd service")
+    Logger.info("Attempting to fetch #{url} with PureMD service")
+    task = Puremd.fetch_page_supervised(url)
+    await_scraped_webpage(url, task, @scraper_timeout, "PureMD webscraper")
+  end
 
-    with {:ok, content} <- puremd_service().fetch_page(url),
-         {:ok, validated_content} <- validate_content(content) do
-      handle_scraped_content(url, validated_content)
-    else
-      {:error, reason} ->
-        error_message = format_error(reason)
-        Logger.warning("Puremd service failed for #{url}: #{error_message}")
-        {:error, "Puremd failed: #{error_message}"}
+  defp await_scraped_webpage(url, task, timeout, task_name) do
+    case Task.yield(task, timeout) do
+      {:ok, {:ok, content}} ->
+        content
+        |> validate_content()
+
+      {:ok, {:error, reason}} ->
+        Logger.warning("#{task_name} failed for #{url}: #{reason}")
+        {:error, reason}
+
+      {:ok, {:http_error, reason}} ->
+        Logger.warning("#{task_name} failed for #{url}: #{reason}")
+        {:error, reason}
+
+      nil ->
+        Task.shutdown(task)
+        Errors.error(:webscraper_timeout)
+
+      {:exit, reason} ->
+        Errors.error(reason)
     end
   end
 
@@ -116,156 +97,29 @@ defmodule Core.Researcher.Scraper do
        content: record.content,
        classification: build_classification_from_record(record),
        intent: build_intent_from_record(record),
+       summary: record.summary,
        links: record.links || []
      }}
-  end
-
-  defp handle_scraped_content(url, content) do
-    Logger.info("Processing scraped content for #{url}")
-
-    with {:ok, processed_data} <- process_webpage(url, content),
-         {:ok, _saved_webpage} <- save_to_database(url, processed_data) do
-      {:ok, processed_data}
-    else
-      {:error, reason} -> {:error, reason}
-    end
-  end
-
-  defp save_to_database(url, %{
-         content: content,
-         classification: classification,
-         intent: intent,
-         links: links,
-         summary: summary
-       }) do
-    case Core.Researcher.ScrapedWebpages.save_scraped_content(
-           url,
-           content,
-           links,
-           classification,
-           intent,
-           summary
-         ) do
-      {:ok, saved_webpage} ->
-        Logger.info("Successfully saved webpage data for #{url}")
-        {:ok, saved_webpage}
-
-      {:error, db_error} ->
-        Logger.error("Database save failed for #{url}: #{inspect(db_error)}")
-        {:error, "Database save failed: #{inspect(db_error)}"}
-    end
   end
 
   defp validate_content(content) do
     cond do
       content == "" ->
-        {:error, @error_unprocessable}
+        {:error, :no_content}
 
       String.contains?(content, "403 Forbidden") ->
-        {:error, @error_unprocessable}
+        {:error, :unprocessable}
 
       String.contains?(content, "Robot Challenge") ->
-        {:error, @error_unprocessable}
+        {:error, :unprocessable}
 
       String.contains?(content, "no content") ->
-        {:error, @error_unprocessable}
+        {:error, :no_content}
 
       true ->
         {:ok, content}
     end
   end
-
-  defp process_webpage(url, content) do
-    domain = extract_domain(url)
-
-    clean_content =
-      Core.Researcher.Webpages.Cleaner.process_markdown_webpage(content)
-
-    # Start all 4 processes in parallel
-    classification_task =
-      Task.Supervisor.async(Core.Researcher.Scraper.Supervisor, fn ->
-        classify_service().classify_webpage_content(domain, clean_content)
-      end)
-
-    intent_task =
-      Task.Supervisor.async(Core.Researcher.Scraper.Supervisor, fn ->
-        profile_intent_service().profile_webpage_intent(domain, clean_content)
-      end)
-
-    links_task =
-      Task.Supervisor.async(Core.Researcher.Scraper.Supervisor, fn ->
-        Core.Researcher.Webpages.LinkExtractor.extract_links(clean_content)
-      end)
-
-    summarize_task =
-      Task.Supervisor.async(Core.Researcher.Scraper.Supervisor, fn ->
-        Core.Researcher.Webpages.Summarizer.summarize_webpage(
-          url,
-          clean_content
-        )
-      end)
-
-    # Wait for all tasks to complete
-    with {:ok, classification} <-
-           await_task(
-             classification_task,
-             @default_scraper_timeout,
-             "classification"
-           ),
-         {:ok, intent} <-
-           await_task(intent_task, @default_scraper_timeout, "intent"),
-         links <- await_task(links_task, 10_000, "links"),
-         {:ok, summary} <-
-           await_task(summarize_task, @default_scraper_timeout, "summary") do
-      {:ok,
-       %{
-         content: clean_content,
-         classification: classification,
-         intent: intent,
-         links: links,
-         summary: summary
-       }}
-    else
-      {:error, reason} -> {:error, reason}
-    end
-  end
-
-  defp await_task(task, timeout, task_name) do
-    case Task.yield(task, timeout) do
-      {:ok, result} ->
-        result
-
-      nil ->
-        Task.Supervisor.terminate_child(
-          Core.Researcher.Scraper.Supervisor,
-          task.pid
-        )
-
-        {:error, "#{task_name}_timeout"}
-
-      {:exit, reason} ->
-        {:error, "#{task_name}_failed: #{inspect(reason)}"}
-    end
-  end
-
-  defp extract_domain(url) do
-    case URI.parse(url) do
-      %URI{host: host} when is_binary(host) -> host
-      _ -> url
-    end
-  end
-
-  # Helper functions for building structs from database records
-  defp format_error(%Mint.TransportError{reason: reason}),
-    do: "Transport error: #{reason}"
-
-  defp format_error(%{__struct__: struct_name} = error)
-       when is_atom(struct_name) do
-    "#{struct_name}: #{inspect(error)}"
-  end
-
-  defp format_error(error) when is_binary(error), do: error
-  defp format_error(error), do: inspect(error)
 
   defp build_classification_from_record(record) do
     if has_classification_data?(record) do

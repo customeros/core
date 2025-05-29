@@ -15,7 +15,7 @@ defmodule Core.Researcher.IcpFitEvaluator do
            PrimaryDomainFinder.get_primary_domain(domain),
          {:ok, icp} <- IcpProfiles.get_by_tenant_id(tenant_id),
          {:ok, _scraped_data} <-
-           Crawler.start_sync(primary_domain),
+           Crawler.crawl_supervised(primary_domain),
          {:ok, pages} <-
            ScrapedWebpages.get_business_pages_by_domain(primary_domain,
              limit: 10
@@ -38,7 +38,7 @@ defmodule Core.Researcher.IcpFitEvaluator do
             PromptBuilder.build_prompts(domain, pages, icp)
 
           with {:ok, answer} <-
-                 Ai.ask_with_timeout(
+                 Ai.ask_supervised(
                    PromptBuilder.build_request(system_prompt, prompt)
                  ),
                {:ok, fit} <- Validator.validate_and_parse(answer) do

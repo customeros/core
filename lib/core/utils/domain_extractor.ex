@@ -22,11 +22,9 @@ defmodule Core.Utils.DomainExtractor do
 
       case DomainValidator.validate_domain(base_domain) do
         {:ok, normalized_domain} -> {:ok, normalized_domain}
-        # This will be a domain_error()
         {:error, reason} -> {:error, reason}
       end
     else
-      # This will be a url_error()
       {:error, reason} -> {:error, reason}
     end
   end

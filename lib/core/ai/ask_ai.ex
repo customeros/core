@@ -7,55 +7,12 @@ defmodule Core.Ai do
   @gemini_models [:gemini_pro, :gemini_flash]
   @supported_models @anthropic_models ++ @gemini_models
 
-  # 90 seconds
-  @default_timeout 90 * 1000
-
   @doc """
-  Supervised AI request with timeout - convenience function
+  Supervised async AI request 
   """
-  @spec ask_with_timeout(
-          Ai.Request.t(),
-          timeout()
-        ) ::
-          {:ok, String.t()} | {:error, any()}
-  def ask_with_timeout(
-        request,
-        timeout \\ @default_timeout
-      ) do
-    OpenTelemetry.Tracer.with_span "ai.ask_with_timeout" do
-      OpenTelemetry.Tracer.set_attributes([
-        {"ai.model", request.model},
-        {"ai.timeout_ms", timeout},
-        {"ai.max_tokens", request.max_output_tokens},
-        {"ai.temperature", request.model_temperature},
-        {"ai.has_system_prompt", not is_nil(request.system_prompt)}
-      ])
-
-      task = ask_async(request)
-
-      case Task.yield(task, timeout) do
-        {:ok, result} ->
-          OpenTelemetry.Tracer.set_status(:ok)
-          result
-
-        nil ->
-          OpenTelemetry.Tracer.set_status(:error, "ai_request_timeout")
-          Task.Supervisor.terminate_child(Core.Ai.Supervisor, task.pid)
-          {:error, :ai_request_timeout}
-
-        {:exit, reason} ->
-          OpenTelemetry.Tracer.set_status(:error, "ai_request_failed")
-          {:error, {:ai_request_failed, reason}}
-      end
-    end
-  end
-
-  @doc """
-  Supervised async AI request - returns task for caller control
-  """
-  @spec ask_async(Ai.Request.t()) :: Task.t()
-  def ask_async(request) do
-    OpenTelemetry.Tracer.with_span "ai.ask_async" do
+  @spec ask_supervised(Ai.Request.t()) :: Task.t()
+  def ask_supervised(request) do
+    OpenTelemetry.Tracer.with_span "ai.ask_supervised" do
       OpenTelemetry.Tracer.set_attributes([
         {"ai.model", request.model},
         {"ai.max_tokens", request.max_output_tokens},
@@ -63,7 +20,7 @@ defmodule Core.Ai do
         {"ai.has_system_prompt", not is_nil(request.system_prompt)}
       ])
 
-      Task.Supervisor.async(Core.Ai.Supervisor, fn ->
+      Task.Supervisor.async(Core.TaskSupervisor, fn ->
         ask(request)
       end)
     end
