@@ -6,9 +6,9 @@ defmodule Core.Crm.Companies.Enrich do
   alias Core.Repo
   alias Core.Crm.Companies.Company
   alias Core.Researcher.Scraper
-  alias Core.Crm.Industries
   alias Core.Utils.Media.Images
   alias Core.Crm.Companies.Enrichments
+  alias Core.Crm.Companies.CompanyEnrich
 
   def start_link(_opts) do
     GenServer.start_link(__MODULE__, %{}, name: __MODULE__)
@@ -20,13 +20,6 @@ defmodule Core.Crm.Companies.Enrich do
   end
 
   def scrape_homepage(_), do: {:error, :invalid_company_id}
-
-  @spec enrich_industry(String.t()) :: :ok
-  def enrich_industry(company_id) when is_binary(company_id) do
-    GenServer.cast(__MODULE__, {:enrich_industry, company_id})
-  end
-
-  def enrich_industry(_), do: {:error, :invalid_company_id}
 
   @spec enrich_name(String.t()) :: :ok
   def enrich_name(company_id) when is_binary(company_id) do
@@ -94,12 +87,6 @@ defmodule Core.Crm.Companies.Enrich do
   end
 
   @impl true
-  def handle_cast({:enrich_industry, company_id}, state) do
-    Task.start(fn -> process_industry_enrichment(company_id) end)
-    {:noreply, state}
-  end
-
-  @impl true
   def handle_cast({:enrich_name, company_id}, state) do
     Task.start(fn -> process_name_enrichment(company_id) end)
     {:noreply, state}
@@ -118,70 +105,6 @@ defmodule Core.Crm.Companies.Enrich do
   end
 
   # Private Functions
-
-  defp process_industry_enrichment(company_id) do
-    case Repo.get(Company, company_id) do
-      nil ->
-        Logger.error("Company #{company_id} not found for industry enrichment")
-
-      company ->
-        if should_enrich_industry?(company) do
-          {count, _} =
-            Repo.update_all(
-              from(c in Company, where: c.id == ^company_id),
-              set: [industry_enrich_attempt_at: DateTime.utc_now()],
-              inc: [industry_enrichment_attempts: 1]
-            )
-
-          if count > 0 do
-            # Get industry code from AI
-            case Enrichments.Industry.identify(%{
-                   domain: company.primary_domain,
-                   homepage_content: company.homepage_content
-                 }) do
-              {:ok, industry_code} ->
-                # Get industry name from our industries table
-                case Industries.get_by_code(industry_code) do
-                  nil ->
-                    Logger.warning(
-                      "Industry code #{industry_code} not found in industries table for company #{company_id}"
-                    )
-
-                  industry ->
-                    # Update company with industry code and name
-                    {update_count, _} =
-                      Repo.update_all(
-                        from(c in Company, where: c.id == ^company_id),
-                        set: [
-                          industry_code: industry.code,
-                          industry: industry.name
-                        ]
-                      )
-
-                    if update_count == 0 do
-                      Logger.error(
-                        "Failed to update industry for company #{company_id} (domain: #{company.primary_domain})"
-                      )
-                    end
-                end
-
-              {:error, reason} ->
-                Logger.error(
-                  "Failed to get industry code from AI for company #{company_id} (domain: #{company.primary_domain}): #{inspect(reason)}"
-                )
-            end
-          else
-            Logger.error(
-              "Failed to mark industry enrichment attempt for company #{company_id}"
-            )
-          end
-        else
-          Logger.info(
-            "Skipping industry enrichment for company #{company_id}: #{enrichment_skip_reason(company)}"
-          )
-        end
-    end
-  end
 
   defp process_name_enrichment(company_id) do
     case Repo.get(Company, company_id) do
@@ -368,19 +291,6 @@ defmodule Core.Crm.Companies.Enrich do
     end
   end
 
-  defp should_enrich_industry?(company) do
-    cond do
-      not is_nil(company.industry_code) ->
-        false
-
-      is_nil(company.homepage_content) or company.homepage_content == "" ->
-        false
-
-      true ->
-        true
-    end
-  end
-
   defp should_enrich_name?(company) do
     cond do
       not is_nil(company.name) and company.name != "" ->
@@ -417,19 +327,6 @@ defmodule Core.Crm.Companies.Enrich do
 
       true ->
         true
-    end
-  end
-
-  defp enrichment_skip_reason(company) do
-    cond do
-      not is_nil(company.industry_code) ->
-        "industry_code already set"
-
-      is_nil(company.homepage_content) or company.homepage_content == "" ->
-        "no homepage content available"
-
-      true ->
-        "unknown"
     end
   end
 
@@ -503,7 +400,7 @@ defmodule Core.Crm.Companies.Enrich do
                     )
                   else
                     # Trigger enrichment processes after successful scraping
-                    enrich_industry(company_id)
+                    CompanyEnrich.enrich_industry_task(company_id)
                     enrich_name(company_id)
                     enrich_country(company_id)
                     enrich_icon(company_id)
