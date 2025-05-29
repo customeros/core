@@ -104,10 +104,13 @@ defmodule Core.Crm.Companies.CompanyEnrich do
                   Logger.error(
                     "Failed to get industry code from AI for company #{company_id} (domain: #{company.primary_domain}): #{inspect(reason)}"
                   )
+
                   OpenTelemetry.Tracer.set_status(:error, inspect(reason))
+
                   OpenTelemetry.Tracer.set_attributes([
                     {"error.reason", inspect(reason)}
                   ])
+                  {:error, reason}
               end
             else
               OpenTelemetry.Tracer.set_status(:error, :update_failed)
@@ -122,6 +125,8 @@ defmodule Core.Crm.Companies.CompanyEnrich do
 
               Errors.error(:update_failed)
             end
+          else
+            :ok
           end
       end
     end
@@ -198,10 +203,13 @@ defmodule Core.Crm.Companies.CompanyEnrich do
                   Logger.error(
                     "Failed to get name from AI for company #{company_id} (domain: #{company.primary_domain}): #{inspect(reason)}"
                   )
+
                   OpenTelemetry.Tracer.set_status(:error, inspect(reason))
+
                   OpenTelemetry.Tracer.set_attributes([
                     {"error.reason", inspect(reason)}
                   ])
+                  {:error, reason}
               end
             else
               OpenTelemetry.Tracer.set_status(:error, :update_failed)
@@ -216,6 +224,8 @@ defmodule Core.Crm.Companies.CompanyEnrich do
 
               Errors.error(:update_failed)
             end
+          else
+            :ok
           end
       end
     end
@@ -260,18 +270,21 @@ defmodule Core.Crm.Companies.CompanyEnrich do
             if count > 0 do
               # Get name from AI
               case Enrichments.Location.identifyCountryCodeA2(%{
-                domain: company.primary_domain,
-                homepage_content: company.homepage_content
-              }) do
+                     domain: company.primary_domain,
+                     homepage_content: company.homepage_content
+                   }) do
                 {:ok, "XX"} ->
                   OpenTelemetry.Tracer.set_attributes([
                     {"ai.country_code_a2", "XX"}
                   ])
+
                   :ok
+
                 {:ok, country_code_a2} ->
                   OpenTelemetry.Tracer.set_attributes([
                     {"ai.country_code_a2", country_code_a2}
                   ])
+
                   # Ensure country code is uppercase before saving
                   country_code_a2_uppercase = String.upcase(country_code_a2)
 
@@ -299,10 +312,13 @@ defmodule Core.Crm.Companies.CompanyEnrich do
                   Logger.error(
                     "Failed to get country code from AI for company #{company_id} (domain: #{company.primary_domain}): #{inspect(reason)}"
                   )
+
                   OpenTelemetry.Tracer.set_status(:error, inspect(reason))
+
                   OpenTelemetry.Tracer.set_attributes([
                     {"error.reason", inspect(reason)}
                   ])
+                  {:error, reason}
               end
             else
               OpenTelemetry.Tracer.set_status(:error, :update_failed)
@@ -317,6 +333,8 @@ defmodule Core.Crm.Companies.CompanyEnrich do
 
               Errors.error(:update_failed)
             end
+          else
+            :ok
           end
       end
     end

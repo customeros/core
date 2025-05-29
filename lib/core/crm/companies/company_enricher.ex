@@ -17,8 +17,10 @@ defmodule Core.Crm.Companies.CompanyEnricher do
   alias Core.Crm.Companies.Company
   alias Core.Repo
 
-  @default_interval_ms 60 * 1000 # 1 minute
-  @long_interval_ms 15 * 60 * 1000 # 15 minutes
+  # 1 minute
+  @default_interval_ms 60 * 1000
+  # 15 minutes
+  @long_interval_ms 15 * 60 * 1000
   @default_batch_size 10
 
   def start_link(opts \\ []) do
@@ -40,12 +42,14 @@ defmodule Core.Crm.Companies.CompanyEnricher do
       {_, numCompaniesForIndustryEnrichment} = enrich_companies_industry()
 
       # Schedule the next check - use default interval if either enrichment hit the batch size
-      next_interval_ms = if numCompaniesForIconEnrichment == @default_batch_size or
-                            numCompaniesForIndustryEnrichment == @default_batch_size do
-        @default_interval_ms
-      else
-        @long_interval_ms
-      end
+      next_interval_ms =
+        if numCompaniesForIconEnrichment == @default_batch_size or
+             numCompaniesForIndustryEnrichment == @default_batch_size do
+          @default_interval_ms
+        else
+          @long_interval_ms
+        end
+
       schedule_check(next_interval_ms)
 
       {:noreply, state}
@@ -59,10 +63,12 @@ defmodule Core.Crm.Companies.CompanyEnricher do
 
   defp enrich_companies_icon() do
     OpenTelemetry.Tracer.with_span "company_enricher.enrich_companies_icon" do
-    companiesForIconEnrichment = fetch_companies_for_icon_enrichment(@default_batch_size)
+      companiesForIconEnrichment =
+        fetch_companies_for_icon_enrichment(@default_batch_size)
+
       OpenTelemetry.Tracer.set_attributes([
         {"companies.found", length(companiesForIconEnrichment)},
-        {"batch.size", @default_batch_size},
+        {"batch.size", @default_batch_size}
       ])
 
       # Enrich each company's icon
@@ -85,7 +91,11 @@ defmodule Core.Crm.Companies.CompanyEnricher do
 
         {:error, reason} ->
           OpenTelemetry.Tracer.set_status(:error, inspect(reason))
-          Logger.error("Failed to start icon enrichment for company: #{company.id} (domain: #{company.primary_domain}), reason: #{inspect(reason)}")
+
+          Logger.error(
+            "Failed to start icon enrichment for company: #{company.id} (domain: #{company.primary_domain}), reason: #{inspect(reason)}"
+          )
+
           {:error, reason}
       end
     end
@@ -101,10 +111,10 @@ defmodule Core.Crm.Companies.CompanyEnricher do
     |> where([c], is_nil(c.icon_key) or c.icon_key == "")
     |> where([c], c.icon_enrichment_attempts < ^max_attempts)
     |> where(
-         [c],
-         is_nil(c.icon_enrich_attempt_at) or
-         c.icon_enrich_attempt_at < ^twenty_four_hours_ago
-       )
+      [c],
+      is_nil(c.icon_enrich_attempt_at) or
+        c.icon_enrich_attempt_at < ^twenty_four_hours_ago
+    )
     |> where([c], c.inserted_at < ^ten_minutes_ago)
     |> order_by([c], asc: c.icon_enrich_attempt_at)
     |> limit(^batch_size)
@@ -113,10 +123,12 @@ defmodule Core.Crm.Companies.CompanyEnricher do
 
   defp enrich_companies_industry() do
     OpenTelemetry.Tracer.with_span "company_enricher.enrich_companies_industry" do
-    companiesForIndustryEnrichment = fetch_companies_for_industry_enrichment(@default_batch_size)
+      companiesForIndustryEnrichment =
+        fetch_companies_for_industry_enrichment(@default_batch_size)
+
       OpenTelemetry.Tracer.set_attributes([
         {"companies.found", length(companiesForIndustryEnrichment)},
-        {"batch.size", @default_batch_size},
+        {"batch.size", @default_batch_size}
       ])
 
       # Enrich each company's icon
@@ -139,9 +151,11 @@ defmodule Core.Crm.Companies.CompanyEnricher do
 
         {:error, reason} ->
           OpenTelemetry.Tracer.set_status(:error, inspect(reason))
+
           OpenTelemetry.Tracer.set_attributes([
             {"error.reason", inspect(reason)}
           ])
+
           {:error, reason}
       end
     end
@@ -157,14 +171,13 @@ defmodule Core.Crm.Companies.CompanyEnricher do
     |> where([c], is_nil(c.industry_code) or c.industry_code == "")
     |> where([c], c.industry_enrichment_attempts < ^max_attempts)
     |> where(
-         [c],
-         is_nil(c.industry_enrich_attempt_at) or
-         c.industry_enrich_attempt_at < ^twenty_four_hours_ago
-       )
+      [c],
+      is_nil(c.industry_enrich_attempt_at) or
+        c.industry_enrich_attempt_at < ^twenty_four_hours_ago
+    )
     |> where([c], c.inserted_at < ^ten_minutes_ago)
     |> order_by([c], asc: c.industry_enrich_attempt_at)
     |> limit(^batch_size)
     |> Repo.all()
   end
-
 end
