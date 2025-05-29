@@ -17,6 +17,7 @@ defmodule Core.Crm.Companies.CompanyEnrich do
     end)
   end
 
+  @spec enrich_industry(String.t()) :: :ok | {:error, atom()}
   def enrich_industry(company_id) do
     OpenTelemetry.Tracer.with_span "company_enrich.enrich_industry" do
       OpenTelemetry.Tracer.set_attributes([

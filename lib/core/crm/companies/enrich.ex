@@ -7,7 +7,6 @@ defmodule Core.Crm.Companies.Enrich do
   alias Core.Crm.Companies.Company
   alias Core.Researcher.Scraper
   alias Core.Utils.Media.Images
-  alias Core.Crm.Companies.Enrichments
   alias Core.Crm.Companies.CompanyEnrich
 
   def start_link(_opts) do
@@ -27,37 +26,6 @@ defmodule Core.Crm.Companies.Enrich do
   end
 
   def enrich_icon(_), do: {:error, :invalid_company_id}
-
-  @doc """
-  Fetches companies that need icon enrichment.
-
-  ## Parameters
-    * `batch_size` - Number of records to return (default: 10)
-
-  ## Returns
-    * List of companies that:
-      - Have no icon_key
-      - Have not been attempted in the last 24 hours or have never been attempted
-  """
-  @spec fetch_companies_for_icon_enrichment(integer()) :: [Company.t()]
-  def fetch_companies_for_icon_enrichment(batch_size \\ 10) do
-    twenty_four_hours_ago = DateTime.add(DateTime.utc_now(), -24 * 60 * 60)
-    ten_minutes_ago = DateTime.add(DateTime.utc_now(), -10 * 60)
-    max_attempts = 5
-
-    Company
-    |> where([c], is_nil(c.icon_key) or c.icon_key == "")
-    |> where([c], c.icon_enrichment_attempts < ^max_attempts)
-    |> where(
-      [c],
-      is_nil(c.icon_enrich_attempt_at) or
-        c.icon_enrich_attempt_at < ^twenty_four_hours_ago
-    )
-    |> where([c], c.inserted_at < ^ten_minutes_ago)
-    |> order_by([c], asc: c.icon_enrich_attempt_at)
-    |> limit(^batch_size)
-    |> Repo.all()
-  end
 
   # Server Callbacks
 
