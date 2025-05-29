@@ -22,8 +22,9 @@ export const usePresence = () => useContext(PresenceContext);
 
 export const PresenceProvider = ({ children }: { children: ReactNode }) => {
   const page = usePage();
-  const tenantId = (page.props.tenant as Tenant).id;
-  const { presentUsers, currentUserId } = useChannel(`leads:${tenantId}`);
+  const tenant = page.props.tenant as Tenant | undefined;
+  const tenantId = tenant?.id;
+  const { presentUsers, currentUserId } = useChannel(tenantId ? `leads:${tenantId}` : '');
 
   return (
     <PresenceContext.Provider value={{ presentUsers, currentUserId }}>
