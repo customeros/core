@@ -21,13 +21,6 @@ defmodule Core.Crm.Companies.Enrich do
 
   def scrape_homepage(_), do: {:error, :invalid_company_id}
 
-  @spec enrich_name(String.t()) :: :ok
-  def enrich_name(company_id) when is_binary(company_id) do
-    GenServer.cast(__MODULE__, {:enrich_name, company_id})
-  end
-
-  def enrich_name(_), do: {:error, :invalid_company_id}
-
   @spec enrich_country(String.t()) :: :ok
   def enrich_country(company_id) when is_binary(company_id) do
     GenServer.cast(__MODULE__, {:enrich_country, company_id})
@@ -87,12 +80,6 @@ defmodule Core.Crm.Companies.Enrich do
   end
 
   @impl true
-  def handle_cast({:enrich_name, company_id}, state) do
-    Task.start(fn -> process_name_enrichment(company_id) end)
-    {:noreply, state}
-  end
-
-  @impl true
   def handle_cast({:enrich_country, company_id}, state) do
     Task.start(fn -> process_country_enrichment(company_id) end)
     {:noreply, state}
@@ -105,58 +92,6 @@ defmodule Core.Crm.Companies.Enrich do
   end
 
   # Private Functions
-
-  defp process_name_enrichment(company_id) do
-    case Repo.get(Company, company_id) do
-      nil ->
-        Logger.warning("Company #{company_id} not found for name enrichment")
-
-      company ->
-        if should_enrich_name?(company) do
-          {count, _} =
-            Repo.update_all(
-              from(c in Company, where: c.id == ^company_id),
-              set: [name_enrich_attempt_at: DateTime.utc_now()],
-              inc: [name_enrichment_attempts: 1]
-            )
-
-          if count > 0 do
-            # Get company name from AI
-            case Enrichments.Name.identify(%{
-                   domain: company.primary_domain,
-                   homepage_content: company.homepage_content
-                 }) do
-              {:ok, name} ->
-                # Update company with the identified name
-                {update_count, _} =
-                  Repo.update_all(
-                    from(c in Company, where: c.id == ^company_id),
-                    set: [name: name]
-                  )
-
-                if update_count == 0 do
-                  Logger.error(
-                    "Failed to update name for company #{company_id} (domain: #{company.primary_domain})"
-                  )
-                end
-
-              {:error, reason} ->
-                Logger.error(
-                  "Failed to get company name from AI for company #{company_id} (domain: #{company.primary_domain}): #{inspect(reason)}"
-                )
-            end
-          else
-            Logger.error(
-              "Failed to mark name enrichment attempt for company #{company_id}"
-            )
-          end
-        else
-          Logger.info(
-            "Skipping name enrichment for company #{company_id}: #{name_enrichment_skip_reason(company)}"
-          )
-        end
-    end
-  end
 
   defp process_country_enrichment(company_id) do
     case Repo.get(Company, company_id) do
@@ -291,19 +226,6 @@ defmodule Core.Crm.Companies.Enrich do
     end
   end
 
-  defp should_enrich_name?(company) do
-    cond do
-      not is_nil(company.name) and company.name != "" ->
-        false
-
-      is_nil(company.homepage_content) or company.homepage_content == "" ->
-        false
-
-      true ->
-        true
-    end
-  end
-
   defp should_enrich_country?(company) do
     cond do
       not is_nil(company.country_a2) and company.country_a2 != "" ->
@@ -327,19 +249,6 @@ defmodule Core.Crm.Companies.Enrich do
 
       true ->
         true
-    end
-  end
-
-  defp name_enrichment_skip_reason(company) do
-    cond do
-      not is_nil(company.name) and company.name != "" ->
-        "name already set"
-
-      is_nil(company.homepage_content) or company.homepage_content == "" ->
-        "no homepage content available"
-
-      true ->
-        "unknown"
     end
   end
 
@@ -401,7 +310,7 @@ defmodule Core.Crm.Companies.Enrich do
                   else
                     # Trigger enrichment processes after successful scraping
                     CompanyEnrich.enrich_industry_task(company_id)
-                    enrich_name(company_id)
+                    CompanyEnrich.enrich_name_task(company_id)
                     enrich_country(company_id)
                     enrich_icon(company_id)
                   end

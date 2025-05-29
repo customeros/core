@@ -16,6 +16,7 @@ defmodule Core.Crm.Companies.Enrichments.Industry do
   3. Choose the most specific and appropriate code that best describes the company's primary business activity.
   4. If multiple codes might apply, choose the one that represents the company's main revenue source or core business.
   5. Return ONLY the code (2-6 digits, e.g. "51" for Information, "513" for Publishing Industries, "5132" for Software Publishers, "51321" for Software Publishers, or "513210" for Software Publishers), nothing else.
+  6. DO NOT include any explanation or additional text - just the code.
   """
 
   @type input :: %{
@@ -42,16 +43,10 @@ defmodule Core.Crm.Companies.Enrichments.Industry do
 
     case Task.await(task, @timeout) do
       {:ok, {:ok, response}} ->
-        code =
-          response
-          |> String.trim()
-          |> String.replace(~r/[^0-9]/, "")
+        process_response(response)
 
-        if String.length(code) > 0 do
-          {:ok, code}
-        else
-          {:error, :invalid_ai_response}
-        end
+      {:ok, response} when is_binary(response) ->
+        process_response(response)
 
       {:ok, {:error, reason}} ->
         {:error, reason}
@@ -66,6 +61,21 @@ defmodule Core.Crm.Companies.Enrichments.Industry do
   end
 
   def identify(_), do: {:error, {:invalid_request, "Invalid input format"}}
+
+  defp process_response(response) do
+    code =
+      response
+      |> String.trim()
+      |> String.split("\n")
+      |> List.first()
+      |> String.replace(~r/[^0-9]/, "")
+
+    if String.length(code) > 0 do
+      {:ok, code}
+    else
+      {:error, :invalid_ai_response}
+    end
+  end
 
   defp build_prompt(domain, content) do
     """
