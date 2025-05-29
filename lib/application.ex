@@ -9,7 +9,6 @@ defmodule Core.Application do
 
     children = [
       {Phoenix.PubSub, name: Core.PubSub},
-      {Hammer.Supervisor, []},
       {Task.Supervisor, name: Core.TaskSupervisor},
       Core.Auth.Users.ColorManager,
       Core.Repo,
