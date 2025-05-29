@@ -5,8 +5,10 @@ defmodule Core.Auth.Users do
 
   import Ecto.Query, warn: false
   require Logger
+  require OpenTelemetry.Tracer
   alias Core.Repo
   alias Core.Notifications.Slack
+  alias Core.Auth.PersonalEmailProviders
 
   alias Core.Auth.Users.{User, UserToken, UserNotifier}
   alias Core.Auth.Tenants
@@ -69,47 +71,58 @@ defmodule Core.Auth.Users do
 
   """
   def register_user(attrs) do
-    email = Map.fetch!(attrs, :email)
-    tenant_name = extract_tenant_name(email)
-    domain = extract_domain(email)
+    OpenTelemetry.Tracer.with_span "users.register_user" do
+      OpenTelemetry.Tracer.set_attributes([
+        {"user.email", Map.get(attrs, :email)}
+      ])
 
-    tenant_id =
-      case Tenants.get_tenant_by_name(tenant_name) do
-        {:error, :not_found} ->
-          {:ok, tenant_id} =
-            Tenants.create_tenant(tenant_name, domain)
+      email = Map.fetch!(attrs, :email)
+      domain = extract_domain(email)
 
-          tenant_id
+      if PersonalEmailProviders.exists?(domain) do
+        {:error, %Ecto.Changeset{data: %User{}, errors: [email: {"personal email not allowed", []}]}}
+      else
+        tenant_name = extract_tenant_name(email)
 
-        {:ok, tenant} ->
-          tenant.id
-      end
+        tenant_id =
+          case Tenants.get_tenant_by_name(tenant_name) do
+            {:error, :not_found} ->
+              {:ok, tenant_id} =
+                Tenants.create_tenant(tenant_name, domain)
 
-    # Now register user (optionally you could associate the user with the tenant)
-    result =
-      %User{}
-      |> User.registration_changeset(Map.put(attrs, :tenant_id, tenant_id))
-      |> Repo.insert()
+              tenant_id
 
-    case result do
-      {:ok, _user} ->
-        # Notify Slack about new user
-        Task.start(fn ->
-          case Slack.notify_new_user(email, tenant_name) do
-            :ok ->
-              :ok
-
-            {:error, reason} ->
-              Logger.error(
-                "Failed to send Slack notification for user #{email} creation: #{inspect(reason)}"
-              )
+            {:ok, tenant} ->
+              tenant.id
           end
-        end)
 
-        result
+        # Now register user
+        result =
+          %User{}
+          |> User.registration_changeset(Map.put(attrs, :tenant_id, tenant_id))
+          |> Repo.insert()
 
-      error ->
-        error
+        case result do
+          {:ok, _user} ->
+            # Notify Slack about new user
+            Task.start(fn ->
+              case Slack.notify_new_user(email, tenant_name) do
+                :ok ->
+                  :ok
+
+                {:error, reason} ->
+                  Logger.error(
+                    "Failed to send Slack notification for user #{email} creation: #{inspect(reason)}"
+                  )
+              end
+            end)
+
+            result
+
+          error ->
+            error
+        end
+      end
     end
   end
 
