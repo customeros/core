@@ -65,35 +65,48 @@ defmodule Core.Crm.Companies.CompanyDomainProcessor do
     |> Repo.all()
   end
 
-  defp process_domain(%CompanyDomainQueue{domain: domain} = queue) do
+  defp process_domain(queue_item) do
     OpenTelemetry.Tracer.with_span "company_domain_processor.process_domain" do
-      base_domain = DomainExtractor.extract_base_domain(domain)
-
       OpenTelemetry.Tracer.set_attributes([
-        {"domain.original", domain},
-        {"domain.base", base_domain}
+        {"queue_item.id", queue_item.id},
+        {"queue_item.domain", queue_item.domain}
       ])
 
-      result = case Companies.get_or_create_by_domain(base_domain) do
-        {:ok, company} ->
-          OpenTelemetry.Tracer.set_status(:ok)
+      # Extract base domain from the original domain
+      case DomainExtractor.extract_base_domain(queue_item.domain) do
+        {:ok, base_domain} ->
           OpenTelemetry.Tracer.set_attributes([
-            {"company.id", company.id}
+            {"base_domain", base_domain}
           ])
-          {:ok, company}
+
+          case Companies.get_or_create_by_domain(base_domain) do
+            {:ok, company} ->
+              OpenTelemetry.Tracer.set_status(:ok)
+              OpenTelemetry.Tracer.set_attributes([
+                {"company.id", company.id},
+                {"company.domain", company.primary_domain}
+              ])
+              mark_as_processed(queue_item.id)
+
+            {:error, reason} ->
+              OpenTelemetry.Tracer.set_status(:error, inspect(reason))
+              Logger.error("Failed to process domain #{queue_item.domain} (base: #{base_domain}): #{inspect(reason)}")
+              mark_as_processed(queue_item.id)
+          end
 
         {:error, reason} ->
           OpenTelemetry.Tracer.set_status(:error, inspect(reason))
-          Logger.error("Failed to process domain #{base_domain} (original: #{domain}): #{inspect(reason)}")
-          {:error, reason}
+          Logger.error("Failed to extract base domain from #{queue_item.domain}: #{inspect(reason)}")
+          mark_as_processed(queue_item.id)
       end
-
-      # Mark as processed regardless of outcome
-      queue
-      |> Ecto.Changeset.change(%{processed_at: DateTime.utc_now()})
-      |> Repo.update()
-
-      result
     end
+  end
+
+  defp mark_as_processed(id) do
+    from(q in CompanyDomainQueue,
+      where: q.id == ^id,
+      update: [set: [processed_at: fragment("NOW()")]]
+    )
+    |> Repo.update_all([])
   end
 end
