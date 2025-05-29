@@ -1,12 +1,22 @@
 defmodule Core.Researcher.IcpBuilder do
   alias Core.Researcher.Builder.ProfileWriter
+  alias Core.Researcher.Crawler
   alias Core.Auth.Tenants
 
-  def build_for_tenant(tenant_id) do
+  @crawl_timeout 5 * 60 * 1000
+
+  def tenant_icp_start(tenant_id) do
+    Task.Supervisor.start_child(
+      Core.TaskSupervisor,
+      fn ->
+        tenant_icp(tenant_id)
+      end
+    )
+  end
+
+  def tenant_icp(tenant_id) do
     with {:ok, tenant_record} <- Tenants.get_tenant_by_id(tenant_id),
-         {:ok, _scraped_data} <-
-           Core.Researcher.Crawler.crawl_supervised(tenant_record.domain),
-         {:ok, icp} <- ProfileWriter.generate_icp(tenant_record.domain) do
+         {:ok, icp} <- build_icp(tenant_record.domain) do
       profile = %{
         domain: tenant_record.domain,
         tenant_id: tenant_id,
@@ -20,6 +30,27 @@ defmodule Core.Researcher.IcpBuilder do
       end
     else
       {:error, reason} -> {:error, reason}
+    end
+  end
+
+  def build_icp(domain) do
+    task = Crawler.crawl_supervised(domain)
+
+    with {:ok, {:ok, _scraped_data}} <- Task.yield(task, @crawl_timeout),
+         {:ok, icp} <- ProfileWriter.generate_icp(domain) do
+      {:ok, icp}
+    else
+      {:error, reason} ->
+        {:error, reason}
+
+      {:ok, {:error, reason}} ->
+        {:error, reason}
+
+      {:exit, reason} ->
+        {:error, reason}
+
+      nil ->
+        {:error, :icp_generation_timeout}
     end
   end
 end

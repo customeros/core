@@ -1,4 +1,5 @@
 defmodule Web.Router do
+  alias Web.Controllers.IcpController
   use Web, :router
 
   import Web.UserAuth
@@ -122,6 +123,7 @@ defmodule Web.Router do
     pipe_through :public_api
 
     post "/events", WebTrackerController, :create
+    post "/icp", IcpController, :create
   end
 
   # Protected API routes (session auth required)
