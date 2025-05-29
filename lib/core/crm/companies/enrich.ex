@@ -21,13 +21,6 @@ defmodule Core.Crm.Companies.Enrich do
 
   def scrape_homepage(_), do: {:error, :invalid_company_id}
 
-  @spec enrich_country(String.t()) :: :ok
-  def enrich_country(company_id) when is_binary(company_id) do
-    GenServer.cast(__MODULE__, {:enrich_country, company_id})
-  end
-
-  def enrich_country(_), do: {:error, :invalid_company_id}
-
   @spec enrich_icon(String.t()) :: :ok
   def enrich_icon(company_id) when is_binary(company_id) do
     GenServer.cast(__MODULE__, {:enrich_icon, company_id})
@@ -80,71 +73,12 @@ defmodule Core.Crm.Companies.Enrich do
   end
 
   @impl true
-  def handle_cast({:enrich_country, company_id}, state) do
-    Task.start(fn -> process_country_enrichment(company_id) end)
-    {:noreply, state}
-  end
-
-  @impl true
   def handle_cast({:enrich_icon, company_id}, state) do
     Task.start(fn -> process_icon_enrichment(company_id) end)
     {:noreply, state}
   end
 
   # Private Functions
-
-  defp process_country_enrichment(company_id) do
-    case Repo.get(Company, company_id) do
-      nil ->
-        Logger.error("Company #{company_id} not found for country enrichment")
-
-      company ->
-        if should_enrich_country?(company) do
-          {_count, _} =
-            Repo.update_all(
-              from(c in Company, where: c.id == ^company_id),
-              set: [country_enrich_attempt_at: DateTime.utc_now()],
-              inc: [country_enrichment_attempts: 1]
-            )
-
-          # Get country code from AI
-          case Enrichments.Location.identifyCountryCodeA2(%{
-                 domain: company.primary_domain,
-                 homepage_content: company.homepage_content
-               }) do
-            {:ok, "XX"} ->
-              :ok
-
-            {:ok, country_code_a2} ->
-              # Ensure country code is uppercase before saving
-              country_code_a2_uppercase = String.upcase(country_code_a2)
-
-              # Update company with the identified country code
-              {update_count, _} =
-                Repo.update_all(
-                  from(c in Company, where: c.id == ^company_id),
-                  set: [country_a2: country_code_a2_uppercase]
-                )
-
-              if update_count == 0 do
-                Logger.error(
-                  "Failed to update country for company #{company_id} (domain: #{company.primary_domain})"
-                )
-              end
-
-            {:error, reason} ->
-              Logger.error(
-                "Failed to get country code from AI for company #{company_id} (domain: #{company.primary_domain}): #{inspect(reason)}"
-              )
-          end
-        else
-          Logger.info(
-            "Skipping country enrichment for company #{company_id}: #{country_enrichment_skip_reason(company)}"
-          )
-        end
-    end
-  end
-
   defp process_icon_enrichment(company_id) do
     case Repo.get(Company, company_id) do
       nil ->
@@ -226,19 +160,6 @@ defmodule Core.Crm.Companies.Enrich do
     end
   end
 
-  defp should_enrich_country?(company) do
-    cond do
-      not is_nil(company.country_a2) and company.country_a2 != "" ->
-        false
-
-      is_nil(company.homepage_content) or company.homepage_content == "" ->
-        false
-
-      true ->
-        true
-    end
-  end
-
   defp should_enrich_icon?(company) do
     cond do
       not is_nil(company.icon_key) and company.icon_key != "" ->
@@ -249,19 +170,6 @@ defmodule Core.Crm.Companies.Enrich do
 
       true ->
         true
-    end
-  end
-
-  defp country_enrichment_skip_reason(company) do
-    cond do
-      not is_nil(company.country_a2) and company.country_a2 != "" ->
-        "country_a2 already set"
-
-      is_nil(company.homepage_content) or company.homepage_content == "" ->
-        "no homepage content available"
-
-      true ->
-        "unknown"
     end
   end
 
@@ -311,7 +219,7 @@ defmodule Core.Crm.Companies.Enrich do
                     # Trigger enrichment processes after successful scraping
                     CompanyEnrich.enrich_industry_task(company_id)
                     CompanyEnrich.enrich_name_task(company_id)
-                    enrich_country(company_id)
+                    CompanyEnrich.enrich_country_task(company_id)
                     enrich_icon(company_id)
                   end
 

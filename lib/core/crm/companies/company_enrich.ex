@@ -187,7 +187,7 @@ defmodule Core.Crm.Companies.CompanyEnrich do
                     ])
 
                     Logger.error(
-                      "Failed to update industry for company #{company_id} (domain: #{company.primary_domain})"
+                      "Failed to update name for company #{company_id} (domain: #{company.primary_domain})"
                     )
 
                     Errors.error(:update_failed)
@@ -210,7 +210,108 @@ defmodule Core.Crm.Companies.CompanyEnrich do
               ])
 
               Logger.error(
-                "Failed to mark industry enrichment attempt for company #{company_id}"
+                "Failed to mark name enrichment attempt for company #{company_id}"
+              )
+
+              Errors.error(:update_failed)
+            end
+          end
+      end
+    end
+  end
+
+  def enrich_country_task(company_id) do
+    span_ctx = OpenTelemetry.Tracer.current_span_ctx()
+
+    Task.Supervisor.start_child(Core.TaskSupervisor, fn ->
+      OpenTelemetry.Tracer.set_current_span(span_ctx)
+      enrich_country(company_id)
+    end)
+  end
+
+  def enrich_country(company_id) do
+    OpenTelemetry.Tracer.with_span "company_enrich.enrich_country" do
+      OpenTelemetry.Tracer.set_attributes([
+        {"company.id", company_id}
+      ])
+
+      case Repo.get(Company, company_id) do
+        nil ->
+          OpenTelemetry.Tracer.set_status(:error, :not_found)
+
+          OpenTelemetry.Tracer.set_attributes([
+            {"error.reason", "Company not found"}
+          ])
+
+          Logger.error("Company #{company_id} not found for country enrichment")
+
+          Errors.error(:not_found)
+
+        company ->
+          if should_enrich_country?(company) do
+            {count, _} =
+              Repo.update_all(
+                from(c in Company, where: c.id == ^company_id),
+                set: [country_enrich_attempt_at: DateTime.utc_now()],
+                inc: [country_enrichment_attempts: 1]
+              )
+
+            if count > 0 do
+              # Get name from AI
+              case Enrichments.Location.identifyCountryCodeA2(%{
+                domain: company.primary_domain,
+                homepage_content: company.homepage_content
+              }) do
+                {:ok, "XX"} ->
+                  OpenTelemetry.Tracer.set_attributes([
+                    {"ai.country_code_a2", "XX"}
+                  ])
+                  :ok
+                {:ok, country_code_a2} ->
+                  OpenTelemetry.Tracer.set_attributes([
+                    {"ai.country_code_a2", country_code_a2}
+                  ])
+                  # Ensure country code is uppercase before saving
+                  country_code_a2_uppercase = String.upcase(country_code_a2)
+
+                  {update_count, _} =
+                    Repo.update_all(
+                      from(c in Company, where: c.id == ^company_id),
+                      set: [country_a2: country_code_a2_uppercase]
+                    )
+
+                  if update_count == 0 do
+                    OpenTelemetry.Tracer.set_status(:error, :update_failed)
+
+                    OpenTelemetry.Tracer.set_attributes([
+                      {"error.reason", "Failed to update company country code"}
+                    ])
+
+                    Logger.error(
+                      "Failed to update country code for company #{company_id} (domain: #{company.primary_domain})"
+                    )
+
+                    Errors.error(:update_failed)
+                  end
+
+                {:error, reason} ->
+                  Logger.error(
+                    "Failed to get country code from AI for company #{company_id} (domain: #{company.primary_domain}): #{inspect(reason)}"
+                  )
+                  OpenTelemetry.Tracer.set_status(:error, inspect(reason))
+                  OpenTelemetry.Tracer.set_attributes([
+                    {"error.reason", inspect(reason)}
+                  ])
+              end
+            else
+              OpenTelemetry.Tracer.set_status(:error, :update_failed)
+
+              OpenTelemetry.Tracer.set_attributes([
+                {"error.reason", "Failed to update company enrichment attempt"}
+              ])
+
+              Logger.error(
+                "Failed to mark country enrichment attempt for company #{company_id}"
               )
 
               Errors.error(:update_failed)
@@ -276,4 +377,32 @@ defmodule Core.Crm.Companies.CompanyEnrich do
   end
 
   defp should_enrich_name?(_), do: false
+
+  @spec should_enrich_country?(%Company{}) :: boolean()
+  defp should_enrich_country?(%Company{} = company) do
+    OpenTelemetry.Tracer.with_span "company_enrich.should_enrich_country?" do
+      OpenTelemetry.Tracer.set_attributes([
+        {"company.id", company.id},
+        {"company.domain", company.primary_domain}
+      ])
+
+      if is_nil(company.homepage_content) or company.homepage_content == "" do
+        OpenTelemetry.Tracer.set_attributes([
+          {"result", "false"}
+        ])
+
+        false
+      else
+        result = is_nil(company.country_a2) or company.country_a2 == ""
+
+        OpenTelemetry.Tracer.set_attributes([
+          {"result", result}
+        ])
+
+        result
+      end
+    end
+  end
+
+  defp should_enrich_country?(_), do: false
 end
