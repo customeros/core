@@ -130,7 +130,7 @@ config :ex_aws, :s3,
   json_codec: Jason
 
 # Configure ExAws to use our custom HTTP client
-config :ex_aws, :http_client, Core.HttpClient.AwsHttpClient
+config :ex_aws, :http_client, Core.Utils.HttpClient.AwsHttpClient
 
 # Brandfetch configuration
 config :core, :brandfetch, client_id: get_env.("BRANDFETCH_CLIENT_ID", nil)
