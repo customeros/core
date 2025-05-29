@@ -4,7 +4,6 @@ defmodule Core.Researcher.Scraper.Puremd do
   """
 
   require Logger
-  alias Inertia.Errors
   alias Core.Researcher.Errors
 
   @doc """
