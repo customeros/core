@@ -304,7 +304,6 @@ export const Editor = forwardRef<LexicalEditor | null, EditorProps>(
     if (!socket) {
       return <div>No socket</div>;
     }
-
     return (
       <div
         ref={containerRef}

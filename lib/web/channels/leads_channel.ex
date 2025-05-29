@@ -51,7 +51,8 @@ defmodule Web.Channels.LeadsChannel do
           username: params["username"],
           online_at: inspect(System.system_time(:second)),
           metadata: %{"source" => "customerOS"},
-          color: Map.get(socket.assigns.user_color, params["user_id"])
+          color: Map.get(socket.assigns.user_color, params["user_id"]),
+          user_id: params["user_id"]
         }
       )
 

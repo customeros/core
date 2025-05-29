@@ -40,7 +40,7 @@ export const Header = () => {
       <div className="flex justify-between items-center border-b border-gray-200 w-full 2xl:w-[1440px] 2xl:mx-auto py-2 px-4">
         <h1 className="">Leads</h1>
         <div className="flex gap-2">
-          <UserPresence channelName={`leads:${tenantId}`} />
+          <UserPresence />
           <Button
             colorScheme="gray"
             size="xs"
