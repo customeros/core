@@ -13,6 +13,7 @@ defmodule Core.Utils.PrimaryDomainFinder do
   domain status of any given domain.
   """
 
+  require OpenTelemetry.Tracer
   alias Core.Utils.Errors
   alias Finch.Response
   alias Core.Utils.{DomainValidator, DomainExtractor, DnsResolver, UrlExpander}
@@ -59,15 +60,33 @@ defmodule Core.Utils.PrimaryDomainFinder do
           | {:error, Core.Utils.Errors.dns_error()}
   def get_primary_domain(domain)
       when is_binary(domain) and byte_size(domain) > 0 do
-    case primary_domain_check(domain) do
-      {:ok, {_is_primary, primary_domain}} when primary_domain != "" ->
-        {:ok, primary_domain}
+    OpenTelemetry.Tracer.with_span "primary_domain_finder.get_primary_domain" do
+      OpenTelemetry.Tracer.set_attributes([
+        {"domain", domain}
+      ])
 
-      {:ok, {_is_primary, ""}} ->
-        Errors.error(:no_primary_domain)
+      case primary_domain_check(domain) do
+        {:ok, {_is_primary, primary_domain}} when primary_domain != "" ->
+          OpenTelemetry.Tracer.set_status(:ok)
+          OpenTelemetry.Tracer.set_attributes([
+            {"result.primary_domain", primary_domain}
+          ])
+          {:ok, primary_domain}
 
-      {:error, reason} ->
-        Errors.error(reason)
+        {:ok, {_is_primary, ""}} ->
+          OpenTelemetry.Tracer.set_status(:error)
+          OpenTelemetry.Tracer.set_attributes([
+            {"error.reason", "No primary domain found"}
+          ])
+          Errors.error(:no_primary_domain)
+
+        {:error, reason} ->
+          OpenTelemetry.Tracer.set_status(:error)
+          OpenTelemetry.Tracer.set_attributes([
+            {"error.reason", inspect(reason)}
+          ])
+          Errors.error(reason)
+      end
     end
   end
 
