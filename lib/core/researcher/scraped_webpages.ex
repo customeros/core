@@ -7,6 +7,7 @@ defmodule Core.Researcher.ScrapedWebpages do
   alias Core.Researcher.Webpages.ScrapedWebpage
   alias Core.Researcher.Webpages.Classification
   alias Core.Researcher.Webpages.Intent
+  alias Core.Utils.DomainExtractor
   import Ecto.Query
 
   ## Create ##
@@ -18,27 +19,29 @@ defmodule Core.Researcher.ScrapedWebpages do
         intent \\ nil,
         summary \\ nil
       ) do
-    domain = extract_domain(url)
+    with {:ok, domain} <- DomainExtractor.extract_base_domain(url) do
+      attrs =
+        %{
+          url: url,
+          domain: domain,
+          content: content,
+          links: links,
+          summary: summary
+        }
+        |> maybe_add_classification(classification)
+        |> maybe_add_intent(intent)
 
-    attrs =
-      %{
-        url: url,
-        domain: domain,
-        content: content,
-        links: links,
-        summary: summary
-      }
-      |> maybe_add_classification(classification)
-      |> maybe_add_intent(intent)
+      # Debug: Let's see the final attributes
+      IO.inspect(attrs, label: "Final attributes")
 
-    # Debug: Let's see the final attributes
-    IO.inspect(attrs, label: "Final attributes")
+      changeset =
+        %ScrapedWebpage{}
+        |> ScrapedWebpage.changeset(attrs)
 
-    changeset =
-      %ScrapedWebpage{}
-      |> ScrapedWebpage.changeset(attrs)
-
-    Repo.insert(changeset)
+      Repo.insert(changeset)
+    else
+      {:error, reason} -> {:error, reason}
+    end
   end
 
   def save_full_scraped_data(url, %{
@@ -126,13 +129,6 @@ defmodule Core.Researcher.ScrapedWebpages do
   end
 
   ## Helpers ##
-
-  defp extract_domain(url) do
-    case URI.parse(url) do
-      %URI{host: host} when is_binary(host) -> host
-      _ -> url
-    end
-  end
 
   defp maybe_add_classification(attrs, nil) do
     IO.puts("Classification is nil")

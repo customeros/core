@@ -11,48 +11,18 @@ defmodule Core.Researcher.Crawler do
     concurrency: 5
   ]
 
-  # 5 mins
-  @default_timeout 5 * 60 * 1000
-
   @doc """
   Starts crawler in supervised task, returns task for caller control.
-  Caller can choose to wait with Task.await/2 or let it run in background.
   """
-  @spec start_async(String.t(), keyword()) :: Task.t()
-  def start_async(domain, opts \\ []) do
-    Task.Supervisor.async(Core.Researcher.Crawler.Supervisor, fn ->
+  @spec crawl_supervised(String.t(), keyword()) :: Task.t()
+  def crawl_supervised(domain, opts \\ []) do
+    Task.Supervisor.async(Core.TaskSupervisor, fn ->
       opts = Keyword.merge(@default_opts, opts)
-      start(domain, opts)
+      crawl(domain, opts)
     end)
   end
 
-  @doc """
-  Starts crawler and waits for completion with timeout.
-  Convenience function for synchronous usage with supervision benefits.
-  """
-  @spec start_sync(String.t(), keyword(), timeout()) ::
-          {:ok, map()} | {:error, String.t()}
-  def start_sync(domain, opts \\ [], timeout \\ @default_timeout) do
-    task = start_async(domain, opts)
-
-    case Task.yield(task, timeout) do
-      {:ok, result} ->
-        result
-
-      nil ->
-        Task.Supervisor.terminate_child(
-          Core.Researcher.Crawler.Supervisor,
-          task.pid
-        )
-
-        {:error, "crawler_timeout"}
-
-      {:exit, reason} ->
-        {:error, "crawler_failed: #{inspect(reason)}"}
-    end
-  end
-
-  defp start(domain, opts) when is_binary(domain) do
+  defp crawl(domain, opts) when is_binary(domain) do
     case Core.Utils.DomainExtractor.extract_base_domain(domain) do
       {:ok, base_domain} ->
         # Start crawling with concurrent workers
@@ -92,17 +62,16 @@ defmodule Core.Researcher.Crawler do
       # Start more tasks if we have queue items and available slots
       length(state.queue) > 0 and state.active_tasks < state.concurrency and
           MapSet.size(state.visited) < state.max_pages ->
-        start_next_task(state)
+        start_next_task_async(state)
 
-      # Wait for tasks to complete
       true ->
         wait_for_task_completion(state)
     end
   end
 
-  defp start_next_task(%{queue: []} = state), do: crawl_concurrent(state)
+  defp start_next_task_async(%{queue: []} = state), do: crawl_concurrent(state)
 
-  defp start_next_task(%{queue: [{url, depth} | rest]} = state) do
+  defp start_next_task_async(%{queue: [{url, depth} | rest]} = state) do
     # Skip if already visited or being processed
     if MapSet.member?(state.visited, url) do
       crawl_concurrent(%{state | queue: rest})
@@ -206,16 +175,11 @@ defmodule Core.Researcher.Crawler do
   end
 
   defp scrape_url(url) do
-    try do
-      with {:ok, valid_url} <- Core.Utils.UrlFormatter.to_https(url) do
-        Core.Researcher.Scraper.scrape_webpage(valid_url)
-      else
-        {:error, reason} -> {:error, reason}
-      end
-    rescue
-      e -> {:error, Exception.message(e)}
-    catch
-      kind, reason -> {:error, "#{kind}: #{inspect(reason)}"}
+    with {:ok, valid_url} <- Core.Utils.UrlFormatter.to_https(url) do
+      valid_url
+      |> Core.Researcher.Scraper.scrape_webpage()
+    else
+      {:error, reason} -> {:error, reason}
     end
   end
 

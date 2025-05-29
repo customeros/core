@@ -1,10 +1,12 @@
 defmodule Core.Researcher.Builder.ProfileWriter do
   alias Core.Researcher.Builder.ProfileValidator
+  alias Core.Researcher.Errors
   alias Core.Ai
 
   @model :claude_sonnet
   @model_temperature 0.2
   @max_tokens 2048
+  @timeout 60 * 1000
 
   def generate_icp(domain) when is_binary(domain) do
     with {:ok, pages} <-
@@ -12,24 +14,39 @@ defmodule Core.Researcher.Builder.ProfileWriter do
              domain,
              limit: 10
            ),
-         {system_prompt, prompt} <- build_prompts(domain, pages),
-         {:ok, answer} <-
-           Ai.ask_with_timeout(build_request(system_prompt, prompt)),
-         {:ok, icp} <- ProfileValidator.validate_and_parse(answer) do
-      {:ok, icp}
+         {system_prompt, prompt} <- build_prompts(domain, pages) do
+      ask_ai_for_icp(build_request(system_prompt, prompt))
     else
-      {:error, reason} -> {:error, reason}
+      {:error, reason} -> Errors.error(reason)
+    end
+  end
+
+  defp ask_ai_for_icp(request) do
+    task = Ai.ask_supervised(request)
+
+    case Task.yield(task, @timeout) do
+      {:ok, {:ok, answer}} ->
+        ProfileValidator.validate_and_parse(answer)
+
+      {:ok, {:error, reason}} ->
+        Errors.error(reason)
+
+      {:exit, reason} ->
+        Errors.error(reason)
+
+      nil ->
+        Task.shutdown(task)
+        Errors.error(:icp_generation_timeout)
     end
   end
 
   defp build_request(system_prompt, prompt) do
-    %Ai.Request{
+    Ai.Request.new(prompt,
       model: @model,
-      prompt: prompt,
       system_prompt: system_prompt,
-      max_output_tokens: @max_tokens,
-      model_temperature: @model_temperature
-    }
+      max_tokens: @max_tokens,
+      temperature: @model_temperature
+    )
   end
 
   defp build_prompts(domain, business_pages) do

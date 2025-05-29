@@ -1,21 +1,44 @@
 defmodule Core.Researcher.Webpages.Summarizer do
+  alias Core.Researcher.Errors
   alias Core.Ai
   @model :claude_sonnet
   @model_temperature 0.2
   @max_tokens 1024
+  @timeout 60 * 1000
+
+  def summarize_webpage_supervised(url, content) do
+    Task.Supervisor.async(
+      Core.TaskSupervisor,
+      fn ->
+        summarize_webpage(url, content)
+      end
+    )
+  end
 
   def summarize_webpage(url, content) when is_binary(content) do
     {system_prompt, prompt} = build_prompts(url, content)
 
-    request = %Ai.Request{
-      model: @model,
-      prompt: prompt,
-      system_prompt: system_prompt,
-      max_output_tokens: @max_tokens,
-      model_temperature: @model_temperature
-    }
+    request =
+      Ai.Request.new(prompt,
+        model: @model,
+        system_prompt: system_prompt,
+        max_tokens: @max_tokens,
+        temperature: @model_temperature
+      )
 
-    Ai.ask_with_timeout(request)
+    task = Ai.ask_supervised(request)
+
+    case Task.yield(task, @timeout) do
+      {:ok, answer} ->
+        answer
+
+      {:exit, reason} ->
+        Errors.error(reason)
+
+      nil ->
+        Task.shutdown(task)
+        Errors.error(:content_summary_timeout)
+    end
   end
 
   defp build_prompts(url, content) do

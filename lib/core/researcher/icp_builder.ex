@@ -5,7 +5,7 @@ defmodule Core.Researcher.IcpBuilder do
   def build_for_tenant(tenant_id) do
     with {:ok, tenant_record} <- Tenants.get_tenant_by_id(tenant_id),
          {:ok, _scraped_data} <-
-           Core.Researcher.Crawler.start_sync(tenant_record.domain),
+           Core.Researcher.Crawler.crawl_supervised(tenant_record.domain),
          {:ok, icp} <- ProfileWriter.generate_icp(tenant_record.domain) do
       profile = %{
         domain: tenant_record.domain,

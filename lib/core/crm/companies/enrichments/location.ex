@@ -2,6 +2,10 @@ defmodule Core.Crm.Companies.Enrichments.Location do
   require Logger
   alias Core.Ai
 
+  @timeout 60 * 1000
+  @model :claude_sonnet
+  @max_tokens 250
+  @temperature 0.1
   @system_prompt_country """
   I'm going to provide you metadata about a company, including their website content.
   Your job is to identify the company's primary country of operation using ISO 3166-1 alpha-2 country codes.
@@ -28,17 +32,18 @@ defmodule Core.Crm.Companies.Enrichments.Location do
   def identifyCountryCodeA2(%{domain: domain, homepage_content: content}) do
     prompt = build_prompt(domain, content)
 
-    request = %Ai.Request{
-      model: :claude_sonnet,
-      prompt: prompt,
-      system_prompt: @system_prompt_country,
-      max_output_tokens: 250,
-      model_temperature: 0.1
-    }
+    request =
+      Ai.Request.new(prompt,
+        model: @model,
+        system_prompt: @system_prompt_country,
+        max_tokens: @max_tokens,
+        temperature: @temperature
+      )
 
-    case Ai.ask_with_timeout(request) do
-      {:ok, response} ->
-        # Clean and validate the response
+    task = Ai.ask_supervised(request)
+
+    case Task.yield(task, @timeout) do
+      {:ok, {:ok, response}} ->
         code =
           response
           |> String.trim()
@@ -49,13 +54,18 @@ defmodule Core.Crm.Companies.Enrichments.Location do
         if String.length(code) == 2 do
           {:ok, code}
         else
-          # If we couldn't get a valid 2-letter code, return empty string
           {:ok, ""}
         end
 
-      {:error, reason} = error ->
-        Logger.error("Failed to get country code from AI: #{inspect(reason)}")
-        error
+      {:ok, {:error, reason}} ->
+        {:error, reason}
+
+      {:exit, reason} ->
+        {:error, reason}
+
+      nil ->
+        Task.shutdown(task)
+        {:error, :ai_timeout}
     end
   end
 

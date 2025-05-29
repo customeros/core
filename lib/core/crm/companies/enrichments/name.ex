@@ -2,6 +2,10 @@ defmodule Core.Crm.Companies.Enrichments.Name do
   require Logger
   alias Core.Ai
 
+  @timeout 60 * 1000
+  @model :claude_sonnet
+  @max_tokens 250
+  @temperature 0.1
   @system_prompt """
   I'm going to provide you metadata about a company, including their website content.
   Your job is to identify the commonly recognized brand name of the company.
@@ -25,17 +29,18 @@ defmodule Core.Crm.Companies.Enrichments.Name do
   def identify(%{domain: domain, homepage_content: content}) do
     prompt = build_prompt(domain, content)
 
-    request = %Ai.Request{
-      model: :claude_sonnet,
-      prompt: prompt,
-      system_prompt: @system_prompt,
-      max_output_tokens: 250,
-      model_temperature: 0.1
-    }
+    request =
+      Ai.Request.new(prompt,
+        model: @model,
+        system_prompt: @system_prompt,
+        max_tokens: @max_tokens,
+        temperature: @temperature
+      )
 
-    case Ai.ask_with_timeout(request) do
-      {:ok, response} ->
-        # Clean the response to ensure we only get the name
+    task = Ai.ask_supervised(request)
+
+    case Task.yield(task, @timeout) do
+      {:ok, {:ok, response}} ->
         name =
           response
           |> String.trim()
@@ -50,9 +55,15 @@ defmodule Core.Crm.Companies.Enrichments.Name do
           {:error, :invalid_ai_response}
         end
 
-      {:error, reason} = error ->
-        Logger.error("Failed to get company name from AI: #{inspect(reason)}")
-        error
+      {:ok, {:error, reason}} ->
+        {:error, reason}
+
+      {:exit, reason} ->
+        {:error, reason}
+
+      nil ->
+        Task.shutdown(task)
+        {:error, :ai_timeout}
     end
   end
 

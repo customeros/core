@@ -1,36 +1,43 @@
-defmodule Core.External.Jina.Service do
+defmodule Core.Researcher.Scraper.Puremd do
   @moduledoc """
-  Service for fetching web pages using the Jina API.
+  Service for fetching web pages using the PureMD API.
   """
-
-  @callback fetch_page(url :: String.t()) ::
-              {:ok, String.t()} | {:error, term()}
 
   require Logger
-
-  @type error ::
-    {:invalid_request, String.t()} |
-    {:http_error, term()} |
-    {:api_error, String.t()} |
-    {:payment_required, String.t()} |
-    {:unprocessable, String.t()}
+  alias Core.Researcher.Errors
 
   @doc """
-  Fetches a web page using the Jina API.
+  Fetches a web page async with supervision.
   """
-  def fetch_page(nil), do: {:error, {:invalid_request, "url cannot be nil"}}
-  def fetch_page(""), do: {:error, {:invalid_request, "url cannot be empty string"}}
-  def fetch_page(url) when not is_binary(url), do: {:error, {:invalid_request, "url is invalid"}}
+  @spec fetch_page_supervised(String.t()) :: Task.t()
+  def fetch_page_supervised(url) do
+    Task.Supervisor.async(
+      Core.TaskSupervisor,
+      fn -> fetch_page(url) end
+    )
+  end
 
+  @doc """
+  Fetches a web page using the PureMD API.
+  """
+
+  @spec fetch_page(String.t()) ::
+          {:ok, String.t()}
+          | {:error, Errors.researcher_error()}
+          | {:error, {:http_error, String.t()}}
   def fetch_page(url) when is_binary(url) do
     with {:ok, config} <- validate_config(),
          request_url <- config.api_path <> url,
          {:ok, response} <- make_request(request_url, config.api_key) do
       handle_response(response)
     else
-      {:error, reason} -> {:error, reason}
+      {:error, reason} -> Errors.error(reason)
     end
   end
+
+  def fetch_page(""), do: Errors.error(:url_not_provided)
+  def fetch_page(nil), do: Errors.error(:url_not_provided)
+  def fetch_page(_), do: Errors.error(:invalid_url)
 
   defp make_request(request_url, api_key)
        when request_url != "" and api_key != "" do
@@ -50,7 +57,7 @@ defmodule Core.External.Jina.Service do
   end
 
   defp validate_config do
-    Application.get_env(:core, :jina, [])
+    Application.get_env(:core, :puremd, [])
     |> normalize_config()
     |> validate_api_credentials()
   end
@@ -64,15 +71,15 @@ defmodule Core.External.Jina.Service do
   end
 
   defp validate_api_credentials(config) do
-    api_key = config[:jina_api_key]
-    api_path = config[:jina_api_path]
+    api_key = config[:puremd_api_key]
+    api_path = config[:puremd_api_path]
 
     cond do
       api_key == nil || api_key == "" ->
-        {:error, {:invalid_request, "Jina API key not set"}}
+        Errors.error(:puremd_api_key_not_set)
 
       api_path == nil || api_path == "" ->
-        {:error, {:invalid_request, "Jina API path not set"}}
+        Errors.error(:puremd_api_path_not_set)
 
       true ->
         {:ok, %{api_key: api_key, api_path: api_path}}
@@ -82,14 +89,7 @@ defmodule Core.External.Jina.Service do
   defp handle_response(%Finch.Response{status: 200, body: body}),
     do: {:ok, body}
 
-  defp handle_response(%Finch.Response{status: 402}),
-    do: {:error, {:payment_required, "Payment required"}}
-
-  defp handle_response(%Finch.Response{status: 422}),
-    do: {:error, {:unprocessable, "Unprocessable entity"}}
-
   defp handle_response(%Finch.Response{status: status, body: body}) do
-    Logger.error("error code: #{status}, body: #{body}")
-    {:error, {:api_error, "error code: #{status}"}}
+    Errors.error({:http_error, "Status: #{status}, Body: #{body}"})
   end
 end

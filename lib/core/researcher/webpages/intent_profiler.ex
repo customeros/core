@@ -1,36 +1,56 @@
-defmodule Core.Researcher.Webpages.IntentGenerator do
+defmodule Core.Researcher.Webpages.IntentProfiler do
   @moduledoc """
   Profiles webpage intent using AI.
   """
+  alias Core.Utils.Errors
   alias Core.Ai
 
   @model :claude_sonnet
   @model_temperature 0.2
   @max_tokens 1024
+  @timeout 60 * 1000
 
   alias Core.Researcher.Webpages.Intent
 
-  def profile_webpage_intent(url, content)
+  def profile_intent_supervised(url, content) do
+    Task.Supervisor.async(
+      Core.TaskSupervisor,
+      fn ->
+        profile_intent(url, content)
+      end
+    )
+  end
+
+  def profile_intent(url, content)
       when is_binary(content) and content != "" do
     {system_prompt, prompt} = build_profile_intent_prompts(url, content)
 
-    request = %Ai.Request{
-      model: @model,
-      prompt: prompt,
-      system_prompt: system_prompt,
-      max_output_tokens: @max_tokens,
-      model_temperature: @model_temperature
-    }
+    request =
+      Ai.Request.new(prompt,
+        model: @model,
+        system_prompt: system_prompt,
+        max_tokens: @max_tokens,
+        temperature: @model_temperature
+      )
 
-    case Ai.ask_with_timeout(request) do
-      {:ok, answer} ->
+    task = Ai.ask_supervised(request)
+
+    case Task.yield(task, @timeout) do
+      {:ok, {:ok, answer}} ->
         case parse_and_validate_response(answer) do
           {:ok, profile_intent} -> {:ok, profile_intent}
           {:error, reason} -> {:error, {:validation_failed, reason}}
         end
 
-      {:error, reason} ->
-        {:error, reason}
+      {:ok, {:error, reason}} ->
+        Errors.error(reason)
+
+      {:exit, reason} ->
+        Errors.error(reason)
+
+      nil ->
+        Task.shutdown(task)
+        Errors.error(:intent_profiler_timeout)
     end
   end
 

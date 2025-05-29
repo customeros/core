@@ -8,17 +8,10 @@ defmodule Core.Application do
     OpentelemetryEcto.setup([:core, :repo])
 
     children = [
-      Supervisor.child_spec({Phoenix.PubSub, name: Core.PubSub},
-        id: :core_pubsub
-      ),
-      {Task.Supervisor, name: Core.Researcher.IcpFitEvaluator.Supervisor},
-      {Task.Supervisor, name: Core.Researcher.Crawler.Supervisor},
-      {Task.Supervisor, name: Core.Researcher.Scraper.Supervisor},
-      {Task.Supervisor, name: Core.Researcher.IcpBuilder.Supervisor},
-      {Task.Supervisor, name: Core.Ai.Supervisor},
+      {Phoenix.PubSub, name: Core.PubSub},
+      {Task.Supervisor, name: Core.TaskSupervisor},
       Core.Auth.Users.ColorManager,
       Core.Repo,
-      Core.Researcher.Orchestrator,
       Core.Crm.Companies.Enrich,
       Core.Crm.Companies.CompanyEnricher,
       Core.Crm.Companies.CompanyDomainProcessor,

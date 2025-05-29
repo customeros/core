@@ -2,35 +2,55 @@ defmodule Core.Researcher.Webpages.Classifier do
   @moduledoc """
   Classifies webpage content using AI.
   """
+  alias Core.Researcher.Errors
   alias Core.Ai
 
   @model :gemini_pro
   @model_temperature 0.2
   @max_tokens 1024
+  @timeout 45 * 1000
 
   alias Core.Researcher.Webpages.Classification
 
-  def classify_webpage_content(url, content) when is_binary(content) do
+  def classify_content_supervised(url, content) do
+    Task.Supervisor.async(
+      Core.TaskSupervisor,
+      fn ->
+        classify_content(url, content)
+      end
+    )
+  end
+
+  def classify_content(url, content) when is_binary(content) do
     {system_prompt, prompt} =
       build_classify_webpage_prompts(url, content)
 
-    request = %Ai.Request{
-      model: @model,
-      prompt: prompt,
-      system_prompt: system_prompt,
-      max_output_tokens: @max_tokens,
-      model_temperature: @model_temperature
-    }
+    request =
+      Ai.Request.new(prompt,
+        model: @model,
+        system_prompt: system_prompt,
+        temperature: @model_temperature,
+        max_tokens: @max_tokens
+      )
 
-    case Ai.ask_with_timeout(request) do
-      {:ok, answer} ->
+    task = Ai.ask_supervised(request)
+
+    case Task.yield(task, @timeout) do
+      {:ok, {:ok, answer}} ->
         case parse_and_validate_response(answer) do
           {:ok, classification} -> {:ok, classification}
           {:error, reason} -> {:error, {:validation_failed, reason}}
         end
 
-      {:error, reason} ->
-        {:error, reason}
+      {:ok, {:error, reason}} ->
+        Errors.error(reason)
+
+      {:exit, reason} ->
+        Errors.error(reason)
+
+      nil ->
+        Task.shutdown(task)
+        Errors.error(:content_classification_timeout)
     end
   end
 
@@ -166,7 +186,7 @@ defmodule Core.Researcher.Webpages.Classifier do
         - The Industry Vertical the content is targeting
         - The Key Pain Points the content aims to address (1-3 values)
         - The core Value Proposition of the content
-        - A list of all Referenced Customers contained within the content
+        - A list of all Referenced Customers contained within the content.  Only include companies.  No individuals.
         - Valid content types must match one of the following:
             - article
             - whitepaper
@@ -206,7 +226,7 @@ defmodule Core.Researcher.Webpages.Classifier do
             "Capital One"
           ]
         }
-        Do not include any text outside the JSON object.  If you are unable to confidently determine a value, return an empty string.
+        Do not include any text outside the JSON object. Return only a SINGLE classification object (not an array). If you are unable to confidently determine a value, return an empty string.
     """
 
     prompt = """
