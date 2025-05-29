@@ -1,6 +1,6 @@
 import { useState, lazy, memo, useCallback, useMemo } from 'react';
 
-import { router } from '@inertiajs/react';
+import { router, usePage } from '@inertiajs/react';
 
 import { Icon, IconName } from '../../components/Icon/Icon';
 import { SegmentedView } from '../../components/SegmentedView/SegmentedView';
@@ -54,7 +54,8 @@ export const Leads = memo(({ companies }: LeadsProps) => {
   const [selectedAccordion, setSelectedAccordion] = useState<string>('');
   const hasDocParam = new URLSearchParams(window.location.search).has('doc');
   const viewMode = new URLSearchParams(window.location.search).get('viewMode');
-
+  const pages = usePage();
+  console.log(pages);
   const filteredCompanies = useMemo(
     () => (selectedStage ? companies.filter(c => c.stage === selectedStage) : companies),
     [selectedStage, companies]

@@ -13,6 +13,7 @@ defmodule Web.UserSocket do
   channel "finder:*", Web.FinderChannel
   channel "documents:*", Web.Channels.DocumentsChannel
   channel "events:*", Web.Channels.EventsChannel
+  channel "leads:*", Web.Channels.LeadsChannel
 
   # Socket params are passed from the client and can
   # be used to verify and authenticate a user. After
