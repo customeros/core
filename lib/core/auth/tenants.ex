@@ -13,7 +13,6 @@ defmodule Core.Auth.Tenants do
   alias Core.Notifications.Slack
   alias Core.Crm.Companies
   alias Core.Utils.Media.Images
-  alias Core.Researcher.IcpBuilder
 
   @company_enrichment_timeout 15_000
 
