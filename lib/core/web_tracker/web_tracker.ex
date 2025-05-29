@@ -11,6 +11,7 @@ defmodule Core.WebTracker do
   require Logger
   require OpenTelemetry.Tracer
 
+  alias Core.Researcher.IcpFitEvaluator
   alias Core.WebTracker.WebSessions
   alias Core.WebTracker.WebTrackerEvents
   alias Core.Crm.Companies
@@ -48,6 +49,7 @@ defmodule Core.WebTracker do
         {:ok, ^attrs} = result ->
           OpenTelemetry.Tracer.set_status(:ok)
           result
+
         {:error, :bad_request, reason} = result ->
           OpenTelemetry.Tracer.set_status(:error, reason)
           result
@@ -112,6 +114,7 @@ defmodule Core.WebTracker do
         nil ->
           OpenTelemetry.Tracer.set_attributes([{"session.status", "new"}])
           create_new_session(attrs)
+
         session ->
           OpenTelemetry.Tracer.set_attributes([{"session.status", "existing"}])
           {:ok, attrs, session}
@@ -205,10 +208,15 @@ defmodule Core.WebTracker do
     OpenTelemetry.Tracer.with_span "web_tracker.enrich_with_company_data" do
       # Only enrich for new sessions using just_created flag
       if session.just_created do
-        OpenTelemetry.Tracer.set_attributes([{"enrichment.type", "new_session"}])
+        OpenTelemetry.Tracer.set_attributes([
+          {"enrichment.type", "new_session"}
+        ])
+
         fetch_and_process_company_data(attrs.ip, attrs.tenant)
       else
-        OpenTelemetry.Tracer.set_attributes([{"enrichment.type", "existing_session"}])
+        OpenTelemetry.Tracer.set_attributes([
+          {"enrichment.type", "existing_session"}
+        ])
       end
 
       OpenTelemetry.Tracer.set_status(:ok)
@@ -289,11 +297,7 @@ defmodule Core.WebTracker do
              }) do
         case Core.Auth.Tenants.get_tenant_by_name(tenant) do
           {:ok, tenant} ->
-            Core.Researcher.Orchestrator.evaluate_icp_fit(
-              tenant.id,
-              lead.id,
-              domain
-            )
+            IcpFitEvaluator.evaluate_start(tenant.id, domain, lead)
             OpenTelemetry.Tracer.set_status(:ok)
 
           {:error, reason} ->
@@ -305,6 +309,7 @@ defmodule Core.WebTracker do
       else
         {:error, reason} ->
           OpenTelemetry.Tracer.set_status(:error, "lead_creation_failed")
+
           Logger.error(
             "Failed to create lead for company #{company.name}: #{inspect(reason)}"
           )

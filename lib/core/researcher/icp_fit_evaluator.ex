@@ -6,22 +6,28 @@ defmodule Core.Researcher.IcpFitEvaluator do
   alias Core.Researcher.IcpProfiles
   alias Core.Researcher.ScrapedWebpages
   alias Core.Utils.PrimaryDomainFinder
+  alias Core.Crm.Leads
 
-  # 2 mins
-  @icp_fit_timeout 2 * 60 * 1000
+  # 5 mins
+  @icp_fit_timeout 5 * 60 * 1000
 
-  def evaluate(tenant_id, domain) do
+  def evaluate_start(tenant_id, domain, lead) do
+    Task.Supervisor.start_child(
+      Core.TaskSupervisor,
+      fn ->
+        evaluate(tenant_id, domain, lead)
+      end
+    )
+  end
+
+  def evaluate(tenant_id, domain, lead) do
     with {:ok, primary_domain} <-
            PrimaryDomainFinder.get_primary_domain(domain),
          {:ok, icp} <- IcpProfiles.get_by_tenant_id(tenant_id),
-         {:ok, _scraped_data} <-
-           Crawler.crawl_supervised(primary_domain),
-         {:ok, pages} <-
-           ScrapedWebpages.get_business_pages_by_domain(primary_domain,
-             limit: 10
-           ),
+         {:ok, pages} <- get_prompt_context(primary_domain),
          {:ok, fit} <-
            get_icp_fit(primary_domain, pages, icp) do
+      update_lead(lead, fit)
       {:ok, fit}
     else
       {:error, reason} ->
@@ -29,40 +35,70 @@ defmodule Core.Researcher.IcpFitEvaluator do
     end
   end
 
-  defp get_icp_fit(domain, pages, icp) do
-    task =
-      Task.Supervisor.async(
-        Core.Researcher.IcpFitEvaluator.Supervisor,
-        fn ->
-          {system_prompt, prompt} =
-            PromptBuilder.build_prompts(domain, pages, icp)
+  defp update_lead(lead, fit) do
+    case fit do
+      :strong ->
+        Leads.update_lead(lead, %{icp_fit: :strong, stage: :education})
 
-          with {:ok, answer} <-
-                 Ai.ask_supervised(
-                   PromptBuilder.build_request(system_prompt, prompt)
-                 ),
-               {:ok, fit} <- Validator.validate_and_parse(answer) do
-            {:ok, fit}
-          else
-            {:error, reason} -> {:error, reason}
-          end
-        end
-      )
+      :moderate ->
+        Leads.update_lead(lead, %{icp_fit: :moderate, stage: :education})
+
+      :not_a_fit ->
+        Leads.update_lead(lead, %{stage: :not_a_fit})
+    end
+  end
+
+  defp get_prompt_context(domain) do
+    task = Crawler.crawl_supervised(domain)
 
     case Task.yield(task, @icp_fit_timeout) do
-      {:ok, result} ->
-        result
+      {:ok, {:ok, _result}} ->
+        case(
+          ScrapedWebpages.get_business_pages_by_domain(domain,
+            limit: 10
+          )
+        ) do
+          {:ok, pages} ->
+            {:ok, pages}
+
+          {:error, reason} ->
+            {:error, reason}
+        end
+
+      {:ok, {:error, reason}} ->
+        {:error, reason}
+
+      {:exit, reason} ->
+        {:exit, reason}
 
       nil ->
-        Task.Supervisor.terminate_child(
-          Core.Researcher.IcpFitEvaluator.Supervisor,
-          task.pid
-        )
+        Task.shutdown(task)
+        {:error, :icp_timeout}
+    end
+  end
 
+  defp get_icp_fit(domain, pages, icp) do
+    {system_prompt, prompt} =
+      PromptBuilder.build_prompts(domain, pages, icp)
+
+    task = Ai.ask_supervised(PromptBuilder.build_request(system_prompt, prompt))
+
+    case Task.yield(task, @icp_fit_timeout) do
+      {:ok, {:ok, answer}} ->
+        case Validator.validate_and_parse(answer) do
+          {:ok, fit} -> {:ok, fit}
+          {:error, reason} -> {:error, reason}
+        end
+
+      {:ok, {:error, reason}} ->
+        {:error, reason}
+
+      nil ->
+        Task.shutdown(task)
         {:error, :ai_timeout}
 
       {:exit, reason} ->
-        {:error, {:ai_failed, reason}}
+        {:error, reason}
     end
   end
 end

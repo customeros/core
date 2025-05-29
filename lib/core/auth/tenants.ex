@@ -119,6 +119,7 @@ defmodule Core.Auth.Tenants do
 
   defp notify_slack_new_tenant_start(tenant) do
     span_ctx = OpenTelemetry.Tracer.current_span_ctx()
+
     Task.Supervisor.start_child(Core.TaskSupervisor, fn ->
       OpenTelemetry.Tracer.set_current_span(span_ctx)
       notify_slack_new_tenant(tenant)
