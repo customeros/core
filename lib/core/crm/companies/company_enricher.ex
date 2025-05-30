@@ -6,6 +6,10 @@ defmodule Core.Crm.Companies.CompanyEnricher do
   - Industry
   - Name
   - Country
+
+  Configuration:
+  - Uses general cron configuration from :core, :crons, :enabled
+  - Other settings (interval_ms, batch_size) are configured in config.exs
   """
   use GenServer
   require Logger
@@ -24,7 +28,14 @@ defmodule Core.Crm.Companies.CompanyEnricher do
   @default_batch_size 10
 
   def start_link(opts \\ []) do
-    GenServer.start_link(__MODULE__, opts, name: __MODULE__)
+    enabled = Application.get_env(:core, :crons)[:enabled] || false
+
+    if enabled do
+      GenServer.start_link(__MODULE__, opts, name: __MODULE__)
+    else
+      Logger.info("Company enricher is disabled (crons disabled)")
+      :ignore
+    end
   end
 
   @impl true

@@ -9,3 +9,6 @@ config :core, Web.Endpoint,
 config :logger, level: :info
 
 config :core, :app_env, :prod
+
+# Enable cron jobs in production
+config :core, :crons, enabled: true
