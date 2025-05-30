@@ -62,45 +62,53 @@ defmodule Core.Utils.PrimaryDomainFinder do
   def get_primary_domain(domain)
       when is_binary(domain) and byte_size(domain) > 0 do
     OpenTelemetry.Tracer.with_span "primary_domain_finder.get_primary_domain" do
-      OpenTelemetry.Tracer.set_attributes([
-        {"domain", domain}
-      ])
+      OpenTelemetry.Tracer.set_attributes([{"domain", domain}])
 
-      case primary_domain_check(domain) do
-        {:ok, {_is_primary, primary_domain}} when primary_domain != "" ->
-          # Validate the primary domain before returning it
-          case validate_suspicious_domain(primary_domain) do
-            :ok ->
-              Tracing.ok
-
-              OpenTelemetry.Tracer.set_attributes([
-                {"result.primary_domain", primary_domain}
-              ])
-
-              {:ok, primary_domain}
-
-            {:error, reason} ->
-              Tracing.error(inspect(reason))
-
-              Errors.error(reason)
-          end
-
-        {:ok, {_is_primary, ""}} ->
-          Tracing.error("No primary domain found")
-
-          Errors.error(:no_primary_domain)
-
-        {:error, reason} ->
-          Tracing.error(inspect(reason))
-
-          Errors.error(reason)
-      end
+      do_primary_domain(domain, domain)
     end
   end
 
   def get_primary_domain(""), do: Errors.error(:domain_not_provided)
   def get_primary_domain(nil), do: Errors.error(:domain_not_provided)
   def get_primary_domain(_), do: Errors.error(:invalid_domain)
+
+  defp do_primary_domain(original_domain, current_domain) do
+    with {:ok, {_is_primary, primary_domain}} <-
+           primary_domain_check(current_domain),
+         :ok <- validate_non_empty(primary_domain),
+         :ok <- validate_suspicious_domain(primary_domain),
+         :ok <-
+           validate_recursive(original_domain, current_domain, primary_domain) do
+      Tracing.ok()
+
+      OpenTelemetry.Tracer.set_attributes([
+        {"result.primary_domain", primary_domain}
+      ])
+
+      {:ok, primary_domain}
+    else
+      error -> handle_error(error)
+    end
+  end
+
+  defp validate_non_empty(""), do: {:error, :no_primary_domain}
+  defp validate_non_empty(_), do: :ok
+
+  defp validate_recursive(_original, current, primary) when current == primary,
+    do: :ok
+
+  defp validate_recursive(original, _current, primary) do
+    case do_primary_domain(original, primary) do
+      {:ok, result} when result == primary -> :ok
+      {:ok, _} -> {:error, :recursive_validation_failed}
+      error -> error
+    end
+  end
+
+  defp handle_error({:error, reason}) do
+    Tracing.error(inspect(reason))
+    Errors.error(reason)
+  end
 
   # Private functions
 
