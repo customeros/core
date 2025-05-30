@@ -120,7 +120,6 @@ defmodule Core.Researcher.IcpFinder do
            country_a2: _country_a2
          } = _company
        ) do
-    dbg(_company)
     true
   end
 
