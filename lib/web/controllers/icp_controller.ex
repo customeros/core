@@ -1,6 +1,11 @@
-defmodule Web.Controllers.IcpController do
+defmodule Web.IcpController do
   use Web, :controller
   require OpenTelemetry.Tracer
+
+  @rate_limit_table :icp_rate_limit
+  @max_requests 3
+  # 1 minute
+  @window_ms 60_000
 
   def create(conn, params) do
     OpenTelemetry.Tracer.with_span "Icp.create" do
@@ -12,14 +17,14 @@ defmodule Web.Controllers.IcpController do
         {"client_ip", client_ip}
       ])
 
-      case Hammer.check_rate("icp_api:#{client_ip}", 60_000, 3) do
-        {:allow, _count} ->
+      case check_rate_limit(client_ip) do
+        :ok ->
           handle_icp_request(conn, params)
 
-        {:deny, _limit} ->
+        :rate_limited ->
           conn
           |> put_status(:too_many_requests)
-          |> json(%{error: "Rate limit exceeded.  Try again later."})
+          |> json(%{error: "Rate limit exceeded. Try again later."})
       end
     end
   end
@@ -42,6 +47,61 @@ defmodule Web.Controllers.IcpController do
     conn
     |> put_status(:bad_request)
     |> json(%{error: "Required parameters not set"})
+  end
+
+  defp check_rate_limit(client_ip) do
+    ensure_table_exists()
+    now = System.system_time(:millisecond)
+    key = "icp_api:#{client_ip}"
+
+    # Clean up old entries first
+    cleanup_old_entries(key, now)
+
+    # Get current request count
+    current_count = get_request_count(key, now)
+
+    if current_count < @max_requests do
+      # Record this request
+      :ets.insert(@rate_limit_table, {key, now})
+      :ok
+    else
+      :rate_limited
+    end
+  end
+
+  defp ensure_table_exists do
+    case :ets.whereis(@rate_limit_table) do
+      :undefined ->
+        :ets.new(@rate_limit_table, [:public, :named_table, :bag])
+
+      _ ->
+        :ok
+    end
+  end
+
+  defp cleanup_old_entries(key, now) do
+    cutoff_time = now - @window_ms
+
+    # Get all entries for this key
+    entries = :ets.lookup(@rate_limit_table, key)
+
+    # Remove old entries
+    Enum.each(entries, fn {^key, timestamp} ->
+      if timestamp < cutoff_time do
+        :ets.delete_object(@rate_limit_table, {key, timestamp})
+      end
+    end)
+  end
+
+  defp get_request_count(key, now) do
+    cutoff_time = now - @window_ms
+
+    entries = :ets.lookup(@rate_limit_table, key)
+
+    # Count entries within the time window
+    Enum.count(entries, fn {^key, timestamp} ->
+      timestamp >= cutoff_time
+    end)
   end
 
   defp get_client_ip(conn) do
