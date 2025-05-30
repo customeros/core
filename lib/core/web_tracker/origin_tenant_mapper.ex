@@ -28,10 +28,6 @@ defmodule Core.WebTracker.OriginTenantMapper do
 
   def get_tenant_for_origin(_), do: {:error, :invalid_origin}
 
-  @doc """
-  Normalizes the origin by removing http:// or https:// prefix if present,
-  and any trailing slashes.
-  """
   @spec normalize_origin(String.t()) :: String.t()
   defp normalize_origin(origin) do
     origin
