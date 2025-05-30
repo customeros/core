@@ -1,25 +1,23 @@
 defmodule Core.Researcher.IcpBuilder do
   alias Core.Researcher.Builder.ProfileWriter
   alias Core.Researcher.Crawler
-  alias Core.Auth.Tenants
 
   @crawl_timeout 5 * 60 * 1000
 
-  def tenant_icp_start(tenant_id) do
+  def tenant_icp_start(tenant_record) do
     Task.Supervisor.start_child(
       Core.TaskSupervisor,
       fn ->
-        tenant_icp(tenant_id)
+        tenant_icp(tenant_record)
       end
     )
   end
 
-  def tenant_icp(tenant_id) do
-    with {:ok, tenant_record} <- Tenants.get_tenant_by_id(tenant_id),
-         {:ok, icp} <- build_icp(tenant_record.domain) do
+  def tenant_icp(tenant_record) do
+    with {:ok, icp} <- build_icp(tenant_record.domain) do
       profile = %{
         domain: tenant_record.domain,
-        tenant_id: tenant_id,
+        tenant_id: tenant_record.id,
         profile: icp.icp,
         qualifying_attributes: icp.qualifying_attributes
       }
