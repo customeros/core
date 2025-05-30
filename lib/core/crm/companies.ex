@@ -22,9 +22,11 @@ defmodule Core.Crm.Companies do
       case get_by_primary_domain(domain) do
         %Company{} = company ->
           OpenTelemetry.Tracer.set_status(:ok)
+
           OpenTelemetry.Tracer.set_attributes([
             {"company.found_by", "exact_domain"}
           ])
+
           {:ok, company}
 
         nil ->
@@ -37,14 +39,17 @@ defmodule Core.Crm.Companies do
                     {"company.found_by", "primary_domain"},
                     {"company.status", "created"}
                   ])
+
                   create_company_and_trigger_scraping(primary_domain)
 
                 company ->
                   OpenTelemetry.Tracer.set_status(:ok)
+
                   OpenTelemetry.Tracer.set_attributes([
                     {"company.found_by", "primary_domain"},
                     {"company.status", "existing"}
                   ])
+
                   {:ok, company}
               end
 
@@ -125,6 +130,23 @@ defmodule Core.Crm.Companies do
       ])
 
       result
+    end
+  end
+
+  def get_or_create(%Company{} = company) do
+    company_with_id =
+      company
+      |> Map.put(:id, IdGenerator.generate_id_21(Company.id_prefix()))
+
+    case get_by_primary_domain(company.primary_domain) do
+      nil ->
+        case Company.changeset(company_with_id, %{}) |> Repo.insert() do
+          {:ok, company} -> {:ok, company}
+          {:error, changeset} -> {:error, changeset}
+        end
+
+      company ->
+        {:ok, company}
     end
   end
 
