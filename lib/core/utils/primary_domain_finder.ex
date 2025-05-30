@@ -13,6 +13,7 @@ defmodule Core.Utils.PrimaryDomainFinder do
   domain status of any given domain.
   """
 
+  require Logger
   require OpenTelemetry.Tracer
   alias Core.Utils.Errors
   alias Finch.Response
@@ -143,31 +144,50 @@ defmodule Core.Utils.PrimaryDomainFinder do
 
   defp domain_redirect_check(domain)
        when is_binary(domain) and byte_size(domain) > 0 do
-    try do
-      cleaned_domain = DomainExtractor.clean_domain(domain)
-
-      # Try HTTPS first, then HTTP if no redirect is found
+    with {:ok, cleaned_domain} <- safe_clean_domain(domain) do
+      # Try HTTPS first
       case check_redirect("https", cleaned_domain) do
-        {:ok, {true, redirect_target}} -> {:ok, {true, redirect_target}}
-        {:ok, {false, ""}} -> check_redirect("http", cleaned_domain)
-        {:error, reason} -> Errors.error(reason)
+        {:ok, result} ->
+          handle_redirect_result(result, cleaned_domain)
+
+        {:error, :cannot_resolve_domain} ->
+          # If HTTPS fails to connect, try HTTP
+          case check_redirect("http", cleaned_domain) do
+            {:ok, result} -> handle_redirect_result(result, cleaned_domain)
+            {:error, reason} -> {:error, reason}
+          end
+
+        {:error, reason} ->
+          {:error, reason}
       end
-    rescue
-      _ -> Errors.error(:cannot_resolve_domain)
+    else
+      {:error, reason} -> {:error, reason}
     end
   end
 
+  # Helper to safely clean domain and always return {:ok, cleaned_domain} or {:error, reason}
+  defp safe_clean_domain(domain) do
+    case DomainExtractor.clean_domain(domain) do
+      cleaned when is_binary(cleaned) and cleaned != "" -> {:ok, cleaned}
+      _ -> {:error, :invalid_domain}
+    end
+  end
+
+  # Helper function to handle the redirect result
+  defp handle_redirect_result({true, redirect_target}, _cleaned_domain),
+    do: {:ok, {true, redirect_target}}
+
+  defp handle_redirect_result({false, ""}, _cleaned_domain),
+    do: {:ok, {false, ""}}
+
   defp primary_domain_check(domain) do
-    try do
-      domain
-      |> prepare_domain()
-      |> check_domain_validity()
-      |> check_domain_accessibility()
-      |> check_domain_redirects()
-      |> check_domain_dns()
-      |> determine_primary_domain_status()
-    rescue
-      _ -> Errors.error(:cannot_resolve_domain)
+    with result <- prepare_domain(domain),
+         result <- check_domain_validity(result),
+         result <- check_domain_accessibility(result),
+         result <- check_domain_redirects(result),
+         result <- check_domain_dns(result),
+         result <- determine_primary_domain_status(result) do
+      result
     end
   end
 
