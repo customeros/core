@@ -33,6 +33,11 @@ defmodule Web.Router do
     plug :accepts, ["json"]
   end
 
+  pipeline :cors_limited_api do
+    plug :accepts, ["json"]
+    plug Web.Plugs.CorsPlug
+  end
+
   pipeline :bearer_api do
     plug :accepts, ["json"]
     plug :authenticate_bearer_token
@@ -124,6 +129,12 @@ defmodule Web.Router do
     pipe_through :public_api
 
     post "/events", WebTrackerController, :create
+  end
+
+  # ICP endpoint with CORS
+  scope "/v1", Web do
+    pipe_through :cors_limited_api
+
     post "/icp", IcpController, :create
   end
 
