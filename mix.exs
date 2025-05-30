@@ -57,7 +57,6 @@ defmodule Core.MixProject do
       {:gnat, "~> 1.10"},
       {:grpc, "~> 0.10.1"},
       {:gettext, "~> 0.20"},
-      {:hammer, "~> 7.0"},
       {:idna, "~> 6.1.1"},
       {:jason, "~> 1.4"},
       {:jetstream, "~> 0.0.9"},

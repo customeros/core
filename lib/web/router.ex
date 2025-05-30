@@ -1,5 +1,4 @@
 defmodule Web.Router do
-  alias Web.Controllers.IcpController
   use Web, :router
 
   import Web.UserAuth
