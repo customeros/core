@@ -30,8 +30,9 @@ jobs:
           echo "Current directory: $(pwd)"
           echo "Listing directory contents:"
           ls -la ./scripts/runners/
-          echo "GitHub event:"
-          echo "${{ toJSON(github.event) }}"
+
+      - name: Debug GitHub Event
+        run: 'echo "${{ toJSON(github.event) }}"'
 
       - name: Run PR Notification Script
         run: node --input-type=module ./scripts/runners/pr-notification.mjs
