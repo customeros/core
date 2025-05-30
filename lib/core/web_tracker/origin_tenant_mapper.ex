@@ -33,9 +33,11 @@ defmodule Core.WebTracker.OriginTenantMapper do
     origin
     |> String.trim()
     |> String.downcase()
-    |> String.replace(~r/^https?:\/\//, "") # Remove http:// or https://
-    |> String.replace(~r/^www\./, "") # Remove www.
-    |> String.trim_trailing("/") # Remove trailing slash
+    |> String.replace_prefix("https://", "")
+    |> String.replace_prefix("http://", "")
+    |> String.replace_prefix("www.", "")
+    |> String.trim("/")
+    |> String.trim()
   end
 
   @doc """
