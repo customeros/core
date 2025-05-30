@@ -284,7 +284,7 @@ defmodule Core.Auth.Users do
 
         UserNotifier.deliver_register_link(
           user,
-          "#{Web.Endpoint.url()}/signin/token/#{email_token}"
+          "#{Web.Endpoint.url()}/signup/token/#{email_token}"
         )
     end
   end

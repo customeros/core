@@ -39,6 +39,18 @@ defmodule Web.UserAuth do
     |> redirect(to: user_return_to || signed_in_path(conn))
   end
 
+  def signup_user(conn, user, params \\ %{}) do
+    token = Users.generate_user_session_token(user)
+    user_return_to = get_session(conn, :user_return_to)
+    dbg(user_return_to)
+
+    conn
+    |> renew_session()
+    |> put_token_in_session(token)
+    |> maybe_write_remember_me_cookie(token, params)
+    |> redirect(to: signed_up_path(conn))
+  end
+
   defp maybe_write_remember_me_cookie(conn, token, %{"remember_me" => "true"}) do
     put_resp_cookie(conn, @remember_me_cookie, token, @remember_me_options)
   end
@@ -397,7 +409,8 @@ defmodule Web.UserAuth do
     end
   end
 
-  defp signed_in_path(_conn), do: ~p"/"
+  defp signed_in_path(_conn), do: ~p"/leads"
+  defp signed_up_path(_conn), do: ~p"/welcome"
 
   defp put_token_in_session(conn, token) do
     conn

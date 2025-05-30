@@ -7,12 +7,14 @@ import axios from 'axios';
 
 import { Leads } from './pages/Leads/Leads';
 import { Signin } from './pages/Signin';
+import { Welcome } from './pages/Welcome';
 
 axios.defaults.xsrfHeaderName = 'x-csrf-token';
 
 const pages = {
   Leads,
   Signin,
+  Welcome,
 };
 createInertiaApp({
   resolve: async name => {
