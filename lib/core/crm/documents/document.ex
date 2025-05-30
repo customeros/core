@@ -51,11 +51,24 @@ defmodule Core.Crm.Documents.Document do
     |> validate_required([:id, :name, :icon, :color])
   end
 
+  def new_account_brief(tenant_id, lead_id, body) do
+    %{
+      id: Core.Utils.IdGenerator.generate_id_16("doc"),
+      tenant_id: tenant_id,
+      user_id: "system",
+      name: "Account Brief",
+      body: body,
+      icon: "check-01",
+      color: "#1b1b1b",
+      ref_id: lead_id
+    }
+  end
+
   defp maybe_put_id(%Ecto.Changeset{data: %{id: nil}} = changeset) do
     put_change(
       changeset,
       :id,
-      Core.Utils.IdGenerator.generate_id_21("doc")
+      Core.Utils.IdGenerator.generate_id_16("doc")
     )
   end
 
