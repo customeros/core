@@ -10,12 +10,14 @@ defmodule Core.Crm.Companies.CompanyEnrich do
   alias Core.Utils.Media.Images
 
   def enrich_industry_task(company_id) do
-    span_ctx = OpenTelemetry.Tracer.current_span_ctx()
+    OpenTelemetry.Tracer.with_span "company_enrich.enrich_industry_task" do
+      span_ctx = OpenTelemetry.Tracer.current_span_ctx()
 
-    Task.Supervisor.start_child(Core.TaskSupervisor, fn ->
-      OpenTelemetry.Tracer.set_current_span(span_ctx)
-      enrich_industry(company_id)
-    end)
+      Task.Supervisor.start_child(Core.TaskSupervisor, fn ->
+        OpenTelemetry.Tracer.set_current_span(span_ctx)
+        enrich_industry(company_id)
+      end)
+    end
   end
 
   @spec enrich_industry(String.t()) :: :ok | {:error, atom()}
@@ -135,12 +137,14 @@ defmodule Core.Crm.Companies.CompanyEnrich do
   end
 
   def enrich_name_task(company_id) do
-    span_ctx = OpenTelemetry.Tracer.current_span_ctx()
+    OpenTelemetry.Tracer.with_span "company_enrich.enrich_name_task" do
+      span_ctx = OpenTelemetry.Tracer.current_span_ctx()
 
-    Task.Supervisor.start_child(Core.TaskSupervisor, fn ->
-      OpenTelemetry.Tracer.set_current_span(span_ctx)
-      enrich_name(company_id)
-    end)
+      Task.Supervisor.start_child(Core.TaskSupervisor, fn ->
+        OpenTelemetry.Tracer.set_current_span(span_ctx)
+        enrich_name(company_id)
+      end)
+    end
   end
 
   def enrich_name(company_id) do
@@ -235,12 +239,14 @@ defmodule Core.Crm.Companies.CompanyEnrich do
   end
 
   def enrich_country_task(company_id) do
-    span_ctx = OpenTelemetry.Tracer.current_span_ctx()
+    OpenTelemetry.Tracer.with_span "company_enrich.enrich_country_task" do
+      span_ctx = OpenTelemetry.Tracer.current_span_ctx()
 
-    Task.Supervisor.start_child(Core.TaskSupervisor, fn ->
-      OpenTelemetry.Tracer.set_current_span(span_ctx)
-      enrich_country(company_id)
-    end)
+      Task.Supervisor.start_child(Core.TaskSupervisor, fn ->
+        OpenTelemetry.Tracer.set_current_span(span_ctx)
+        enrich_country(company_id)
+      end)
+    end
   end
 
   def enrich_country(company_id) do
@@ -345,12 +351,14 @@ defmodule Core.Crm.Companies.CompanyEnrich do
   end
 
   def enrich_icon_task(company_id) do
-    span_ctx = OpenTelemetry.Tracer.current_span_ctx()
+    OpenTelemetry.Tracer.with_span "company_enrich.enrich_icon_task" do
+      span_ctx = OpenTelemetry.Tracer.current_span_ctx()
 
-    Task.Supervisor.start_child(Core.TaskSupervisor, fn ->
-      OpenTelemetry.Tracer.set_current_span(span_ctx)
-      enrich_icon(company_id)
-    end)
+      Task.Supervisor.start_child(Core.TaskSupervisor, fn ->
+        OpenTelemetry.Tracer.set_current_span(span_ctx)
+        enrich_icon(company_id)
+      end)
+    end
   end
 
   def enrich_icon(company_id) do
