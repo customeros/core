@@ -75,6 +75,7 @@ defmodule Core.MixProject do
       {:phoenix_live_reload, "~> 1.2", only: :dev},
       {:phoenix_live_view, "~> 1.0.5"},
       {:phoenix_pubsub, "~> 2.1.3"},
+      {:plug, "~> 1.18", override: true},
       {:plug_cowboy, "~> 2.5"},
       {:postgrex, "~> 0.20"},
       {:protobuf_generate, "~> 0.1.3", runtime: false},

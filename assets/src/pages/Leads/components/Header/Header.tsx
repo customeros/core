@@ -62,15 +62,24 @@ export const Header = () => {
           className="absolute top-[120px] left-1/2 transform -translate-x-1/2 z-[10000] px-4 py-3 rounded-full bg-white shadow-lg cursor-pointer"
         >
           <div className="flex items-center gap-2">
-            {headIcons.map((icon, index) => (
-              <img
-                key={icon}
-                src={icon}
-                alt="Lead icon"
-                className="size-4 rounded-full shadow-sm"
-                style={{ zIndex: 10000 + index, marginLeft: index > 0 ? -16 : 0 }}
-              />
-            ))}
+            {headIcons.map((icon, index) =>
+              icon ? (
+                <img
+                  key={icon}
+                  src={icon}
+                  alt="Lead icon"
+                  className="size-4 rounded-full shadow-sm"
+                  style={{ zIndex: 10000 + index, marginLeft: index > 0 ? -16 : 0 }}
+                />
+              ) : (
+                <div
+                  className="size-4 rounded-full shadow-sm bg-gray-200"
+                  style={{ zIndex: 10000 + index, marginLeft: index > 0 ? -16 : 0 }}
+                >
+                  <Icon name="building-06" className="size-2" />
+                </div>
+              )
+            )}
             <div className="flex flex-col">
               <span className="text-sm font-medium text-primary-700">{leadCount} new leads</span>
             </div>

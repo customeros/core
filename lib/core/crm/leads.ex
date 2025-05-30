@@ -101,6 +101,8 @@ defmodule Core.Crm.Leads do
     end
   end
 
+  @spec get_or_create(tenant :: String.t(), attrs :: map()) ::
+          {:ok, Lead.t()} | {:error, :not_found}
   def get_or_create(tenant, attrs) do
     case Tenants.get_tenant_by_name(tenant) do
       {:error, :not_found} ->
@@ -114,7 +116,7 @@ defmodule Core.Crm.Leads do
               tenant_id: tenant.id,
               ref_id: attrs.ref_id,
               type: attrs.type,
-              stage: Map.get(attrs, :stage, :target)
+              stage: Map.get(attrs, :stage, :pending)
             })
             |> Repo.insert()
             |> tap(fn {:ok, result} ->

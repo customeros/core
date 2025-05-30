@@ -40,8 +40,8 @@ defmodule Core.Researcher.IcpFinder.PromptBuilder do
       "companies": [
         {
           "name": "Company Name",
-          "domain": "Company Domain",
-          "country": "Country a2 code",
+          "primary_domain": "Company Domain",
+          "country_a2": "Country a2 code",
           "industry_code": "Industry code",
           "industry": "Industry name"
         }
