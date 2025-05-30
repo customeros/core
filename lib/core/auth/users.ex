@@ -9,6 +9,7 @@ defmodule Core.Auth.Users do
   alias Core.Repo
   alias Core.Notifications.Slack
   alias Core.Auth.PersonalEmailProviders
+  alias Core.Utils.Tracing
 
   alias Core.Auth.Users.{User, UserToken, UserNotifier}
   alias Core.Auth.Tenants
@@ -89,63 +90,60 @@ defmodule Core.Auth.Users do
            errors: [email: {"personal email not allowed", []}]
          }}
       else
-        case extract_tenant_name(email) do
-          {:ok, tenant_name} ->
-            tenant_name
-
-          {:error, reason} ->
+        with {:ok, tenant_name} <- extract_tenant_name_from_email(email),
+             tenant_id <- get_or_create_tenant(tenant_name, domain),
+             {:ok, user} <- create_user(attrs, tenant_id, email, tenant_name) do
+          {:ok, user}
+        else
+          {:error, reason} = error ->
             Tracing.error(reason)
-
-            Logger.error(
-              "Failed to extract tenant name from email: #{inspect(reason)}"
-            )
-
-            {:error, reason}
-        end
-
-        tenant_id =
-          case Tenants.get_tenant_by_name(tenant_name) do
-            {:error, :not_found} ->
-              {:ok, tenant_id} =
-                Tenants.create_tenant(tenant_name, domain)
-
-              tenant_id
-
-            {:ok, tenant} ->
-              tenant.id
-          end
-
-        # Now register user
-        result =
-          %User{}
-          |> User.registration_changeset(Map.put(attrs, :tenant_id, tenant_id))
-          |> Repo.insert()
-
-        case result do
-          {:ok, _user} ->
-            # Notify Slack about new user
-            Task.start(fn ->
-              case Slack.notify_new_user(email, tenant_name) do
-                :ok ->
-                  :ok
-
-                {:error, reason} ->
-                  Logger.error(
-                    "Failed to send Slack notification for user #{email} creation: #{inspect(reason)}"
-                  )
-              end
-            end)
-
-            result
-
-          error ->
+            Logger.error("Failed to register user: #{inspect(reason)}")
             error
         end
       end
     end
   end
 
-  defp extract_tenant_name(email) do
+  defp get_or_create_tenant(tenant_name, domain) do
+    case Tenants.get_tenant_by_name(tenant_name) do
+      {:error, :not_found} ->
+        case Tenants.create_tenant(tenant_name, domain) do
+          {:ok, tenant} -> {:ok, tenant.id}
+          error -> error
+        end
+      {:ok, tenant} -> {:ok, tenant.id}
+    end
+  end
+
+  defp create_user(attrs, {:ok, tenant_id}, email, tenant_name) do
+    result =
+      %User{}
+      |> User.registration_changeset(Map.put(attrs, :tenant_id, tenant_id))
+      |> Repo.insert()
+
+    case result do
+      {:ok, user} ->
+        # Notify Slack about new user
+        Task.start(fn ->
+          case Slack.notify_new_user(email, tenant_name) do
+            :ok -> :ok
+            {:error, reason} ->
+              Logger.error(
+                "Failed to send Slack notification for user #{email} creation: #{inspect(reason)}"
+              )
+          end
+        end)
+        {:ok, user}
+      error -> error
+    end
+  end
+
+  defp extract_domain(email) do
+    [_, domain] = String.split(email, "@")
+    domain
+  end
+
+  defp extract_tenant_name_from_email(email) do
     with {:ok, domain} <- DomainExtractor.extract_domain_from_email(email),
          {:ok, primary_domain} <- PrimaryDomainFinder.get_primary_domain(domain) do
       tenant_name =
