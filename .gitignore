@@ -54,3 +54,4 @@ priv/scripts/*
 .DS_Store
 core.iml
 *.mdc
+.cursorrules
