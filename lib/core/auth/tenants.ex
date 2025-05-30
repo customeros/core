@@ -92,9 +92,8 @@ defmodule Core.Auth.Tenants do
 
       case insert_tenant(name, domain) do
         {:ok, tenant} = result ->
-          # Start background processes
           start_post_creation_tasks(tenant)
-          Tracing.ok
+          Tracing.ok()
           result
 
         {:error, _changeset} = error ->
@@ -115,7 +114,7 @@ defmodule Core.Auth.Tenants do
   defp start_post_creation_tasks(tenant) do
     notify_slack_new_tenant_start(tenant)
     process_company_for_tenant_start(tenant)
-    IcpBuilder.tenant_icp_start(tenant.id)
+    IcpBuilder.tenant_icp_start(tenant)
   end
 
   defp notify_slack_new_tenant_start(tenant) do
