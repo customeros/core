@@ -8,7 +8,8 @@ defmodule Core.Utils.Errors do
     :invalid_domain,
     :domain_not_provided,
     :unable_to_normalize_domain,
-    :no_primary_domain
+    :no_primary_domain,
+    :too_many_redirects
   ]
   @dns_errors [
     :dns_lookup_failed,
@@ -28,6 +29,7 @@ defmodule Core.Utils.Errors do
           | :domain_not_provided
           | :unable_to_normalize_domain
           | :no_primary_domain
+          | :too_many_redirects
   @type dns_error ::
           :dns_lookup_failed
           | :no_records_found

@@ -167,10 +167,6 @@ defmodule Core.Crm.Companies.CompanyEnricher do
         {:error, reason} ->
           Tracing.error(inspect(reason))
 
-          OpenTelemetry.Tracer.set_attributes([
-            {"error.reason", inspect(reason)}
-          ])
-
           {:error, reason}
       end
     end
