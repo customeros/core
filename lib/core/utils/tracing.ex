@@ -18,7 +18,7 @@ defmodule Core.Utils.Tracing do
         :ok
 
       _ctx ->
-        set_status(:error)
+        set_status(:error, inspect(reason))
 
         set_attributes([
           {"error.reason", inspect(reason)}
