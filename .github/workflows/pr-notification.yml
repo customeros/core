@@ -30,7 +30,7 @@ jobs:
         shell: bash
         run: |
           #!/bin/bash
-          node ./scripts/runners/pr-notification.js
+          node --input-type=module ./scripts/runners/pr-notification.js
         env:
           SLACK_CHANNEL_ID: ${{ secrets.SLACK_CHANNEL_ID }}
           SLACK_API_TOKEN: ${{ secrets.SLACK_API_TOKEN }}
