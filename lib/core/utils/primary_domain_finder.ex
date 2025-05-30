@@ -67,11 +67,22 @@ defmodule Core.Utils.PrimaryDomainFinder do
 
       case primary_domain_check(domain) do
         {:ok, {_is_primary, primary_domain}} when primary_domain != "" ->
-          OpenTelemetry.Tracer.set_status(:ok)
-          OpenTelemetry.Tracer.set_attributes([
-            {"result.primary_domain", primary_domain}
-          ])
-          {:ok, primary_domain}
+          # Validate the primary domain before returning it
+          case validate_suspicious_domain(primary_domain) do
+            :ok ->
+              OpenTelemetry.Tracer.set_status(:ok)
+              OpenTelemetry.Tracer.set_attributes([
+                {"result.primary_domain", primary_domain}
+              ])
+              {:ok, primary_domain}
+
+            {:error, reason} ->
+              OpenTelemetry.Tracer.set_status(:error)
+              OpenTelemetry.Tracer.set_attributes([
+                {"error.reason", inspect(reason)}
+              ])
+              Errors.error(reason)
+          end
 
         {:ok, {_is_primary, ""}} ->
           OpenTelemetry.Tracer.set_status(:error)
@@ -95,6 +106,24 @@ defmodule Core.Utils.PrimaryDomainFinder do
   def get_primary_domain(_), do: Errors.error(:invalid_domain)
 
   # Private functions
+
+  # Validate if a domain is suspicious
+  defp validate_suspicious_domain(domain) do
+    case parse_domain(domain) do
+      {:ok, {_root, subdomain}} ->
+        cond do
+          # Check if domain has at least 2 dots (is a subdomain) and matches the pattern ww followed by 1-3 digits and a dot
+          subdomain != "" && Enum.count(String.graphemes(domain), &(&1 == ".")) >= 2 && Regex.match?(~r/^ww\d{1,3}\./, subdomain) ->
+            {:error, :suspicious_domain}
+
+          true ->
+            :ok
+        end
+
+      {:error, reason} ->
+        {:error, reason}
+    end
+  end
 
   defp domain_redirect_check(domain)
        when is_binary(domain) and byte_size(domain) > 0 do
