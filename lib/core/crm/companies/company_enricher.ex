@@ -102,8 +102,8 @@ defmodule Core.Crm.Companies.CompanyEnricher do
 
   @spec fetch_companies_for_icon_enrichment(integer()) :: [Company.t()]
   defp fetch_companies_for_icon_enrichment(batch_size) do
-    twenty_four_hours_ago = DateTime.add(DateTime.utc_now(), -24 * 60 * 60)
-    ten_minutes_ago = DateTime.add(DateTime.utc_now(), -10 * 60)
+    hours_ago_24 = DateTime.add(DateTime.utc_now(), -24 * 60 * 60)
+    minutes_ago_10 = DateTime.add(DateTime.utc_now(), -10 * 60)
     max_attempts = 5
 
     Company
@@ -112,9 +112,9 @@ defmodule Core.Crm.Companies.CompanyEnricher do
     |> where(
       [c],
       is_nil(c.icon_enrich_attempt_at) or
-        c.icon_enrich_attempt_at < ^twenty_four_hours_ago
+        c.icon_enrich_attempt_at < ^hours_ago_24
     )
-    |> where([c], c.inserted_at < ^ten_minutes_ago)
+    |> where([c], c.inserted_at < ^minutes_ago_10)
     |> order_by([c], asc: c.icon_enrich_attempt_at)
     |> limit(^batch_size)
     |> Repo.all()
@@ -162,19 +162,20 @@ defmodule Core.Crm.Companies.CompanyEnricher do
 
   @spec fetch_companies_for_industry_enrichment(integer()) :: [Company.t()]
   defp fetch_companies_for_industry_enrichment(batch_size) do
-    twenty_four_hours_ago = DateTime.add(DateTime.utc_now(), -24 * 60 * 60)
-    ten_minutes_ago = DateTime.add(DateTime.utc_now(), -10 * 60)
+    hours_ago_24 = DateTime.add(DateTime.utc_now(), -24 * 60 * 60)
+    minutes_ago_10 = DateTime.add(DateTime.utc_now(), -10 * 60)
     max_attempts = 5
 
     Company
     |> where([c], is_nil(c.industry_code) or c.industry_code == "")
+    |> where([c], not is_nil(c.homepage_content) and c.homepage_content != "")
     |> where([c], c.industry_enrichment_attempts < ^max_attempts)
     |> where(
       [c],
       is_nil(c.industry_enrich_attempt_at) or
-        c.industry_enrich_attempt_at < ^twenty_four_hours_ago
+        c.industry_enrich_attempt_at < ^hours_ago_24
     )
-    |> where([c], c.inserted_at < ^ten_minutes_ago)
+    |> where([c], c.inserted_at < ^minutes_ago_10)
     |> order_by([c], asc: c.industry_enrich_attempt_at)
     |> limit(^batch_size)
     |> Repo.all()
