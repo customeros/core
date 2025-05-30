@@ -19,8 +19,11 @@ defmodule Web.WebTrackerController do
         {"http.method", "POST"},
         {"http.route", "/v1/events"},
         {"http.target", "/v1/events"},
-        {"visitor.id", Map.get(params, "visitorId")},
-        {"event.type", Map.get(params, "eventType")}
+        {"http.event.visitor.id", Map.get(params, "visitorId")},
+        {"http.event.type", Map.get(params, "eventType")},
+        {"http.header.origin", conn.assigns.origin},
+        {"http.header.referer", conn.assigns.referer},
+        {"http.header.user-agent", conn.assigns.user_agent}
       ])
 
       # Header values used only for validation
@@ -32,73 +35,89 @@ defmodule Web.WebTrackerController do
 
       with {:ok, visitor_id} <- validate_visitor_id(visitor_id),
            :ok <- validate_origin(header_origin),
-           {:ok, tenant} <- OriginTenantMapper.get_tenant_for_origin(header_origin),
+           {:ok, tenant} <-
+             OriginTenantMapper.get_tenant_for_origin(header_origin),
            :ok <- WebTracker.check_bot(header_user_agent),
            :ok <- WebTracker.check_suspicious(header_referer),
            # Create event params with body values
-           {:ok, event_params} <- WebTrackerParams.new(Map.merge(params, %{
-             "tenant" => tenant,
-             "visitor_id" => visitor_id
-           })) do
-
+           {:ok, event_params} <-
+             WebTrackerParams.new(
+               Map.merge(params, %{
+                 "tenant" => tenant,
+                 "visitor_id" => visitor_id
+               })
+             ) do
         case WebTracker.process_new_event(event_params) do
           {:ok, result} ->
-            Tracing.ok
+            Tracing.ok()
+
             conn
             |> put_status(:accepted)
             |> json(%{accepted: true, session_id: result.session_id})
 
           {:error, :forbidden, _message} ->
             Tracing.error(:forbidden)
+
             conn
             |> put_status(:forbidden)
             |> json(%{error: "forbidden", details: "request blocked"})
 
           {:error, :bad_request, message} ->
             Tracing.error(:bad_request)
+
             conn
             |> put_status(:bad_request)
             |> json(%{error: "bad_request", details: message})
 
           {:error, _status, _message} ->
             Tracing.error(:internal_server_error)
+
             conn
             |> put_status(:internal_server_error)
-            |> json(%{error: "internal_server_error", details: "something went wrong"})
+            |> json(%{
+              error: "internal_server_error",
+              details: "something went wrong"
+            })
         end
       else
         {:error, :missing_visitor_id} ->
           Tracing.error(:missing_visitor_id)
+
           conn
           |> put_status(:bad_request)
           |> json(%{error: "bad_request", details: "missing visitor_id"})
 
         {:error, :bot} ->
           Tracing.error("bot_detected")
+
           conn
           |> put_status(:forbidden)
           |> json(%{error: "forbidden", details: "bot detected"})
 
         {:error, :suspicious} ->
           Tracing.error("suspicious_referrer")
+
           conn
           |> put_status(:forbidden)
           |> json(%{error: "forbidden", details: "suspicious referrer"})
 
         {:error, :origin_ignored} ->
           Tracing.error(:origin_ignored)
+
           conn
           |> put_status(:forbidden)
           |> json(%{error: "forbidden", details: "origin explicitly ignored"})
 
         {:error, :origin_not_configured} ->
           Tracing.error(:origin_not_configured)
+
           conn
           |> put_status(:forbidden)
           |> json(%{error: "forbidden", details: "origin not configured"})
 
         {:error, message} when is_binary(message) ->
           Tracing.error(message)
+
           conn
           |> put_status(:bad_request)
           |> json(%{error: "bad_request", details: message})
@@ -111,15 +130,22 @@ defmodule Web.WebTrackerController do
     cond do
       OriginValidator.should_ignore_origin?(origin) ->
         {:error, :origin_ignored}
+
       not OriginTenantMapper.whitelisted?(origin) ->
         {:error, :origin_not_configured}
+
       true ->
         :ok
     end
   end
+
   defp validate_origin(_), do: {:error, :origin_not_configured}
 
-  @spec validate_visitor_id(String.t() | nil) :: {:ok, String.t()} | {:error, :missing_visitor_id}
-  defp validate_visitor_id(visitor_id) when is_binary(visitor_id) and visitor_id != "", do: {:ok, visitor_id}
+  @spec validate_visitor_id(String.t() | nil) ::
+          {:ok, String.t()} | {:error, :missing_visitor_id}
+  defp validate_visitor_id(visitor_id)
+       when is_binary(visitor_id) and visitor_id != "",
+       do: {:ok, visitor_id}
+
   defp validate_visitor_id(_), do: {:error, :missing_visitor_id}
 end
