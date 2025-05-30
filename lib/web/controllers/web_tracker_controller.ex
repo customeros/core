@@ -55,7 +55,7 @@ defmodule Web.WebTrackerController do
             |> json(%{error: "forbidden", details: "request blocked"})
 
           {:error, :bad_request, message} ->
-            Tracing.error(:bad_reqiest)
+            Tracing.error(:bad_request)
             conn
             |> put_status(:bad_request)
             |> json(%{error: "bad_request", details: message})
