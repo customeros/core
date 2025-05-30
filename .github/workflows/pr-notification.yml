@@ -12,7 +12,7 @@ jobs:
   notify:
     runs-on: ubuntu-latest  # You can keep ubicloud if you need to
     if: >
-      github.event.pull_request == null || github.event.pull_request.draft == false || github.event.action == 'ready_for_review'
+      github.event.pull_request != null && (github.event.pull_request.draft == false || github.event.action == 'ready_for_review')  
     steps:
       - uses: actions/checkout@v4
 

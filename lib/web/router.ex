@@ -31,6 +31,7 @@ defmodule Web.Router do
 
   pipeline :public_api do
     plug :accepts, ["json"]
+    plug Web.Plugs.CorsPlug
   end
 
   pipeline :bearer_api do
