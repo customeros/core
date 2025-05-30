@@ -84,7 +84,7 @@ defmodule Core.Utils.PrimaryDomainFinder do
                primary_domain_check(current_domain),
              :ok <- validate_non_empty(primary_domain),
              :ok <- validate_suspicious_domain(primary_domain) do
-          if primary_domain == current_domain do
+          if String.downcase(primary_domain) == String.downcase(current_domain) do
             # Found stable domain - success!
             Tracing.ok()
 
