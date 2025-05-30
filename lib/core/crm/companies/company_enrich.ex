@@ -9,12 +9,126 @@ defmodule Core.Crm.Companies.CompanyEnrich do
   alias Core.Utils.Errors
   alias Core.Utils.Media.Images
   alias Core.Utils.Tracing
+  alias Core.Researcher.Scraper
 
-  @type enrich_industry_error :: :not_found | :update_failed | :industry_not_found | :invalid_request | :ai_timeout | :invalid_ai_response
-  @type enrich_country_error :: :not_found | :update_failed | :invalid_request | :ai_timeout | :invalid_ai_response
-  @type enrich_name_error :: :not_found | :update_failed | :invalid_request | :ai_timeout | :invalid_ai_response
-  @type enrich_icon_error :: :not_found | :update_failed | :invalid_request | :ai_timeout | :invalid_ai_response | :download_failed | :storage_failed
+  @type scrape_homepage_error ::
+          :not_found
+          | :update_failed
+          | :no_content
+          | :unprocessable
+          | :webscraper_timeout
+          | :url_not_provided
+          | :invalid_url
+  @type enrich_industry_error ::
+          :not_found
+          | :update_failed
+          | :industry_not_found
+          | :invalid_request
+          | :ai_timeout
+          | :invalid_ai_response
+  @type enrich_country_error ::
+          :not_found
+          | :update_failed
+          | :invalid_request
+          | :ai_timeout
+          | :invalid_ai_response
+  @type enrich_name_error ::
+          :not_found
+          | :update_failed
+          | :invalid_request
+          | :ai_timeout
+          | :invalid_ai_response
+  @type enrich_icon_error ::
+          :not_found
+          | :update_failed
+          | :invalid_request
+          | :ai_timeout
+          | :invalid_ai_response
+          | :download_failed
+          | :storage_failed
 
+  @spec scrape_homepage_task(String.t()) :: Task.t()
+  def scrape_homepage_task(company_id) do
+    OpenTelemetry.Tracer.with_span "company_enrich.scrape_homepage_task" do
+      span_ctx = OpenTelemetry.Tracer.current_span_ctx()
+
+      Task.Supervisor.start_child(Core.TaskSupervisor, fn ->
+        OpenTelemetry.Tracer.set_current_span(span_ctx)
+        scrape_homepage(company_id)
+      end)
+    end
+  end
+
+  @spec scrape_homepage(String.t()) :: :ok | {:error, scrape_homepage_error()}
+  def scrape_homepage(company_id) do
+    OpenTelemetry.Tracer.with_span "company_enrich.scrape_homepage" do
+      case Repo.get(Company, company_id) do
+        nil ->
+          Tracing.error(:not_found)
+
+          Logger.error("Company #{company_id} not found")
+
+          Errors.error(:not_found)
+
+        company ->
+          if should_scrape_homepage?(company) do
+            # Mark the attempt first
+            {count, _} =
+              Repo.update_all(
+                from(c in Company, where: c.id == ^company_id),
+                set: [domain_scrape_attempt_at: DateTime.utc_now()]
+              )
+
+            if count > 0 do
+              case Scraper.scrape_webpage(company.primary_domain) do
+                {:ok, result} ->
+                  {update_count, _} =
+                    Repo.update_all(
+                      from(c in Company, where: c.id == ^company_id),
+                      set: [homepage_content: result.content]
+                    )
+
+                  if update_count == 0 do
+                    Tracing.error(:update_failed)
+
+                    Logger.error(
+                      "Failed to update industry for company #{company_id} (domain: #{company.primary_domain})"
+                    )
+
+                    Errors.error(:update_failed)
+                  else
+                    # Trigger enrichment processes after successful scraping
+                    enrich_industry_task(company_id)
+                    enrich_name_task(company_id)
+                    enrich_country_task(company_id)
+                    enrich_icon_task(company_id)
+                    :ok
+                  end
+
+                {:error, reason} ->
+                  Logger.error(
+                    "Failed to scrape homepage for company #{company_id} (domain: #{company.primary_domain}): #{inspect(reason)}"
+                  )
+
+                  Tracing.error(inspect(reason))
+
+                  {:error, reason}
+              end
+            else
+              Tracing.error(:update_failed)
+
+              Logger.error(
+                "Failed to mark scraping homepage attempt for company #{company_id}"
+              )
+
+              Errors.error(:update_failed)
+            end
+          end
+      end
+    end
+  end
+
+  @spec enrich_industry_task(String.t()) :: Task.t()
   def enrich_industry_task(company_id) do
     OpenTelemetry.Tracer.with_span "company_enrich.enrich_industry_task" do
       span_ctx = OpenTelemetry.Tracer.current_span_ctx()
@@ -139,6 +253,7 @@ defmodule Core.Crm.Companies.CompanyEnrich do
     end
   end
 
+  @spec enrich_name_task(String.t()) :: Task.t()
   def enrich_name_task(company_id) do
     OpenTelemetry.Tracer.with_span "company_enrich.enrich_name_task" do
       span_ctx = OpenTelemetry.Tracer.current_span_ctx()
@@ -226,6 +341,7 @@ defmodule Core.Crm.Companies.CompanyEnrich do
     end
   end
 
+  @spec enrich_country_task(String.t()) :: Task.t()
   def enrich_country_task(company_id) do
     OpenTelemetry.Tracer.with_span "company_enrich.enrich_country_task" do
       span_ctx = OpenTelemetry.Tracer.current_span_ctx()
@@ -323,6 +439,7 @@ defmodule Core.Crm.Companies.CompanyEnrich do
     end
   end
 
+  @spec enrich_icon_task(String.t()) :: Task.t()
   def enrich_icon_task(company_id) do
     OpenTelemetry.Tracer.with_span "company_enrich.enrich_icon_task" do
       span_ctx = OpenTelemetry.Tracer.current_span_ctx()
@@ -540,4 +657,27 @@ defmodule Core.Crm.Companies.CompanyEnrich do
   end
 
   defp should_enrich_icon?(_), do: false
+
+  @spec should_scrape_homepage?(%Company{}) :: boolean()
+  defp should_scrape_homepage?(%Company{} = company) do
+    OpenTelemetry.Tracer.with_span "company_enrich.should_scrape_homepage?" do
+      OpenTelemetry.Tracer.set_attributes([
+        {"company.id", company.id},
+        {"company.domain", company.primary_domain}
+      ])
+
+      cond do
+        not is_nil(company.homepage_content) and company.homepage_content != "" ->
+          false
+
+        is_nil(company.primary_domain) or company.primary_domain == "" ->
+          false
+
+        true ->
+          true
+      end
+    end
+  end
+
+  defp should_scrape_homepage?(_), do: false
 end

@@ -12,7 +12,6 @@ defmodule Core.Application do
       {Task.Supervisor, name: Core.TaskSupervisor},
       Core.Auth.Users.ColorManager,
       Core.Repo,
-      Core.Crm.Companies.Enrich,
       Core.Crm.Companies.CompanyEnricher,
       Core.Crm.Companies.CompanyDomainProcessor,
       Core.WebTracker.WebSessionCloser,

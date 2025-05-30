@@ -1,7 +1,7 @@
 defmodule Core.Crm.Companies do
   require OpenTelemetry.Tracer
   alias Core.Crm.Companies.Company
-  alias Core.Crm.Companies.Enrich
+  alias Core.Crm.Companies.CompanyEnrich
   alias Core.Repo
   alias Core.Utils.IdGenerator
   alias Core.Utils.Media.Images
@@ -70,7 +70,7 @@ defmodule Core.Crm.Companies do
       ])
 
       with {:ok, company} <- create_with_domain(primary_domain) do
-        Enrich.scrape_homepage(company.id)
+        CompanyEnrich.scrape_homepage_task(company.id)
         Tracing.ok
         {:ok, company}
       else
