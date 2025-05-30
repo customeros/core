@@ -136,6 +136,7 @@ defmodule Web.Router do
     pipe_through :cors_limited_api
 
     post "/icp", IcpController, :create
+    options "/*path", IcpController, :options
   end
 
   # Protected API routes (session auth required)

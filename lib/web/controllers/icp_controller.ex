@@ -7,6 +7,12 @@ defmodule Web.IcpController do
   # 1 minute
   @window_ms 60_000
 
+  def options(conn, _params) do
+    conn
+    |> put_resp_content_type("application/json")
+    |> send_resp(200, "{}")
+  end
+
   def create(conn, params) do
     OpenTelemetry.Tracer.with_span "Icp.create" do
       client_ip = get_client_ip(conn)
