@@ -53,7 +53,7 @@ defmodule Core.Utils.PrimaryDomainFinder do
 
   If the input domain is not primary, this function attempts to find
   the actual primary domain (e.g., root domain or redirect target).
-
+  Follows up to 3 redirects before erroring.
   """
   @spec get_primary_domain(String.t()) ::
           {:ok, String.t()}
@@ -64,7 +64,7 @@ defmodule Core.Utils.PrimaryDomainFinder do
     OpenTelemetry.Tracer.with_span "primary_domain_finder.get_primary_domain" do
       OpenTelemetry.Tracer.set_attributes([{"domain", domain}])
 
-      do_primary_domain(domain, domain)
+      follow_domain_chain(domain, MapSet.new(), 3)
     end
   end
 
@@ -72,38 +72,47 @@ defmodule Core.Utils.PrimaryDomainFinder do
   def get_primary_domain(nil), do: Errors.error(:domain_not_provided)
   def get_primary_domain(_), do: Errors.error(:invalid_domain)
 
-  defp do_primary_domain(original_domain, current_domain) do
-    with {:ok, {_is_primary, primary_domain}} <-
-           primary_domain_check(current_domain),
-         :ok <- validate_non_empty(primary_domain),
-         :ok <- validate_suspicious_domain(primary_domain),
-         :ok <-
-           validate_recursive(original_domain, current_domain, primary_domain) do
-      Tracing.ok()
+  defp follow_domain_chain(current_domain, visited, redirects_remaining) do
+    cond do
+      MapSet.member?(visited, current_domain) ->
+        handle_error({:error, :circular_domain_reference})
 
-      OpenTelemetry.Tracer.set_attributes([
-        {"result.primary_domain", primary_domain}
-      ])
+      true ->
+        new_visited = MapSet.put(visited, current_domain)
 
-      {:ok, primary_domain}
-    else
-      error -> handle_error(error)
+        with {:ok, {_is_primary, primary_domain}} <-
+               primary_domain_check(current_domain),
+             :ok <- validate_non_empty(primary_domain),
+             :ok <- validate_suspicious_domain(primary_domain) do
+          if String.downcase(primary_domain) == String.downcase(current_domain) do
+            # Found stable domain - success!
+            Tracing.ok()
+
+            OpenTelemetry.Tracer.set_attributes([
+              {"result.primary_domain", primary_domain}
+            ])
+
+            {:ok, primary_domain}
+          else
+            # Need to follow redirect
+            if redirects_remaining > 0 do
+              follow_domain_chain(
+                primary_domain,
+                new_visited,
+                redirects_remaining - 1
+              )
+            else
+              handle_error({:error, :too_many_redirects})
+            end
+          end
+        else
+          error -> handle_error(error)
+        end
     end
   end
 
   defp validate_non_empty(""), do: {:error, :no_primary_domain}
   defp validate_non_empty(_), do: :ok
-
-  defp validate_recursive(_original, current, primary) when current == primary,
-    do: :ok
-
-  defp validate_recursive(original, _current, primary) do
-    case do_primary_domain(original, primary) do
-      {:ok, result} when result == primary -> :ok
-      {:ok, _} -> {:error, :recursive_validation_failed}
-      error -> error
-    end
-  end
 
   defp handle_error({:error, reason}) do
     Tracing.error(inspect(reason))
