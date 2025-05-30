@@ -80,6 +80,7 @@ defmodule Web.Router do
     get "/signin", AuthController, :index
     post "/signin", AuthController, :send_magic_link
     get "/signin/token/:token", AuthController, :signin_with_token
+    get "/signup/token/:token", AuthController, :signup_with_token
   end
 
   # Enable LiveDashboard and Swoosh mailbox preview in development
@@ -103,9 +104,10 @@ defmodule Web.Router do
     get "/leads/download", LeadsController, :download
     get "/icons.svg", IconsController, :index
     get "/favicon/*path", FaviconController, :serve
+    get "/welcome", WelcomeController, :index
 
     # Catch-all route for undefined paths
-    get "/*path", LandingController, :redirect
+    # get "/*path", LandingController, :redirect
   end
 
   scope "/graphql" do
