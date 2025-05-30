@@ -34,7 +34,7 @@ jobs:
           echo "${{ toJSON(github.event) }}"
 
       - name: Run PR Notification Script
-        run: node --experimental-modules ./scripts/runners/pr-notification.mjs
+        run: node --input-type=module ./scripts/runners/pr-notification.mjs
         env:
           SLACK_CHANNEL_ID: ${{ secrets.SLACK_CHANNEL_ID }}
           SLACK_API_TOKEN: ${{ secrets.SLACK_API_TOKEN }}
