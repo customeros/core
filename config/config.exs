@@ -78,5 +78,9 @@ config :inertia,
   ssr: false,
   raise_on_ssr_failure: true
 
+# Cron jobs configuration
+config :core, :crons,
+  enabled: true
+
 # Import environment specific config
 import_config "#{config_env()}.exs"

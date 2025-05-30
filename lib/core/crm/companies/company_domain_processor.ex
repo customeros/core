@@ -2,6 +2,9 @@ defmodule Core.Crm.Companies.CompanyDomainProcessor do
   @moduledoc """
   GenServer responsible for periodically processing company domains from the queue.
   Creates new companies for unprocessed domains.
+
+  Configuration:
+  - Uses general cron configuration from :core, :crons, :enabled
   """
   use GenServer
   require Logger
@@ -21,7 +24,14 @@ defmodule Core.Crm.Companies.CompanyDomainProcessor do
   @default_batch_size 10
 
   def start_link(opts \\ []) do
-    GenServer.start_link(__MODULE__, opts, name: __MODULE__)
+    enabled = Application.get_env(:core, :crons)[:enabled] || false
+
+    if enabled do
+      GenServer.start_link(__MODULE__, opts, name: __MODULE__)
+    else
+      Logger.info("Company domain processor is disabled (crons disabled)")
+      :ignore
+    end
   end
 
   @impl true
