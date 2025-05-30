@@ -10,8 +10,8 @@ on:
 
 jobs:
   notify:
-    if: github.event.pull_request.draft == false || github.event.action == 'ready_for_review'
     runs-on: ubicloud-standard-2
+    if: github.event.pull_request.draft == false || github.event.action == 'ready_for_review'
     steps:
       - uses: actions/checkout@v4
 
@@ -23,9 +23,23 @@ jobs:
       - name: Install Dependencies
         run: npm install @actions/core @actions/github node-fetch@3
 
+      - name: Debug Environment
+        run: |
+          echo "Node version: $(node --version)"
+          echo "NPM version: $(npm --version)"
+          echo "Current directory: $(pwd)"
+          echo "Listing directory contents:"
+          ls -la ./scripts/runners/
+          echo "GitHub event:"
+          echo "${{ toJSON(github.event) }}"
+
       - name: Run PR Notification Script
         run: node ./scripts/runners/pr-notification.mjs
         env:
           SLACK_CHANNEL_ID: ${{ secrets.SLACK_CHANNEL_ID }}
           SLACK_API_TOKEN: ${{ secrets.SLACK_API_TOKEN }}
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Check Script Exit
+        if: always()
+        run: 'echo "Script exit code: $?"'
