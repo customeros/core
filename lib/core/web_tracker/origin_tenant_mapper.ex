@@ -5,8 +5,8 @@ defmodule Core.WebTracker.OriginTenantMapper do
 
   # TODO: Move this to db later
   @whitelisted_origins %{
-    "getkanda.com" => "kandacouk",
-    "dashboard.kanda.co.uk" => "kandacouk",
+    "getkanda.com" => "getkandacom",
+    "dashboard.kanda.co.uk" => "getkandacom",
     "infinity.co" => "infinityco",
     "nuso.cloud" => "nusocloud",
     "nusocloud.eu" => "nusocloud",
