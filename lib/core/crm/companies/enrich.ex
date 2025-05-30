@@ -48,8 +48,10 @@ defmodule Core.Crm.Companies.Enrich do
             )
 
           if count > 0 do
+            span_ctx = OpenTelemetry.Tracer.current_span_ctx()
             # Start the scraping process
             Task.start(fn ->
+              OpenTelemetry.Tracer.set_current_span(span_ctx)
               case Scraper.scrape_webpage(company.primary_domain) do
                 {:ok, result} ->
                   {update_count, _} =
