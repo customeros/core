@@ -6,6 +6,7 @@ defmodule Core.Crm.Companies do
   alias Core.Utils.IdGenerator
   alias Core.Utils.Media.Images
   alias Core.Utils.PrimaryDomainFinder
+  alias Core.Utils.Tracing
 
   @spec get_or_create_by_domain(any()) ::
           {:ok, Company.t()} | {:error, Ecto.Changeset.t() | String.t()}
@@ -21,7 +22,7 @@ defmodule Core.Crm.Companies do
       # First check if company exists with this exact domain
       case get_by_primary_domain(domain) do
         %Company{} = company ->
-          OpenTelemetry.Tracer.set_status(:ok)
+          Tracing.ok
 
           OpenTelemetry.Tracer.set_attributes([
             {"company.found_by", "exact_domain"}
@@ -43,7 +44,7 @@ defmodule Core.Crm.Companies do
                   create_company_and_trigger_scraping(primary_domain)
 
                 company ->
-                  OpenTelemetry.Tracer.set_status(:ok)
+                  Tracing.ok
 
                   OpenTelemetry.Tracer.set_attributes([
                     {"company.found_by", "primary_domain"},
@@ -54,7 +55,7 @@ defmodule Core.Crm.Companies do
               end
 
             _ ->
-              OpenTelemetry.Tracer.set_status(:error, "invalid_domain")
+              Tracing.error("invalid_domain")
               {:error, "not a valid domain"}
           end
       end
@@ -70,11 +71,11 @@ defmodule Core.Crm.Companies do
 
       with {:ok, company} <- create_with_domain(primary_domain) do
         Enrich.scrape_homepage(company.id)
-        OpenTelemetry.Tracer.set_status(:ok)
+        Tracing.ok
         {:ok, company}
       else
         {:error, _reason} = error ->
-          OpenTelemetry.Tracer.set_status(:error, "creation_failed")
+          Tracing.error("creation_failed")
           error
       end
     end
@@ -99,7 +100,7 @@ defmodule Core.Crm.Companies do
 
       case result do
         {:ok, company} ->
-          OpenTelemetry.Tracer.set_status(:ok)
+          Tracing.ok
           {:ok, company}
 
         {:error, _changeset} ->
@@ -108,7 +109,7 @@ defmodule Core.Crm.Companies do
             {"error.type", "validation_failed"}
           ])
 
-          OpenTelemetry.Tracer.set_status(:error, "validation_failed")
+          Tracing.error("validation_failed")
           {:error, :validation_failed}
       end
     end

@@ -8,6 +8,7 @@ defmodule Core.Utils.HttpClient.AwsHttpClient do
 
   require Logger
   require OpenTelemetry.Tracer
+  alias Core.Utils.Tracing
 
   @impl true
   def request(method, url, body, headers, http_opts) do
@@ -20,13 +21,13 @@ defmodule Core.Utils.HttpClient.AwsHttpClient do
       with {:ok, resp} <-
              Finch.build(method, url, headers, body)
              |> Finch.request(Core.Finch) do
-        OpenTelemetry.Tracer.set_status(:ok)
+        Tracing.ok
         {:ok,
          %{status_code: resp.status, body: resp.body, headers: resp.headers}}
       else
         {:error, reason} ->
           Logger.error("ExAws HTTP request failed: #{inspect(reason)}")
-          OpenTelemetry.Tracer.set_status(:error, inspect(reason))
+          Tracing.error(inspect(reason))
           {:error, %{reason: reason}}
       end
     end

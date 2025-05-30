@@ -6,6 +6,7 @@ defmodule Core.WebTracker.WebSessionCloser do
   require Logger
   require OpenTelemetry.Tracer
   alias Core.WebTracker.WebSessions
+  alias Core.Utils.Tracing
 
   @default_interval_ms 2 * 60 * 1000
   @short_interval_ms 5 * 1000
@@ -51,9 +52,9 @@ defmodule Core.WebTracker.WebSessionCloser do
 
       # Set span status based on results
       if failure_count > 0 do
-        OpenTelemetry.Tracer.set_status(:error, "some_sessions_failed_to_close")
+        Tracing.error("some_sessions_failed_to_close")
       else
-        OpenTelemetry.Tracer.set_status(:ok)
+        Tracing.ok
       end
 
       # Choose interval based on whether we hit the batch size
@@ -79,16 +80,13 @@ defmodule Core.WebTracker.WebSessionCloser do
 
       case WebSessions.close(session) do
         {:ok, closed_session} ->
-          OpenTelemetry.Tracer.set_status(:ok)
+          Tracing.ok
           Logger.info("Closed web session: #{closed_session.id}")
           {:ok, closed_session}
 
         {:error, changeset} ->
-          OpenTelemetry.Tracer.set_status(:error, "close_failed")
-          OpenTelemetry.Tracer.set_attributes([
-            {"error.type", "validation_failed"},
-            {"error.details", inspect(changeset.errors)}
-          ])
+          Tracing.error(inspect(changeset.errors))
+
           Logger.error("Failed to close web session: #{session.id}, errors: #{inspect(changeset.errors)}")
           {:error, changeset}
       end

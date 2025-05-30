@@ -15,6 +15,7 @@ defmodule Core.Crm.Companies.CompanyEnricher do
   alias Core.Repo
   alias Core.Crm.Companies.Company
   alias Core.Crm.Companies.CompanyEnrich
+  alias Core.Utils.Tracing
 
   # 1 minute
   @default_interval_ms 60 * 1000
@@ -89,11 +90,11 @@ defmodule Core.Crm.Companies.CompanyEnricher do
 
       case CompanyEnrich.enrich_icon(company.id) do
         :ok ->
-          OpenTelemetry.Tracer.set_status(:ok)
+          Tracing.ok
           :ok
 
         {:error, reason} ->
-          OpenTelemetry.Tracer.set_status(:error, inspect(reason))
+          Tracing.error(inspect(reason))
 
           Logger.error(
             "Failed to start icon enrichment for company: #{company.id} (domain: #{company.primary_domain}), reason: #{inspect(reason)}"
@@ -149,11 +150,11 @@ defmodule Core.Crm.Companies.CompanyEnricher do
 
       case CompanyEnrich.enrich_industry(company.id) do
         :ok ->
-          OpenTelemetry.Tracer.set_status(:ok)
+          Tracing.ok
           :ok
 
         {:error, reason} ->
-          OpenTelemetry.Tracer.set_status(:error, inspect(reason))
+          Tracing.error(inspect(reason))
 
           OpenTelemetry.Tracer.set_attributes([
             {"error.reason", inspect(reason)}
@@ -209,15 +210,11 @@ defmodule Core.Crm.Companies.CompanyEnricher do
 
       case CompanyEnrich.enrich_name(company.id) do
         :ok ->
-          OpenTelemetry.Tracer.set_status(:ok)
+          Tracing.ok
           :ok
 
         {:error, reason} ->
-          OpenTelemetry.Tracer.set_status(:error, inspect(reason))
-
-          OpenTelemetry.Tracer.set_attributes([
-            {"error.reason", inspect(reason)}
-          ])
+          Tracing.error(inspect(reason))
 
           {:error, reason}
       end
@@ -269,15 +266,11 @@ defmodule Core.Crm.Companies.CompanyEnricher do
 
       case CompanyEnrich.enrich_country(company.id) do
         :ok ->
-          OpenTelemetry.Tracer.set_status(:ok)
+          Tracing.ok
           :ok
 
         {:error, reason} ->
-          OpenTelemetry.Tracer.set_status(:error, inspect(reason))
-
-          OpenTelemetry.Tracer.set_attributes([
-            {"error.reason", inspect(reason)}
-          ])
+          Tracing.error(inspect(reason))
 
           {:error, reason}
       end

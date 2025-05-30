@@ -9,6 +9,7 @@ defmodule Core.ApiCallLogger.Logger do
   alias Core.Repo
   alias Core.ApiCallLogger.Schema
   alias Core.Utils.IdGenerator
+  alias Core.Utils.Tracing
 
   @type vendor :: String.t()
 
@@ -48,7 +49,7 @@ defmodule Core.ApiCallLogger.Logger do
               {"result.success", false},
               {"error.type", "request_failed"}
             ])
-            OpenTelemetry.Tracer.set_status(:error, "request_failed")
+            Tracing.error(reason)
             log_error(vendor, request, reason, start_time)
             error
         end
@@ -59,7 +60,7 @@ defmodule Core.ApiCallLogger.Logger do
             {"error.type", "exception"},
             {"error.message", Exception.message(e)}
           ])
-          OpenTelemetry.Tracer.set_status(:error, "exception")
+          Tracing.error("#{inspect(e)}")
           Logger.error("Request failed with exception: #{inspect(e)}")
           log_error(vendor, request, e, start_time)
           {:error, :request_failed}

@@ -9,12 +9,15 @@ defmodule Core.Crm.Companies.CompanyDomainProcessor do
 
   alias Core.Crm.Companies
   alias Core.Crm.Companies.CompanyDomainQueue
-  alias Core.Utils.DomainExtractor
   alias Core.Repo
+  alias Core.Utils.DomainExtractor
+  alias Core.Utils.Tracing
   import Ecto.Query
 
-  @default_interval_ms 60 * 1000  # 1 minute
-  @long_interval_ms 15 * 60 * 1000  # 15 minutes
+  # 1 minute
+  @default_interval_ms 60 * 1000
+  # 15 minutes
+  @long_interval_ms 15 * 60 * 1000
   @default_batch_size 10
 
   def start_link(opts \\ []) do
@@ -44,7 +47,9 @@ defmodule Core.Crm.Companies.CompanyDomainProcessor do
       Enum.each(domains, &process_domain/1)
 
       # Choose interval based on whether we found any domains
-      next_interval_ms = if domain_count > 0, do: @default_interval_ms, else: @long_interval_ms
+      next_interval_ms =
+        if domain_count > 0, do: @default_interval_ms, else: @long_interval_ms
+
       schedule_check(next_interval_ms)
 
       {:noreply, state}
@@ -81,22 +86,32 @@ defmodule Core.Crm.Companies.CompanyDomainProcessor do
 
           case Companies.get_or_create_by_domain(base_domain) do
             {:ok, company} ->
-              OpenTelemetry.Tracer.set_status(:ok)
+              Tracing.ok
+
               OpenTelemetry.Tracer.set_attributes([
                 {"company.id", company.id},
                 {"company.domain", company.primary_domain}
               ])
+
               mark_as_processed(queue_item.id)
 
             {:error, reason} ->
-              OpenTelemetry.Tracer.set_status(:error, inspect(reason))
-              Logger.error("Failed to process domain #{queue_item.domain} (base: #{base_domain}): #{inspect(reason)}")
+              Tracing.error(reason)
+
+              Logger.error(
+                "Failed to process domain #{queue_item.domain} (base: #{base_domain}): #{inspect(reason)}"
+              )
+
               mark_as_processed(queue_item.id)
           end
 
         {:error, reason} ->
-          OpenTelemetry.Tracer.set_status(:error, inspect(reason))
-          Logger.error("Failed to extract base domain from #{queue_item.domain}: #{inspect(reason)}")
+          Tracing.error(reason)
+
+          Logger.error(
+            "Failed to extract base domain from #{queue_item.domain}: #{inspect(reason)}"
+          )
+
           mark_as_processed(queue_item.id)
       end
     end
