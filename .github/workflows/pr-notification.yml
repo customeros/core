@@ -10,7 +10,7 @@ on:
 
 jobs:
   notify:
-    runs-on: ubuntu-latest  # You can keep ubicloud if you need to
+    runs-on: ubuntu-latest
     if: github.event_name == 'pull_request' && (github.event.pull_request.draft == false || github.event.action == 'ready_for_review')
     steps:
       - uses: actions/checkout@v4
@@ -21,13 +21,13 @@ jobs:
           node-version: "20"
 
       - name: Install Dependencies
-        run: npm install @actions/core @actions/github node-fetch@3
+        run: npm install
 
       - name: Debug context (optional)
         run: echo "${{ toJson(github) }}"
 
       - name: Run PR Notification Script
-        run: node --input-type=module ./scripts/runners/pr-notification.js
+        run: npm run notify
         env:
           SLACK_CHANNEL_ID: ${{ secrets.SLACK_CHANNEL_ID }}
           SLACK_API_TOKEN: ${{ secrets.SLACK_API_TOKEN }}

@@ -1,0 +1,13 @@
+{
+  "name": "pr-notification",
+  "version": "1.0.0",
+  "type": "module",
+  "scripts": {
+    "notify": "node ./scripts/runners/pr-notification.js"
+  },
+  "dependencies": {
+    "@actions/core": "^1.10.0",
+    "@actions/github": "^6.0.0",
+    "node-fetch": "^3.3.2"
+  }
+} 
