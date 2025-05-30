@@ -18,7 +18,7 @@ defmodule Core.Utils.Errors do
   ]
   @email_errors [:invalid_email, :email_not_provided]
   @url_errors [:invalid_url, :url_not_provided, :unable_to_expand_url]
-  @data_errors [:not_found, :update_failed]
+  @data_errors [:not_found, :update_failed, :insert_failed]
 
   @valid_errors @domain_errors ++ @dns_errors ++ @email_errors ++ @url_errors ++ @data_errors
 
@@ -35,7 +35,7 @@ defmodule Core.Utils.Errors do
           | :cannot_resolve_domain
   @type email_error :: :invalid_email | :email_not_provided
   @type url_error :: :invalid_url | :url_not_provided | :unable_to_expand_url
-  @type data_error :: :not_found | :update_failed
+  @type data_error :: :not_found | :update_failed| :insert_failed
   @type util_error :: domain_error() | dns_error() | email_error() | url_error()
 
   @doc """

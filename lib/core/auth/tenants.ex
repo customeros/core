@@ -13,6 +13,7 @@ defmodule Core.Auth.Tenants do
   alias Core.Notifications.Slack
   alias Core.Crm.Companies
   alias Core.Utils.Media.Images
+  alias Core.Utils.Tracing
 
   @company_enrichment_timeout 15_000
 
@@ -93,11 +94,11 @@ defmodule Core.Auth.Tenants do
         {:ok, tenant} = result ->
           # Start background processes
           start_post_creation_tasks(tenant)
-          OpenTelemetry.Tracer.set_status(:ok)
+          Tracing.ok
           result
 
         {:error, _changeset} = error ->
-          OpenTelemetry.Tracer.set_status(:error, "creation_failed")
+          Tracing.error(:insert_failed)
           error
       end
     end
@@ -147,7 +148,7 @@ defmodule Core.Auth.Tenants do
             "Failed to send Slack notification for tenant #{tenant.name}: #{inspect(reason)}"
           )
 
-          OpenTelemetry.Tracer.set_status(:error, "slack_notification_failed")
+          Tracing.error(reason)
           {:error, reason}
       end
     end

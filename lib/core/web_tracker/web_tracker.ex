@@ -15,6 +15,7 @@ defmodule Core.WebTracker do
   alias Core.WebTracker.WebSessions
   alias Core.WebTracker.WebTrackerEvents
   alias Core.Crm.Companies
+  alias Core.Utils.Tracing
 
   @doc """
   Process a new web tracker event.
@@ -47,11 +48,11 @@ defmodule Core.WebTracker do
     OpenTelemetry.Tracer.with_span "web_tracker.validate_event_params" do
       case validate_event_params_impl(attrs) do
         {:ok, ^attrs} = result ->
-          OpenTelemetry.Tracer.set_status(:ok)
+          Tracing.ok
           result
 
         {:error, :bad_request, reason} = result ->
-          OpenTelemetry.Tracer.set_status(:error, reason)
+          Tracing.error(inspect(reason))
           result
       end
     end
@@ -139,16 +140,16 @@ defmodule Core.WebTracker do
       case ip_intelligence_mod.get_ip_data(attrs.ip) do
         {:ok, ip_data} ->
           if ip_data.is_threat do
-            OpenTelemetry.Tracer.set_status(:error, "ip_is_threat")
+            Tracing.error("ip_is_threat")
             {:error, :forbidden, "ip is a threat"}
           else
-            OpenTelemetry.Tracer.set_status(:ok)
+            Tracing.ok
             {:ok, attrs, ip_data}
           end
 
         {:error, reason} ->
           Logger.error("Failed to get IP data: #{inspect(reason)}")
-          OpenTelemetry.Tracer.set_status(:error, "ip_data_fetch_failed")
+          Tracing.error("ip_data_fetch_failed")
           {:error, :internal_server_error, "failed to process request"}
       end
     end
@@ -173,11 +174,11 @@ defmodule Core.WebTracker do
 
       case WebSessions.create(session_attrs) do
         {:ok, session} ->
-          OpenTelemetry.Tracer.set_status(:ok)
+          Tracing.ok
           {:ok, attrs, session}
 
         {:error, _changeset} ->
-          OpenTelemetry.Tracer.set_status(:error, "session_creation_failed")
+          Tracing.error("session_creation_failed")
           {:error, :internal_server_error, "failed to create session"}
       end
     end
@@ -192,11 +193,11 @@ defmodule Core.WebTracker do
       with {:ok, _event} <- WebTrackerEvents.create(event_attrs),
            {:ok, _session} <-
              WebSessions.update_last_event(session, attrs.event_type) do
-        OpenTelemetry.Tracer.set_status(:ok)
+        Tracing.ok
         {:ok, attrs, session, :event_created}
       else
         {:error, _changeset} ->
-          OpenTelemetry.Tracer.set_status(:error, "event_creation_failed")
+          Tracing.error("event_creation_failed")
           {:error, :internal_server_error, "failed to create event"}
       end
     end
@@ -219,7 +220,7 @@ defmodule Core.WebTracker do
         ])
       end
 
-      OpenTelemetry.Tracer.set_status(:ok)
+      Tracing.ok
       {:ok, session}
     end
   end
@@ -268,7 +269,7 @@ defmodule Core.WebTracker do
             process_company_info(domain, company, tenant)
 
           {:error, reason} ->
-            OpenTelemetry.Tracer.set_status(:error, "company_info_fetch_failed")
+            Tracing.error("company_info_fetch_failed")
             Logger.error("Failed to get company info: #{inspect(reason)}")
         end
       end
@@ -298,17 +299,17 @@ defmodule Core.WebTracker do
         case Core.Auth.Tenants.get_tenant_by_name(tenant) do
           {:ok, tenant} ->
             IcpFitEvaluator.evaluate_start(tenant.id, domain, lead)
-            OpenTelemetry.Tracer.set_status(:ok)
+            Tracing.ok
 
           {:error, reason} ->
-            OpenTelemetry.Tracer.set_status(:error, "tenant_not_found")
+            Tracing.error("tenant_not_found")
             {:error, reason}
         end
 
         {:ok}
       else
         {:error, reason} ->
-          OpenTelemetry.Tracer.set_status(:error, "lead_creation_failed")
+          Tracing.error("lead_creation_failed")
 
           Logger.error(
             "Failed to create lead for company #{company.name}: #{inspect(reason)}"

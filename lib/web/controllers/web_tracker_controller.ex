@@ -7,6 +7,7 @@ defmodule Web.WebTrackerController do
   alias Core.WebTracker.OriginValidator
   alias Core.WebTracker.OriginTenantMapper
   alias Core.WebTracker.Schemas.WebTrackerParams
+  alias Core.Utils.Tracing
 
   plug Web.Plugs.ValidateWebTrackerHeaders when action in [:create]
 
@@ -42,62 +43,62 @@ defmodule Web.WebTrackerController do
 
         case WebTracker.process_new_event(event_params) do
           {:ok, result} ->
-            OpenTelemetry.Tracer.set_status(:ok)
+            Tracing.ok
             conn
             |> put_status(:accepted)
             |> json(%{accepted: true, session_id: result.session_id})
 
           {:error, :forbidden, _message} ->
-            OpenTelemetry.Tracer.set_status(:error, "forbidden")
+            Tracing.error(:forbidden)
             conn
             |> put_status(:forbidden)
             |> json(%{error: "forbidden", details: "request blocked"})
 
           {:error, :bad_request, message} ->
-            OpenTelemetry.Tracer.set_status(:error, "bad_request")
+            Tracing.error(:bad_reqiest)
             conn
             |> put_status(:bad_request)
             |> json(%{error: "bad_request", details: message})
 
           {:error, _status, _message} ->
-            OpenTelemetry.Tracer.set_status(:error, "internal_server_error")
+            Tracing.error(:internal_server_error)
             conn
             |> put_status(:internal_server_error)
             |> json(%{error: "internal_server_error", details: "something went wrong"})
         end
       else
         {:error, :missing_visitor_id} ->
-          OpenTelemetry.Tracer.set_status(:error, "missing_visitor_id")
+          Tracing.error(:missing_visitor_id)
           conn
           |> put_status(:bad_request)
           |> json(%{error: "bad_request", details: "missing visitor_id"})
 
         {:error, :bot} ->
-          OpenTelemetry.Tracer.set_status(:error, "bot_detected")
+          Tracing.error("bot_detected")
           conn
           |> put_status(:forbidden)
           |> json(%{error: "forbidden", details: "bot detected"})
 
         {:error, :suspicious} ->
-          OpenTelemetry.Tracer.set_status(:error, "suspicious_referrer")
+          Tracing.error("suspicious_referrer")
           conn
           |> put_status(:forbidden)
           |> json(%{error: "forbidden", details: "suspicious referrer"})
 
         {:error, :origin_ignored} ->
-          OpenTelemetry.Tracer.set_status(:error, "origin_ignored")
+          Tracing.error(:origin_ignored)
           conn
           |> put_status(:forbidden)
           |> json(%{error: "forbidden", details: "origin explicitly ignored"})
 
         {:error, :origin_not_configured} ->
-          OpenTelemetry.Tracer.set_status(:error, "origin_not_configured")
+          Tracing.error(:origin_not_configured)
           conn
           |> put_status(:forbidden)
           |> json(%{error: "forbidden", details: "origin not configured"})
 
         {:error, message} when is_binary(message) ->
-          OpenTelemetry.Tracer.set_status(:error, message)
+          Tracing.error(message)
           conn
           |> put_status(:bad_request)
           |> json(%{error: "bad_request", details: message})

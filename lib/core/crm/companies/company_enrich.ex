@@ -8,6 +8,7 @@ defmodule Core.Crm.Companies.CompanyEnrich do
   alias Core.Crm.Industries
   alias Core.Utils.Errors
   alias Core.Utils.Media.Images
+  alias Core.Utils.Tracing
 
   def enrich_industry_task(company_id) do
     OpenTelemetry.Tracer.with_span "company_enrich.enrich_industry_task" do
@@ -29,11 +30,7 @@ defmodule Core.Crm.Companies.CompanyEnrich do
 
       case Repo.get(Company, company_id) do
         nil ->
-          OpenTelemetry.Tracer.set_status(:error, :not_found)
-
-          OpenTelemetry.Tracer.set_attributes([
-            {"error.reason", "Company not found"}
-          ])
+          Tracing.error(:not_found)
 
           Logger.error(
             "Company #{company_id} not found for industry enrichment"
@@ -89,11 +86,7 @@ defmodule Core.Crm.Companies.CompanyEnrich do
                         )
 
                       if update_count == 0 do
-                        OpenTelemetry.Tracer.set_status(:error, :update_failed)
-
-                        OpenTelemetry.Tracer.set_attributes([
-                          {"error.reason", "Failed to update company industry"}
-                        ])
+                        Tracing.error(:update_failed)
 
                         Logger.error(
                           "Failed to update industry for company #{company_id} (domain: #{company.primary_domain})"
@@ -108,20 +101,12 @@ defmodule Core.Crm.Companies.CompanyEnrich do
                     "Failed to get industry code from AI for company #{company_id} (domain: #{company.primary_domain}): #{inspect(reason)}"
                   )
 
-                  OpenTelemetry.Tracer.set_status(:error, inspect(reason))
-
-                  OpenTelemetry.Tracer.set_attributes([
-                    {"error.reason", inspect(reason)}
-                  ])
+                  Tracing.error(reason)
 
                   {:error, reason}
               end
             else
-              OpenTelemetry.Tracer.set_status(:error, :update_failed)
-
-              OpenTelemetry.Tracer.set_attributes([
-                {"error.reason", "Failed to update company enrichment attempt"}
-              ])
+              Tracing.error(:update_failed)
 
               Logger.error(
                 "Failed to mark industry enrichment attempt for company #{company_id}"
@@ -155,11 +140,7 @@ defmodule Core.Crm.Companies.CompanyEnrich do
 
       case Repo.get(Company, company_id) do
         nil ->
-          OpenTelemetry.Tracer.set_status(:error, :not_found)
-
-          OpenTelemetry.Tracer.set_attributes([
-            {"error.reason", "Company not found"}
-          ])
+          Tracing.error(:not_found)
 
           Logger.error("Company #{company_id} not found for name enrichment")
 
@@ -192,11 +173,7 @@ defmodule Core.Crm.Companies.CompanyEnrich do
                     )
 
                   if update_count == 0 do
-                    OpenTelemetry.Tracer.set_status(:error, :update_failed)
-
-                    OpenTelemetry.Tracer.set_attributes([
-                      {"error.reason", "Failed to update company name"}
-                    ])
+                    Tracing.error(:update_failed)
 
                     Logger.error(
                       "Failed to update name for company #{company_id} (domain: #{company.primary_domain})"
@@ -210,20 +187,12 @@ defmodule Core.Crm.Companies.CompanyEnrich do
                     "Failed to get name from AI for company #{company_id} (domain: #{company.primary_domain}): #{inspect(reason)}"
                   )
 
-                  OpenTelemetry.Tracer.set_status(:error, inspect(reason))
-
-                  OpenTelemetry.Tracer.set_attributes([
-                    {"error.reason", inspect(reason)}
-                  ])
+                  Tracing.error(inspect(reason))
 
                   {:error, reason}
               end
             else
-              OpenTelemetry.Tracer.set_status(:error, :update_failed)
-
-              OpenTelemetry.Tracer.set_attributes([
-                {"error.reason", "Failed to update company enrichment attempt"}
-              ])
+              Tracing.error(:update_failed)
 
               Logger.error(
                 "Failed to mark name enrichment attempt for company #{company_id}"
@@ -257,11 +226,7 @@ defmodule Core.Crm.Companies.CompanyEnrich do
 
       case Repo.get(Company, company_id) do
         nil ->
-          OpenTelemetry.Tracer.set_status(:error, :not_found)
-
-          OpenTelemetry.Tracer.set_attributes([
-            {"error.reason", "Company not found"}
-          ])
+          Tracing.error(:not_found)
 
           Logger.error("Company #{company_id} not found for country enrichment")
 
@@ -304,11 +269,7 @@ defmodule Core.Crm.Companies.CompanyEnrich do
                     )
 
                   if update_count == 0 do
-                    OpenTelemetry.Tracer.set_status(:error, :update_failed)
-
-                    OpenTelemetry.Tracer.set_attributes([
-                      {"error.reason", "Failed to update company country code"}
-                    ])
+                    Tracing.error(:update_failed)
 
                     Logger.error(
                       "Failed to update country code for company #{company_id} (domain: #{company.primary_domain})"
@@ -322,20 +283,12 @@ defmodule Core.Crm.Companies.CompanyEnrich do
                     "Failed to get country code from AI for company #{company_id} (domain: #{company.primary_domain}): #{inspect(reason)}"
                   )
 
-                  OpenTelemetry.Tracer.set_status(:error, inspect(reason))
-
-                  OpenTelemetry.Tracer.set_attributes([
-                    {"error.reason", inspect(reason)}
-                  ])
+                  Tracing.error(inspect(reason))
 
                   {:error, reason}
               end
             else
-              OpenTelemetry.Tracer.set_status(:error, :update_failed)
-
-              OpenTelemetry.Tracer.set_attributes([
-                {"error.reason", "Failed to update company enrichment attempt"}
-              ])
+              Tracing.error(:update_failed)
 
               Logger.error(
                 "Failed to mark country enrichment attempt for company #{company_id}"
@@ -369,11 +322,7 @@ defmodule Core.Crm.Companies.CompanyEnrich do
 
       case Repo.get(Company, company_id) do
         nil ->
-          OpenTelemetry.Tracer.set_status(:error, :not_found)
-
-          OpenTelemetry.Tracer.set_attributes([
-            {"error.reason", "Company not found"}
-          ])
+          Tracing.error(:not_found)
 
           Logger.error("Company #{company_id} not found for country enrichment")
 
@@ -420,11 +369,7 @@ defmodule Core.Crm.Companies.CompanyEnrich do
                         )
 
                       if update_count == 0 do
-                        OpenTelemetry.Tracer.set_status(:error, :update_failed)
-
-                        OpenTelemetry.Tracer.set_attributes([
-                          {"error.reason", "Failed to update company icon key"}
-                        ])
+                        Tracing.error(:update_failed)
 
                         Logger.error(
                           "Failed to update icon key for company #{company_id} (domain: #{company.primary_domain})"
@@ -436,11 +381,7 @@ defmodule Core.Crm.Companies.CompanyEnrich do
                       end
 
                     {:error, reason} ->
-                      OpenTelemetry.Tracer.set_status(:error, inspect(reason))
-
-                      OpenTelemetry.Tracer.set_attributes([
-                        {"error.reason", inspect(reason)}
-                      ])
+                      Tracing.error(inspect(reason))
 
                       Logger.error(
                         "Failed to store icon for company #{company_id} (domain: #{company.primary_domain}): #{inspect(reason)}"
@@ -450,11 +391,7 @@ defmodule Core.Crm.Companies.CompanyEnrich do
                   end
 
                 {:error, reason} ->
-                  OpenTelemetry.Tracer.set_status(:error, inspect(reason))
-
-                  OpenTelemetry.Tracer.set_attributes([
-                    {"error.reason", inspect(reason)}
-                  ])
+                  Tracing.error(inspect(reason))
 
                   Logger.error(
                     "Failed to download icon for company #{company_id} (domain: #{company.primary_domain}): #{inspect(reason)}"
@@ -463,11 +400,7 @@ defmodule Core.Crm.Companies.CompanyEnrich do
                   {:error, reason}
               end
             else
-              OpenTelemetry.Tracer.set_status(:error, :update_failed)
-
-              OpenTelemetry.Tracer.set_attributes([
-                {"error.reason", "Failed to update company enrichment attempt"}
-              ])
+              Tracing.error(:update_failed)
 
               Logger.error(
                 "Failed to mark icon enrichment attempt for company #{company_id}"

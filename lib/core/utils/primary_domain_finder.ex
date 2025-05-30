@@ -16,6 +16,7 @@ defmodule Core.Utils.PrimaryDomainFinder do
   require OpenTelemetry.Tracer
   alias Core.Utils.Errors
   alias Finch.Response
+  alias Core.Utils.Tracing
   alias Core.Utils.{DomainValidator, DomainExtractor, DnsResolver, UrlExpander}
 
   @doc """
@@ -70,32 +71,28 @@ defmodule Core.Utils.PrimaryDomainFinder do
           # Validate the primary domain before returning it
           case validate_suspicious_domain(primary_domain) do
             :ok ->
-              OpenTelemetry.Tracer.set_status(:ok)
+              Tracing.ok
+
               OpenTelemetry.Tracer.set_attributes([
                 {"result.primary_domain", primary_domain}
               ])
+
               {:ok, primary_domain}
 
             {:error, reason} ->
-              OpenTelemetry.Tracer.set_status(:error)
-              OpenTelemetry.Tracer.set_attributes([
-                {"error.reason", inspect(reason)}
-              ])
+              Tracing.error(inspect(reason))
+
               Errors.error(reason)
           end
 
         {:ok, {_is_primary, ""}} ->
-          OpenTelemetry.Tracer.set_status(:error)
-          OpenTelemetry.Tracer.set_attributes([
-            {"error.reason", "No primary domain found"}
-          ])
+          Tracing.error("No primary domain found")
+
           Errors.error(:no_primary_domain)
 
         {:error, reason} ->
-          OpenTelemetry.Tracer.set_status(:error)
-          OpenTelemetry.Tracer.set_attributes([
-            {"error.reason", inspect(reason)}
-          ])
+          Tracing.error(inspect(reason))
+
           Errors.error(reason)
       end
     end
@@ -113,7 +110,9 @@ defmodule Core.Utils.PrimaryDomainFinder do
       {:ok, {_root, subdomain}} ->
         cond do
           # Check if domain has at least 2 dots (is a subdomain) and matches the pattern ww followed by 1-3 digits and a dot
-          subdomain != "" && Enum.count(String.graphemes(domain), &(&1 == ".")) >= 2 && Regex.match?(~r/^ww\d{1,3}\./, subdomain) ->
+          subdomain != "" &&
+            Enum.count(String.graphemes(domain), &(&1 == ".")) >= 2 &&
+              Regex.match?(~r/^ww\d{1,3}\./, subdomain) ->
             {:error, :suspicious_domain}
 
           true ->
