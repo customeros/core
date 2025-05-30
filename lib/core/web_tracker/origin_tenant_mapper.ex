@@ -15,16 +15,30 @@ defmodule Core.WebTracker.OriginTenantMapper do
 
   @doc """
   Checks if given origin is whitelisted and returns its associated tenant.
+  The origin can be provided with or without http:// or https:// prefix.
   """
   @spec get_tenant_for_origin(String.t()) :: {:ok, String.t()} | {:error, :origin_not_configured}
   def get_tenant_for_origin(origin) when is_binary(origin) do
-    case Map.get(@whitelisted_origins, origin) do
+    normalized_origin = normalize_origin(origin)
+    case Map.get(@whitelisted_origins, normalized_origin) do
       nil -> {:error, :origin_not_configured}
       tenant -> {:ok, tenant}
     end
   end
 
   def get_tenant_for_origin(_), do: {:error, :invalid_origin}
+
+  @doc """
+  Normalizes the origin by removing http:// or https:// prefix if present,
+  and any trailing slashes.
+  """
+  @spec normalize_origin(String.t()) :: String.t()
+  defp normalize_origin(origin) do
+    origin
+    |> String.replace(~r/^https?:\/\//, "")
+    |> String.trim()
+    |> String.trim_trailing("/")
+  end
 
   @doc """
   Returns true if the origin is in the whitelist.
