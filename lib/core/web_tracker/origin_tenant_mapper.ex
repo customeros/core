@@ -31,9 +31,11 @@ defmodule Core.WebTracker.OriginTenantMapper do
   @spec normalize_origin(String.t()) :: String.t()
   defp normalize_origin(origin) do
     origin
-    |> String.replace(~r/^https?:\/\//, "")
     |> String.trim()
-    |> String.trim_trailing("/")
+    |> String.downcase()
+    |> String.replace(~r/^https?:\/\//, "") # Remove http:// or https://
+    |> String.replace(~r/^www\./, "") # Remove www.
+    |> String.trim_trailing("/") # Remove trailing slash
   end
 
   @doc """
