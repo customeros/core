@@ -24,9 +24,9 @@ defmodule Core.Crm.Companies.CompanyDomainProcessor do
   @default_batch_size 10
 
   def start_link(opts \\ []) do
-    enabled = Application.get_env(:core, :crons)[:enabled] || false
+    crons_enabled = Application.get_env(:core, :crons)[:enabled] || false
 
-    if enabled do
+    if crons_enabled do
       GenServer.start_link(__MODULE__, opts, name: __MODULE__)
     else
       Logger.info("Company domain processor is disabled (crons disabled)")

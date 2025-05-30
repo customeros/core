@@ -13,7 +13,14 @@ defmodule Core.WebTracker.WebSessionCloser do
   @default_batch_size 100
 
   def start_link(opts \\ []) do
-    GenServer.start_link(__MODULE__, opts, name: __MODULE__)
+    crons_enabled = Application.get_env(:core, :crons)[:enabled] || false
+
+    if crons_enabled do
+      GenServer.start_link(__MODULE__, opts, name: __MODULE__)
+    else
+      Logger.info("Web session closer is disabled (crons disabled)")
+      :ignore
+    end
   end
 
   @impl true
@@ -40,10 +47,11 @@ defmodule Core.WebTracker.WebSessionCloser do
       results = Enum.map(sessions, &close_session/1)
 
       # Count successes and failures
-      {success_count, failure_count} = Enum.reduce(results, {0, 0}, fn
-        {:ok, _}, {success, failure} -> {success + 1, failure}
-        {:error, _}, {success, failure} -> {success, failure + 1}
-      end)
+      {success_count, failure_count} =
+        Enum.reduce(results, {0, 0}, fn
+          {:ok, _}, {success, failure} -> {success + 1, failure}
+          {:error, _}, {success, failure} -> {success, failure + 1}
+        end)
 
       OpenTelemetry.Tracer.set_attributes([
         {"sessions.closed", success_count},
@@ -54,11 +62,15 @@ defmodule Core.WebTracker.WebSessionCloser do
       if failure_count > 0 do
         Tracing.error("some_sessions_failed_to_close")
       else
-        Tracing.ok
+        Tracing.ok()
       end
 
       # Choose interval based on whether we hit the batch size
-      next_interval_ms = if session_count == @default_batch_size, do: @short_interval_ms, else: @default_interval_ms
+      next_interval_ms =
+        if session_count == @default_batch_size,
+          do: @short_interval_ms,
+          else: @default_interval_ms
+
       schedule_check(next_interval_ms)
 
       {:noreply, state}
@@ -80,14 +92,17 @@ defmodule Core.WebTracker.WebSessionCloser do
 
       case WebSessions.close(session) do
         {:ok, closed_session} ->
-          Tracing.ok
+          Tracing.ok()
           Logger.info("Closed web session: #{closed_session.id}")
           {:ok, closed_session}
 
         {:error, changeset} ->
           Tracing.error(inspect(changeset.errors))
 
-          Logger.error("Failed to close web session: #{session.id}, errors: #{inspect(changeset.errors)}")
+          Logger.error(
+            "Failed to close web session: #{session.id}, errors: #{inspect(changeset.errors)}"
+          )
+
           {:error, changeset}
       end
     end
