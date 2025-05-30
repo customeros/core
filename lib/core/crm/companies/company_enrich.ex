@@ -10,6 +10,11 @@ defmodule Core.Crm.Companies.CompanyEnrich do
   alias Core.Utils.Media.Images
   alias Core.Utils.Tracing
 
+  @type enrich_industry_error :: :not_found | :update_failed | :industry_not_found | :invalid_request | :ai_timeout | :invalid_ai_response
+  @type enrich_country_error :: :not_found | :update_failed | :invalid_request | :ai_timeout | :invalid_ai_response
+  @type enrich_name_error :: :not_found | :update_failed | :invalid_request | :ai_timeout | :invalid_ai_response
+  @type enrich_icon_error :: :not_found | :update_failed | :invalid_request | :ai_timeout | :invalid_ai_response | :download_failed | :storage_failed
+
   def enrich_industry_task(company_id) do
     OpenTelemetry.Tracer.with_span "company_enrich.enrich_industry_task" do
       span_ctx = OpenTelemetry.Tracer.current_span_ctx()
@@ -21,7 +26,7 @@ defmodule Core.Crm.Companies.CompanyEnrich do
     end
   end
 
-  @spec enrich_industry(String.t()) :: :ok | {:error, atom()}
+  @spec enrich_industry(String.t()) :: :ok | {:error, enrich_industry_error()}
   def enrich_industry(company_id) do
     OpenTelemetry.Tracer.with_span "company_enrich.enrich_industry" do
       OpenTelemetry.Tracer.set_attributes([
@@ -74,6 +79,8 @@ defmodule Core.Crm.Companies.CompanyEnrich do
                         "Industry code #{industry_code} not found in industries table for company #{company_id}"
                       )
 
+                      {:error, :industry_not_found}
+
                     industry ->
                       # Update company with industry code and name
                       {update_count, _} =
@@ -93,8 +100,19 @@ defmodule Core.Crm.Companies.CompanyEnrich do
                         )
 
                         Errors.error(:update_failed)
+                      else
+                        :ok
                       end
                   end
+
+                {:error, {:invalid_request, reason}} ->
+                  Logger.error(
+                    "Invalid request for industry enrichment for company #{company_id} (domain: #{company.primary_domain}): #{inspect(reason)}"
+                  )
+
+                  Tracing.error(:invalid_request)
+
+                  {:error, :invalid_request}
 
                 {:error, reason} ->
                   Logger.error(
@@ -132,6 +150,7 @@ defmodule Core.Crm.Companies.CompanyEnrich do
     end
   end
 
+  @spec enrich_name(String.t()) :: :ok | {:error, enrich_name_error()}
   def enrich_name(company_id) do
     OpenTelemetry.Tracer.with_span "company_enrich.enrich_name" do
       OpenTelemetry.Tracer.set_attributes([
@@ -218,6 +237,7 @@ defmodule Core.Crm.Companies.CompanyEnrich do
     end
   end
 
+  @spec enrich_country(String.t()) :: :ok | {:error, enrich_country_error()}
   def enrich_country(company_id) do
     OpenTelemetry.Tracer.with_span "company_enrich.enrich_country" do
       OpenTelemetry.Tracer.set_attributes([
@@ -314,6 +334,7 @@ defmodule Core.Crm.Companies.CompanyEnrich do
     end
   end
 
+  @spec enrich_icon(String.t()) :: :ok | {:error, enrich_icon_error()}
   def enrich_icon(company_id) do
     OpenTelemetry.Tracer.with_span "company_enrich.enrich_icon" do
       OpenTelemetry.Tracer.set_attributes([
