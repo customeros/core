@@ -53,3 +53,4 @@ priv/scripts/*
 .idea
 .DS_Store
 core.iml
+*.mdc
