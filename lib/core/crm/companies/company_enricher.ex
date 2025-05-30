@@ -194,7 +194,7 @@ defmodule Core.Crm.Companies.CompanyEnricher do
         {"batch.size", @default_batch_size}
       ])
 
-      # Enrich each company's icon
+      # Enrich each company's name
       Enum.each(companiesForNameEnrichment, &enrich_company_name/1)
       {:ok, length(companiesForNameEnrichment)}
     end
