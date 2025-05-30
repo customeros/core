@@ -27,10 +27,7 @@ jobs:
         run: echo "${{ toJson(github) }}"
 
       - name: Run PR Notification Script
-        shell: bash
-        run: |
-          #!/bin/bash
-          node --input-type=module ./scripts/runners/pr-notification.js
+        run: chmod +x ./scripts/runners/run-notification.sh && ./scripts/runners/run-notification.sh
         env:
           SLACK_CHANNEL_ID: ${{ secrets.SLACK_CHANNEL_ID }}
           SLACK_API_TOKEN: ${{ secrets.SLACK_API_TOKEN }}
