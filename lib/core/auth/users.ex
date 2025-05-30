@@ -13,6 +13,9 @@ defmodule Core.Auth.Users do
   alias Core.Auth.Users.{User, UserToken, UserNotifier}
   alias Core.Auth.Tenants
 
+  alias Core.Utils.DomainExtractor
+  alias Core.Utils.PrimaryDomainFinder
+
   ## Database getters
 
   def get_user_by_email_token(token, context) do
@@ -80,9 +83,25 @@ defmodule Core.Auth.Users do
       domain = extract_domain(email)
 
       if PersonalEmailProviders.exists?(domain) do
-        {:error, %Ecto.Changeset{data: %User{}, errors: [email: {"personal email not allowed", []}]}}
+        {:error,
+         %Ecto.Changeset{
+           data: %User{},
+           errors: [email: {"personal email not allowed", []}]
+         }}
       else
-        tenant_name = extract_tenant_name(email)
+        case extract_tenant_name(email) do
+          {:ok, tenant_name} ->
+            tenant_name
+
+          {:error, reason} ->
+            Tracing.error(reason)
+
+            Logger.error(
+              "Failed to extract tenant name from email: #{inspect(reason)}"
+            )
+
+            {:error, reason}
+        end
 
         tenant_id =
           case Tenants.get_tenant_by_name(tenant_name) do
@@ -127,13 +146,16 @@ defmodule Core.Auth.Users do
   end
 
   defp extract_tenant_name(email) do
-    [_, domain] = String.split(email, "@")
-    domain |> String.replace(".", "")
-  end
+    with {:ok, domain} <- DomainExtractor.extract_domain_from_email(email),
+         {:ok, primary_domain} <- PrimaryDomainFinder.get_primary_domain(domain) do
+      tenant_name =
+        primary_domain
+        |> String.replace(".", "")
 
-  defp extract_domain(email) do
-    [_, domain] = String.split(email, "@")
-    domain
+      {:ok, tenant_name}
+    else
+      {:error, _} -> {:error, :invalid_email_domain}
+    end
   end
 
   ## Settings
