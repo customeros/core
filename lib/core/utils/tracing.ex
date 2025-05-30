@@ -4,7 +4,7 @@ defmodule Core.Utils.Tracing do
   """
 
   import OpenTelemetry.Tracer,
-    only: [set_status: 1, set_attributes: 1, current_span_ctx: 0]
+    only: [set_status: 1, set_status: 2, set_attributes: 1, current_span_ctx: 0]
 
   require OpenTelemetry.Span
 
