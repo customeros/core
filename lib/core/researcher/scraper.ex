@@ -11,7 +11,7 @@ defmodule Core.Researcher.Scraper do
   @scraper_timeout 50 * 1000
 
   def scrape_webpage(url) do
-    OpenTelemetry.Tracer.start_span "scraper.scrape_webpage" do
+    OpenTelemetry.Tracer.with_span "scraper.scrape_webpage" do
       OpenTelemetry.Tracer.set_attributes([
         {"url", url}
       ])
