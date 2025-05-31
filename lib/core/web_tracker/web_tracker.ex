@@ -112,11 +112,11 @@ defmodule Core.WebTracker do
              attrs.origin
            ) do
         nil ->
-          OpenTelemetry.Tracer.set_attributes([{"session.status", "new"}])
+          OpenTelemetry.Tracer.set_attributes([{"result.session.status", "new"}])
           create_new_session(attrs)
 
         session ->
-          OpenTelemetry.Tracer.set_attributes([{"session.status", "existing"}])
+          OpenTelemetry.Tracer.set_attributes([{"result.session.status", "existing"}])
           {:ok, attrs, session}
       end
     end
