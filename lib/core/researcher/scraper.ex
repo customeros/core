@@ -25,7 +25,7 @@ defmodule Core.Researcher.Scraper do
 
   defp fetch_and_process_webpage(url) do
     with {:ok, content} <- fetch_webpage(url),
-         {:ok, task} <- start_content_processing_task(content, url),
+         task <- start_content_processing_task(content, url),
          result <- Task.await(task, @scraper_timeout) do
       result
     else
@@ -37,13 +37,11 @@ defmodule Core.Researcher.Scraper do
     # Capture OpenTelemetry context before starting supervised task
     current_ctx = OpenTelemetry.Ctx.get_current()
 
-    case Task.Supervisor.start_child(Core.TaskSupervisor, fn ->
-           OpenTelemetry.Ctx.attach(current_ctx)
-           ContentProcessor.handle_scraped_content(content, url)
-         end) do
-      {:ok, task} -> {:ok, task}
-      {:error, reason} -> {:error, reason}
-    end
+    # Changed from start_child to async - returns Task struct directly
+    Task.Supervisor.async(Core.TaskSupervisor, fn ->
+      OpenTelemetry.Ctx.attach(current_ctx)
+      ContentProcessor.handle_scraped_content(content, url)
+    end)
   end
 
   defp fetch_webpage(url) do
@@ -78,16 +76,14 @@ defmodule Core.Researcher.Scraper do
     # Capture context before starting supervised task
     current_ctx = OpenTelemetry.Ctx.get_current()
 
-    case Task.Supervisor.start_child(Core.TaskSupervisor, fn ->
-           OpenTelemetry.Ctx.attach(current_ctx)
-           Jina.fetch_page(url)
-         end) do
-      {:ok, task} ->
-        await_scraped_webpage(url, task, @scraper_timeout, "Jina webscraper")
+    # Changed from start_child to async - returns Task struct directly
+    task =
+      Task.Supervisor.async(Core.TaskSupervisor, fn ->
+        OpenTelemetry.Ctx.attach(current_ctx)
+        Jina.fetch_page(url)
+      end)
 
-      {:error, reason} ->
-        {:error, reason}
-    end
+    await_scraped_webpage(url, task, @scraper_timeout, "Jina webscraper")
   end
 
   defp try_puremd_service(url) do
@@ -95,16 +91,14 @@ defmodule Core.Researcher.Scraper do
 
     current_ctx = OpenTelemetry.Ctx.get_current()
 
-    case Task.Supervisor.start_child(Core.TaskSupervisor, fn ->
-           OpenTelemetry.Ctx.attach(current_ctx)
-           Puremd.fetch_page(url)
-         end) do
-      {:ok, task} ->
-        await_scraped_webpage(url, task, @scraper_timeout, "PureMD webscraper")
+    # Changed from start_child to async - returns Task struct directly
+    task =
+      Task.Supervisor.async(Core.TaskSupervisor, fn ->
+        OpenTelemetry.Ctx.attach(current_ctx)
+        Puremd.fetch_page(url)
+      end)
 
-      {:error, reason} ->
-        {:error, reason}
-    end
+    await_scraped_webpage(url, task, @scraper_timeout, "PureMD webscraper")
   end
 
   defp await_scraped_webpage(url, task, timeout, task_name) do
