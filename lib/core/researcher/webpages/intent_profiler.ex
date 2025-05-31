@@ -4,6 +4,7 @@ defmodule Core.Researcher.Webpages.IntentProfiler do
   """
   alias Core.Utils.Errors
   alias Core.Ai
+  alias Core.Utils.Tracing
 
   @model :claude_sonnet
   @model_temperature 0.2
@@ -22,10 +23,12 @@ defmodule Core.Researcher.Webpages.IntentProfiler do
   end
 
   def profile_intent(_url, content) when content == "" do
+    Tracing.error(:empty_content)
     {:error, :empty_content}
   end
 
   def profile_intent(_url, content) when not is_binary(content) do
+    Tracing.error(:invalid_content_type)
     {:error, :invalid_content_type}
   end
 
