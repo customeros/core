@@ -127,6 +127,9 @@ defmodule Core.Researcher.Scraper do
 
       {:exit, reason} ->
         Errors.error(reason)
+
+      _ ->
+        {:error, :unknown}
     end
   end
 
