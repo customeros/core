@@ -84,7 +84,7 @@ defmodule Core.Researcher.ScrapedWebpages do
 
   ## Get ##
   def get_by_url(url) do
-    OpenTelemetry.Tracer.start_span "scraped_webpages.get_by_url" do
+    OpenTelemetry.Tracer.with_span "scraped_webpages.get_by_url" do
       OpenTelemetry.Tracer.set_attributes([
         {"url", url}
       ])

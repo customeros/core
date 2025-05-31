@@ -11,7 +11,6 @@ defmodule Core.Researcher.Scraper do
   @scraper_timeout 50 * 1000
 
   def scrape_webpage(url) do
-    # Fixed: changed from start_span to with_span
     OpenTelemetry.Tracer.with_span "scraper.scrape_webpage" do
       OpenTelemetry.Tracer.set_attributes([
         {"url", url}
@@ -26,7 +25,6 @@ defmodule Core.Researcher.Scraper do
 
   defp fetch_and_process_webpage(url) do
     with {:ok, content} <- fetch_webpage(url),
-         # Fixed: handle task creation errors
          {:ok, task} <- start_content_processing_task(content, url),
          result <- Task.await(task, @scraper_timeout) do
       result
@@ -41,7 +39,6 @@ defmodule Core.Researcher.Scraper do
 
     case Task.Supervisor.start_child(Core.TaskSupervisor, fn ->
            OpenTelemetry.Ctx.attach(current_ctx)
-           # Assuming this is the sync version
            ContentProcessor.handle_scraped_content(content, url)
          end) do
       {:ok, task} -> {:ok, task}
