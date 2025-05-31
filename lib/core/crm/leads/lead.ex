@@ -20,6 +20,7 @@ defmodule Core.Crm.Leads.Lead do
           type: lead_type,
           stage: lead_stage,
           icp_fit: icp_fit,
+          error_message: String.t(),
           inserted_at: DateTime.t(),
           updated_at: DateTime.t()
         }
@@ -45,14 +46,29 @@ defmodule Core.Crm.Leads.Lead do
       default: :pending
     )
 
+    field(:error_message, :string)
+
     timestamps(type: :utc_datetime)
   end
 
+  @required_fields [
+    :tenant_id,
+    :ref_id,
+    :type
+  ]
+
+  @optional_fields [
+    :id,
+    :stage,
+    :icp_fit,
+    :error_message
+  ]
+
   def changeset(%__MODULE__{} = lead, attrs) do
     lead
-    |> cast(attrs, [:id, :tenant_id, :ref_id, :type, :stage])
+    |> cast(attrs, @required_fields ++ @optional_fields)
+    |> validate_required(@required_fields)
     |> maybe_put_id()
-    |> validate_required([:tenant_id, :ref_id, :type])
   end
 
   defp maybe_put_id(%Ecto.Changeset{data: %{id: nil}} = changeset) do

@@ -5,13 +5,12 @@ defmodule Core.Researcher.IcpFitEvaluator.PromptBuilder do
   @max_tokens 156
 
   def build_request(system_prompt, prompt) do
-    %Ai.Request{
+    Ai.Request.new(prompt,
       model: @model,
-      prompt: prompt,
       system_prompt: system_prompt,
-      max_output_tokens: @max_tokens,
-      model_temperature: @model_temperature
-    }
+      max_tokens: @max_tokens,
+      temperature: @model_temperature
+    )
   end
 
   def build_prompts(domain, business_pages, icp) do

@@ -11,19 +11,19 @@ defmodule Core.Researcher.IcpFitEvaluator do
   # 5 mins
   @icp_fit_timeout 5 * 60 * 1000
 
-  def evaluate_start(tenant_id, domain, lead) do
+  def evaluate_start(domain, lead) do
     Task.Supervisor.start_child(
       Core.TaskSupervisor,
       fn ->
-        evaluate(tenant_id, domain, lead)
+        evaluate(domain, lead)
       end
     )
   end
 
-  def evaluate(tenant_id, domain, lead) do
+  def evaluate(domain, lead) do
     with {:ok, primary_domain} <-
            PrimaryDomainFinder.get_primary_domain(domain),
-         {:ok, icp} <- IcpProfiles.get_by_tenant_id(tenant_id),
+         {:ok, icp} <- IcpProfiles.get_by_tenant_id(lead.tenant_id),
          {:ok, pages} <- get_prompt_context(primary_domain),
          {:ok, fit} <-
            get_icp_fit(primary_domain, pages, icp) do

@@ -36,7 +36,7 @@ defmodule Core.Researcher.Builder.ProfileWriter do
 
       nil ->
         Task.shutdown(task)
-        Errors.error(:icp_generation_timeout)
+        Errors.error(:timeout)
     end
   end
 

@@ -22,7 +22,7 @@ defmodule Core.Crm.Companies do
       # First check if company exists with this exact domain
       case get_by_primary_domain(domain) do
         %Company{} = company ->
-          Tracing.ok
+          Tracing.ok()
 
           OpenTelemetry.Tracer.set_attributes([
             {"company.found_by", "exact_domain"}
@@ -44,7 +44,7 @@ defmodule Core.Crm.Companies do
                   create_company_and_trigger_scraping(primary_domain)
 
                 company ->
-                  Tracing.ok
+                  Tracing.ok()
 
                   OpenTelemetry.Tracer.set_attributes([
                     {"company.found_by", "primary_domain"},
@@ -70,8 +70,8 @@ defmodule Core.Crm.Companies do
       ])
 
       with {:ok, company} <- create_with_domain(primary_domain) do
-        CompanyEnrich.scrape_homepage_task(company.id)
-        Tracing.ok
+        CompanyEnrich.scrape_homepage_start(company.id)
+        Tracing.ok()
         {:ok, company}
       else
         {:error, _reason} = error ->
@@ -100,7 +100,7 @@ defmodule Core.Crm.Companies do
 
       case result do
         {:ok, company} ->
-          Tracing.ok
+          Tracing.ok()
           {:ok, company}
 
         {:error, _changeset} ->
@@ -131,6 +131,26 @@ defmodule Core.Crm.Companies do
       ])
 
       result
+    end
+  end
+
+  def get_by_id(id) when is_binary(id) do
+    OpenTelemetry.Tracer.with_span "company_service.get_by_id" do
+      OpenTelemetry.Tracer.set_attributes([
+        {"id", id}
+      ])
+
+      case Repo.get_by(Company, id: id) do
+        nil ->
+          {:error, :not_found}
+
+        %Company{} = company ->
+          OpenTelemetry.Tracer.set_attributes([
+            {"result.found", true}
+          ])
+
+          {:ok, company}
+      end
     end
   end
 

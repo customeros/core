@@ -47,8 +47,8 @@ defmodule Core.Crm.Companies.CompanyEnrich do
           | :download_failed
           | :storage_failed
 
-  @spec scrape_homepage_task(String.t()) :: Task.t()
-  def scrape_homepage_task(company_id) do
+  @spec scrape_homepage_start(String.t()) :: {:ok, pid()} | {:error, term()}
+  def scrape_homepage_start(company_id) do
     OpenTelemetry.Tracer.with_span "company_enrich.scrape_homepage_task" do
       span_ctx = OpenTelemetry.Tracer.current_span_ctx()
 
