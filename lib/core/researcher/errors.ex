@@ -27,7 +27,9 @@ defmodule Core.Researcher.Errors do
     :no_content,
     :content_classification_timeout,
     :intent_profiler_timeout,
-    :content_summary_timeout
+    :content_summary_timeout,
+    :empty_content,
+    :invalid_content_type
   ]
 
   @valid_errors @url_errors ++
@@ -57,6 +59,8 @@ defmodule Core.Researcher.Errors do
           | :content_classification_timeout
           | :intent_profiler_timeout
           | :content_summary_timeout
+          | :empty_content
+          | :invalid_content_type
 
   @type researcher_error ::
           url_error()
