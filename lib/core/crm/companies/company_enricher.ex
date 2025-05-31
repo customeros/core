@@ -101,14 +101,21 @@ defmodule Core.Crm.Companies.CompanyEnricher do
 
       case CompanyEnrich.enrich_icon(company.id) do
         :ok ->
-          Tracing.ok
+          Tracing.ok()
           :ok
+
+        {:error, :image_not_found} ->
+          Logger.warning(
+            "Icon not found for company #{company.id} (domain: #{company.primary_domain})"
+          )
+
+          {:error, :image_not_found}
 
         {:error, reason} ->
           Tracing.error(reason)
 
           Logger.error(
-            "Failed to start icon enrichment for company: #{company.id} (domain: #{company.primary_domain}), reason: #{inspect(reason)}"
+            "Error enriching icon for company #{company.id} (domain: #{company.primary_domain}): #{inspect(reason)}"
           )
 
           {:error, reason}
@@ -161,7 +168,7 @@ defmodule Core.Crm.Companies.CompanyEnricher do
 
       case CompanyEnrich.enrich_industry(company.id) do
         :ok ->
-          Tracing.ok
+          Tracing.ok()
           :ok
 
         {:error, reason} ->
@@ -217,7 +224,7 @@ defmodule Core.Crm.Companies.CompanyEnricher do
 
       case CompanyEnrich.enrich_name(company.id) do
         :ok ->
-          Tracing.ok
+          Tracing.ok()
           :ok
 
         {:error, reason} ->
@@ -238,10 +245,10 @@ defmodule Core.Crm.Companies.CompanyEnricher do
     |> where([c], not is_nil(c.homepage_content) and c.homepage_content != "")
     |> where([c], c.name_enrichment_attempts < ^max_attempts)
     |> where(
-         [c],
-         is_nil(c.name_enrich_attempt_at) or
-         c.name_enrich_attempt_at < ^hours_ago_24
-       )
+      [c],
+      is_nil(c.name_enrich_attempt_at) or
+        c.name_enrich_attempt_at < ^hours_ago_24
+    )
     |> where([c], c.inserted_at < ^minutes_ago_10)
     |> order_by([c], asc: c.name_enrich_attempt_at)
     |> limit(^batch_size)
@@ -273,7 +280,7 @@ defmodule Core.Crm.Companies.CompanyEnricher do
 
       case CompanyEnrich.enrich_country(company.id) do
         :ok ->
-          Tracing.ok
+          Tracing.ok()
           :ok
 
         {:error, reason} ->
@@ -294,10 +301,10 @@ defmodule Core.Crm.Companies.CompanyEnricher do
     |> where([c], not is_nil(c.homepage_content) and c.homepage_content != "")
     |> where([c], c.country_enrichment_attempts < ^max_attempts)
     |> where(
-         [c],
-         is_nil(c.country_enrich_attempt_at) or
-         c.country_enrich_attempt_at < ^hours_ago_24
-       )
+      [c],
+      is_nil(c.country_enrich_attempt_at) or
+        c.country_enrich_attempt_at < ^hours_ago_24
+    )
     |> where([c], c.inserted_at < ^minutes_ago_10)
     |> order_by([c], asc: c.country_enrich_attempt_at)
     |> limit(^batch_size)
