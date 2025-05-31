@@ -229,10 +229,10 @@ defmodule Core.Notifications.Slack do
       # Add stacktrace section if provided
       blocks =
         if stacktrace && stacktrace != "" do
-          stacktrace_preview = String.slice(stacktrace, 0, 500)
+          stacktrace_preview = String.slice(stacktrace, 0, 1000)
 
           stacktrace_text =
-            if String.length(stacktrace) > 500,
+            if String.length(stacktrace) > 1000,
               do: stacktrace_preview <> "...",
               else: stacktrace_preview
 
