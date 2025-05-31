@@ -86,7 +86,6 @@ defmodule Core.Notifications.CrashMonitor do
   defp slack_notification_error?(msg_str) do
     String.contains?(msg_str, [
       "Finch",
-      "HTTPoison",
       "Slack",
       "webhook",
       "Core.Notifications"
