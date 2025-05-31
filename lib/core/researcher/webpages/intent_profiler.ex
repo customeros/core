@@ -21,8 +21,15 @@ defmodule Core.Researcher.Webpages.IntentProfiler do
     )
   end
 
-  def profile_intent(url, content)
-      when is_binary(content) and content != "" do
+  def profile_intent(_url, content) when content == "" do
+    {:error, :empty_content}
+  end
+
+  def profile_intent(_url, content) when not is_binary(content) do
+    {:error, :invalid_content_type}
+  end
+
+  def profile_intent(url, content) when is_binary(content) and content != "" do
     {system_prompt, prompt} = build_profile_intent_prompts(url, content)
 
     request =
