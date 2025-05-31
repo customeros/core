@@ -50,10 +50,10 @@ defmodule Core.Crm.Companies.CompanyEnrich do
   @spec scrape_homepage_start(String.t()) :: {:ok, pid()} | {:error, term()}
   def scrape_homepage_start(company_id) do
     OpenTelemetry.Tracer.with_span "company_enrich.scrape_homepage_task" do
-      span_ctx = OpenTelemetry.Tracer.current_span_ctx()
+      current_ctx = OpenTelemetry.Ctx.get_current()
 
       Task.Supervisor.start_child(Core.TaskSupervisor, fn ->
-        OpenTelemetry.Tracer.set_current_span(span_ctx)
+        OpenTelemetry.Ctx.attach(current_ctx)
         scrape_homepage(company_id)
       end)
     end
@@ -62,79 +62,122 @@ defmodule Core.Crm.Companies.CompanyEnrich do
   @spec scrape_homepage(String.t()) :: :ok | {:error, scrape_homepage_error()}
   def scrape_homepage(company_id) do
     OpenTelemetry.Tracer.with_span "company_enrich.scrape_homepage" do
-      case Repo.get(Company, company_id) do
-        nil ->
-          Tracing.error(:not_found)
-
-          Logger.error("Company #{company_id} not found")
-
-          Errors.error(:not_found)
-
-        company ->
-          if should_scrape_homepage?(company) do
-            # Mark the attempt first
-            {count, _} =
-              Repo.update_all(
-                from(c in Company, where: c.id == ^company_id),
-                set: [domain_scrape_attempt_at: DateTime.utc_now()]
-              )
-
-            if count > 0 do
-              case Scraper.scrape_webpage(company.primary_domain) do
-                {:ok, result} ->
-                  {update_count, _} =
-                    Repo.update_all(
-                      from(c in Company, where: c.id == ^company_id),
-                      set: [homepage_content: result.content]
-                    )
-
-                  if update_count == 0 do
-                    Tracing.error(:update_failed)
-
-                    Logger.error(
-                      "Failed to update homepage for company #{company_id} (domain: #{company.primary_domain})"
-                    )
-
-                    Errors.error(:update_failed)
-                  else
-                    # Trigger enrichment processes after successful scraping
-                    enrich_industry_task(company_id)
-                    enrich_name_task(company_id)
-                    enrich_country_task(company_id)
-                    enrich_icon_task(company_id)
-                    :ok
-                  end
-
-                {:error, reason} ->
-                  Logger.error(
-                    "Failed to scrape homepage for company #{company_id} (domain: #{company.primary_domain}): #{inspect(reason)}"
-                  )
-
-                  Tracing.error(reason)
-
-                  {:error, reason}
-              end
-            else
-              Tracing.error(:update_failed)
-
-              Logger.error(
-                "Failed to mark scraping homepage attempt for company #{company_id}"
-              )
-
-              Errors.error(:update_failed)
-            end
-          end
+      with {:ok, company} <- fetch_company(company_id),
+           :ok <- validate_scrape_eligibility(company),
+           :ok <- mark_scrape_attempt(company_id),
+           {:ok, content} <- scrape_company_homepage(company),
+           :ok <- update_homepage_content(company_id, content) do
+        trigger_enrichment_tasks(company_id)
+        :ok
+      else
+        {:error, reason} -> handle_scrape_error(company_id, reason)
       end
     end
   end
 
-  @spec enrich_industry_task(String.t()) :: Task.t()
+  defp fetch_company(company_id) do
+    case Repo.get(Company, company_id) do
+      nil ->
+        Logger.error("Company #{company_id} not found")
+        Tracing.error(:not_found)
+        Errors.error(:not_found)
+
+      company ->
+        {:ok, company}
+    end
+  end
+
+  defp validate_scrape_eligibility(company) do
+    if should_scrape_homepage?(company) do
+      :ok
+    else
+      {:error, :scrape_not_needed}
+    end
+  end
+
+  defp mark_scrape_attempt(company_id) do
+    case Repo.update_all(
+           from(c in Company, where: c.id == ^company_id),
+           set: [domain_scrape_attempt_at: DateTime.utc_now()]
+         ) do
+      {0, _} ->
+        Logger.error(
+          "Failed to mark scraping homepage attempt for company #{company_id}"
+        )
+
+        Tracing.error(:update_failed)
+        Errors.error(:update_failed)
+
+      {_count, _} ->
+        :ok
+    end
+  end
+
+  defp scrape_company_homepage(company) do
+    case Scraper.scrape_webpage(company.primary_domain) do
+      {:ok, result} ->
+        {:ok, result.content}
+
+      {:error, reason} ->
+        Logger.error(
+          "Failed to scrape homepage for company #{company.id} (domain: #{company.primary_domain}): #{inspect(reason)}"
+        )
+
+        Tracing.error(reason)
+        {:error, reason}
+    end
+  end
+
+  defp update_homepage_content(company_id, content) do
+    case Repo.update_all(
+           from(c in Company, where: c.id == ^company_id),
+           set: [homepage_content: content]
+         ) do
+      {0, _} ->
+        Logger.error("Failed to update homepage for company #{company_id}")
+        Tracing.error(:update_failed)
+        Errors.error(:update_failed)
+
+      {_count, _} ->
+        :ok
+    end
+  end
+
+  defp trigger_enrichment_tasks(company_id) do
+    [
+      enrich_industry_task(company_id),
+      enrich_name_task(company_id),
+      enrich_country_task(company_id),
+      enrich_icon_task(company_id)
+    ]
+    |> Enum.each(fn
+      {:ok, _pid} ->
+        :ok
+
+      {:error, reason} ->
+        Logger.warning("Failed to start enrichment task: #{inspect(reason)}")
+    end)
+  end
+
+  defp handle_scrape_error(company_id, :scrape_not_needed) do
+    Logger.debug(
+      "Skipping homepage scrape for company #{company_id} - not needed"
+    )
+
+    :ok
+  end
+
+  defp handle_scrape_error(_company_id, reason) do
+    {:error, reason}
+  end
+
+  @spec enrich_industry_task(String.t()) :: {:ok, pid()} | {:error, term()}
   def enrich_industry_task(company_id) do
     OpenTelemetry.Tracer.with_span "company_enrich.enrich_industry_task" do
-      span_ctx = OpenTelemetry.Tracer.current_span_ctx()
+      current_ctx = OpenTelemetry.Ctx.get_current()
 
       Task.Supervisor.start_child(Core.TaskSupervisor, fn ->
-        OpenTelemetry.Tracer.set_current_span(span_ctx)
+        OpenTelemetry.Ctx.attach(current_ctx)
         enrich_industry(company_id)
       end)
     end
@@ -143,123 +186,120 @@ defmodule Core.Crm.Companies.CompanyEnrich do
   @spec enrich_industry(String.t()) :: :ok | {:error, enrich_industry_error()}
   def enrich_industry(company_id) do
     OpenTelemetry.Tracer.with_span "company_enrich.enrich_industry" do
-      OpenTelemetry.Tracer.set_attributes([
-        {"company.id", company_id}
-      ])
+      OpenTelemetry.Tracer.set_attributes([{"company.id", company_id}])
 
-      case Repo.get(Company, company_id) do
-        nil ->
-          Tracing.error(:not_found)
-
-          Logger.error(
-            "Company #{company_id} not found for industry enrichment"
-          )
-
-          Errors.error(:not_found)
-
-        company ->
-          if should_enrich_industry?(company) do
-            {count, _} =
-              Repo.update_all(
-                from(c in Company, where: c.id == ^company_id),
-                set: [industry_enrich_attempt_at: DateTime.utc_now()],
-                inc: [industry_enrichment_attempts: 1]
-              )
-
-            if count > 0 do
-              # Get industry code from AI
-              case Enrichments.Industry.identify(%{
-                     domain: company.primary_domain,
-                     homepage_content: company.homepage_content
-                   }) do
-                {:ok, industry_code} ->
-                  OpenTelemetry.Tracer.set_attributes([
-                    {"ai.industry.code", industry_code}
-                  ])
-
-                  # Get industry name from our industries table
-                  case Industries.get_by_code(industry_code) do
-                    nil ->
-                      OpenTelemetry.Tracer.set_status(
-                        :error,
-                        :industry_not_found
-                      )
-
-                      OpenTelemetry.Tracer.set_attributes([
-                        {"error.reason", "Industry not found"}
-                      ])
-
-                      Logger.error(
-                        "Industry code #{industry_code} not found in industries table for company #{company_id}"
-                      )
-
-                      {:error, :industry_not_found}
-
-                    industry ->
-                      # Update company with industry code and name
-                      {update_count, _} =
-                        Repo.update_all(
-                          from(c in Company, where: c.id == ^company_id),
-                          set: [
-                            industry_code: industry.code,
-                            industry: industry.name
-                          ]
-                        )
-
-                      if update_count == 0 do
-                        Tracing.error(:update_failed)
-
-                        Logger.error(
-                          "Failed to update industry for company #{company_id} (domain: #{company.primary_domain})"
-                        )
-
-                        Errors.error(:update_failed)
-                      else
-                        :ok
-                      end
-                  end
-
-                {:error, {:invalid_request, reason}} ->
-                  Logger.error(
-                    "Invalid request for industry enrichment for company #{company_id} (domain: #{company.primary_domain}): #{inspect(reason)}"
-                  )
-
-                  Tracing.error(:invalid_request)
-
-                  {:error, :invalid_request}
-
-                {:error, reason} ->
-                  Logger.error(
-                    "Failed to get industry code from AI for company #{company_id} (domain: #{company.primary_domain}): #{inspect(reason)}"
-                  )
-
-                  Tracing.error(reason)
-
-                  {:error, reason}
-              end
-            else
-              Tracing.error(:update_failed)
-
-              Logger.error(
-                "Failed to mark industry enrichment attempt for company #{company_id}"
-              )
-
-              Errors.error(:update_failed)
-            end
-          else
-            :ok
-          end
+      with {:ok, company} <-
+             fetch_company_for_enrichment(company_id, "industry"),
+           :ok <- validate_industry_eligibility(company),
+           :ok <- mark_industry_attempt(company_id),
+           {:ok, industry_code} <- get_industry_from_ai(company),
+           {:ok, industry} <- lookup_industry(industry_code, company_id),
+           :ok <- update_company_industry(company_id, industry) do
+        :ok
+      else
+        {:error, reason} ->
+          handle_enrichment_error(company_id, reason, "industry")
       end
     end
   end
 
-  @spec enrich_name_task(String.t()) :: Task.t()
+  defp validate_industry_eligibility(company) do
+    if should_enrich_industry?(company),
+      do: :ok,
+      else: {:error, :enrichment_not_needed}
+  end
+
+  defp mark_industry_attempt(company_id) do
+    case Repo.update_all(
+           from(c in Company, where: c.id == ^company_id),
+           set: [industry_enrich_attempt_at: DateTime.utc_now()],
+           inc: [industry_enrichment_attempts: 1]
+         ) do
+      {0, _} ->
+        Logger.error(
+          "Failed to mark industry enrichment attempt for company #{company_id}"
+        )
+
+        Tracing.error(:update_failed)
+        Errors.error(:update_failed)
+
+      {_count, _} ->
+        :ok
+    end
+  end
+
+  defp get_industry_from_ai(company) do
+    case Enrichments.Industry.identify(%{
+           domain: company.primary_domain,
+           homepage_content: company.homepage_content
+         }) do
+      {:ok, industry_code} ->
+        OpenTelemetry.Tracer.set_attributes([
+          {"ai.industry.code", industry_code}
+        ])
+
+        {:ok, industry_code}
+
+      {:error, {:invalid_request, reason}} ->
+        Logger.error(
+          "Invalid request for industry enrichment for company #{company.id}: #{inspect(reason)}"
+        )
+
+        Tracing.error(:invalid_request)
+        {:error, :invalid_request}
+
+      {:error, reason} ->
+        Logger.error(
+          "Failed to get industry code from AI for company #{company.id}: #{inspect(reason)}"
+        )
+
+        Tracing.error(reason)
+        {:error, reason}
+    end
+  end
+
+  defp lookup_industry(industry_code, company_id) do
+    case Industries.get_by_code(industry_code) do
+      nil ->
+        OpenTelemetry.Tracer.set_status(:error, :industry_not_found)
+
+        OpenTelemetry.Tracer.set_attributes([
+          {"error.reason", "Industry not found"}
+        ])
+
+        Logger.error(
+          "Industry code #{industry_code} not found for company #{company_id}"
+        )
+
+        {:error, :industry_not_found}
+
+      industry ->
+        {:ok, industry}
+    end
+  end
+
+  defp update_company_industry(company_id, industry) do
+    case Repo.update_all(
+           from(c in Company, where: c.id == ^company_id),
+           set: [industry_code: industry.code, industry: industry.name]
+         ) do
+      {0, _} ->
+        Logger.error("Failed to update industry for company #{company_id}")
+        Tracing.error(:update_failed)
+        Errors.error(:update_failed)
+
+      {_count, _} ->
+        :ok
+    end
+  end
+
+  @spec enrich_name_task(String.t()) :: {:ok, pid()} | {:error, term()}
   def enrich_name_task(company_id) do
     OpenTelemetry.Tracer.with_span "company_enrich.enrich_name_task" do
-      span_ctx = OpenTelemetry.Tracer.current_span_ctx()
+      current_ctx = OpenTelemetry.Ctx.get_current()
 
       Task.Supervisor.start_child(Core.TaskSupervisor, fn ->
-        OpenTelemetry.Tracer.set_current_span(span_ctx)
+        OpenTelemetry.Ctx.attach(current_ctx)
         enrich_name(company_id)
       end)
     end
@@ -268,86 +308,86 @@ defmodule Core.Crm.Companies.CompanyEnrich do
   @spec enrich_name(String.t()) :: :ok | {:error, enrich_name_error()}
   def enrich_name(company_id) do
     OpenTelemetry.Tracer.with_span "company_enrich.enrich_name" do
-      OpenTelemetry.Tracer.set_attributes([
-        {"company.id", company_id}
-      ])
+      OpenTelemetry.Tracer.set_attributes([{"company.id", company_id}])
 
-      case Repo.get(Company, company_id) do
-        nil ->
-          Tracing.error(:not_found)
-
-          Logger.error("Company #{company_id} not found for name enrichment")
-
-          Errors.error(:not_found)
-
-        company ->
-          if should_enrich_name?(company) do
-            {count, _} =
-              Repo.update_all(
-                from(c in Company, where: c.id == ^company_id),
-                set: [name_enrich_attempt_at: DateTime.utc_now()],
-                inc: [name_enrichment_attempts: 1]
-              )
-
-            if count > 0 do
-              # Get name from AI
-              case Enrichments.Name.identify(%{
-                     domain: company.primary_domain,
-                     homepage_content: company.homepage_content
-                   }) do
-                {:ok, name} ->
-                  OpenTelemetry.Tracer.set_attributes([
-                    {"ai.name", name}
-                  ])
-
-                  {update_count, _} =
-                    Repo.update_all(
-                      from(c in Company, where: c.id == ^company_id),
-                      set: [name: name]
-                    )
-
-                  if update_count == 0 do
-                    Tracing.error(:update_failed)
-
-                    Logger.error(
-                      "Failed to update name for company #{company_id} (domain: #{company.primary_domain})"
-                    )
-
-                    Errors.error(:update_failed)
-                  end
-
-                {:error, reason} ->
-                  Logger.error(
-                    "Failed to get name from AI for company #{company_id} (domain: #{company.primary_domain}): #{inspect(reason)}"
-                  )
-
-                  Tracing.error(reason)
-
-                  {:error, reason}
-              end
-            else
-              Tracing.error(:update_failed)
-
-              Logger.error(
-                "Failed to mark name enrichment attempt for company #{company_id}"
-              )
-
-              Errors.error(:update_failed)
-            end
-          else
-            :ok
-          end
+      with {:ok, company} <- fetch_company_for_enrichment(company_id, "name"),
+           :ok <- validate_name_eligibility(company),
+           :ok <- mark_name_attempt(company_id),
+           {:ok, name} <- get_name_from_ai(company),
+           :ok <- update_company_name(company_id, name) do
+        :ok
+      else
+        {:error, reason} -> handle_enrichment_error(company_id, reason, "name")
       end
     end
   end
 
-  @spec enrich_country_task(String.t()) :: Task.t()
+  defp validate_name_eligibility(company) do
+    if should_enrich_name?(company),
+      do: :ok,
+      else: {:error, :enrichment_not_needed}
+  end
+
+  defp mark_name_attempt(company_id) do
+    case Repo.update_all(
+           from(c in Company, where: c.id == ^company_id),
+           set: [name_enrich_attempt_at: DateTime.utc_now()],
+           inc: [name_enrichment_attempts: 1]
+         ) do
+      {0, _} ->
+        Logger.error(
+          "Failed to mark name enrichment attempt for company #{company_id}"
+        )
+
+        Tracing.error(:update_failed)
+        Errors.error(:update_failed)
+
+      {_count, _} ->
+        :ok
+    end
+  end
+
+  defp get_name_from_ai(company) do
+    case Enrichments.Name.identify(%{
+           domain: company.primary_domain,
+           homepage_content: company.homepage_content
+         }) do
+      {:ok, name} ->
+        OpenTelemetry.Tracer.set_attributes([{"ai.name", name}])
+        {:ok, name}
+
+      {:error, reason} ->
+        Logger.error(
+          "Failed to get name from AI for company #{company.id}: #{inspect(reason)}"
+        )
+
+        Tracing.error(reason)
+        {:error, reason}
+    end
+  end
+
+  defp update_company_name(company_id, name) do
+    case Repo.update_all(
+           from(c in Company, where: c.id == ^company_id),
+           set: [name: name]
+         ) do
+      {0, _} ->
+        Logger.error("Failed to update name for company #{company_id}")
+        Tracing.error(:update_failed)
+        Errors.error(:update_failed)
+
+      {_count, _} ->
+        :ok
+    end
+  end
+
+  @spec enrich_country_task(String.t()) :: {:ok, pid()} | {:error, term()}
   def enrich_country_task(company_id) do
     OpenTelemetry.Tracer.with_span "company_enrich.enrich_country_task" do
-      span_ctx = OpenTelemetry.Tracer.current_span_ctx()
+      current_ctx = OpenTelemetry.Ctx.get_current()
 
       Task.Supervisor.start_child(Core.TaskSupervisor, fn ->
-        OpenTelemetry.Tracer.set_current_span(span_ctx)
+        OpenTelemetry.Ctx.attach(current_ctx)
         enrich_country(company_id)
       end)
     end
@@ -356,98 +396,97 @@ defmodule Core.Crm.Companies.CompanyEnrich do
   @spec enrich_country(String.t()) :: :ok | {:error, enrich_country_error()}
   def enrich_country(company_id) do
     OpenTelemetry.Tracer.with_span "company_enrich.enrich_country" do
-      OpenTelemetry.Tracer.set_attributes([
-        {"company.id", company_id}
-      ])
+      OpenTelemetry.Tracer.set_attributes([{"company.id", company_id}])
 
-      case Repo.get(Company, company_id) do
-        nil ->
-          Tracing.error(:not_found)
-
-          Logger.error("Company #{company_id} not found for country enrichment")
-
-          Errors.error(:not_found)
-
-        company ->
-          if should_enrich_country?(company) do
-            {count, _} =
-              Repo.update_all(
-                from(c in Company, where: c.id == ^company_id),
-                set: [country_enrich_attempt_at: DateTime.utc_now()],
-                inc: [country_enrichment_attempts: 1]
-              )
-
-            if count > 0 do
-              # Get name from AI
-              case Enrichments.Location.identifyCountryCodeA2(%{
-                     domain: company.primary_domain,
-                     homepage_content: company.homepage_content
-                   }) do
-                {:ok, "XX"} ->
-                  OpenTelemetry.Tracer.set_attributes([
-                    {"ai.country_code_a2", "XX"}
-                  ])
-
-                  :ok
-
-                {:ok, country_code_a2} ->
-                  OpenTelemetry.Tracer.set_attributes([
-                    {"ai.country_code_a2", country_code_a2}
-                  ])
-
-                  # Ensure country code is uppercase before saving
-                  country_code_a2_uppercase = String.upcase(country_code_a2)
-
-                  {update_count, _} =
-                    Repo.update_all(
-                      from(c in Company, where: c.id == ^company_id),
-                      set: [country_a2: country_code_a2_uppercase]
-                    )
-
-                  if update_count == 0 do
-                    Tracing.error(:update_failed)
-
-                    Logger.error(
-                      "Failed to update country code for company #{company_id} (domain: #{company.primary_domain})"
-                    )
-
-                    Errors.error(:update_failed)
-                  end
-
-                  :ok
-
-                {:error, reason} ->
-                  Logger.error(
-                    "Failed to get country code from AI for company #{company_id} (domain: #{company.primary_domain}): #{inspect(reason)}"
-                  )
-
-                  Tracing.error(reason)
-
-                  {:error, reason}
-              end
-            else
-              Tracing.error(:update_failed)
-
-              Logger.error(
-                "Failed to mark country enrichment attempt for company #{company_id}"
-              )
-
-              {:error, :update_failed}
-            end
-          else
-            :ok
-          end
+      with {:ok, company} <-
+             fetch_company_for_enrichment(company_id, "country"),
+           :ok <- validate_country_eligibility(company),
+           :ok <- mark_country_attempt(company_id),
+           {:ok, country_code} <- get_country_from_ai(company),
+           :ok <- update_company_country(company_id, country_code) do
+        :ok
+      else
+        {:error, reason} ->
+          handle_enrichment_error(company_id, reason, "country")
       end
     end
   end
 
-  @spec enrich_icon_task(String.t()) :: Task.t()
+  defp validate_country_eligibility(company) do
+    if should_enrich_country?(company),
+      do: :ok,
+      else: {:error, :enrichment_not_needed}
+  end
+
+  defp mark_country_attempt(company_id) do
+    case Repo.update_all(
+           from(c in Company, where: c.id == ^company_id),
+           set: [country_enrich_attempt_at: DateTime.utc_now()],
+           inc: [country_enrichment_attempts: 1]
+         ) do
+      {0, _} ->
+        Logger.error(
+          "Failed to mark country enrichment attempt for company #{company_id}"
+        )
+
+        Tracing.error(:update_failed)
+        {:error, :update_failed}
+
+      {_count, _} ->
+        :ok
+    end
+  end
+
+  defp get_country_from_ai(company) do
+    case Enrichments.Location.identifyCountryCodeA2(%{
+           domain: company.primary_domain,
+           homepage_content: company.homepage_content
+         }) do
+      {:ok, "XX"} ->
+        OpenTelemetry.Tracer.set_attributes([{"ai.country_code_a2", "XX"}])
+        {:ok, :skip_update}
+
+      {:ok, country_code_a2} ->
+        OpenTelemetry.Tracer.set_attributes([
+          {"ai.country_code_a2", country_code_a2}
+        ])
+
+        {:ok, String.upcase(country_code_a2)}
+
+      {:error, reason} ->
+        Logger.error(
+          "Failed to get country code from AI for company #{company.id}: #{inspect(reason)}"
+        )
+
+        Tracing.error(reason)
+        {:error, reason}
+    end
+  end
+
+  defp update_company_country(_company_id, :skip_update), do: :ok
+
+  defp update_company_country(company_id, country_code) do
+    case Repo.update_all(
+           from(c in Company, where: c.id == ^company_id),
+           set: [country_a2: country_code]
+         ) do
+      {0, _} ->
+        Logger.error("Failed to update country code for company #{company_id}")
+        Tracing.error(:update_failed)
+        Errors.error(:update_failed)
+
+      {_count, _} ->
+        :ok
+    end
+  end
+
+  @spec enrich_icon_task(String.t()) :: {:ok, pid()} | {:error, term()}
   def enrich_icon_task(company_id) do
     OpenTelemetry.Tracer.with_span "company_enrich.enrich_icon_task" do
-      span_ctx = OpenTelemetry.Tracer.current_span_ctx()
+      current_ctx = OpenTelemetry.Ctx.get_current()
 
       Task.Supervisor.start_child(Core.TaskSupervisor, fn ->
-        OpenTelemetry.Tracer.set_current_span(span_ctx)
+        OpenTelemetry.Ctx.attach(current_ctx)
         enrich_icon(company_id)
       end)
     end
@@ -456,114 +495,146 @@ defmodule Core.Crm.Companies.CompanyEnrich do
   @spec enrich_icon(String.t()) :: :ok | {:error, enrich_icon_error()}
   def enrich_icon(company_id) do
     OpenTelemetry.Tracer.with_span "company_enrich.enrich_icon" do
-      OpenTelemetry.Tracer.set_attributes([
-        {"company.id", company_id}
-      ])
+      OpenTelemetry.Tracer.set_attributes([{"company.id", company_id}])
 
-      case Repo.get(Company, company_id) do
-        nil ->
-          Tracing.error(:not_found)
-
-          Logger.error("Company #{company_id} not found for country enrichment")
-
-          Errors.error(:not_found)
-
-        company ->
-          if should_enrich_icon?(company) do
-            {count, _} =
-              Repo.update_all(
-                from(c in Company, where: c.id == ^company_id),
-                set: [icon_enrich_attempt_at: DateTime.utc_now()],
-                inc: [icon_enrichment_attempts: 1]
-              )
-
-            if count > 0 do
-              brandfetch_client_id =
-                Application.get_env(:core, :brandfetch)[:client_id] ||
-                  raise "BRANDFETCH_CLIENT_ID is not configured"
-
-              brandfetch_url =
-                "https://cdn.brandfetch.io/#{company.primary_domain}/fallback/404/w/400/h/400?c=#{brandfetch_client_id}"
-
-              # Download and store the icon
-              case Images.download_image(brandfetch_url) do
-                {:ok, image_data} ->
-                  Tracing.ok()
-
-                  # Only proceed with storage if we got actual image data
-                  case Images.store_image(
-                         image_data,
-                         "image/jpeg",
-                         brandfetch_url,
-                         %{
-                           generate_name: true,
-                           path: "_companies"
-                         }
-                       ) do
-                    {:ok, storage_key} ->
-                      # Update company with the icon storage key
-                      {update_count, _} =
-                        Repo.update_all(
-                          from(c in Company, where: c.id == ^company_id),
-                          set: [icon_key: storage_key]
-                        )
-
-                      if update_count == 0 do
-                        Tracing.error(:update_failed)
-
-                        Logger.error(
-                          "Failed to update icon key for company #{company_id} (domain: #{company.primary_domain})"
-                        )
-
-                        Errors.error(:update_failed)
-                      else
-                        :ok
-                      end
-
-                    {:error, reason} ->
-                      Tracing.error(reason)
-
-                      Logger.error(
-                        "Failed to store icon for company #{company_id} (domain: #{company.primary_domain}): #{inspect(reason)}"
-                      )
-
-                      {:error, reason}
-                  end
-
-                {:error, :image_not_found} ->
-                  OpenTelemetry.Tracer.set_attributes([
-                    {"result.cause", :image_not_found}
-                  ])
-
-                  Logger.warning(
-                    "Icon not found for company #{company_id} (domain: #{company.primary_domain})"
-                  )
-
-                  {:error, :image_not_found}
-
-                {:error, reason} ->
-                  Tracing.error(reason)
-
-                  Logger.error(
-                    "Failed to download icon for company #{company_id} (domain: #{company.primary_domain}): #{inspect(reason)}"
-                  )
-
-                  {:error, reason}
-              end
-            else
-              Tracing.error(:update_failed)
-
-              Logger.error(
-                "Failed to mark icon enrichment attempt for company #{company_id}"
-              )
-
-              Errors.error(:update_failed)
-            end
-          else
-            :ok
-          end
+      with {:ok, company} <- fetch_company_for_enrichment(company_id, "icon"),
+           :ok <- validate_icon_eligibility(company),
+           :ok <- mark_icon_attempt(company_id),
+           {:ok, image_data} <- download_company_icon(company),
+           {:ok, storage_key} <- store_company_icon(image_data, company_id),
+           :ok <- update_company_icon(company_id, storage_key) do
+        :ok
+      else
+        {:error, reason} -> handle_enrichment_error(company_id, reason, "icon")
       end
     end
+  end
+
+  defp validate_icon_eligibility(company) do
+    if should_enrich_icon?(company),
+      do: :ok,
+      else: {:error, :enrichment_not_needed}
+  end
+
+  defp mark_icon_attempt(company_id) do
+    case Repo.update_all(
+           from(c in Company, where: c.id == ^company_id),
+           set: [icon_enrich_attempt_at: DateTime.utc_now()],
+           inc: [icon_enrichment_attempts: 1]
+         ) do
+      {0, _} ->
+        Logger.error(
+          "Failed to mark icon enrichment attempt for company #{company_id}"
+        )
+
+        Tracing.error(:update_failed)
+        Errors.error(:update_failed)
+
+      {_count, _} ->
+        :ok
+    end
+  end
+
+  defp download_company_icon(company) do
+    brandfetch_client_id =
+      Application.get_env(:core, :brandfetch)[:client_id] ||
+        raise "BRANDFETCH_CLIENT_ID is not configured"
+
+    brandfetch_url =
+      "https://cdn.brandfetch.io/#{company.primary_domain}/fallback/404/w/400/h/400?c=#{brandfetch_client_id}"
+
+    case Images.download_image(brandfetch_url) do
+      {:ok, image_data} ->
+        Tracing.ok()
+        {:ok, {image_data, brandfetch_url}}
+
+      {:error, :image_not_found} ->
+        OpenTelemetry.Tracer.set_attributes([
+          {"result.cause", :image_not_found}
+        ])
+
+        Logger.warning(
+          "Icon not found for company #{company.id} (domain: #{company.primary_domain})"
+        )
+
+        {:error, :image_not_found}
+
+      {:error, reason} ->
+        Logger.error(
+          "Failed to download icon for company #{company.id}: #{inspect(reason)}"
+        )
+
+        Tracing.error(reason)
+        {:error, reason}
+    end
+  end
+
+  defp store_company_icon({image_data, brandfetch_url}, company_id) do
+    case Images.store_image(
+           image_data,
+           "image/jpeg",
+           brandfetch_url,
+           %{generate_name: true, path: "_companies"}
+         ) do
+      {:ok, storage_key} ->
+        {:ok, storage_key}
+
+      {:error, reason} ->
+        Logger.error(
+          "Failed to store icon for company #{company_id}: #{inspect(reason)}"
+        )
+
+        Tracing.error(reason)
+        {:error, reason}
+    end
+  end
+
+  defp update_company_icon(company_id, storage_key) do
+    case Repo.update_all(
+           from(c in Company, where: c.id == ^company_id),
+           set: [icon_key: storage_key]
+         ) do
+      {0, _} ->
+        Logger.error("Failed to update icon key for company #{company_id}")
+        Tracing.error(:update_failed)
+        Errors.error(:update_failed)
+
+      {_count, _} ->
+        :ok
+    end
+  end
+
+  # Shared helper functions for enrichment
+
+  defp fetch_company_for_enrichment(company_id, enrichment_type) do
+    case Repo.get(Company, company_id) do
+      nil ->
+        Logger.error(
+          "Company #{company_id} not found for #{enrichment_type} enrichment"
+        )
+
+        Tracing.error(:not_found)
+        Errors.error(:not_found)
+
+      company ->
+        {:ok, company}
+    end
+  end
+
+  defp handle_enrichment_error(
+         company_id,
+         :enrichment_not_needed,
+         enrichment_type
+       ) do
+    Logger.debug(
+      "Skipping #{enrichment_type} enrichment for company #{company_id} - not needed"
+    )
+
+    :ok
+  end
+
+  defp handle_enrichment_error(_company_id, reason, _enrichment_type) do
+    {:error, reason}
   end
 
   # Private helper methods
