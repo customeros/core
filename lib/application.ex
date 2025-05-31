@@ -6,6 +6,7 @@ defmodule Core.Application do
   def start(_type, _args) do
     OpentelemetryPhoenix.setup(adapter: :bandit)
     OpentelemetryEcto.setup([:core, :repo], db_statement: :enabled)
+    Logger.add_backend(Core.Notifications.CrashMonitor)
 
     children = [
       {Phoenix.PubSub, name: Core.PubSub},
