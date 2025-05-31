@@ -8,7 +8,6 @@ defmodule Core.WebTracker.OriginTenantMapper do
     "getkanda.com" => "getkandacom",
     "dashboard.kanda.co.uk" => "getkandacom",
     "infinity.co" => "infinityco",
-    "careers.infinity.co" => "infinityco",
     "nuso.cloud" => "nusocloud",
     "nusocloud.eu" => "nusocloud",
     "customeros.ai" => "customerosai"
@@ -17,22 +16,32 @@ defmodule Core.WebTracker.OriginTenantMapper do
   @doc """
   Checks if given origin is whitelisted and returns its associated tenant.
   The origin can be provided with or without http:// or https:// prefix.
+  If exact match is not found, checks if the origin is a subdomain of a whitelisted root domain.
   """
   @spec get_tenant_for_origin(String.t()) ::
           {:ok, String.t()} | {:error, :origin_not_configured}
   def get_tenant_for_origin(origin) when is_binary(origin) do
-    normalized_origin = normalize_origin(origin)
+    cleaned_origin = clean_origin(origin)
 
-    case Map.get(@whitelisted_origins, normalized_origin) do
-      nil -> {:error, :origin_not_configured}
+    case Map.get(@whitelisted_origins, cleaned_origin) do
+      nil ->
+        # If exact match not found, try to get root domain
+        case Core.Utils.DomainValidator.parse_root_and_subdomain(cleaned_origin) do
+          {:ok, root_domain, _subdomain} ->
+            case Map.get(@whitelisted_origins, root_domain) do
+              nil -> {:error, :origin_not_configured}
+              tenant -> {:ok, tenant}
+            end
+          {:error, _} -> {:error, :origin_not_configured}
+        end
       tenant -> {:ok, tenant}
     end
   end
 
   def get_tenant_for_origin(_), do: {:error, :invalid_origin}
 
-  @spec normalize_origin(String.t()) :: String.t()
-  defp normalize_origin(origin) do
+  @spec clean_origin(String.t()) :: String.t()
+  defp clean_origin(origin) do
     origin
     |> String.trim()
     |> String.downcase()
