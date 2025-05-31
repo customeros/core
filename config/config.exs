@@ -6,7 +6,8 @@ config :core,
   generators: [timestamp_type: :utc_datetime]
 
 # OpenTelemetry configuration for SigNoz
-config :opentelemetry, :resource, service: %{name: System.get_env("OTEL_SERVICE_NAME", "customeros-core")}
+config :opentelemetry, :resource,
+  service: %{name: System.get_env("OTEL_SERVICE_NAME", "customeros-core")}
 
 config :opentelemetry, :processors,
   otel_batch_processor: %{
@@ -79,8 +80,10 @@ config :inertia,
   raise_on_ssr_failure: true
 
 # Cron jobs configuration
-config :core, :crons,
-  enabled: true
+config :core, :crons, enabled: true
+
+config :logger,
+  backends: [Core.Notifications.CrashMonitor, :console]
 
 # Import environment specific config
 import_config "#{config_env()}.exs"
