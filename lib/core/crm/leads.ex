@@ -119,23 +119,6 @@ defmodule Core.Crm.Leads do
               stage: Map.get(attrs, :stage, :pending)
             })
             |> Repo.insert()
-            |> tap(fn {:ok, result} ->
-              icon_url =
-                case Core.Crm.Companies.get_icon_url(result.ref_id) do
-                  {:ok, icon_url} -> icon_url
-                  _ -> nil
-                end
-
-              Web.Endpoint.broadcast("events:#{tenant.id}", "event", %{
-                type: :lead_created,
-                payload: %{
-                  id: result.id,
-                  icon_url: icon_url
-                }
-              })
-
-              result
-            end)
 
           lead ->
             {:ok, lead}

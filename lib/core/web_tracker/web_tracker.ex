@@ -11,7 +11,6 @@ defmodule Core.WebTracker do
   require Logger
   require OpenTelemetry.Tracer
 
-  alias Core.Researcher.IcpFitEvaluator
   alias Core.WebTracker.WebSessions
   alias Core.WebTracker.WebTrackerEvents
   alias Core.Crm.Companies
@@ -48,7 +47,7 @@ defmodule Core.WebTracker do
     OpenTelemetry.Tracer.with_span "web_tracker.validate_event_params" do
       case validate_event_params_impl(attrs) do
         {:ok, ^attrs} = result ->
-          Tracing.ok
+          Tracing.ok()
           result
 
         {:error, :bad_request, reason} = result ->
@@ -143,7 +142,7 @@ defmodule Core.WebTracker do
             Tracing.error("ip_is_threat")
             {:error, :forbidden, "ip is a threat"}
           else
-            Tracing.ok
+            Tracing.ok()
             {:ok, attrs, ip_data}
           end
 
@@ -174,7 +173,7 @@ defmodule Core.WebTracker do
 
       case WebSessions.create(session_attrs) do
         {:ok, session} ->
-          Tracing.ok
+          Tracing.ok()
           {:ok, attrs, session}
 
         {:error, _changeset} ->
@@ -193,7 +192,7 @@ defmodule Core.WebTracker do
       with {:ok, _event} <- WebTrackerEvents.create(event_attrs),
            {:ok, _session} <-
              WebSessions.update_last_event(session, attrs.event_type) do
-        Tracing.ok
+        Tracing.ok()
         {:ok, attrs, session, :event_created}
       else
         {:error, _changeset} ->
@@ -220,7 +219,7 @@ defmodule Core.WebTracker do
         ])
       end
 
-      Tracing.ok
+      Tracing.ok()
       {:ok, session}
     end
   end
@@ -290,23 +289,14 @@ defmodule Core.WebTracker do
 
       Logger.info("Found company for domain #{domain}: #{company.name}")
 
-      with {:ok, db_company} <- Companies.get_or_create_by_domain(domain),
-           {:ok, lead} <-
-             Core.Crm.Leads.get_or_create(tenant, %{
+      with {:ok, db_company} <- Companies.get_or_create_by_domain(domain) do
+        case Core.Crm.Leads.get_or_create(tenant, %{
                ref_id: db_company.id,
                type: :company
              }) do
-        case Core.Auth.Tenants.get_tenant_by_name(tenant) do
-          {:ok, tenant} ->
-            IcpFitEvaluator.evaluate_start(tenant.id, domain, lead)
-            Tracing.ok
-
-          {:error, reason} ->
-            Tracing.error("tenant_not_found")
-            {:error, reason}
+          {:ok, _lead} -> :ok
+          {:error, reason} -> {:error, reason}
         end
-
-        {:ok}
       else
         {:error, reason} ->
           Tracing.error("lead_creation_failed")
