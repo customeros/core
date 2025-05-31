@@ -9,20 +9,6 @@ config :core,
 config :opentelemetry, :resource,
   service: %{name: System.get_env("OTEL_SERVICE_NAME", "customeros-core")}
 
-config :opentelemetry,
-       :processors,
-       if(System.get_env("OTEL_EXPORTER_OTLP_ENDPOINT"),
-         do: [
-           otel_batch_processor: %{
-             exporter: {
-               :opentelemetry_exporter,
-               %{endpoints: [System.get_env("OTEL_EXPORTER_OTLP_ENDPOINT")]}
-             }
-           }
-         ],
-         else: []
-       )
-
 # Web endpoint
 config :core, Web.Endpoint,
   url: [host: "localhost"],

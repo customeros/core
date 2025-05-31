@@ -47,6 +47,21 @@ config :core, Core.Repo,
   show_sensitive_data_on_connection_error: true,
   pool_size: 10
 
+# OpenTelemetry configuration
+config :opentelemetry,
+       :processors,
+       if(System.get_env("OTEL_EXPORTER_OTLP_ENDPOINT"),
+         do: [
+           otel_batch_processor: %{
+             exporter: {
+               :opentelemetry_exporter,
+               %{endpoints: [System.get_env("OTEL_EXPORTER_OTLP_ENDPOINT")]}
+             }
+           }
+         ],
+         else: []
+       )
+
 # IPData and Snitcher configuration
 config :core, :ipdata,
   api_key: get_env.("IPDATA_API_KEY", nil),
