@@ -108,11 +108,11 @@ defmodule Core.Researcher.Scraper do
         |> validate_content()
 
       {:ok, {:error, reason}} ->
-        Logger.warning("#{task_name} failed for #{url}: #{reason}")
+        Logger.warning("#{task_name} failed for #{url}: #{inspect(reason)}")
         {:error, reason}
 
       {:ok, {:http_error, reason}} ->
-        Logger.warning("#{task_name} failed for #{url}: #{reason}")
+        Logger.warning("#{task_name} failed for #{url}: #{inspect(reason)}")
         {:error, reason}
 
       nil ->
@@ -120,9 +120,17 @@ defmodule Core.Researcher.Scraper do
         Errors.error(:webscraper_timeout)
 
       {:exit, reason} ->
+        Logger.warning(
+          "#{task_name} task exited for #{url}: #{inspect(reason)}"
+        )
+
         Errors.error(reason)
 
-      _ ->
+      unexpected ->
+        Logger.warning(
+          "#{task_name} returned unexpected result for #{url}: #{inspect(unexpected)}"
+        )
+
         {:error, :unknown}
     end
   end
