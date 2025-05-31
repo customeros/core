@@ -533,11 +533,11 @@ defmodule Core.Crm.Companies.CompanyEnrich do
                     {"result.cause", :image_not_found}
                   ])
 
-                  Logger.warn(
+                  Logger.warning(
                     "Icon not found for company #{company_id} (domain: #{company.primary_domain})"
                   )
 
-                  {:error, reason}
+                  {:error, :image_not_found}
 
                 {:error, reason} ->
                   Tracing.error(reason)
