@@ -2,7 +2,7 @@ defmodule Core.Researcher.ScrapedWebpages do
   @moduledoc """
   Database operations for scraped webpages.
   """
-
+  require OpenTelemetry.Tracer
   alias Core.Repo
   alias Core.Researcher.Webpages.ScrapedWebpage
   alias Core.Researcher.Webpages.Classification
@@ -84,9 +84,26 @@ defmodule Core.Researcher.ScrapedWebpages do
 
   ## Get ##
   def get_by_url(url) do
-    case Repo.get_by(ScrapedWebpage, url: url) do
-      %ScrapedWebpage{} = webpage -> {:ok, webpage}
-      nil -> {:error, :not_found}
+    OpenTelemetry.Tracer.start_span "scraped_webpages.get_by_url" do
+      OpenTelemetry.Tracer.set_attributes([
+        {"url", url}
+      ])
+
+      case Repo.get_by(ScrapedWebpage, url: url) do
+        %ScrapedWebpage{} = webpage ->
+          OpenTelemetry.Tracer.set_attributes([
+            {"result", "found"}
+          ])
+
+          {:ok, webpage}
+
+        nil ->
+          OpenTelemetry.Tracer.set_attributes([
+            {"result", "not_found"}
+          ])
+
+          {:error, :not_found}
+      end
     end
   end
 

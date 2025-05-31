@@ -1,4 +1,5 @@
 defmodule Core.Researcher.Scraper do
+  require OpenTelemetry.Tracer
   require Logger
   alias Core.Researcher.Scraper.Jina
   alias Core.Researcher.Scraper.Puremd
@@ -10,9 +11,15 @@ defmodule Core.Researcher.Scraper do
   @scraper_timeout 50 * 1000
 
   def scrape_webpage(url) do
-    case Core.Researcher.ScrapedWebpages.get_by_url(url) do
-      {:ok, existing_record} -> use_cached_content(existing_record)
-      {:error, :not_found} -> fetch_and_process_webpage(url)
+    OpenTelemetry.Tracer.start_span "scraper.scrape_webpage" do
+      OpenTelemetry.Tracer.set_attributes([
+        {"url", url}
+      ])
+
+      case Core.Researcher.ScrapedWebpages.get_by_url(url) do
+        {:ok, existing_record} -> use_cached_content(existing_record)
+        {:error, :not_found} -> fetch_and_process_webpage(url)
+      end
     end
   end
 

@@ -15,8 +15,9 @@ defmodule Core.Researcher.Scraper.ContentProcessor do
   end
 
   def handle_scraped_content(content, url) do
-    with {:ok, processed_data} <- process_webpage(url, content),
-         {:ok, _saved_webpage} <- save_to_database(url, processed_data) do
+    with {:ok, processed_data} <- process_webpage(url, content) do
+      # Try to save to database but don't fail if it errors
+      _ = save_to_database(url, processed_data)
       {:ok, processed_data}
     else
       {:error, reason} -> {:error, reason}
