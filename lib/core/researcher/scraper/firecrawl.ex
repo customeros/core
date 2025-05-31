@@ -2,7 +2,6 @@ defmodule Core.Researcher.Scraper.Firecrawl do
   @moduledoc """
   Service for fetching web pages using the Firecrawl API.
   """
-  require Logger
   alias Core.Researcher.Errors
 
   # 45 seconds
