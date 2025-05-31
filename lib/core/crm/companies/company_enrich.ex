@@ -92,7 +92,7 @@ defmodule Core.Crm.Companies.CompanyEnrich do
                     Tracing.error(:update_failed)
 
                     Logger.error(
-                      "Failed to update industry for company #{company_id} (domain: #{company.primary_domain})"
+                      "Failed to update homepage for company #{company_id} (domain: #{company.primary_domain})"
                     )
 
                     Errors.error(:update_failed)
