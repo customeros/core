@@ -414,6 +414,8 @@ defmodule Core.Crm.Companies.CompanyEnrich do
                     Errors.error(:update_failed)
                   end
 
+                  :ok
+
                 {:error, reason} ->
                   Logger.error(
                     "Failed to get country code from AI for company #{company_id} (domain: #{company.primary_domain}): #{inspect(reason)}"
@@ -430,7 +432,7 @@ defmodule Core.Crm.Companies.CompanyEnrich do
                 "Failed to mark country enrichment attempt for company #{company_id}"
               )
 
-              Errors.error(:update_failed)
+              {:error, :update_failed}
             end
           else
             :ok
