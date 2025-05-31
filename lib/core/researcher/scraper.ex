@@ -103,26 +103,33 @@ defmodule Core.Researcher.Scraper do
 
   defp await_scraped_webpage(url, task, timeout, task_name) do
     case Task.yield(task, timeout) do
-      {:ok, {:ok, content}} ->
+      {:ok, {:ok, content}} when is_binary(content) ->
         content
         |> validate_content()
 
       {:ok, {:error, reason}} ->
-        Logger.warning("#{task_name} failed for #{url}: #{reason}")
+        Logger.warning("#{task_name} failed for #{url}: #{inspect(reason)}")
         {:error, reason}
 
       {:ok, {:http_error, reason}} ->
-        Logger.warning("#{task_name} failed for #{url}: #{reason}")
-        {:error, reason}
+        Logger.warning("#{task_name} failed for #{url}: #{inspect(reason)}")
+        {:error, {:http_error, reason}}
+
+      {:ok, unexpected} ->
+        Logger.error("#{task_name} returned unexpected result for #{url}: #{inspect(unexpected)}")
+        {:error, :unexpected_response}
 
       nil ->
         Task.shutdown(task)
+        Logger.warning("#{task_name} timed out for #{url}")
         Errors.error(:webscraper_timeout)
 
       {:exit, reason} ->
+        Logger.error("#{task_name} crashed for #{url}: #{inspect(reason)}")
         Errors.error(reason)
 
       _ ->
+        Logger.error("#{task_name} returned unknown result for #{url}")
         {:error, :unknown}
     end
   end
