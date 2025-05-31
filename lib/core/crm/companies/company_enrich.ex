@@ -476,18 +476,18 @@ defmodule Core.Crm.Companies.CompanyEnrich do
               )
 
             if count > 0 do
-              # Get Brandfetch client ID from configuration
-              client_id =
+              brandfetch_client_id =
                 Application.get_env(:core, :brandfetch)[:client_id] ||
                   raise "BRANDFETCH_CLIENT_ID is not configured"
 
-              # Construct Brandfetch URL
               brandfetch_url =
-                "https://cdn.brandfetch.io/#{company.primary_domain}/type/fallback/404/w/400/h/400?c=#{client_id}"
+                "https://cdn.brandfetch.io/#{company.primary_domain}/fallback/404/w/400/h/400?c=#{brandfetch_client_id}"
 
               # Download and store the icon
               case Images.download_image(brandfetch_url) do
                 {:ok, image_data} ->
+                  Tracing.ok()
+
                   # Only proceed with storage if we got actual image data
                   case Images.store_image(
                          image_data,
@@ -527,6 +527,17 @@ defmodule Core.Crm.Companies.CompanyEnrich do
 
                       {:error, reason}
                   end
+
+                {:error, :image_not_found} ->
+                  OpenTelemetry.Tracer.set_attributes([
+                    {"result.cause", :image_not_found}
+                  ])
+
+                  Logger.warn(
+                    "Icon not found for company #{company_id} (domain: #{company.primary_domain})"
+                  )
+
+                  {:error, reason}
 
                 {:error, reason} ->
                   Tracing.error(reason)
