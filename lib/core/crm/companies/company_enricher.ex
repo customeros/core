@@ -105,7 +105,7 @@ defmodule Core.Crm.Companies.CompanyEnricher do
           :ok
 
         {:error, reason} ->
-          Tracing.error(inspect(reason))
+          Tracing.error(reason)
 
           Logger.error(
             "Failed to start icon enrichment for company: #{company.id} (domain: #{company.primary_domain}), reason: #{inspect(reason)}"
@@ -165,7 +165,7 @@ defmodule Core.Crm.Companies.CompanyEnricher do
           :ok
 
         {:error, reason} ->
-          Tracing.error(inspect(reason))
+          Tracing.error(reason)
 
           {:error, reason}
       end
@@ -221,7 +221,7 @@ defmodule Core.Crm.Companies.CompanyEnricher do
           :ok
 
         {:error, reason} ->
-          Tracing.error(inspect(reason))
+          Tracing.error(reason)
 
           {:error, reason}
       end
@@ -277,7 +277,7 @@ defmodule Core.Crm.Companies.CompanyEnricher do
           :ok
 
         {:error, reason} ->
-          Tracing.error(inspect(reason))
+          Tracing.error(reason)
 
           {:error, reason}
       end

@@ -18,10 +18,11 @@ defmodule Core.Utils.Tracing do
         :ok
 
       _ctx ->
-        set_status(:error, inspect(reason))
+        reason_str = to_reason_string(reason)
+        set_status(:error, reason_str)
 
         set_attributes([
-          {"error.reason", inspect(reason)}
+          {"error.reason", reason_str}
         ])
     end
   end
@@ -33,6 +34,15 @@ defmodule Core.Utils.Tracing do
 
       _ctx ->
         set_status(:ok)
+    end
+  end
+
+  def to_reason_string(reason) do
+    try do
+      to_string(reason)
+    rescue
+      Protocol.UndefinedError ->
+        inspect(reason)
     end
   end
 end

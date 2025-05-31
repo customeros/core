@@ -27,7 +27,7 @@ defmodule Core.Utils.HttpClient.AwsHttpClient do
       else
         {:error, reason} ->
           Logger.error("ExAws HTTP request failed: #{inspect(reason)}")
-          Tracing.error(inspect(reason))
+          Tracing.error(reason)
           {:error, %{reason: reason}}
       end
     end

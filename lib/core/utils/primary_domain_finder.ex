@@ -65,7 +65,23 @@ defmodule Core.Utils.PrimaryDomainFinder do
     OpenTelemetry.Tracer.with_span "primary_domain_finder.get_primary_domain" do
       OpenTelemetry.Tracer.set_attributes([{"domain", domain}])
 
-      follow_domain_chain(domain, MapSet.new(), 3)
+      case follow_domain_chain(domain, MapSet.new(), 3) do
+        {:ok, primary_domain} ->
+          OpenTelemetry.Tracer.set_attributes([
+            {"result.primary_domain", primary_domain}
+          ])
+
+          Tracing.ok()
+
+          {:ok, primary_domain}
+
+        {:error, reason} ->
+          OpenTelemetry.Tracer.set_attributes([
+            {"result.cause", inspect(reason)}
+          ])
+
+          {:error, reason}
+      end
     end
   end
 
@@ -116,7 +132,6 @@ defmodule Core.Utils.PrimaryDomainFinder do
   defp validate_non_empty(_), do: :ok
 
   defp handle_error({:error, reason}) do
-    Tracing.error(inspect(reason))
     Errors.error(reason)
   end
 

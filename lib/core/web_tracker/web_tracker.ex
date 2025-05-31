@@ -52,7 +52,7 @@ defmodule Core.WebTracker do
           result
 
         {:error, :bad_request, reason} = result ->
-          Tracing.error(inspect(reason))
+          Tracing.error(reason)
           result
       end
     end

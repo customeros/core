@@ -110,7 +110,7 @@ defmodule Core.Crm.Companies.CompanyEnrich do
                     "Failed to scrape homepage for company #{company_id} (domain: #{company.primary_domain}): #{inspect(reason)}"
                   )
 
-                  Tracing.error(inspect(reason))
+                  Tracing.error(reason)
 
                   {:error, reason}
               end
@@ -321,7 +321,7 @@ defmodule Core.Crm.Companies.CompanyEnrich do
                     "Failed to get name from AI for company #{company_id} (domain: #{company.primary_domain}): #{inspect(reason)}"
                   )
 
-                  Tracing.error(inspect(reason))
+                  Tracing.error(reason)
 
                   {:error, reason}
               end
@@ -419,7 +419,7 @@ defmodule Core.Crm.Companies.CompanyEnrich do
                     "Failed to get country code from AI for company #{company_id} (domain: #{company.primary_domain}): #{inspect(reason)}"
                   )
 
-                  Tracing.error(inspect(reason))
+                  Tracing.error(reason)
 
                   {:error, reason}
               end
@@ -519,7 +519,7 @@ defmodule Core.Crm.Companies.CompanyEnrich do
                       end
 
                     {:error, reason} ->
-                      Tracing.error(inspect(reason))
+                      Tracing.error(reason)
 
                       Logger.error(
                         "Failed to store icon for company #{company_id} (domain: #{company.primary_domain}): #{inspect(reason)}"
@@ -529,7 +529,7 @@ defmodule Core.Crm.Companies.CompanyEnrich do
                   end
 
                 {:error, reason} ->
-                  Tracing.error(inspect(reason))
+                  Tracing.error(reason)
 
                   Logger.error(
                     "Failed to download icon for company #{company_id} (domain: #{company.primary_domain}): #{inspect(reason)}"
