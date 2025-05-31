@@ -8,6 +8,7 @@ defmodule Core.WebTracker.OriginTenantMapper do
     "getkanda.com" => "getkandacom",
     "dashboard.kanda.co.uk" => "getkandacom",
     "infinity.co" => "infinityco",
+    "careers.infinity.co" => "infinityco",
     "nuso.cloud" => "nusocloud",
     "nusocloud.eu" => "nusocloud",
     "customeros.ai" => "customerosai"
@@ -17,9 +18,11 @@ defmodule Core.WebTracker.OriginTenantMapper do
   Checks if given origin is whitelisted and returns its associated tenant.
   The origin can be provided with or without http:// or https:// prefix.
   """
-  @spec get_tenant_for_origin(String.t()) :: {:ok, String.t()} | {:error, :origin_not_configured}
+  @spec get_tenant_for_origin(String.t()) ::
+          {:ok, String.t()} | {:error, :origin_not_configured}
   def get_tenant_for_origin(origin) when is_binary(origin) do
     normalized_origin = normalize_origin(origin)
+
     case Map.get(@whitelisted_origins, normalized_origin) do
       nil -> {:error, :origin_not_configured}
       tenant -> {:ok, tenant}
