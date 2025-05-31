@@ -105,6 +105,10 @@ defmodule Core.Crm.Companies.CompanyEnricher do
           :ok
 
         {:error, :image_not_found} ->
+          OpenTelemetry.Tracer.set_attributes([
+            {"result", :image_not_found}
+          ])
+
           Logger.warning(
             "Icon not found for company #{company.id} (domain: #{company.primary_domain})"
           )
