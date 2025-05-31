@@ -25,12 +25,24 @@ defmodule Core.Researcher.Scraper do
 
   defp fetch_and_process_webpage(url) do
     with {:ok, content} <- fetch_webpage(url),
-         task <-
-           ContentProcessor.handle_scraped_content_supervised(content, url),
+         {:ok, task} <- start_content_processing_task(content, url),
          result <- Task.await(task, @scraper_timeout) do
       result
     else
       {:error, reason} -> Errors.error(reason)
+    end
+  end
+
+  defp start_content_processing_task(content, url) do
+    # Capture OpenTelemetry context before starting supervised task
+    current_ctx = OpenTelemetry.Ctx.get_current()
+
+    case Task.Supervisor.start_child(Core.TaskSupervisor, fn ->
+           OpenTelemetry.Ctx.attach(current_ctx)
+           ContentProcessor.handle_scraped_content(content, url)
+         end) do
+      {:ok, task} -> {:ok, task}
+      {:error, reason} -> {:error, reason}
     end
   end
 
@@ -62,14 +74,37 @@ defmodule Core.Researcher.Scraper do
 
   defp try_jina_service(url) do
     Logger.info("Attempting to fetch #{url} with Jina service")
-    task = Jina.fetch_page_supervised(url)
-    await_scraped_webpage(url, task, @scraper_timeout, "Jina webscraper")
+
+    # Capture context before starting supervised task
+    current_ctx = OpenTelemetry.Ctx.get_current()
+
+    case Task.Supervisor.start_child(Core.TaskSupervisor, fn ->
+           OpenTelemetry.Ctx.attach(current_ctx)
+           Jina.fetch_page(url)
+         end) do
+      {:ok, task} ->
+        await_scraped_webpage(url, task, @scraper_timeout, "Jina webscraper")
+
+      {:error, reason} ->
+        {:error, reason}
+    end
   end
 
   defp try_puremd_service(url) do
     Logger.info("Attempting to fetch #{url} with PureMD service")
-    task = Puremd.fetch_page_supervised(url)
-    await_scraped_webpage(url, task, @scraper_timeout, "PureMD webscraper")
+
+    current_ctx = OpenTelemetry.Ctx.get_current()
+
+    case Task.Supervisor.start_child(Core.TaskSupervisor, fn ->
+           OpenTelemetry.Ctx.attach(current_ctx)
+           Puremd.fetch_page(url)
+         end) do
+      {:ok, task} ->
+        await_scraped_webpage(url, task, @scraper_timeout, "PureMD webscraper")
+
+      {:error, reason} ->
+        {:error, reason}
+    end
   end
 
   defp await_scraped_webpage(url, task, timeout, task_name) do
