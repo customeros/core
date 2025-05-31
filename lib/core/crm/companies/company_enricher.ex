@@ -109,10 +109,6 @@ defmodule Core.Crm.Companies.CompanyEnricher do
             {"result", :image_not_found}
           ])
 
-          Logger.warning(
-            "Icon not found for company #{company.id} (domain: #{company.primary_domain})"
-          )
-
           {:error, :image_not_found}
 
         {:error, reason} ->
