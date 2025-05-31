@@ -7,8 +7,8 @@ defmodule Core.Researcher.Scraper do
   alias Core.Researcher.Errors
   alias Core.Researcher.Webpages.Cleaner
 
-  # 50 seconds
-  @scraper_timeout 50 * 1000
+  # 60 seconds
+  @scraper_timeout 60 * 1000
 
   def scrape_webpage(url) do
     OpenTelemetry.Tracer.with_span "scraper.scrape_webpage" do
