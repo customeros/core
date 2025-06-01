@@ -1,32 +1,8 @@
 ExUnit.start()
 
-# Add test directory to code path
-Code.prepend_path("test")
+# Exclude integration tests by default
+ExUnit.configure(exclude: [:integration, :external])
 
-# Set up mocks
-Mox.defmock(FinchMock, for: Finch.Behaviour)
-Application.put_env(:core, :finch, FinchMock)
-
-# Define mocks for services
-Mox.defmock(Core.External.Jina.Service.Mock,
-  for: Core.External.Jina.Service.Behaviour
-)
-
-Mox.defmock(Core.External.Puremd.Service.Mock,
-  for: Core.External.Puremd.Service.Behaviour
-)
-
-Mox.defmock(Core.Scraper.Repository.Mock,
-  for: Core.Scraper.Repository.Behaviour
-)
-
-Mox.defmock(Core.Ai.Webpage.Classify.Mock,
-  for: Core.Ai.Webpage.Classify.Behaviour
-)
-
-Mox.defmock(Core.Ai.Webpage.ProfileIntent.Mock,
-  for: Core.Ai.Webpage.ProfileIntent.Behaviour
-)
-
-# Ensure DataCase is loaded
-Code.require_file("test/support/data_case.ex")
+# Start required applications for testing
+Application.ensure_all_started(:finch)
+Application.ensure_all_started(:jason)

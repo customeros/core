@@ -2,47 +2,46 @@ defmodule Core.Researcher.Scraper.Firecrawl do
   @moduledoc """
   Service for fetching web pages using the Firecrawl API.
   """
-  alias Core.Researcher.Errors
 
   # 45 seconds
   @timeout 45 * 1000
 
+  @err_firecrawl_api_key_not_set {:error, "firecrawl API key not set"}
+  @err_firecrawl_api_path_not_set {:error, "firecrawl API path not set"}
+  @err_empty_response {:error, "empty API response"}
+  @err_invalid_api_response {:error, "invalid API response format"}
+  @err_invalid_url {:error, :invalid_url}
+  @err_ratelimit_exceeded {:error, :rate_limit_exceeded}
+  @err_unable_to_decode_response {:error, "unable to decode response"}
+  @err_url_not_provided {:error, :url_not_provided}
+
   @doc """
   Fetches a web page async with supervision.
   """
-  @spec fetch_page_supervised(String.t()) ::
-          Task.t() | {:error, Errors.researcher_error()}
-  def fetch_page_supervised(url) when is_binary(url) and url != "" do
+  def fetch_page_supervised(url) do
     Task.Supervisor.async(
       Core.TaskSupervisor,
       fn -> fetch_page(url) end
     )
   end
 
-  def fetch_page_supervised(""), do: Errors.error(:url_not_provided)
-  def fetch_page_supervised(nil), do: Errors.error(:url_not_provided)
-  def fetch_page_supervised(_), do: Errors.error(:invalid_url)
-
   @doc """
   Fetches a web page synchronously using the Firecrawl API.
   """
-  @spec fetch_page(String.t()) ::
-          {:ok, String.t()}
-          | {:error, Errors.researcher_error()}
-          | {:error, {:http_error, String.t()}}
-  def fetch_page(url) when is_binary(url) do
+  def fetch_page(url) when is_binary(url) and byte_size(url) > 0 do
     with {:ok, config} <- validate_config(),
          request_body <- build_request_body(url),
          response <- make_request(config.api_path, request_body, config.api_key) do
       handle_response(response)
     else
-      {:error, reason} -> Errors.error(reason)
+      {:error, reason} ->
+        {:error, reason}
     end
   end
 
-  def fetch_page(""), do: Errors.error(:url_not_provided)
-  def fetch_page(nil), do: Errors.error(:url_not_provided)
-  def fetch_page(_), do: Errors.error(:invalid_url)
+  def fetch_page(""), do: @err_url_not_provided
+  def fetch_page(nil), do: @err_url_not_provided
+  def fetch_page(_), do: @err_invalid_url
 
   # Private functions
 
@@ -75,11 +74,10 @@ defmodule Core.Researcher.Scraper.Firecrawl do
            pool_timeout: @timeout
          ) do
       {:ok, response} -> response
-      {:error, reason} -> Errors.error({:http_error, reason})
+      {:error, reason} -> {:error, reason}
     end
   end
 
-  # Pure configuration validation
   defp validate_config do
     Application.get_env(:core, :firecrawl, [])
     |> normalize_config()
@@ -102,10 +100,10 @@ defmodule Core.Researcher.Scraper.Firecrawl do
 
     cond do
       is_nil(api_key) or api_key == "" ->
-        Errors.error(:firecrawl_api_key_not_set)
+        @err_firecrawl_api_key_not_set
 
       is_nil(api_path) or api_path == "" ->
-        Errors.error(:firecrawl_api_path_not_set)
+        @err_firecrawl_api_path_not_set
 
       true ->
         {:ok, %{api_key: api_key, api_path: api_path}}
@@ -113,6 +111,8 @@ defmodule Core.Researcher.Scraper.Firecrawl do
   end
 
   # Pure response handling
+  def handle_response_test(response), do: handle_response(response)
+
   defp handle_response(%Finch.Response{status: 200, body: body}) do
     case Jason.decode(body) do
       {:ok, %{"success" => true, "data" => %{"markdown" => content}}}
@@ -120,33 +120,32 @@ defmodule Core.Researcher.Scraper.Firecrawl do
         {:ok, content}
 
       {:ok, %{"success" => true, "data" => _}} ->
-        Errors.error(:empty_content)
+        @err_empty_response
 
-      {:ok, decoded} ->
-        Errors.error({:invalid_format, decoded})
+      {:ok, _decoded} ->
+        @err_invalid_api_response
 
-      {:error, reason} ->
-        Errors.error({:decode_error, reason})
+      {:error, _reason} ->
+        @err_unable_to_decode_response
     end
   end
 
-  defp handle_response(%Finch.Response{status: 402}),
-    do: Errors.error(:payment_required)
-
-  defp handle_response(%Finch.Response{status: 422}),
-    do: Errors.error(:unprocessable)
-
   defp handle_response(%Finch.Response{status: status, body: body}) do
-    decoded_body =
-      case Jason.decode(body) do
-        {:ok, decoded} -> decoded
-        _ -> body
-      end
+    case status do
+      429 ->
+        @err_ratelimit_exceeded
 
-    Errors.error(
-      {:http_error, "Status: #{status}, Body: #{inspect(decoded_body)}"}
-    )
+      _ ->
+        decoded_body =
+          case Jason.decode(body) do
+            {:ok, decoded} -> decoded
+            _ -> body
+          end
+
+        err = "Status: #{status}, Body: #{inspect(decoded_body)}"
+        {:error, err}
+    end
   end
 
-  defp handle_response({:error, reason}), do: Errors.error(reason)
+  defp handle_response({:error, reason}), do: {:error, reason}
 end

@@ -79,6 +79,7 @@ defmodule Core.MixProject do
       {:plug_cowboy, "~> 2.5"},
       {:postgrex, "~> 0.20"},
       {:protobuf_generate, "~> 0.1.3", runtime: false},
+      {:stream_data, "~> 1.2"},
       {:swoosh, "~> 1.19"},
       {:telemetry_metrics, "~> 1.1"},
       {:telemetry_poller, "~> 1.0"},
