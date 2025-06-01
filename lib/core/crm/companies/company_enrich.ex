@@ -261,7 +261,7 @@ defmodule Core.Crm.Companies.CompanyEnrich do
   defp lookup_industry(industry_code, company_id) do
     case Industries.get_by_code(industry_code) do
       nil ->
-        OpenTelemetry.Tracer.set_status(:error, :industry_not_found)
+        OpenTelemetry.Tracer.set_status(:error, "Industry not found")
 
         OpenTelemetry.Tracer.set_attributes([
           {"error.reason", "Industry not found"}
@@ -638,7 +638,7 @@ defmodule Core.Crm.Companies.CompanyEnrich do
   end
 
   # Private helper methods
-  @spec should_enrich_industry?(%Company{}) :: boolean()
+  @spec should_enrich_industry?(Company.t()) :: boolean()
   defp should_enrich_industry?(%Company{} = company) do
     OpenTelemetry.Tracer.with_span "company_enrich.should_enrich_industry?" do
       OpenTelemetry.Tracer.set_attributes([
@@ -666,7 +666,7 @@ defmodule Core.Crm.Companies.CompanyEnrich do
 
   defp should_enrich_industry?(_), do: false
 
-  @spec should_enrich_name?(%Company{}) :: boolean()
+  @spec should_enrich_name?(Company.t()) :: boolean()
   defp should_enrich_name?(%Company{} = company) do
     OpenTelemetry.Tracer.with_span "company_enrich.should_enrich_name?" do
       OpenTelemetry.Tracer.set_attributes([
@@ -694,7 +694,7 @@ defmodule Core.Crm.Companies.CompanyEnrich do
 
   defp should_enrich_name?(_), do: false
 
-  @spec should_enrich_country?(%Company{}) :: boolean()
+  @spec should_enrich_country?(Company.t()) :: boolean()
   defp should_enrich_country?(%Company{} = company) do
     OpenTelemetry.Tracer.with_span "company_enrich.should_enrich_country?" do
       OpenTelemetry.Tracer.set_attributes([
@@ -722,7 +722,7 @@ defmodule Core.Crm.Companies.CompanyEnrich do
 
   defp should_enrich_country?(_), do: false
 
-  @spec should_enrich_icon?(%Company{}) :: boolean()
+  @spec should_enrich_icon?(Company.t()) :: boolean()
   defp should_enrich_icon?(%Company{} = company) do
     OpenTelemetry.Tracer.with_span "company_enrich.should_enrich_icon?" do
       OpenTelemetry.Tracer.set_attributes([
@@ -742,7 +742,7 @@ defmodule Core.Crm.Companies.CompanyEnrich do
 
   defp should_enrich_icon?(_), do: false
 
-  @spec should_scrape_homepage?(%Company{}) :: boolean()
+  @spec should_scrape_homepage?(Company.t()) :: boolean()
   defp should_scrape_homepage?(%Company{} = company) do
     OpenTelemetry.Tracer.with_span "company_enrich.should_scrape_homepage?" do
       OpenTelemetry.Tracer.set_attributes([
