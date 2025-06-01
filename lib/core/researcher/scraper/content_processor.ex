@@ -15,7 +15,8 @@ defmodule Core.Researcher.Scraper.ContentProcessor do
   end
 
   def handle_scraped_content(content, url) do
-    with {:ok, processed_data} <- process_webpage(url, content) do
+    with {:ok, sanitized_content} <- sanitize_content(content),
+         {:ok, processed_data} <- process_webpage(url, sanitized_content) do
       # Try to save to database but don't fail if it errors
       _ = save_to_database(url, processed_data)
       {:ok, processed_data}
@@ -23,6 +24,24 @@ defmodule Core.Researcher.Scraper.ContentProcessor do
       {:error, reason} -> {:error, reason}
     end
   end
+
+  defp sanitize_content(content) when is_binary(content) do
+    # Remove null bytes and ensure valid UTF-8
+    sanitized =
+      content
+      |> String.replace(<<0>>, "")  # Remove null bytes
+      |> String.to_charlist()       # Convert to charlist to handle invalid UTF-8
+      |> Enum.filter(&(&1 >= 0 and &1 <= 0x10FFFF))  # Keep only valid Unicode code points
+      |> List.to_string()           # Convert back to string
+
+    if String.valid?(sanitized) do
+      {:ok, sanitized}
+    else
+      {:error, :invalid_utf8}
+    end
+  end
+
+  defp sanitize_content(_), do: {:error, :invalid_content_type}
 
   defp process_webpage(url, content) do
     links = Webpages.LinkExtractor.extract_links(content)
