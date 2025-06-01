@@ -1,6 +1,8 @@
 defmodule Core.Crm.Companies.Enrichments.Industry do
   require Logger
+  require OpenTelemetry.Tracer
   alias Core.Ai
+  alias Core.Utils.Tracing
 
   @timeout 60 * 1000
   @model :claude_sonnet
@@ -29,34 +31,41 @@ defmodule Core.Crm.Companies.Enrichments.Industry do
 
   def identify(%{domain: domain, homepage_content: content})
       when is_binary(domain) and is_binary(content) do
-    prompt = build_prompt(domain, content)
+    OpenTelemetry.Tracer.with_span "industry.identify" do
+      prompt = build_prompt(domain, content)
 
-    request =
-      Ai.Request.new(prompt,
-        model: @model,
-        system_prompt: @system_prompt,
-        max_tokens: @max_tokens,
-        temperature: @temperature
-      )
+      request =
+        Ai.Request.new(prompt,
+          model: @model,
+          system_prompt: @system_prompt,
+          max_tokens: @max_tokens,
+          temperature: @temperature
+        )
 
-    task = Ai.ask_supervised(request)
+      task = Ai.ask_supervised(request)
 
-    case Task.await(task, @timeout) do
-      {:ok, {:ok, response}} ->
-        process_response(response)
+      case Task.await(task, @timeout) do
+        {:ok, {:ok, response}} ->
+          OpenTelemetry.Tracer.set_attributes([
+            {"ai.raw.response", response}
+          ])
+          Tracing.ok()
 
-      {:ok, response} when is_binary(response) ->
-        process_response(response)
+          process_response(response)
 
-      {:ok, {:error, reason}} ->
-        {:error, reason}
+        {:ok, {:error, reason}} ->
+          Tracing.error(reason)
+          {:error, reason}
 
-      {:exit, reason} ->
-        {:error, reason}
+        {:exit, reason} ->
+          Tracing.error(reason)
+          {:error, reason}
 
-      nil ->
-        Task.shutdown(task)
-        {:error, :ai_timeout}
+        nil ->
+          Task.shutdown(task)
+          Tracing.error(:ai_timeout)
+          {:error, :ai_timeout}
+      end
     end
   end
 
@@ -71,8 +80,10 @@ defmodule Core.Crm.Companies.Enrichments.Industry do
       |> String.replace(~r/[^0-9]/, "")
 
     if String.length(code) > 0 do
+      Tracing.ok()
       {:ok, code}
     else
+      Tracing.error(:invalid_ai_response)
       {:error, :invalid_ai_response}
     end
   end
