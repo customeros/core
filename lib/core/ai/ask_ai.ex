@@ -13,14 +13,10 @@ defmodule Core.Ai do
   @spec ask_supervised(Ai.Request.t()) :: Task.t()
   def ask_supervised(request) do
     OpenTelemetry.Tracer.with_span "ai.ask_supervised" do
-      OpenTelemetry.Tracer.set_attributes([
-        {"ai.model", request.model},
-        {"ai.max_tokens", request.max_output_tokens},
-        {"ai.temperature", request.model_temperature},
-        {"ai.has_system_prompt", not is_nil(request.system_prompt)}
-      ])
+      ctx = OpenTelemetry.Ctx.get_current()
 
       Task.Supervisor.async(Core.TaskSupervisor, fn ->
+        OpenTelemetry.Ctx.attach(ctx)
         ask(request)
       end)
     end
@@ -29,30 +25,48 @@ defmodule Core.Ai do
   # Private functions
 
   defp ask(request) when request.model in @anthropic_models do
-    anthropic_request = %Anthropic.Request{
-      model: request.model,
-      prompt: request.prompt,
-      system_prompt: request.system_prompt,
-      max_output_tokens: request.max_output_tokens,
-      model_temperature: request.model_temperature
-    }
+    OpenTelemetry.Tracer.with_span "ai.ask_anthropic" do
+      OpenTelemetry.Tracer.set_attributes([
+        {"ai.model", request.model},
+        {"ai.max_tokens", request.max_output_tokens},
+        {"ai.temperature", request.model_temperature},
+        {"ai.has_system_prompt", not is_nil(request.system_prompt)}
+      ])
 
-    Anthropic.Ask.ask(
-      anthropic_request,
-      Anthropic.Config.from_application_env()
-    )
+      anthropic_request = %Anthropic.Request{
+        model: request.model,
+        prompt: request.prompt,
+        system_prompt: request.system_prompt,
+        max_output_tokens: request.max_output_tokens,
+        model_temperature: request.model_temperature
+      }
+
+      Anthropic.Ask.ask(
+        anthropic_request,
+        Anthropic.Config.from_application_env()
+      )
+    end
   end
 
   defp ask(request) when request.model in @gemini_models do
-    gemini_request = %Gemini.Request{
-      model: request.model,
-      prompt: request.prompt,
-      system_prompt: request.system_prompt,
-      max_output_tokens: request.max_output_tokens,
-      model_temperature: request.model_temperature
-    }
+    OpenTelemetry.Tracer.with_span "ai.ask_gemini" do
+      OpenTelemetry.Tracer.set_attributes([
+        {"ai.model", request.model},
+        {"ai.max_tokens", request.max_output_tokens},
+        {"ai.temperature", request.model_temperature},
+        {"ai.has_system_prompt", not is_nil(request.system_prompt)}
+      ])
 
-    Gemini.Ask.ask(gemini_request, Gemini.Config.from_application_env())
+      gemini_request = %Gemini.Request{
+        model: request.model,
+        prompt: request.prompt,
+        system_prompt: request.system_prompt,
+        max_output_tokens: request.max_output_tokens,
+        model_temperature: request.model_temperature
+      }
+
+      Gemini.Ask.ask(gemini_request, Gemini.Config.from_application_env())
+    end
   end
 
   defp ask(request) when request.prompt == "" or not is_binary(request.prompt),
