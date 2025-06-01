@@ -1,6 +1,8 @@
 defmodule Core.Crm.Companies.Enrichments.Location do
   require Logger
+  require OpenTelemetry.Tracer
   alias Core.Ai
+  alias Core.Utils.Tracing
 
   @timeout 60 * 1000
   @model :claude_sonnet
@@ -30,42 +32,51 @@ defmodule Core.Crm.Companies.Enrichments.Location do
 
   @spec identifyCountryCodeA2(input()) :: {:ok, String.t()} | {:error, term()}
   def identifyCountryCodeA2(%{domain: domain, homepage_content: content}) do
-    prompt = build_prompt(domain, content)
+    OpenTelemetry.Tracer.with_span "country.identify" do
+      prompt = build_prompt(domain, content)
 
-    request =
-      Ai.Request.new(prompt,
-        model: @model,
-        system_prompt: @system_prompt_country,
-        max_tokens: @max_tokens,
-        temperature: @temperature
-      )
+      request =
+        Ai.Request.new(prompt,
+          model: @model,
+          system_prompt: @system_prompt_country,
+          max_tokens: @max_tokens,
+          temperature: @temperature
+        )
 
-    task = Ai.ask_supervised(request)
+      task = Ai.ask_supervised(request)
 
-    case Task.yield(task, @timeout) do
-      {:ok, {:ok, response}} ->
-        code =
-          response
-          |> String.trim()
-          |> String.upcase()
-          # Remove any non-letters
-          |> String.replace(~r/[^A-Z]/, "")
+      case Task.yield(task, @timeout) do
+        {:ok, {:ok, response}} ->
+          OpenTelemetry.Tracer.set_attributes([
+            {"ai.raw.response", response}
+          ])
 
-        if String.length(code) == 2 do
-          {:ok, code}
-        else
-          {:ok, ""}
-        end
+          Tracing.ok()
 
-      {:ok, {:error, reason}} ->
-        {:error, reason}
+          code =
+            response
+            |> String.trim()
+            |> String.upcase()
 
-      {:exit, reason} ->
-        {:error, reason}
+          if String.length(code) == 2 do
+            {:ok, code}
+          else
+            {:ok, ""}
+          end
 
-      nil ->
-        Task.shutdown(task)
-        {:error, :ai_timeout}
+        {:ok, {:error, reason}} ->
+          Tracing.error(reason)
+          {:error, reason}
+
+        {:exit, reason} ->
+          Tracing.error(reason)
+          {:error, reason}
+
+        nil ->
+          Task.shutdown(task)
+          Tracing.error(:ai_timeout)
+          {:error, :ai_timeout}
+      end
     end
   end
 
