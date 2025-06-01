@@ -10,9 +10,7 @@ defmodule Core.Repo.Migrations.AddEnrichmentAttemptsToCompanies do
     end
 
     # Create indexes for efficient querying of companies that need enrichment
-    create(
-      index(:companies, [:logo_enrichment_attempts, :logo_enrich_attempt_at])
-    )
+    create(index(:companies, [:logo_enrichment_attempts, :logo_enrich_attempt_at]))
 
     create(
       index(:companies, [
@@ -21,9 +19,7 @@ defmodule Core.Repo.Migrations.AddEnrichmentAttemptsToCompanies do
       ])
     )
 
-    create(
-      index(:companies, [:name_enrichment_attempts, :name_enrich_attempt_at])
-    )
+    create(index(:companies, [:name_enrichment_attempts, :name_enrich_attempt_at]))
 
     create(
       index(:companies, [
@@ -35,9 +31,7 @@ defmodule Core.Repo.Migrations.AddEnrichmentAttemptsToCompanies do
 
   def down do
     # Drop indexes first
-    drop(
-      index(:companies, [:logo_enrichment_attempts, :logo_enrich_attempt_at])
-    )
+    drop(index(:companies, [:logo_enrichment_attempts, :logo_enrich_attempt_at]))
 
     drop(
       index(:companies, [
@@ -46,9 +40,7 @@ defmodule Core.Repo.Migrations.AddEnrichmentAttemptsToCompanies do
       ])
     )
 
-    drop(
-      index(:companies, [:name_enrichment_attempts, :name_enrich_attempt_at])
-    )
+    drop(index(:companies, [:name_enrichment_attempts, :name_enrich_attempt_at]))
 
     drop(
       index(:companies, [

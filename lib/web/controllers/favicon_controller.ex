@@ -3,7 +3,7 @@ defmodule Web.FaviconController do
 
   def serve(conn, %{"path" => path}) do
     file_path = Path.join(["priv", "static", "favicon", path])
-    
+
     if File.exists?(file_path) do
       conn
       |> put_resp_content_type(get_content_type(path))
@@ -24,4 +24,4 @@ defmodule Web.FaviconController do
       _ -> "application/octet-stream"
     end
   end
-end 
+end

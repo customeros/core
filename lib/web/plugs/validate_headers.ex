@@ -37,7 +37,10 @@ defmodule Web.Plugs.ValidateHeaders do
       |> put_resp_content_type("application/json")
       |> send_resp(
         401,
-        Jason.encode!(%{error: "Unauthorized", message: "missing tenant header"})
+        Jason.encode!(%{
+          error: "Unauthorized",
+          message: "missing tenant header"
+        })
       )
       |> halt()
     end
@@ -47,7 +50,10 @@ defmodule Web.Plugs.ValidateHeaders do
       |> put_resp_content_type("application/json")
       |> send_resp(
         401,
-        Jason.encode!(%{error: "Unauthorized", message: "missing username header"})
+        Jason.encode!(%{
+          error: "Unauthorized",
+          message: "missing username header"
+        })
       )
       |> halt()
     end

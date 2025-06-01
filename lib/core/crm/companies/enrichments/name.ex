@@ -76,6 +76,7 @@ defmodule Core.Crm.Companies.Enrichments.Name do
               OpenTelemetry.Tracer.set_attributes([
                 {"ai.name", name}
               ])
+
               Tracing.ok()
               {:ok, name}
 

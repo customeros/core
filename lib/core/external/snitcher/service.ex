@@ -31,7 +31,8 @@ defmodule Core.External.Snitcher.Service do
     |> ApiLogger.request(@vendor)
   end
 
-  defp parse_response(%Finch.Response{status: status, body: body}) when status in [200, 404] do
+  defp parse_response(%Finch.Response{status: status, body: body})
+       when status in [200, 404] do
     case Jason.decode(body) do
       {:ok, data} ->
         Types.parse_response(data)
@@ -56,7 +57,10 @@ defmodule Core.External.Snitcher.Service do
       config ->
         try do
           api_key = config[:api_key] || raise "SNITCHER_API_KEY is not set"
-          api_url = config[:api_url] || raise "Snitcher API URL is not configured"
+
+          api_url =
+            config[:api_url] || raise "Snitcher API URL is not configured"
+
           {:ok, %{api_key: api_key, api_url: api_url}}
         rescue
           e in RuntimeError ->

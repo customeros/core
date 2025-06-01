@@ -111,7 +111,9 @@ defmodule Core.Auth.Users do
           {:ok, tenant} -> {:ok, tenant.id}
           error -> error
         end
-      {:ok, tenant} -> {:ok, tenant.id}
+
+      {:ok, tenant} ->
+        {:ok, tenant.id}
     end
   end
 
@@ -126,15 +128,20 @@ defmodule Core.Auth.Users do
         # Notify Slack about new user
         Task.start(fn ->
           case Slack.notify_new_user(email, tenant_name) do
-            :ok -> :ok
+            :ok ->
+              :ok
+
             {:error, reason} ->
               Logger.error(
                 "Failed to send Slack notification for user #{email} creation: #{inspect(reason)}"
               )
           end
         end)
+
         {:ok, user}
-      error -> error
+
+      error ->
+        error
     end
   end
 

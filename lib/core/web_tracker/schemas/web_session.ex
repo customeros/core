@@ -14,51 +14,51 @@ defmodule Core.WebTracker.Schemas.WebSession do
   @id_regex ~r/^#{@id_prefix}_[a-z0-9]{21}$/
 
   schema "web_sessions" do
-    field :tenant, :string
-    field :visitor_id, :string
-    field :origin, :string
-    field :active, :boolean, default: true
-    field :metadata, :map, default: %{}
-    field :just_created, :boolean, virtual: true, default: false
+    field(:tenant, :string)
+    field(:visitor_id, :string)
+    field(:origin, :string)
+    field(:active, :boolean, default: true)
+    field(:metadata, :map, default: %{})
+    field(:just_created, :boolean, virtual: true, default: false)
 
     # IP information
-    field :ip, :string
-    field :city, :string
-    field :region, :string
-    field :country_code, :string
-    field :is_mobile, :boolean
+    field(:ip, :string)
+    field(:city, :string)
+    field(:region, :string)
+    field(:country_code, :string)
+    field(:is_mobile, :boolean)
 
     # Custom timestamps
-    field :started_at, :utc_datetime
-    field :ended_at, :utc_datetime
-    field :last_event_at, :utc_datetime
-    field :last_event_type, :string
+    field(:started_at, :utc_datetime)
+    field(:ended_at, :utc_datetime)
+    field(:last_event_at, :utc_datetime)
+    field(:last_event_type, :string)
 
     timestamps(type: :utc_datetime)
   end
 
   @type t :: %__MODULE__{
-    id: String.t(),
-    tenant: String.t(),
-    visitor_id: String.t(),
-    origin: String.t(),
-    active: boolean(),
-    metadata: map(),
-    just_created: boolean(),
-    # IP information
-    ip: String.t() | nil,
-    city: String.t() | nil,
-    region: String.t() | nil,
-    country_code: String.t() | nil,
-    is_mobile: boolean() | nil,
-    # Timestamps
-    started_at: DateTime.t() | nil,
-    ended_at: DateTime.t() | nil,
-    last_event_at: DateTime.t() | nil,
-    last_event_type: String.t() | nil,
-    inserted_at: DateTime.t(),
-    updated_at: DateTime.t()
-  }
+          id: String.t(),
+          tenant: String.t(),
+          visitor_id: String.t(),
+          origin: String.t(),
+          active: boolean(),
+          metadata: map(),
+          just_created: boolean(),
+          # IP information
+          ip: String.t() | nil,
+          city: String.t() | nil,
+          region: String.t() | nil,
+          country_code: String.t() | nil,
+          is_mobile: boolean() | nil,
+          # Timestamps
+          started_at: DateTime.t() | nil,
+          ended_at: DateTime.t() | nil,
+          last_event_at: DateTime.t() | nil,
+          last_event_type: String.t() | nil,
+          inserted_at: DateTime.t(),
+          updated_at: DateTime.t()
+        }
 
   @doc """
   Returns the ID prefix used for web sessions.
@@ -71,9 +71,22 @@ defmodule Core.WebTracker.Schemas.WebSession do
   def changeset(session, attrs) do
     session
     |> cast(attrs, [
-      :id, :tenant, :visitor_id, :origin, :active, :metadata, :just_created,
-      :ip, :city, :region, :country_code, :is_mobile,
-      :started_at, :ended_at, :last_event_at, :last_event_type
+      :id,
+      :tenant,
+      :visitor_id,
+      :origin,
+      :active,
+      :metadata,
+      :just_created,
+      :ip,
+      :city,
+      :region,
+      :country_code,
+      :is_mobile,
+      :started_at,
+      :ended_at,
+      :last_event_at,
+      :last_event_type
     ])
     |> validate_required([:id, :tenant, :visitor_id, :origin])
     |> validate_format(:id, @id_regex)

@@ -22,11 +22,15 @@ jobs:
           elixir-version: "1.18.3"
           otp-version: "27.3.4"
 
+      - name: Run tests
+        run: |
+          ./scripts/runners/test.sh
+
       - name: Install Bun
         run: |
           curl -fsSL https://bun.sh/install | bash
           echo "$HOME/.bun/bin" >> $GITHUB_PATH
 
-      - name: Build Phoenix app
+      - name: Build app
         run: |
           ./scripts/runners/build-core.sh ${{ env.APP_PATH }}

@@ -1,3 +1,3 @@
 defmodule Core do
- def app_name, do: :core 
+  def app_name, do: :core
 end

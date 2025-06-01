@@ -12,7 +12,8 @@ defmodule Core.Repo.Migrations.CreateWebTrackerEvents do
       add :ip, :string
       add :visitor_id, :string
       add :event_type, :string
-      add :event_data, :text  # Using text for potentially large JSON data
+      # Using text for potentially large JSON data
+      add :event_data, :text
       add :timestamp, :utc_datetime
       add :href, :string
       add :origin, :string

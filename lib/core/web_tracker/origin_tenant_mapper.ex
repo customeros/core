@@ -25,7 +25,6 @@ defmodule Core.WebTracker.OriginTenantMapper do
 
     case Map.get(@whitelisted_origins, cleaned_origin) do
       nil ->
-        # If exact match not found, try to get root domain
         case Core.Utils.DomainValidator.parse_root_and_subdomain(cleaned_origin) do
           {:ok, root_domain, _subdomain} ->
             case Map.get(@whitelisted_origins, root_domain) do
@@ -69,8 +68,12 @@ defmodule Core.WebTracker.OriginTenantMapper do
     |> String.replace_prefix("www.", "")
     |> String.trim("/")
     |> String.trim()
+    |> then(fn cleaned ->
+      cleaned
+      |> String.split("/", parts: 2)
+      |> List.first()
+    end)
   end
 
   defp clean_origin(_), do: ""
-
 end

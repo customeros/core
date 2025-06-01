@@ -20,7 +20,9 @@ defmodule Core.WebTracker.WebSessions do
   @spec create(map()) :: {:ok, WebSession.t()} | {:error, Ecto.Changeset.t()}
   def create(attrs) do
     now = DateTime.utc_now() |> DateTime.truncate(:second)
-    attrs = attrs
+
+    attrs =
+      attrs
       |> Map.put(:id, IdGenerator.generate_id_21(WebSession.id_prefix()))
       |> Map.put(:created_at, now)
       |> Map.put(:updated_at, now)
@@ -36,24 +38,29 @@ defmodule Core.WebTracker.WebSessions do
   Gets an active session for the given tenant, visitor_id and origin combination.
   Returns nil if no active session is found.
   """
-  @spec get_active_session(String.t(), String.t(), String.t()) :: WebSession.t() | nil
+  @spec get_active_session(String.t(), String.t(), String.t()) ::
+          WebSession.t() | nil
   def get_active_session(tenant, visitor_id, origin) do
-    result = Repo.one(
-      from s in WebSession,
-        where: s.tenant == ^tenant and
-               s.visitor_id == ^visitor_id and
-               s.origin == ^origin and
-               s.active == true,
-        order_by: [desc: s.inserted_at],
-        limit: 1
-    )
+    result =
+      Repo.one(
+        from s in WebSession,
+          where:
+            s.tenant == ^tenant and
+              s.visitor_id == ^visitor_id and
+              s.origin == ^origin and
+              s.active == true,
+          order_by: [desc: s.inserted_at],
+          limit: 1
+      )
+
     result
   end
 
   @doc """
   Updates the last event information (timestamp and type) for a session.
   """
-  @spec update_last_event(WebSession.t(), String.t()) :: {:ok, WebSession.t()} | {:error, Ecto.Changeset.t()}
+  @spec update_last_event(WebSession.t(), String.t()) ::
+          {:ok, WebSession.t()} | {:error, Ecto.Changeset.t()}
   def update_last_event(%WebSession{} = session, event_type) do
     now = DateTime.utc_now() |> DateTime.truncate(:second)
 
@@ -77,21 +84,30 @@ defmodule Core.WebTracker.WebSessions do
   Results are ordered by last_event_at (oldest first) and limited by the input parameter.
   If limit is 0 or negative, defaults to #{@default_limit}.
   """
-  @spec get_sessions_to_close(integer) :: [WebSession.t()] | {:error, String.t()}
+  @spec get_sessions_to_close(integer) ::
+          [WebSession.t()] | {:error, String.t()}
   def get_sessions_to_close(limit) when not is_integer(limit),
     do: {:error, "limit must be an integer"}
+
   def get_sessions_to_close(limit) when limit <= 0,
     do: get_sessions_to_close(@default_limit)
+
   def get_sessions_to_close(limit) do
     now = DateTime.utc_now()
-    page_exit_cutoff = DateTime.add(now, -@page_exit_timeout_minutes * 60, :second)
+
+    page_exit_cutoff =
+      DateTime.add(now, -@page_exit_timeout_minutes * 60, :second)
+
     default_cutoff = DateTime.add(now, -@default_timeout_minutes * 60, :second)
     page_exit_event_str = :page_exit |> Atom.to_string()
 
     from(s in WebSession,
-      where: s.active == true and
-             ((s.last_event_type == ^page_exit_event_str and s.last_event_at < ^page_exit_cutoff) or
-              (s.last_event_type != ^page_exit_event_str and s.last_event_at < ^default_cutoff)),
+      where:
+        s.active == true and
+          ((s.last_event_type == ^page_exit_event_str and
+              s.last_event_at < ^page_exit_cutoff) or
+             (s.last_event_type != ^page_exit_event_str and
+                s.last_event_at < ^default_cutoff)),
       order_by: [asc: s.last_event_at],
       limit: ^limit
     )
@@ -102,11 +118,15 @@ defmodule Core.WebTracker.WebSessions do
   Closes a web session by setting active to false and ended_at to the last_event_at timestamp.
   Returns {:ok, session} if closed successfully or if already closed.
   """
-  @spec close(WebSession.t()) :: {:ok, WebSession.t()} | {:error, Ecto.Changeset.t() | String.t()}
+  @spec close(WebSession.t()) ::
+          {:ok, WebSession.t()} | {:error, Ecto.Changeset.t() | String.t()}
   def close(%WebSession{} = session) when is_nil(session.id),
     do: {:error, "Session ID is required"}
+
   def close(%WebSession{active: false} = session),
-    do: {:ok, session}  # Session already closed, return as is
+    # Session already closed, return as is
+    do: {:ok, session}
+
   def close(%WebSession{} = session) do
     session
     |> WebSession.changeset(%{

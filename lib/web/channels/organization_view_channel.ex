@@ -27,18 +27,24 @@ defmodule Web.OrganizationViewChannel do
 
   @impl true
   def handle_info({:after_join, organization_id, params}, socket) do
-    {:ok, _} = Web.Presence.track(
-      self(),
-      "organization_presence:#{organization_id}",
-      params["user_id"],
-      %{
-        username: params["username"],
-        online_at: inspect(System.system_time(:second)),
-        metadata: %{"source" => "customerOS"}
-      }
+    {:ok, _} =
+      Web.Presence.track(
+        self(),
+        "organization_presence:#{organization_id}",
+        params["user_id"],
+        %{
+          username: params["username"],
+          online_at: inspect(System.system_time(:second)),
+          metadata: %{"source" => "customerOS"}
+        }
+      )
+
+    push(
+      socket,
+      "presence_state",
+      Web.Presence.list("organization_presence:#{organization_id}")
     )
 
-    push(socket, "presence_state", Web.Presence.list("organization_presence:#{organization_id}"))
     {:noreply, socket}
   end
 end

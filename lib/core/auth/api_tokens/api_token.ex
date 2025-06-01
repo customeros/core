@@ -124,13 +124,52 @@ defmodule Core.Auth.ApiTokens.ApiToken do
   @doc """
   Updates the last_used_at timestamp for an API token.
   This is useful for tracking token usage.
+
+  Handles concurrent updates gracefully - if another process has already
+  updated the token, this will silently succeed rather than error.
   """
   def touch_token(%ApiToken{} = api_token) do
-    api_token
-    |> Ecto.Changeset.change(%{
-      last_used_at: DateTime.utc_now() |> DateTime.truncate(:second)
-    })
-    |> Core.Repo.update()
+    changeset =
+      api_token
+      |> Ecto.Changeset.change(%{
+        last_used_at: DateTime.utc_now() |> DateTime.truncate(:second)
+      })
+
+    case Core.Repo.update(changeset) do
+      {:ok, updated_token} ->
+        {:ok, updated_token}
+
+      {:error, changeset} ->
+        {:error, changeset}
+    end
+  rescue
+    Ecto.StaleEntryError ->
+      # Another process already updated this token - that's fine
+      # Return the original token since we can't get the updated version
+      {:ok, api_token}
+  end
+
+  @doc """
+  Safe version of touch_token that ignores stale entry errors completely.
+  Use this when you don't care about the return value and just want to
+  update the timestamp if possible.
+  """
+  def touch_token_safe(%ApiToken{} = api_token) do
+    changeset =
+      api_token
+      |> Ecto.Changeset.change(%{
+        last_used_at: DateTime.utc_now() |> DateTime.truncate(:second)
+      })
+
+    try do
+      Core.Repo.update(changeset)
+    rescue
+      Ecto.StaleEntryError ->
+        # Silently ignore - another process updated it
+        :ok
+    end
+
+    :ok
   end
 
   @doc """

@@ -175,6 +175,7 @@ defmodule Core.Crm.Companies.CompanyEnricher do
           OpenTelemetry.Tracer.set_attributes([
             {"result", :industry_not_found}
           ])
+
           {:error, :industry_not_found}
 
         {:error, reason} ->

@@ -5,17 +5,17 @@ defmodule Core.Crm.Industries.Industry do
   @primary_key {:code, :string, autogenerate: false}
   @derive {Phoenix.Param, key: :code}
   schema "industries" do
-    field :name, :string
+    field(:name, :string)
 
     timestamps(type: :utc_datetime)
   end
 
   @type t :: %__MODULE__{
-    code: String.t(),
-    name: String.t(),
-    inserted_at: DateTime.t(),
-    updated_at: DateTime.t()
-  }
+          code: String.t(),
+          name: String.t(),
+          inserted_at: DateTime.t(),
+          updated_at: DateTime.t()
+        }
 
   def changeset(industry, attrs) do
     industry

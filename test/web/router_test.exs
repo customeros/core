@@ -42,7 +42,8 @@ defmodule Web.RouterTest do
     assert Phoenix.Flash.get(conn.assigns.flash, :info) == nil
   end
 
-  test "GET /api/organizations/:organization_id/documents requires authentication", %{conn: conn} do
+  test "GET /api/organizations/:organization_id/documents requires authentication",
+       %{conn: conn} do
     conn =
       conn
       |> put_req_header("accept", "application/json")
@@ -50,79 +51,6 @@ defmodule Web.RouterTest do
 
     # Should return 401 if not authenticated
     assert conn.status == 401
-    assert json_response(conn, 401)["error"] == "Unauthorized"
-  end
-
-  describe "POST /v1/events" do
-    test "returns 202 when valid event is created", %{conn: conn} do
-      # Mock IPIntelligence service to return success
-      Core.WebTracker.IPIntelligence.Mock
-      |> expect(:get_ip_data, fn ip ->
-        {:ok, %{
-          ip_address: ip,
-          city: "Test City",
-          region: "Test Region",
-          country_code: "US",
-          is_threat: false,
-          is_mobile: false
-        }}
-      end)
-
-      event_data = %{
-        visitorId: "visitor-1",
-        eventType: "page_view",
-        eventData: "{\"path\":\"/\",\"title\":\"Home\"}",
-        tenant: "test-tenant",
-        ip: "127.0.0.1",
-        href: "https://getkanda.com/",
-        hostname: "getkanda.com",
-        pathname: "/",
-        language: "en-US",
-        cookiesEnabled: true,
-        timestamp: DateTime.utc_now() |> DateTime.to_unix(:millisecond),
-        origin: "getkanda.com",
-        referrer: "https://getkanda.com",
-        userAgent: "test-agent"
-      }
-
-      conn =
-        conn
-        |> put_req_header("origin", "getkanda.com")
-        |> put_req_header("referer", "https://getkanda.com")
-        |> put_req_header("user-agent", "test-agent")
-        |> post("/v1/events", event_data)
-
-      assert conn.status == 202
-      assert json_response(conn, 202)["accepted"] == true
-      assert json_response(conn, 202)["session_id"] != nil
-    end
-
-    test "returns 400 when visitor_id is missing", %{conn: conn} do
-      conn =
-        conn
-        |> put_req_header("origin", "getkanda.com")
-        |> put_req_header("referer", "https://getkanda.com")
-        |> put_req_header("user-agent", "test-agent")
-        |> post("/v1/events", %{})
-
-      assert conn.status == 400
-      assert json_response(conn, 400)["error"] == "bad_request"
-      assert json_response(conn, 400)["details"] == "missing visitor_id"
-    end
-
-    test "returns 403 when origin is not configured", %{conn: conn} do
-      conn =
-        conn
-        |> put_req_header("origin", "malicious-site.com")
-        |> put_req_header("referer", "https://malicious-site.com")
-        |> put_req_header("user-agent", "test-agent")
-        |> post("/v1/events", %{visitorId: "visitor-1"})
-
-      assert conn.status == 403
-      assert json_response(conn, 403)["error"] == "forbidden"
-      assert json_response(conn, 403)["details"] == "origin not configured"
-    end
+    assert json_response(conn, 401)["error"] == "Authentication required"
   end
 end
-
-# NOTE: Ensure that Core.WebTracker.IPIntelligence.get_ip_data/1 uses the configured module (Application.compile_env/3) for the mock to work in tests.

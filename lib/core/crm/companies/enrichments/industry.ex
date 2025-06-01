@@ -49,6 +49,7 @@ defmodule Core.Crm.Companies.Enrichments.Industry do
           OpenTelemetry.Tracer.set_attributes([
             {"ai.raw.response", response}
           ])
+
           Tracing.ok()
 
           process_response(response)
@@ -57,6 +58,7 @@ defmodule Core.Crm.Companies.Enrichments.Industry do
           OpenTelemetry.Tracer.set_attributes([
             {"ai.raw.response", response}
           ])
+
           Tracing.ok()
 
           process_response(response)

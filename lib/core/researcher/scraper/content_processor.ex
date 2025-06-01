@@ -29,10 +29,14 @@ defmodule Core.Researcher.Scraper.ContentProcessor do
     # Remove null bytes and ensure valid UTF-8
     sanitized =
       content
-      |> String.replace(<<0>>, "")  # Remove null bytes
-      |> String.to_charlist()       # Convert to charlist to handle invalid UTF-8
-      |> Enum.filter(&(&1 >= 0 and &1 <= 0x10FFFF))  # Keep only valid Unicode code points
-      |> List.to_string()           # Convert back to string
+      # Remove null bytes
+      |> String.replace(<<0>>, "")
+      # Convert to charlist to handle invalid UTF-8
+      |> String.to_charlist()
+      # Keep only valid Unicode code points
+      |> Enum.filter(&(&1 >= 0 and &1 <= 0x10FFFF))
+      # Convert back to string
+      |> List.to_string()
 
     if String.valid?(sanitized) do
       {:ok, sanitized}
