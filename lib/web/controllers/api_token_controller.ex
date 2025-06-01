@@ -3,6 +3,7 @@ defmodule Web.ApiTokenController do
 
   alias Core.Auth.ApiTokens
   alias Core.Auth.ApiTokens.ApiToken
+  alias Ecto.Changeset
 
   @doc """
   Lists all API tokens for the current user.
@@ -146,7 +147,7 @@ defmodule Web.ApiTokenController do
 
     case ApiTokens.get_user_api_token(user, token_id) do
       %ApiToken{} = token ->
-        changeset = Ecto.Changeset.change(token, %{name: new_name})
+        changeset = Changeset.change(token, %{name: new_name})
 
         case Core.Repo.update(changeset) do
           {:ok, updated_token} ->
@@ -186,7 +187,7 @@ defmodule Web.ApiTokenController do
 
   # Helper function to extract errors from changeset
   defp errors_from_changeset(changeset) do
-    Ecto.Changeset.traverse_errors(changeset, fn {msg, opts} ->
+    Changeset.traverse_errors(changeset, fn {msg, opts} ->
       Enum.reduce(opts, msg, fn {key, value}, acc ->
         String.replace(acc, "%{#{key}}", to_string(value))
       end)
