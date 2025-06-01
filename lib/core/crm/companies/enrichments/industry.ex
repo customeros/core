@@ -53,6 +53,14 @@ defmodule Core.Crm.Companies.Enrichments.Industry do
 
           process_response(response)
 
+        {:ok, response} when is_binary(response) ->
+          OpenTelemetry.Tracer.set_attributes([
+            {"ai.raw.response", response}
+          ])
+          Tracing.ok()
+
+          process_response(response)
+
         {:ok, {:error, reason}} ->
           Tracing.error(reason)
           {:error, reason}
