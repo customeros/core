@@ -31,9 +31,6 @@ defmodule Core.Researcher.ScrapedWebpages do
         |> maybe_add_classification(classification)
         |> maybe_add_intent(intent)
 
-      # Debug: Let's see the final attributes
-      IO.inspect(attrs, label: "Final attributes")
-
       changeset =
         %ScrapedWebpage{}
         |> ScrapedWebpage.changeset(attrs)
@@ -148,7 +145,6 @@ defmodule Core.Researcher.ScrapedWebpages do
   ## Helpers ##
 
   defp maybe_add_classification(attrs, nil) do
-    IO.puts("Classification is nil")
     attrs
   end
 

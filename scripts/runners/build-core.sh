@@ -5,7 +5,7 @@ APP_PATH=$1
 
 cd $APP_PATH
 
-export MIX_ENV=test
+export MIX_ENV=prod
 export BUN_INSTALL="$HOME/.bun"
 export PATH="$BUN_INSTALL/bin:$PATH"
 

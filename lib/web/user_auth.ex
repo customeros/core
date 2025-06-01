@@ -41,8 +41,6 @@ defmodule Web.UserAuth do
 
   def signup_user(conn, user, params \\ %{}) do
     token = Users.generate_user_session_token(user)
-    user_return_to = get_session(conn, :user_return_to)
-    dbg(user_return_to)
 
     conn
     |> renew_session()
