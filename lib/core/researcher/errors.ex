@@ -32,10 +32,16 @@ defmodule Core.Researcher.Errors do
     :invalid_content_type
   ]
 
+  @json_errors [
+    :invalid_json_format
+  ]
+
   @valid_errors @url_errors ++
                   @config_errors ++
                   @http_errors ++
-                  @jina_errors ++ @scraper_errors
+                  @jina_errors ++
+                  @scraper_errors ++
+                  @json_errors
 
   @type url_error ::
           :invalid_url
@@ -62,12 +68,16 @@ defmodule Core.Researcher.Errors do
           | :empty_content
           | :invalid_content_type
 
+  @type json_error ::
+          :invalid_json_format
+
   @type researcher_error ::
           url_error()
           | config_error()
           | http_error()
           | jina_error()
           | scraper_error()
+          | json_error()
 
   @doc """
   Creates a standardized error tuple.
