@@ -83,6 +83,6 @@ defmodule Core.Researcher.Errors do
   end
 
   def error(reason) do
-    raise ArgumentError, "Invalid error reason: #{inspect(reason)}"
+    raise ArgumentError, "Unexpected error reason: #{inspect(reason)}"
   end
 end
