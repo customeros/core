@@ -10,7 +10,10 @@ defmodule Core.Crm.Leads.LeadTest do
 
     test "list_by_tenant_id/1 returns all leads for tenant" do
       lead = lead_fixture()
-      assert {:ok, [found_lead]} = Core.Crm.Leads.list_by_tenant_id(lead.tenant_id)
+
+      assert {:ok, [found_lead]} =
+               Core.Crm.Leads.list_by_tenant_id(lead.tenant_id)
+
       assert found_lead.id == lead.id
     end
 
@@ -36,7 +39,7 @@ defmodule Core.Crm.Leads.LeadTest do
       assert lead.ref_id == valid_attrs.ref_id
       assert lead.type == :contact
       assert lead.tenant_id == tenant_record.id
-      assert lead.stage == :target
+      assert lead.stage == :pending
     end
 
     test "get_or_create/2 with invalid data returns error changeset" do

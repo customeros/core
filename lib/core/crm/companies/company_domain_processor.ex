@@ -96,7 +96,7 @@ defmodule Core.Crm.Companies.CompanyDomainProcessor do
 
           case Companies.get_or_create_by_domain(base_domain) do
             {:ok, company} ->
-              Tracing.ok
+              Tracing.ok()
 
               OpenTelemetry.Tracer.set_attributes([
                 {"company.id", company.id},

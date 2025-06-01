@@ -4,9 +4,17 @@ defmodule Core.WebTracker.OriginValidatorTest do
 
   describe "should_ignore_origin?/1" do
     test "ignores HubSpot preview domains" do
-      assert OriginValidator.should_ignore_origin?("123456789.hubspotpreview-na1.com")
-      assert OriginValidator.should_ignore_origin?("987654321.hubspotpreview-eu1.com")
-      assert OriginValidator.should_ignore_origin?("111222333.hubspotpreview-asia1.com")
+      assert OriginValidator.should_ignore_origin?(
+               "123456789.hubspotpreview-na1.com"
+             )
+
+      assert OriginValidator.should_ignore_origin?(
+               "987654321.hubspotpreview-eu1.com"
+             )
+
+      assert OriginValidator.should_ignore_origin?(
+               "111222333.hubspotpreview-asia1.com"
+             )
     end
 
     test "does not ignore valid domains" do
@@ -31,12 +39,18 @@ defmodule Core.WebTracker.OriginValidatorTest do
 
     test "handles domains with protocols" do
       refute OriginValidator.should_ignore_origin?("https://getkanda.com")
-      refute OriginValidator.should_ignore_origin?("http://dashboard.kanda.co.uk")
+
+      refute OriginValidator.should_ignore_origin?(
+               "http://dashboard.kanda.co.uk"
+             )
     end
 
     test "handles domains with paths" do
       refute OriginValidator.should_ignore_origin?("getkanda.com/path")
-      refute OriginValidator.should_ignore_origin?("dashboard.kanda.co.uk/dashboard")
+
+      refute OriginValidator.should_ignore_origin?(
+               "dashboard.kanda.co.uk/dashboard"
+             )
     end
   end
 end

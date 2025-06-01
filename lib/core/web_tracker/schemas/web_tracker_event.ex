@@ -20,25 +20,25 @@ defmodule Core.WebTracker.Schemas.WebTrackerEvent do
 
   schema "web_tracker_events" do
     # Required fields
-    field :tenant, :string
-    field :session_id, :string
+    field(:tenant, :string)
+    field(:session_id, :string)
 
     # Event information
-    field :ip, :string
-    field :visitor_id, :string
-    field :event_type, :string
-    field :event_data, :string
-    field :timestamp, :utc_datetime
-    field :href, :string
-    field :origin, :string
-    field :search, :string
-    field :hostname, :string
-    field :pathname, :string
-    field :referrer, :string
-    field :user_agent, :string
-    field :language, :string
-    field :cookies_enabled, :boolean
-    field :screen_resolution, :string
+    field(:ip, :string)
+    field(:visitor_id, :string)
+    field(:event_type, :string)
+    field(:event_data, :string)
+    field(:timestamp, :utc_datetime)
+    field(:href, :string)
+    field(:origin, :string)
+    field(:search, :string)
+    field(:hostname, :string)
+    field(:pathname, :string)
+    field(:referrer, :string)
+    field(:user_agent, :string)
+    field(:language, :string)
+    field(:cookies_enabled, :boolean)
+    field(:screen_resolution, :string)
 
     timestamps(type: :utc_datetime)
   end
@@ -46,27 +46,27 @@ defmodule Core.WebTracker.Schemas.WebTrackerEvent do
   @type event_type :: :page_view | :page_exit | :click | :identify
 
   @type t :: %__MODULE__{
-    id: String.t(),
-    tenant: String.t(),
-    session_id: String.t(),
-    ip: String.t() | nil,
-    visitor_id: String.t() | nil,
-    event_type: String.t() | nil,
-    event_data: String.t() | nil,
-    timestamp: DateTime.t() | nil,
-    href: String.t() | nil,
-    origin: String.t() | nil,
-    search: String.t() | nil,
-    hostname: String.t() | nil,
-    pathname: String.t() | nil,
-    referrer: String.t() | nil,
-    user_agent: String.t() | nil,
-    language: String.t() | nil,
-    cookies_enabled: boolean() | nil,
-    screen_resolution: String.t() | nil,
-    inserted_at: DateTime.t(),
-    updated_at: DateTime.t()
-  }
+          id: String.t(),
+          tenant: String.t(),
+          session_id: String.t(),
+          ip: String.t() | nil,
+          visitor_id: String.t() | nil,
+          event_type: String.t() | nil,
+          event_data: String.t() | nil,
+          timestamp: DateTime.t() | nil,
+          href: String.t() | nil,
+          origin: String.t() | nil,
+          search: String.t() | nil,
+          hostname: String.t() | nil,
+          pathname: String.t() | nil,
+          referrer: String.t() | nil,
+          user_agent: String.t() | nil,
+          language: String.t() | nil,
+          cookies_enabled: boolean() | nil,
+          screen_resolution: String.t() | nil,
+          inserted_at: DateTime.t(),
+          updated_at: DateTime.t()
+        }
 
   @doc """
   Returns the ID prefix used for web tracker events.
@@ -79,11 +79,24 @@ defmodule Core.WebTracker.Schemas.WebTrackerEvent do
   def changeset(event, attrs) do
     event
     |> cast(attrs, [
-      :id, :tenant, :session_id,
-      :ip, :visitor_id, :event_type, :event_data, :timestamp,
-      :href, :origin, :search, :hostname, :pathname,
-      :referrer, :user_agent, :language,
-      :cookies_enabled, :screen_resolution
+      :id,
+      :tenant,
+      :session_id,
+      :ip,
+      :visitor_id,
+      :event_type,
+      :event_data,
+      :timestamp,
+      :href,
+      :origin,
+      :search,
+      :hostname,
+      :pathname,
+      :referrer,
+      :user_agent,
+      :language,
+      :cookies_enabled,
+      :screen_resolution
     ])
     |> validate_required([:id, :tenant, :session_id])
     |> validate_format(:id, @id_regex)

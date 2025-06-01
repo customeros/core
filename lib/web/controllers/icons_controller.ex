@@ -9,4 +9,4 @@ defmodule Web.IconsController do
     |> put_resp_header("expires", "0")
     |> send_file(200, "priv/static/images/icons.svg")
   end
-end 
+end

@@ -24,11 +24,16 @@ defmodule Web.Plugs.ValidateWebTrackerHeaders do
       |> assign(:user_agent, user_agent)
     else
       {:error, missing_header} ->
-        Logger.debug("ValidateWebTrackerHeaders plug halting due to missing #{missing_header}")
+        Logger.debug(
+          "ValidateWebTrackerHeaders plug halting due to missing #{missing_header}"
+        )
 
         conn
         |> put_status(:forbidden)
-        |> Phoenix.Controller.json(%{error: "forbidden", details: "missing #{missing_header}"})
+        |> Phoenix.Controller.json(%{
+          error: "forbidden",
+          details: "missing #{missing_header}"
+        })
         |> halt()
     end
   end

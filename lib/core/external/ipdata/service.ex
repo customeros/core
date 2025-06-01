@@ -73,9 +73,14 @@ defmodule Core.External.IPData.Service do
         {:error, :missing_config}
 
       config ->
-        with {:ok, api_key} <- get_config_value(config, :api_key, "IPDATA_API_KEY is not set"),
+        with {:ok, api_key} <-
+               get_config_value(config, :api_key, "IPDATA_API_KEY is not set"),
              {:ok, api_url} <-
-               get_config_value(config, :api_url, "IPData API URL is not configured") do
+               get_config_value(
+                 config,
+                 :api_url,
+                 "IPData API URL is not configured"
+               ) do
           %{api_key: api_key, api_url: api_url}
         end
     end

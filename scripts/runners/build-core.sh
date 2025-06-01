@@ -5,7 +5,7 @@ APP_PATH=$1
 
 cd $APP_PATH
 
-export MIX_ENV=prod
+export MIX_ENV=test
 export BUN_INSTALL="$HOME/.bun"
 export PATH="$BUN_INSTALL/bin:$PATH"
 
@@ -24,7 +24,7 @@ mkdir -p ../priv/scripts
 mv convert_lexical_to_yjs ../priv/scripts/
 cd ..
 
-echo "==> Fetching and compiling Elixir dependencies..."
+echo "==> Compiling..."
 mix deps.get --only $MIX_ENV
 mkdir -p config
 

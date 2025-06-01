@@ -3,7 +3,7 @@ defmodule Core.Crm.Companies.CompanyDomainQueue do
   import Ecto.Changeset
 
   schema "company_domain_queues" do
-    field :domain, :string
+    field(:domain, :string)
     field(:inserted_at, :utc_datetime)
     field(:processed_at, :utc_datetime)
   end

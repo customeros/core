@@ -7,7 +7,7 @@ defmodule Core.WebTracker.OriginValidator do
   # List of regex patterns for origins that should be ignored
   @ignore_patterns [
     # HubSpot preview domains (e.g., 123456789.hubspotpreview-na1.com)
-    ~r/^\d+\.hubspotpreview-[a-z0-9]+\.com$/,
+    ~r/^\d+\.hubspotpreview-[a-z0-9]+\.com$/
 
     # Add more patterns here, for example:
     # ~r/\.staging\.example\.com$/,

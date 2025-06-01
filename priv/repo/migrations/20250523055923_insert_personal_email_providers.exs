@@ -20,7 +20,9 @@ defmodule Core.Repo.Migrations.InsertPersonalEmailProviders do
         end)
 
       {:error, reason} ->
-        Logger.warning("Could not read personal_email_providers.csv: #{reason}. Skipping data insertion.")
+        Logger.warning(
+          "Could not read personal_email_providers.csv: #{reason}. Skipping data insertion."
+        )
     end
   end
 
@@ -40,7 +42,9 @@ defmodule Core.Repo.Migrations.InsertPersonalEmailProviders do
         end)
 
       {:error, reason} ->
-        Logger.warning("Could not read personal_email_providers.csv in down(): #{reason}. Skipping data deletion.")
+        Logger.warning(
+          "Could not read personal_email_providers.csv in down(): #{reason}. Skipping data deletion."
+        )
     end
   end
 end

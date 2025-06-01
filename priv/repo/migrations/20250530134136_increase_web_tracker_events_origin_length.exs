@@ -10,7 +10,8 @@ defmodule Core.Repo.Migrations.IncreaseWebTrackerEventsOriginLength do
       modify :href, :string, size: 1024
       modify :search, :string, size: 1024
       modify :pathname, :string, size: 1024
-      modify :hostname, :string, size: 255  # Hostnames are typically shorter
+      # Hostnames are typically shorter
+      modify :hostname, :string, size: 255
     end
   end
 end

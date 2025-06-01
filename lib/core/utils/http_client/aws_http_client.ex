@@ -21,7 +21,8 @@ defmodule Core.Utils.HttpClient.AwsHttpClient do
       with {:ok, resp} <-
              Finch.build(method, url, headers, body)
              |> Finch.request(Core.Finch) do
-        Tracing.ok
+        Tracing.ok()
+
         {:ok,
          %{status_code: resp.status, body: resp.body, headers: resp.headers}}
       else

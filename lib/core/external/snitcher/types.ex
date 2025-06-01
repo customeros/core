@@ -5,75 +5,75 @@ defmodule Core.External.Snitcher.Types do
   require Logger
 
   @type profile_info :: %{
-    name: String.t(),
-    handle: String.t(),
-    url: String.t() | nil
-  }
+          name: String.t(),
+          handle: String.t(),
+          url: String.t() | nil
+        }
 
   @type social_profiles :: %{
-    crunchbase: profile_info() | nil,
-    linkedin: profile_info() | nil,
-    facebook: profile_info() | nil,
-    twitter: profile_info() | nil,
-    instagram: profile_info() | nil,
-    youtube: profile_info() | nil
-  }
+          crunchbase: profile_info() | nil,
+          linkedin: profile_info() | nil,
+          facebook: profile_info() | nil,
+          twitter: profile_info() | nil,
+          instagram: profile_info() | nil,
+          youtube: profile_info() | nil
+        }
 
   @type geo_location :: %{
-    country: String.t(),
-    country_code: String.t(),
-    state: String.t(),
-    state_code: String.t() | nil,
-    postal_code: String.t() | nil,
-    city: String.t(),
-    street: String.t() | nil,
-    street_number: String.t() | nil
-  }
+          country: String.t(),
+          country_code: String.t(),
+          state: String.t(),
+          state_code: String.t() | nil,
+          postal_code: String.t() | nil,
+          city: String.t(),
+          street: String.t() | nil,
+          street_number: String.t() | nil
+        }
 
   @type geo_ip :: %{
-    country: String.t(),
-    country_code: String.t(),
-    city: String.t(),
-    state: String.t()
-  }
+          country: String.t(),
+          country_code: String.t(),
+          city: String.t(),
+          state: String.t()
+        }
 
   @type location :: %{
-    cityName: String.t(),
-    regionName: String.t(),
-    postalCode: String.t(),
-    streetName: String.t(),
-    streetNumber: String.t(),
-    country: %{
-      name: String.t(),
-      iso2: String.t(),
-      iso3: String.t()
-    },
-    rawLocation: String.t()
-  }
+          cityName: String.t(),
+          regionName: String.t(),
+          postalCode: String.t(),
+          streetName: String.t(),
+          streetNumber: String.t(),
+          country: %{
+            name: String.t(),
+            iso2: String.t(),
+            iso3: String.t()
+          },
+          rawLocation: String.t()
+        }
 
   @type company_details :: %{
-    name: String.t(),
-    domain: String.t(),
-    website: String.t(),
-    industry: String.t(),
-    founded_year: integer() | nil,
-    employee_range: String.t(),
-    annual_revenue: integer() | nil,
-    total_funding: integer() | nil,
-    location: String.t(),
-    description: String.t(),
-    phone: String.t(),
-    geo: geo_location(),
-    profiles: social_profiles() | nil
-  }
+          name: String.t(),
+          domain: String.t(),
+          website: String.t(),
+          industry: String.t(),
+          founded_year: integer() | nil,
+          employee_range: String.t(),
+          annual_revenue: integer() | nil,
+          total_funding: integer() | nil,
+          location: String.t(),
+          description: String.t(),
+          phone: String.t(),
+          geo: geo_location(),
+          profiles: social_profiles() | nil
+        }
 
   @type t :: %{
-    ip: String.t(),
-    domain: String.t(),
-    type: String.t(),
-    company: company_details() | nil,
-    geoIP: geo_ip()
-  }
+          ip: String.t(),
+          domain: String.t(),
+          type: String.t(),
+          company: company_details() | nil,
+          geoIP: geo_ip()
+        }
 
   @doc """
   Parses a JSON response from Snitcher into our type structure.
@@ -112,7 +112,10 @@ defmodule Core.External.Snitcher.Types do
   end
 
   def parse_response(data) do
-    Logger.error("Invalid Snitcher response format. Expected keys: [ip, domain, type, geoIP], got: #{inspect(Map.keys(data))}. Full response: #{inspect(data, pretty: true, limit: :infinity)}")
+    Logger.error(
+      "Invalid Snitcher response format. Expected keys: [ip, domain, type, geoIP], got: #{inspect(Map.keys(data))}. Full response: #{inspect(data, pretty: true, limit: :infinity)}"
+    )
+
     {:error, :invalid_response}
   end
 
@@ -153,13 +156,24 @@ defmodule Core.External.Snitcher.Types do
   defp parse_company(data) do
     Logger.error("Invalid company data format", %{
       expected_keys: [
-        "name", "domain", "website", "industry", "founded_year",
-        "employee_range", "annual_revenue", "total_funding",
-        "location", "description", "phone", "geo", "profiles"
+        "name",
+        "domain",
+        "website",
+        "industry",
+        "founded_year",
+        "employee_range",
+        "annual_revenue",
+        "total_funding",
+        "location",
+        "description",
+        "phone",
+        "geo",
+        "profiles"
       ],
       received_keys: Map.keys(data),
       data: inspect(data, pretty: true)
     })
+
     nil
   end
 
@@ -183,6 +197,7 @@ defmodule Core.External.Snitcher.Types do
       received_keys: Map.keys(data),
       data: inspect(data, pretty: true)
     })
+
     %{
       country: "",
       country_code: "",
@@ -215,10 +230,20 @@ defmodule Core.External.Snitcher.Types do
 
   defp parse_geo(data) do
     Logger.error("Invalid geo data format", %{
-      expected_keys: ["country", "country_code", "state", "state_code", "postal_code", "city", "street", "street_number"],
+      expected_keys: [
+        "country",
+        "country_code",
+        "state",
+        "state_code",
+        "postal_code",
+        "city",
+        "street",
+        "street_number"
+      ],
       received_keys: Map.keys(data),
       data: inspect(data, pretty: true)
     })
+
     %{
       country: "",
       country_code: "",
@@ -251,10 +276,18 @@ defmodule Core.External.Snitcher.Types do
 
   defp parse_profiles(data) do
     Logger.error("Invalid profiles data format", %{
-      expected_keys: ["crunchbase", "linkedin", "facebook", "twitter", "instagram", "youtube"],
+      expected_keys: [
+        "crunchbase",
+        "linkedin",
+        "facebook",
+        "twitter",
+        "instagram",
+        "youtube"
+      ],
       received_keys: Map.keys(data),
       data: inspect(data, pretty: true)
     })
+
     nil
   end
 
@@ -272,22 +305,26 @@ defmodule Core.External.Snitcher.Types do
       received_keys: Map.keys(data),
       data: inspect(data, pretty: true)
     })
+
     nil
   end
 
   defp parse_integer(nil), do: nil
   defp parse_integer(value) when is_integer(value), do: value
+
   defp parse_integer(value) when is_binary(value) do
     case Integer.parse(value) do
       {int, _} -> int
       :error -> nil
     end
   end
+
   defp parse_integer(value) do
     Logger.error("Invalid integer value", %{
       value: inspect(value),
       type: inspect(value.__struct__)
     })
+
     nil
   end
 end

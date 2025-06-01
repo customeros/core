@@ -14,15 +14,26 @@ defmodule Core.ApiCallLogger.Logger do
   @type vendor :: String.t()
 
   # List of parameter names that should be redacted
-  @sensitive_params ["api-key", "api_key", "apikey", "key", "token", "access_token", "secret"]
+  @sensitive_params [
+    "api-key",
+    "api_key",
+    "apikey",
+    "key",
+    "token",
+    "access_token",
+    "secret"
+  ]
 
   @doc """
   Makes a Finch request and logs its details.
   Automatically creates spans for tracing.
   """
-  @spec request(Finch.Request.t(), vendor()) :: {:ok, Finch.Response.t()} | {:error, term()}
+  @spec request(Finch.Request.t(), vendor()) ::
+          {:ok, Finch.Response.t()} | {:error, term()}
   def request(request, vendor)
-  def request(%Finch.Request{} = request, vendor) when is_binary(vendor) and byte_size(vendor) > 0 do
+
+  def request(%Finch.Request{} = request, vendor)
+      when is_binary(vendor) and byte_size(vendor) > 0 do
     start_time = System.monotonic_time()
 
     OpenTelemetry.Tracer.with_span "http_client.request" do
@@ -40,7 +51,11 @@ defmodule Core.ApiCallLogger.Logger do
               {"http.status_code", response.status},
               {"result.success", response.status in 200..299}
             ])
-            OpenTelemetry.Tracer.set_status(if response.status in 200..299, do: :ok, else: :unset)
+
+            OpenTelemetry.Tracer.set_status(
+              if response.status in 200..299, do: :ok, else: :unset
+            )
+
             log_success(vendor, request, response, start_time)
             result
 
@@ -49,6 +64,7 @@ defmodule Core.ApiCallLogger.Logger do
               {"result.success", false},
               {"error.type", "request_failed"}
             ])
+
             Tracing.error(reason)
             log_error(vendor, request, reason, start_time)
             error
@@ -60,6 +76,7 @@ defmodule Core.ApiCallLogger.Logger do
             {"error.type", "exception"},
             {"error.message", Exception.message(e)}
           ])
+
           Tracing.error("#{inspect(e)}")
           Logger.error("Request failed with exception: #{inspect(e)}")
           log_error(vendor, request, e, start_time)
@@ -73,9 +90,18 @@ defmodule Core.ApiCallLogger.Logger do
 
   # Private functions
 
-  defp construct_url(%Finch.Request{scheme: scheme, host: host, port: port, path: path, query: query}) do
+  defp construct_url(%Finch.Request{
+         scheme: scheme,
+         host: host,
+         port: port,
+         path: path,
+         query: query
+       }) do
     base_url = "#{scheme}://#{host}#{port_to_string(port)}#{path}"
-    if query, do: "#{base_url}?#{redact_sensitive_params(query)}", else: base_url
+
+    if query,
+      do: "#{base_url}?#{redact_sensitive_params(query)}",
+      else: base_url
   end
 
   defp port_to_string(443), do: ""
@@ -84,6 +110,7 @@ defmodule Core.ApiCallLogger.Logger do
   defp port_to_string(_), do: ""
 
   defp redact_sensitive_params(nil), do: nil
+
   defp redact_sensitive_params(query) do
     query
     |> String.split("&")
@@ -93,6 +120,7 @@ defmodule Core.ApiCallLogger.Logger do
 
   defp redact_param(param) do
     [key | _] = String.split(param, "=", parts: 2)
+
     if Enum.any?(@sensitive_params, &String.contains?(String.downcase(key), &1)) do
       "#{key}=[REDACTED]"
     else
@@ -120,8 +148,11 @@ defmodule Core.ApiCallLogger.Logger do
       |> Schema.changeset(attrs)
       |> Repo.insert()
       |> case do
-        {:ok, _log} -> :ok
-        {:error, error} -> Logger.error("Failed to log API call: #{inspect(error)}")
+        {:ok, _log} ->
+          :ok
+
+        {:error, error} ->
+          Logger.error("Failed to log API call: #{inspect(error)}")
       end
     end)
   end
@@ -145,8 +176,11 @@ defmodule Core.ApiCallLogger.Logger do
       |> Schema.changeset(attrs)
       |> Repo.insert()
       |> case do
-        {:ok, _log} -> :ok
-        {:error, error} -> Logger.error("Failed to log API call: #{inspect(error)}")
+        {:ok, _log} ->
+          :ok
+
+        {:error, error} ->
+          Logger.error("Failed to log API call: #{inspect(error)}")
       end
     end)
   end

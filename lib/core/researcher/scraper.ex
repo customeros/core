@@ -116,7 +116,10 @@ defmodule Core.Researcher.Scraper do
         {:error, {:http_error, reason}}
 
       {:ok, unexpected} ->
-        Logger.error("#{task_name} returned unexpected result for #{url}: #{inspect(unexpected)}")
+        Logger.error(
+          "#{task_name} returned unexpected result for #{url}: #{inspect(unexpected)}"
+        )
+
         {:error, :unexpected_response}
 
       nil ->

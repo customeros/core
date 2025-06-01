@@ -10,7 +10,10 @@ defmodule Core.Auth.PersonalEmailProviders do
         {"domain", domain}
       ])
 
-      result = Core.Repo.exists?(from p in PersonalEmailProvider, where: p.domain == ^domain)
+      result =
+        Core.Repo.exists?(
+          from p in PersonalEmailProvider, where: p.domain == ^domain
+        )
 
       OpenTelemetry.Tracer.set_attributes([
         {"result.exists", result}

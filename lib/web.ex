@@ -12,7 +12,8 @@ defmodule Web do
   those modules here.
   """
 
-  def static_paths, do: ~w(assets fonts images favicon favicon/* robots.txt *.svg icons.svg)
+  def static_paths,
+    do: ~w(assets fonts images favicon favicon/* robots.txt *.svg icons.svg)
 
   def router do
     quote do
@@ -60,10 +61,10 @@ defmodule Web do
       import Inertia.HTML
 
       import Phoenix.Controller,
-      only: [get_csrf_token: 0, view_module: 1, view_template: 1]
+        only: [get_csrf_token: 0, view_module: 1, view_template: 1]
 
       alias Web.Router.Helpers, as: Routes
-      
+
       unquote(html_helpers())
     end
   end

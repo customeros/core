@@ -26,7 +26,9 @@ defmodule Core.Researcher.IcpBuilder do
         {:ok, profile} ->
           Core.Researcher.IcpFinder.find_matching_companies_start(profile.id)
           {:ok, profile}
-        {:error, changeset} -> {:error, changeset}
+
+        {:error, changeset} ->
+          {:error, changeset}
       end
     else
       {:error, reason} -> {:error, reason}

@@ -8,8 +8,10 @@ defmodule Core.WebTracker.WebSessionCloser do
   alias Core.WebTracker.WebSessions
   alias Core.Utils.Tracing
 
-  @default_interval_ms 2 * 60 * 1000 # 2 minutes
-  @short_interval_ms 5 * 1000 # 5 seconds
+  # 2 minutes
+  @default_interval_ms 2 * 60 * 1000
+  # 5 seconds
+  @short_interval_ms 5 * 1000
   @default_batch_size 100
 
   def start_link(opts \\ []) do

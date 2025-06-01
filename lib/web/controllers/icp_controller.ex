@@ -12,8 +12,14 @@ defmodule Web.IcpController do
 
     conn
     |> put_resp_header("access-control-allow-origin", origin)
-    |> put_resp_header("access-control-allow-methods", "GET, POST, PUT, PATCH, DELETE, OPTIONS")
-    |> put_resp_header("access-control-allow-headers", "Content-Type, Authorization, X-Requested-With, Accept, Origin, sec-ch-ua, sec-ch-ua-mobile, sec-ch-ua-platform, sec-fetch-dest, sec-fetch-mode, sec-fetch-site")
+    |> put_resp_header(
+      "access-control-allow-methods",
+      "GET, POST, PUT, PATCH, DELETE, OPTIONS"
+    )
+    |> put_resp_header(
+      "access-control-allow-headers",
+      "Content-Type, Authorization, X-Requested-With, Accept, Origin, sec-ch-ua, sec-ch-ua-mobile, sec-ch-ua-platform, sec-fetch-dest, sec-fetch-mode, sec-fetch-site"
+    )
     |> put_resp_header("access-control-allow-credentials", "true")
     |> put_resp_header("access-control-max-age", "86400")
     |> put_resp_content_type("application/json")

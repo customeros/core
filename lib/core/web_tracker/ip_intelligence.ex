@@ -16,7 +16,13 @@ defmodule Core.WebTracker.IPIntelligence do
   @impl true
   @spec get_ip_data(String.t()) :: {:ok, map()} | {:error, term()}
   def get_ip_data(ip) do
-    ipdata_mod = Application.get_env(:core, Core.External.IPData.Service, Core.External.IPData.Service)
+    ipdata_mod =
+      Application.get_env(
+        :core,
+        Core.External.IPData.Service,
+        Core.External.IPData.Service
+      )
+
     case ipdata_mod.verify_ip(ip) do
       {:ok, data} -> {:ok, data}
       {:error, reason} -> {:error, reason}

@@ -49,6 +49,8 @@ config :core, :puremd_service, Core.External.Puremd.Service.Mock
 config :core, :classify_service, Core.Ai.Webpage.Classify.Mock
 config :core, :profile_intent_service, Core.Ai.Webpage.ProfileIntent.Mock
 
+config :core, :slack, enabled: false, webhook_url: "https://dummy-url.com"
+
 # Configure MIME types
 config :mime, :types, %{
   "application/json" => ["json"]

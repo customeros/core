@@ -212,10 +212,6 @@ defmodule Core.Utils.PrimaryDomainFinder do
       {:ok, expanded_domain} ->
         cleaned_domain = DomainExtractor.clean_domain(expanded_domain)
         {:ok, cleaned_domain}
-
-      {:error, _} ->
-        cleaned_domain = DomainExtractor.clean_domain(domain)
-        {:ok, cleaned_domain}
     end
   end
 

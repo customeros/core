@@ -13,6 +13,7 @@ defmodule Web.Plugs.CORSWebSocket do
   end
 
   defp websocket_request?(conn) do
-    conn |> get_req_header("upgrade") |> List.first() |> String.downcase() == "websocket"
+    conn |> get_req_header("upgrade") |> List.first() |> String.downcase() ==
+      "websocket"
   end
 end
