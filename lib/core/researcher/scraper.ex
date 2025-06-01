@@ -59,7 +59,7 @@ defmodule Core.Researcher.Scraper do
   end
 
   defp handle_fetch_error({:http_error, message}) do
-    Errors.error("HTTP Error: #{message}")
+    Errors.error({:http_error, message})
   end
 
   defp handle_fetch_error(reason) when is_binary(reason) do
