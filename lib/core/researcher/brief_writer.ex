@@ -21,7 +21,7 @@ defmodule Core.Researcher.BriefWriter do
     with {:ok, icp} <- IcpProfiles.get_by_tenant_id(tenant_id),
          {:ok, lead} <- Leads.get_by_id(tenant_id, lead_id),
          {:ok, pages} <-
-           ScrapedWebpages.get_business_pages_by_domain(lead_domain, limit: 10),
+           ScrapedWebpages.get_business_pages_by_domain(lead_domain, limit: 8),
          request <- build_request(lead_domain, icp, pages),
          {:ok, brief} <-
            generate_brief(request) do

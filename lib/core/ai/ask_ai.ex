@@ -2,6 +2,7 @@ defmodule Core.Ai do
   require OpenTelemetry.Tracer
   alias Core.Ai.Anthropic
   alias Core.Ai.Gemini
+  alias Core.Ai.Request
 
   @anthropic_models [:claude_haiku, :claude_sonnet]
   @gemini_models [:gemini_pro, :gemini_flash]
@@ -10,7 +11,7 @@ defmodule Core.Ai do
   @doc """
   Supervised async AI request 
   """
-  @spec ask_supervised(Ai.Request.t()) :: Task.t()
+  @spec ask_supervised(Request.t()) :: Task.t()
   def ask_supervised(request) do
     OpenTelemetry.Tracer.with_span "ai.ask_supervised" do
       ctx = OpenTelemetry.Ctx.get_current()

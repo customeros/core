@@ -1,8 +1,9 @@
 defmodule Core.Ai.Anthropic.ApiRequest do
-  @derive Jason.Encoder
   @moduledoc """
   The JSON structure for a Claude API request.
   """
+  @derive Jason.Encoder
+  alias Core.Ai.Anthropic.Message
 
   @type t :: %__MODULE__{
           model: String.t(),

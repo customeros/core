@@ -55,7 +55,7 @@ defmodule Core.Researcher.IcpFitEvaluator do
       {:ok, {:ok, _result}} ->
         case(
           ScrapedWebpages.get_business_pages_by_domain(domain,
-            limit: 10
+            limit: 8
           )
         ) do
           {:ok, pages} ->
