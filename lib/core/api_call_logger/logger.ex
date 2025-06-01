@@ -53,7 +53,7 @@ defmodule Core.ApiCallLogger.Logger do
             ])
 
             OpenTelemetry.Tracer.set_status(
-              if response.status in 200..299, do: :ok, else: :unset
+              if response.status in 200..299, do: :ok, else: :error
             )
 
             log_success(vendor, request, response, start_time)

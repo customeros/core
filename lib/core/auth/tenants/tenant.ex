@@ -22,6 +22,16 @@ defmodule Core.Auth.Tenants.Tenant do
     timestamps(type: :utc_datetime)
   end
 
+  @type t :: %__MODULE__{
+          id: String.t(),
+          name: String.t(),
+          domain: String.t(),
+          workspace_name: String.t(),
+          workspace_icon_key: String.t(),
+          inserted_at: DateTime.t(),
+          updated_at: DateTime.t()
+        }
+
   def changeset(%__MODULE__{} = tenant, attrs) do
     tenant
     |> cast(attrs, [:id, :name, :domain, :workspace_name, :workspace_icon_key])

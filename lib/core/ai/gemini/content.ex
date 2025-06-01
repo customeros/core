@@ -1,26 +1,15 @@
 defmodule Core.Ai.Gemini.Content do
   @derive Jason.Encoder
-  @moduledoc """
-  A single content in a conversation.
-  """
 
   @type t :: %__MODULE__{
           role: String.t(),
-          parts: [Part.t()]
+          parts: [part()]
         }
 
+  @type part ::
+          %{text: String.t()}
+          | %{inline_data: %{mime_type: String.t(), data: String.t()}}
+          | map()
+
   defstruct [:role, :parts]
-
-  defmodule Part do
-    @derive Jason.Encoder
-    @moduledoc """
-    A part of the content (text in our case).
-    """
-
-    @type t :: %__MODULE__{
-            text: String.t()
-          }
-
-    defstruct [:text]
-  end
 end

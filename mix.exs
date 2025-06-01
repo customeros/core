@@ -17,7 +17,22 @@ defmodule Core.MixProject do
           strip_beams: Mix.env() == :prod
         ]
       ],
-      dialyzer: [plt_add_deps: :apps_direct]
+      dialyzer: [
+        plt_add_deps: :apps_direct,
+        plt_add_apps: [
+          :mix,
+          :ex_unit,
+          :ecto,
+          :ecto_sql,
+          :mint,
+          :finch,
+          :phoenix,
+          :phoenix_template,
+          :phoenix_ecto,
+          :phoenix_html,
+          :phoenix_live_view
+        ]
+      ]
     ]
   end
 

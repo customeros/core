@@ -3,12 +3,9 @@ defmodule Core.Ai.Gemini.Ask do
 
   require Logger
 
-  @behaviour Core.Ai.Gemini.Behaviour
-
   @api_key_param "key"
   @content_type_header "content-type"
 
-  @impl true
   @spec ask(Gemini.Request.t(), Gemini.Config.t()) ::
           {:ok, String.t()} | {:error, any()}
   def ask(%Gemini.Request{} = message, %Gemini.Config{} = config) do
@@ -22,7 +19,6 @@ defmodule Core.Ai.Gemini.Ask do
     end
   end
 
-  @impl true
   def ask(%Gemini.Request{} = message) do
     ask(message, Gemini.Config.from_application_env())
   end
@@ -43,7 +39,7 @@ defmodule Core.Ai.Gemini.Ask do
       contents: [
         %Gemini.Content{
           role: "user",
-          parts: [%Gemini.Content.Part{text: prompt}]
+          parts: [%{text: prompt}]
         }
       ],
       generationConfig: %Gemini.GenerationConfig{
