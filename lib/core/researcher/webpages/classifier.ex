@@ -39,7 +39,7 @@ defmodule Core.Researcher.Webpages.Classifier do
       {:ok, {:ok, answer}} ->
         case parse_and_validate_response(answer) do
           {:ok, classification} -> {:ok, classification}
-          {:error, reason} -> {:error, {:validation_failed, reason}}
+          {:error, reason} -> {:error, reason}
         end
 
       {:ok, {:error, reason}} ->
@@ -60,7 +60,7 @@ defmodule Core.Researcher.Webpages.Classifier do
       {:ok, classification}
     else
       {:error, %Jason.DecodeError{}} ->
-        {:error, "Invalid JSON response"}
+        {:error, :invalid_json_format}
 
       {:error, reason} ->
         {:error, reason}

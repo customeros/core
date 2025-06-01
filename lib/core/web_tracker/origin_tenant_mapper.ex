@@ -19,7 +19,7 @@ defmodule Core.WebTracker.OriginTenantMapper do
   If exact match is not found, checks if the origin is a subdomain of a whitelisted root domain.
   """
   @spec get_tenant_for_origin(String.t()) ::
-          {:ok, String.t()} | {:error, :origin_not_configured}
+          {:ok, String.t()} | {:error, :origin_not_configured | :invalid_origin}
   def get_tenant_for_origin(origin) when is_binary(origin) do
     cleaned_origin = clean_origin(origin)
 
@@ -32,16 +32,35 @@ defmodule Core.WebTracker.OriginTenantMapper do
               nil -> {:error, :origin_not_configured}
               tenant -> {:ok, tenant}
             end
-          {:error, _} -> {:error, :origin_not_configured}
+
+          {:error, _} ->
+            {:error, :origin_not_configured}
         end
-      tenant -> {:ok, tenant}
+
+      tenant ->
+        {:ok, tenant}
     end
   end
 
   def get_tenant_for_origin(_), do: {:error, :invalid_origin}
 
+  @doc """
+  Returns true if the origin is in the whitelist.
+  """
+  @spec whitelisted?(String.t()) :: boolean()
+  def whitelisted?(origin) when is_binary(origin) do
+    case get_tenant_for_origin(origin) do
+      {:ok, _tenant} -> true
+      {:error, _reason} -> false
+    end
+  end
+
+  def whitelisted?(_), do: false
+
+  # Private methods
+
   @spec clean_origin(String.t()) :: String.t()
-  defp clean_origin(origin) do
+  defp clean_origin(origin) when is_binary(origin) do
     origin
     |> String.trim()
     |> String.downcase()
@@ -52,16 +71,6 @@ defmodule Core.WebTracker.OriginTenantMapper do
     |> String.trim()
   end
 
-  @doc """
-  Returns true if the origin is in the whitelist.
-  """
-  @spec whitelisted?(String.t()) :: boolean()
-  def whitelisted?(origin) when is_binary(origin) do
-    case get_tenant_for_origin(origin) do
-      {:ok, _tenant} -> true
-      _ -> false
-    end
-  end
+  defp clean_origin(_), do: ""
 
-  def whitelisted?(_), do: false
 end

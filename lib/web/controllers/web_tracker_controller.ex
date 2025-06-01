@@ -115,12 +115,12 @@ defmodule Web.WebTrackerController do
           |> put_status(:forbidden)
           |> json(%{error: "forbidden", details: "origin not configured"})
 
-        {:error, message} when is_binary(message) ->
-          Tracing.error(message)
+        {:error, reason} when is_binary(reason) ->
+          Tracing.error(reason)
 
           conn
           |> put_status(:bad_request)
-          |> json(%{error: "bad_request", details: message})
+          |> json(%{error: "bad_request", details: reason})
       end
     end
   end

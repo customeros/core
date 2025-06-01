@@ -8,17 +8,17 @@ defmodule Core.WebTracker.WebSessionCloser do
   alias Core.WebTracker.WebSessions
   alias Core.Utils.Tracing
 
-  @default_interval_ms 2 * 60 * 1000
-  @short_interval_ms 5 * 1000
+  @default_interval_ms 2 * 60 * 1000 # 2 minutes
+  @short_interval_ms 5 * 1000 # 5 seconds
   @default_batch_size 100
 
   def start_link(opts \\ []) do
-    crons_enabled = Application.get_env(:core, :crons)[:enabled] || false
+    enabled = Application.get_env(:core, :crons)[:enabled] || false
 
-    if crons_enabled do
+    if enabled do
       GenServer.start_link(__MODULE__, opts, name: __MODULE__)
     else
-      Logger.info("Web session closer is disabled (crons disabled)")
+      Logger.info("Web session closer is disabled")
       :ignore
     end
   end
@@ -34,7 +34,6 @@ defmodule Core.WebTracker.WebSessionCloser do
   @impl true
   def handle_info(:check_sessions, state) do
     OpenTelemetry.Tracer.with_span "web_session_closer.check_sessions" do
-      # Get sessions that need to be closed
       sessions = WebSessions.get_sessions_to_close(@default_batch_size)
       session_count = length(sessions)
 

@@ -49,7 +49,7 @@ defmodule Core.Researcher.Webpages.IntentProfiler do
       {:ok, {:ok, answer}} ->
         case parse_and_validate_response(answer) do
           {:ok, profile_intent} -> {:ok, profile_intent}
-          {:error, reason} -> {:error, {:validation_failed, reason}}
+          {:error, reason} -> {:error, reason}
         end
 
       {:ok, {:error, reason}} ->
@@ -78,7 +78,7 @@ defmodule Core.Researcher.Webpages.IntentProfiler do
       {:ok, profile_intent}
     else
       {:error, %Jason.DecodeError{}} ->
-        {:error, "Invalid JSON response"}
+        {:error, :invalid_json_format}
 
       {:error, reason} ->
         {:error, reason}
