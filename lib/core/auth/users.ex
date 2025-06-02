@@ -71,7 +71,6 @@ defmodule Core.Auth.Users do
       {:error, %Ecto.Changeset{}}
 
   """
-  @spec register_user(map()) :: {:ok, User.t()} | {:error, Ecto.Changeset.t()}
   def register_user(attrs) do
     OpenTelemetry.Tracer.with_span "users.register_user" do
       OpenTelemetry.Tracer.set_attributes([

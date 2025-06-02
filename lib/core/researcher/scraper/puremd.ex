@@ -11,8 +11,6 @@ defmodule Core.Researcher.Scraper.Puremd do
   @err_ratelimit_exceeded {:error, :rate_limit_exceeded}
   @err_api_key_not_set {:error, "PureMD API key not set"}
   @err_api_path_not_set {:error, "PureMD API path not set"}
-  @err_invalid_api_response {:error, "invalid API response format"}
-  @err_unable_to_decode_response {:error, "unable to decode response"}
 
   @doc """
   Fetches a web page async with supervision.
@@ -92,19 +90,12 @@ defmodule Core.Researcher.Scraper.Puremd do
   def handle_response_test(response), do: handle_response(response)
 
   defp handle_response(%Finch.Response{status: 200, body: body}) do
-    case Jason.decode(body) do
-      {:ok, %{"success" => true, "data" => %{"markdown" => content}}}
-      when is_binary(content) and content != "" ->
-        {:ok, content}
+    cond do
+      is_binary(body) and String.trim(body) != "" ->
+        {:ok, body}
 
-      {:ok, %{"success" => true, "data" => _}} ->
+      true ->
         @err_empty_response
-
-      {:ok, _decoded} ->
-        @err_invalid_api_response
-
-      {:error, _reason} ->
-        @err_unable_to_decode_response
     end
   end
 

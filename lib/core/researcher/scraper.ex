@@ -76,9 +76,9 @@ defmodule Core.Researcher.Scraper do
 
   defp fetch_webpage(url) do
     with {:error, _jina_reason} <- try_jina(url),
-         {:error, _firecrawl_reason} <- try_firecrawl(url),
-         {:error, puremd_reason} <- try_puremd(url) do
-      handle_fetch_error(puremd_reason)
+         {:error, _puremd_reason} <- try_puremd(url),
+         {:error, firecrawl_reason} <- try_firecrawl(url) do
+      handle_fetch_error(firecrawl_reason)
     else
       {:ok, content} ->
         clean_content =
@@ -104,8 +104,6 @@ defmodule Core.Researcher.Scraper do
   end
 
   defp try_jina(url) do
-    Logger.info("Attempting to fetch #{url} with Jina service")
-
     current_ctx = OpenTelemetry.Ctx.get_current()
 
     task =

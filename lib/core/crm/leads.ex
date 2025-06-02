@@ -142,9 +142,9 @@ defmodule Core.Crm.Leads do
           icon_url: icon_url
         }
       })
-
-      Core.Researcher.NewLeadPipeline.start(result.id, result.tenant_id)
     end)
+
+    Core.Researcher.NewLeadPipeline.start(result.id, result.tenant_id)
   end
 
   def update_lead(%Lead{} = lead, attrs) do
