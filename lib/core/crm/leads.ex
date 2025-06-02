@@ -106,7 +106,7 @@ defmodule Core.Crm.Leads do
   def get_or_create(tenant, attrs) do
     case Tenants.get_tenant_by_name(tenant) do
       {:error, :not_found} ->
-        {:error, :not_found, "Tenant not found"}
+        {:error, :not_found}
 
       {:ok, tenant} ->
         case get_by_ref_id(tenant.id, attrs.ref_id) do

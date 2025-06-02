@@ -8,11 +8,12 @@ defmodule Web.AuthController do
   end
 
   def send_magic_link(conn, %{"email" => email}) do
-    with {:ok, _user} <- Users.login_or_register_user(email) do
-      conn
-      |> put_flash(:info, "Welcome back!")
-      |> redirect(to: ~p"/signin")
-    else
+    case Users.login_or_register_user(email) do
+      {:ok, _user} ->
+        conn
+        |> put_flash(:info, "Welcome back!")
+        |> redirect(to: ~p"/signin")
+
       {:error, errors} ->
         conn
         |> assign_prop(:errors, %{

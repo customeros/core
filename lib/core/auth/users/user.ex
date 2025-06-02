@@ -41,6 +41,17 @@ defmodule Core.Auth.Users.User do
     timestamps(type: :utc_datetime)
   end
 
+  @type t :: %__MODULE__{
+          id: String.t(),
+          email: String.t(),
+          confirmed_at: NaiveDateTime.t() | nil,
+          tenant_id: String.t(),
+          domain: String.t() | nil,
+          tenant_name: String.t() | nil,
+          inserted_at: DateTime.t(),
+          updated_at: DateTime.t()
+        }
+
   @doc """
   A user changeset for registration.
 
