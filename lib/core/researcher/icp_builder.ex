@@ -14,24 +14,26 @@ defmodule Core.Researcher.IcpBuilder do
   end
 
   def tenant_icp(tenant_record) do
-    with {:ok, icp} <- build_icp(tenant_record.domain) do
-      profile = %{
-        domain: tenant_record.domain,
-        tenant_id: tenant_record.id,
-        profile: icp.icp,
-        qualifying_attributes: icp.qualifying_attributes
-      }
+    case build_icp(tenant_record.domain) do
+      {:ok, icp} ->
+        profile = %{
+          domain: tenant_record.domain,
+          tenant_id: tenant_record.id,
+          profile: icp.icp,
+          qualifying_attributes: icp.qualifying_attributes
+        }
 
-      case Core.Researcher.IcpProfiles.create_profile(profile) do
-        {:ok, profile} ->
-          Core.Researcher.IcpFinder.find_matching_companies_start(profile.id)
-          {:ok, profile}
+        case Core.Researcher.IcpProfiles.create_profile(profile) do
+          {:ok, profile} ->
+            Core.Researcher.IcpFinder.find_matching_companies_start(profile.id)
+            {:ok, profile}
 
-        {:error, changeset} ->
-          {:error, changeset}
-      end
-    else
-      {:error, reason} -> {:error, reason}
+          {:error, changeset} ->
+            {:error, changeset}
+        end
+
+      {:error, reason} ->
+        {:error, reason}
     end
   end
 

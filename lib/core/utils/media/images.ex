@@ -1,4 +1,19 @@
 defmodule Core.Utils.Media.Images do
+  @moduledoc """
+  Handles image processing, storage, and CDN management.
+
+  This module provides functionality for:
+  * Downloading images from URLs
+  * Storing images in R2 (S3-compatible storage)
+  * Managing image content types and extensions
+  * Generating CDN URLs for stored images
+  * Handling image persistence and retrieval
+
+  It integrates with R2 storage and provides a robust interface
+  for managing images throughout the application, including
+  proper error handling and content type management.
+  """
+
   require Logger
 
   @type storage_opts :: %{

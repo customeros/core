@@ -1,4 +1,19 @@
 defmodule Web.Channels.LeadsChannel do
+  @moduledoc """
+  Phoenix Channel for managing real-time lead interactions and presence.
+
+  This channel handles:
+  * Lead-related real-time updates
+  * User presence tracking for lead views
+  * User color assignment for lead interactions
+  * Broadcasting lead-related events
+  * Managing user sessions and presence state
+
+  It integrates with the color management system to assign unique colors
+  to users viewing leads and uses Phoenix.Presence for tracking user
+  presence across the leads interface.
+  """
+
   use Web, :channel
   require Logger
   alias Web.Presence

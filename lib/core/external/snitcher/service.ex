@@ -1,4 +1,20 @@
 defmodule Core.External.Snitcher.Service do
+  @moduledoc """
+  Integrates with the Snitcher API for IP-based company identification.
+
+  This module manages:
+  * IP address to company identification
+  * API request handling and authentication
+  * Response parsing and validation
+  * Error handling and logging
+  * Configuration management
+
+  It provides a service interface to the Snitcher API, allowing
+  the system to identify companies based on IP addresses. The
+  module handles API authentication, request formatting, response
+  parsing, and proper error handling for various failure scenarios.
+  """
+
   require Logger
 
   alias Core.ApiCallLogger.Logger, as: ApiLogger

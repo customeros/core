@@ -1,4 +1,17 @@
 defmodule Web.OrganizationViewChannel do
+  @moduledoc """
+  Phoenix Channel for managing organization presence and real-time updates.
+
+  This channel handles:
+  * Organization presence tracking
+  * Real-time user presence updates
+  * Broadcasting organization-wide messages
+  * User online/offline status management
+
+  It uses Phoenix.Presence to track which users are currently viewing
+  an organization and provides real-time updates to all connected clients.
+  """
+
   use Web, :channel
   require Logger
 

@@ -1,4 +1,21 @@
 defmodule Core.Crm.Documents.YEcto do
+  @moduledoc """
+  Provides Yjs document synchronization functionality through Ecto.
+
+  This module manages:
+  * Yjs document state persistence
+  * Update tracking and versioning
+  * State vector management
+  * Document synchronization
+  * Update batching and flushing
+
+  It implements a macro that can be used to add Yjs document
+  synchronization capabilities to any Ecto schema. The module
+  handles document updates, state vectors, and efficient storage
+  of collaborative editing changes, with support for batching
+  updates to optimize database operations.
+  """
+
   defmacro __using__(opts) do
     repo = opts[:repo]
     schema = opts[:schema]

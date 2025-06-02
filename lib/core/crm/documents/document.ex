@@ -1,4 +1,20 @@
 defmodule Core.Crm.Documents.Document do
+  @moduledoc """
+  Defines the Document schema and related functions for document management.
+
+  This module manages:
+  * Document schema definition
+  * Changeset validation
+  * Document creation and updates
+  * Account brief generation
+  * Document metadata handling
+
+  It provides the core schema and functions for managing documents
+  in the system, including collaborative documents and account briefs.
+  The module handles document validation, ID generation, and proper
+  serialization of document data.
+  """
+
   use Ecto.Schema
   import Ecto.Changeset
 

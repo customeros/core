@@ -1,4 +1,21 @@
 defmodule Core.Researcher.Builder.ProfileValidator do
+  @moduledoc """
+  Validates and parses AI responses into Profile structs.
+
+  This module manages:
+  * JSON response validation
+  * Profile data parsing
+  * Required field validation
+  * Error handling and reporting
+  * Profile struct construction
+
+  It ensures that AI-generated profile responses are properly
+  formatted and contain all required fields for a valid Profile
+  struct. The module handles various error cases including
+  invalid JSON, missing fields, and malformed data, providing
+  clear error messages for debugging.
+  """
+
   alias Core.Researcher.Builder.Profile
 
   @doc """

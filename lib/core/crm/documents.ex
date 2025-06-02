@@ -65,6 +65,7 @@ defmodule Core.Crm.Documents do
         document
         |> Document.update_changeset(attrs)
         |> Repo.update()
+
       nil ->
         {:error, :not_found}
     end
@@ -74,6 +75,7 @@ defmodule Core.Crm.Documents do
     case Repo.get(Document, id) do
       %Document{} = document ->
         Repo.delete(document)
+
       nil ->
         {:error, :not_found}
     end

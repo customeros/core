@@ -1,4 +1,19 @@
 defmodule Core.Researcher.IcpFitEvaluator.Validator do
+  @moduledoc """
+  Validates and parses ICP fit evaluation responses.
+
+  This module handles:
+  * Validation of ICP fit responses
+  * Parsing of fit values into atoms
+  * JSON response validation
+  * Error handling for invalid responses
+
+  It ensures that ICP fit evaluations follow a strict format
+  and can only return valid fit values (:strong, :moderate,
+  or :not_a_fit). The module provides clear error messages
+  for any validation failures.
+  """
+
   @valid_fits ["strong", "moderate", "not a fit"]
   @fit_atoms %{
     "strong" => :strong,

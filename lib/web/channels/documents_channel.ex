@@ -1,4 +1,20 @@
 defmodule Web.Channels.DocumentsChannel do
+  @moduledoc """
+  Phoenix Channel for managing real-time collaborative document editing.
+
+  This channel handles:
+  * Real-time document synchronization using Yjs
+  * Shared document state management
+  * Document persistence and recovery
+  * Collaborative editing sessions
+  * Document access control (TODO)
+
+  It integrates with Yex.Sync for handling real-time document synchronization
+  and provides a WebSocket interface for collaborative editing features.
+  The channel manages document lifecycle and ensures consistent state
+  across all connected clients.
+  """
+
   use Web, :channel
 
   require Logger

@@ -1,4 +1,19 @@
 defmodule Web.Plugs.CorsPlug do
+  @moduledoc """
+  Handles Cross-Origin Resource Sharing (CORS) for the web application.
+
+  This plug manages CORS headers and preflight requests, allowing
+  controlled access from specified origins. It supports:
+  * Configurable allowed origins
+  * Standard CORS headers
+  * Preflight request handling
+  * Credentials support
+  * Wildcard subdomain matching
+
+  The plug is configured to allow specific domains and their subdomains
+  to access the API while maintaining security.
+  """
+
   import Plug.Conn
 
   @allowed_origins [

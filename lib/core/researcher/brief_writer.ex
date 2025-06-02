@@ -1,4 +1,21 @@
 defmodule Core.Researcher.BriefWriter do
+  @moduledoc """
+  Generates account briefs for leads using AI analysis.
+
+  This module manages:
+  * Account brief generation for leads
+  * AI prompt construction and execution
+  * Integration with ICP profiles
+  * Document creation and storage
+  * Asynchronous processing
+
+  It coordinates the generation of comprehensive account briefs
+  by analyzing business pages, leveraging ICP profiles, and using
+  AI to create detailed briefs that are stored as documents in
+  the system. The module handles both supervised (async) and
+  direct brief creation workflows.
+  """
+
   alias Core.Ai
   alias Core.Crm.Leads
   alias Core.Researcher.IcpProfiles

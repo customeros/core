@@ -1,4 +1,22 @@
 defmodule Core.Researcher.Scraper do
+  @moduledoc """
+  Coordinates webpage scraping and content processing.
+
+  This module manages:
+  * Multi-service webpage scraping (Jina, Firecrawl, PureMD)
+  * Content validation and cleaning
+  * Caching and retrieval of scraped content
+  * Parallel processing of webpage content
+  * Error handling and timeout management
+  * OpenTelemetry tracing and logging
+
+  It implements a fallback strategy across multiple scraping
+  services and coordinates the entire scraping pipeline,
+  from fetching to processing and storage. The module
+  includes robust error handling and supports both
+  supervised and unsupervised content processing.
+  """
+
   require OpenTelemetry.Tracer
   require Logger
   alias Core.Researcher.Scraper.Jina
