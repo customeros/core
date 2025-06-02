@@ -147,10 +147,6 @@ defmodule Core.Crm.Leads do
     end)
   end
 
-  defp after_insert_start(_) do
-    {:ok, nil}
-  end
-
   def update_lead(%Lead{} = lead, attrs) do
     lead
     |> Lead.changeset(attrs)
