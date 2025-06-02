@@ -46,6 +46,7 @@ defmodule Core.Crm.Companies.CompanyEnrich do
           | :invalid_ai_response
           | :download_failed
           | :storage_failed
+          | :image_not_found
 
   @spec scrape_homepage_start(String.t()) :: {:ok, pid()} | {:error, term()}
   def scrape_homepage_start(company_id) do

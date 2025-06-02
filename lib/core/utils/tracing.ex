@@ -4,7 +4,6 @@ defmodule Core.Utils.Tracing do
   """
 
   require OpenTelemetry.Tracer
-  require OpenTelemetry.Span
 
   @doc """
   Sets the status of the current span to error with the given reason.
