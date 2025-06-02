@@ -1,11 +1,11 @@
 import { useState, lazy, memo, useCallback, useMemo } from 'react';
 
-import { router, usePage } from '@inertiajs/react';
+import { router } from '@inertiajs/react';
 
 import { Icon, IconName } from '../../components/Icon/Icon';
 import { SegmentedView } from '../../components/SegmentedView/SegmentedView';
 import { Tooltip } from 'src/components/Tooltip';
-import { Header } from './components/Header';
+import { Header, EmptyState } from './components';
 import { RootLayout } from 'src/layouts/Root';
 import { cn } from 'src/utils/cn';
 import {
@@ -88,140 +88,144 @@ export const Leads = memo(({ companies }: LeadsProps) => {
   return (
     <RootLayout>
       <Header />
-      <div className="flex h-full overflow-hidden relative bg-white p-0 transition-[width] duration-300 ease-in-out w-full 2xl:w-[1440px] 2xl:mx-auto md:mt-2 animate-fadeIn">
-        <div className="w-full">
-          <div className="w-full items-center justify-center mb-2 px-4 2xl:px-0 hidden md:flex">
-            {stages.map((stage, index) => {
-              const count = companies.filter(c => c.stage === stage.value).length;
-              return (
-                <div
-                  key={stage.value}
-                  className={cn(
-                    'flex-1 flex items-center justify-center rounded-md bg-primary-100 cursor-pointer min-h-[14px]',
-                    index > 0 && 'ml-[-10px]',
-                    selectedStage === stage.value && 'bg-primary-200'
-                  )}
-                  style={{
-                    height: `${count ? count * 5 : 15}px`,
-                    zIndex: 10 - index,
-                    maxHeight: '100px',
-                  }}
-                  onClick={() => setSelectedStage(stage.value)}
-                >
-                  <div className="flex text-center text-primary-700">
-                    <span>
-                      {stage.label}
-                      <span className="mx-1">•</span>
-                    </span>
-                    <span>{count}</span>
-                  </div>
-                </div>
-              );
-            })}
-          </div>
-
-          <div className="flex-1 flex w-full">
-            <div className="flex-1 overflow-y-auto text-nowrap">
-              {stages
-                .filter(stage => !selectedStage || stage.value === selectedStage)
-                .map((stage, index) => (
-                  <CollapsibleRoot
+      {companies.length === 0 ? (
+        <EmptyState />
+      ) : (
+        <div className="flex h-full overflow-hidden relative bg-white p-0 transition-[width] duration-300 ease-in-out w-full 2xl:w-[1440px] 2xl:mx-auto md:mt-2 animate-fadeIn">
+          <div className="w-full">
+            <div className="w-full items-center justify-center mb-2 px-4 2xl:px-0 hidden md:flex">
+              {stages.map((stage, index) => {
+                const count = companies.filter(c => c.stage === stage.value).length;
+                return (
+                  <div
                     key={stage.value}
-                    defaultOpen
-                    open={selectedAccordion ? isAccordionSelected(stage.value) : true}
-                    className="flex flex-col w-full"
+                    className={cn(
+                      'flex-1 flex items-center justify-center rounded-md bg-primary-100 cursor-pointer min-h-[14px]',
+                      index > 0 && 'ml-[-10px]',
+                      selectedStage === stage.value && 'bg-primary-200'
+                    )}
+                    style={{
+                      height: `${count ? count * 5 : 15}px`,
+                      zIndex: 10 - index,
+                      maxHeight: '100px',
+                    }}
+                    onClick={() => setSelectedStage(stage.value)}
                   >
-                    <CollapsibleTrigger className="w-full">
-                      <SegmentedView
-                        label={stage.label}
-                        className={index === 0 ? 'mt-0' : ''}
-                        isSelected={isSelected(stage.value) || isAccordionSelected(stage.value)}
-                        count={companies.filter(c => c.stage === stage.value).length}
-                        icon={<Icon name={stage.icon as IconName} className="text-gray-500" />}
-                        handleClearFilter={() => {
-                          setSelectedStage('');
-                          setSelectedAccordion('');
-                        }}
-                        onClick={() => {
-                          setSelectedAccordion(stage.value);
-                        }}
-                      />
-                    </CollapsibleTrigger>
-                    <CollapsibleContent className="bg-white">
-                      {filteredCompanies
-                        .filter(c => c.stage === stage.value)
-                        .map((c, index) => (
-                          <div
-                            key={c.document_id || c.name}
-                            className="flex items-center w-full relative group hover:bg-gray-50"
-                            style={{ zIndex: 100 - index }}
-                          >
-                            <div className="flex items-center gap-2 pl-5 min-w-0 flex-1 md:flex-none md:flex-shrink-0 bg-white group-hover:bg-gray-50">
-                              {c.icon ? (
-                                <img
-                                  key={c.icon}
-                                  src={c.icon}
-                                  alt={c.name}
-                                  className="size-6 object-contain border border-gray-200 rounded flex-shrink-0"
-                                  loading="lazy"
-                                />
-                              ) : (
-                                <div className="size-6 flex items-center justify-center border border-gray-200 rounded flex-shrink-0">
-                                  <Icon name="building-06" />
-                                </div>
-                              )}
+                    <div className="flex text-center text-primary-700">
+                      <span>
+                        {stage.label}
+                        <span className="mx-1">•</span>
+                      </span>
+                      <span>{count}</span>
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+
+            <div className="flex-1 flex w-full">
+              <div className="flex-1 overflow-y-auto text-nowrap">
+                {stages
+                  .filter(stage => !selectedStage || stage.value === selectedStage)
+                  .map((stage, index) => (
+                    <CollapsibleRoot
+                      key={stage.value}
+                      defaultOpen
+                      open={selectedAccordion ? isAccordionSelected(stage.value) : true}
+                      className="flex flex-col w-full"
+                    >
+                      <CollapsibleTrigger className="w-full">
+                        <SegmentedView
+                          label={stage.label}
+                          className={index === 0 ? 'mt-0' : ''}
+                          isSelected={isSelected(stage.value) || isAccordionSelected(stage.value)}
+                          count={companies.filter(c => c.stage === stage.value).length}
+                          icon={<Icon name={stage.icon as IconName} className="text-gray-500" />}
+                          handleClearFilter={() => {
+                            setSelectedStage('');
+                            setSelectedAccordion('');
+                          }}
+                          onClick={() => {
+                            setSelectedAccordion(stage.value);
+                          }}
+                        />
+                      </CollapsibleTrigger>
+                      <CollapsibleContent className="bg-white">
+                        {filteredCompanies
+                          .filter(c => c.stage === stage.value)
+                          .map((c, index) => (
+                            <div
+                              key={c.document_id || c.name}
+                              className="flex items-center w-full relative group hover:bg-gray-50"
+                              style={{ zIndex: 100 - index }}
+                            >
+                              <div className="flex items-center gap-2 pl-5 min-w-0 flex-1 md:flex-none md:flex-shrink-0 bg-white group-hover:bg-gray-50">
+                                {c.icon ? (
+                                  <img
+                                    key={c.icon}
+                                    src={c.icon}
+                                    alt={c.name}
+                                    className="size-6 object-contain border border-gray-200 rounded flex-shrink-0"
+                                    loading="lazy"
+                                  />
+                                ) : (
+                                  <div className="size-6 flex items-center justify-center border border-gray-200 rounded flex-shrink-0">
+                                    <Icon name="building-06" />
+                                  </div>
+                                )}
+                                <p
+                                  className="py-2 px-2 cursor-pointer font-medium truncate"
+                                  onClick={() => {
+                                    handleOpenDocument(c);
+                                  }}
+                                >
+                                  {c.name}
+                                </p>
+                              </div>
+                              <p className="flex-4 text-right mr-4 min-w-0 flex-shrink-0 bg-white hidden md:block group-hover:bg-gray-50">
+                                {c.industry ? (
+                                  <span className="bg-gray-100 w-fit px-2 py-1 rounded-[4px] max-w-[100px] truncate">
+                                    {c.industry}
+                                  </span>
+                                ) : (
+                                  <span>Not found</span>
+                                )}
+                              </p>
+
                               <p
-                                className="py-2 px-2 cursor-pointer font-medium truncate"
+                                className="text-right cursor-pointer hover:underline min-w-0 flex-1 md:flex-none md:flex-shrink-0 bg-white px-2 py-1 group-hover:bg-gray-50"
                                 onClick={() => {
-                                  handleOpenDocument(c);
+                                  window.open(`https://${c.domain}`, '_blank');
                                 }}
                               >
-                                {c.name}
+                                {c.domain}
                               </p>
+                              <Tooltip label={c.country_name ?? 'Country not found'}>
+                                <p className="text-center text-gray-500 flex-shrink-0 bg-white py-2 pl-1 pr-5 group-hover:bg-gray-50">
+                                  {countryCodeToEmoji(c.country)}
+                                </p>
+                              </Tooltip>
                             </div>
-                            <p className="flex-4 text-right mr-4 min-w-0 flex-shrink-0 bg-white hidden md:block group-hover:bg-gray-50">
-                              {c.industry ? (
-                                <span className="bg-gray-100 w-fit px-2 py-1 rounded-[4px] max-w-[100px] truncate">
-                                  {c.industry}
-                                </span>
-                              ) : (
-                                <span>Not found</span>
-                              )}
-                            </p>
-
-                            <p
-                              className="text-right cursor-pointer hover:underline min-w-0 flex-1 md:flex-none md:flex-shrink-0 bg-white px-2 py-1 group-hover:bg-gray-50"
-                              onClick={() => {
-                                window.open(`https://${c.domain}`, '_blank');
-                              }}
-                            >
-                              {c.domain}
-                            </p>
-                            <Tooltip label={c.country_name ?? 'Country not found'}>
-                              <p className="text-center text-gray-500 flex-shrink-0 bg-white py-2 pl-1 pr-5 group-hover:bg-gray-50">
-                                {countryCodeToEmoji(c.country)}
-                              </p>
-                            </Tooltip>
-                          </div>
-                        ))}
-                    </CollapsibleContent>
-                  </CollapsibleRoot>
-                ))}
-            </div>
-            <div
-              className={cn(
-                'border-l h-[calc(100vh-100px)] flex-shrink-1 transition-all border-t duration-300 ease-in-out',
-                hasDocParam
-                  ? 'opacity-100 w-[728px] translate-x-[0px]'
-                  : 'opacity-0 w-[0px] translate-x-[728px]',
-                viewMode === 'focus' && 'w-full border-transparent'
-              )}
-            >
-              <DocumentEditor />
+                          ))}
+                      </CollapsibleContent>
+                    </CollapsibleRoot>
+                  ))}
+              </div>
+              <div
+                className={cn(
+                  'border-l h-[calc(100vh-100px)] flex-shrink-1 transition-all border-t duration-300 ease-in-out',
+                  hasDocParam
+                    ? 'opacity-100 w-[728px] translate-x-[0px]'
+                    : 'opacity-0 w-[0px] translate-x-[728px]',
+                  viewMode === 'focus' && 'w-full border-transparent'
+                )}
+              >
+                <DocumentEditor />
+              </div>
             </div>
           </div>
         </div>
-      </div>
+      )}
     </RootLayout>
   );
 });

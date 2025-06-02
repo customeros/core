@@ -30,7 +30,7 @@ export const SegmentedView = ({
       )}
     >
       <div className="flex items-center space-x-3 h-[30px] cursor-pointer" onClick={onClick}>
-        <div className="flex-shrink-0">{icon}</div>
+        <div className="flex-shrink-0 mb-[2px]">{icon}</div>
         <h3 className="font-medium">{label}</h3>
         <p className="text-gray-700"> {count}</p>
       </div>

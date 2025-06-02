@@ -85,6 +85,7 @@ defmodule Core.Auth.Users.UserNotifier do
             word-break: break-all;
             max-width: 1024px;
             padding: 0 1em;
+            color:#121926;
           }
         </style>
       </head>
@@ -110,13 +111,17 @@ defmodule Core.Auth.Users.UserNotifier do
   def register_content(assigns) do
     ~H"""
     <.email_layout>
-      <h1>Hey there!</h1>
+      <p>Hey 👋</p>
 
-      <p>Please use this link to create your account at CustomerOS:</p>
+      <p>Use the link below to create your CustomerOS account.</p>
 
       <a href={@url}>{@url}</a>
 
-      <p>If you didn't request this email, feel free to ignore this.</p>
+      <p>Have a great day!</p>
+
+      <p>The CustomerOS team</p>
+
+      <p>PS: Simply reply to this email if you’re having trouble</p>
     </.email_layout>
     """
   end
@@ -124,13 +129,17 @@ defmodule Core.Auth.Users.UserNotifier do
   def login_content(assigns) do
     ~H"""
     <.email_layout>
-      <h1>Hey there!</h1>
+      <p>Hey 👋</p>
 
-      <p>Please use this link to sign in to CustomerOS:</p>
+      <p>Use the link below to sign into your CustomerOS account.</p>
 
       <a href={@url}>{@url}</a>
 
-      <p>If you didn't request this email, feel free to ignore this.</p>
+      <p>Have a great day!</p>
+
+      <p>The CustomerOS team</p>
+
+      <p>PS: Simply reply to this email if you’re having trouble</p>
     </.email_layout>
     """
   end
