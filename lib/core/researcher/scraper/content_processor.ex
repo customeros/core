@@ -82,7 +82,7 @@ defmodule Core.Researcher.Scraper.ContentProcessor do
          links: links,
          summary: summary
        }) do
-    case Core.Researcher.ScrapedWebpages.save_scraped_content(
+    case Webpages.save_scraped_content(
            url,
            content,
            links,

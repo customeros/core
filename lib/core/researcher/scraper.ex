@@ -1,14 +1,19 @@
 defmodule Core.Researcher.Scraper do
   require OpenTelemetry.Tracer
   require Logger
+  alias Core.Researcher.Webpages
   alias Core.Researcher.Scraper.Jina
   alias Core.Researcher.Scraper.Puremd
-  alias Core.Researcher.Scraper.ContentProcessor
-  alias Core.Researcher.Errors
   alias Core.Researcher.Webpages.Cleaner
+  alias Core.Researcher.Scraper.ContentProcessor
 
   # 60 seconds
   @scraper_timeout 60 * 1000
+
+  @err_no_content {:error, :no_content}
+  @err_unprocessable {:error, :unprocessable}
+  @err_webscraper_timed_out {:error, "webscraper timed out"}
+  @err_unexpected_response {:error, "webscraper returned unexpected response"}
 
   def scrape_webpage(url) do
     OpenTelemetry.Tracer.with_span "scraper.scrape_webpage" do
@@ -16,7 +21,7 @@ defmodule Core.Researcher.Scraper do
         {"url", url}
       ])
 
-      case Core.Researcher.ScrapedWebpages.get_by_url(url) do
+      case Webpages.get_by_url(url) do
         {:ok, existing_record} -> use_cached_content(existing_record)
         {:error, :not_found} -> fetch_and_process_webpage(url)
       end
@@ -29,7 +34,7 @@ defmodule Core.Researcher.Scraper do
          result <- Task.await(task, @scraper_timeout) do
       result
     else
-      {:error, reason} -> Errors.error(reason)
+      {:error, reason} -> {:error, reason}
     end
   end
 
@@ -59,15 +64,17 @@ defmodule Core.Researcher.Scraper do
   end
 
   defp handle_fetch_error({:http_error, message}) do
-    Errors.error({:http_error, message})
+    err = "http error => message: #{message}"
+    {:error, err}
   end
 
   defp handle_fetch_error(reason) when is_binary(reason) do
-    Errors.error(reason)
+    {:error, reason}
   end
 
   defp handle_fetch_error(reason) do
-    Errors.error("Error: #{inspect(reason)}")
+    err = "Error: #{inspect(reason)}"
+    {:error, err}
   end
 
   defp try_jina_service(url) do
@@ -108,32 +115,22 @@ defmodule Core.Researcher.Scraper do
         |> validate_content()
 
       {:ok, {:error, reason}} ->
-        Logger.warning("#{task_name} failed for #{url}: #{inspect(reason)}")
         {:error, reason}
 
       {:ok, {:http_error, reason}} ->
-        Logger.warning("#{task_name} failed for #{url}: #{inspect(reason)}")
-        {:error, {:http_error, reason}}
+        err = "http error => #{task_name} failed for #{url}: #{inspect(reason)}"
+        {:error, err}
 
-      {:ok, unexpected} ->
-        Logger.error(
-          "#{task_name} returned unexpected result for #{url}: #{inspect(unexpected)}"
-        )
-
-        {:error, :unexpected_response}
+      {:ok, _unexpected} ->
+        @err_unexpected_response
 
       nil ->
         Task.shutdown(task)
-        Logger.warning("#{task_name} timed out for #{url}")
-        Errors.error(:webscraper_timeout)
+        @err_webscraper_timed_out
 
       {:exit, reason} ->
         Logger.error("#{task_name} crashed for #{url}: #{inspect(reason)}")
-        Errors.error(reason)
-
-      _ ->
-        Logger.error("#{task_name} returned unknown result for #{url}")
-        {:error, :unknown}
+        {:error, reason}
     end
   end
 
@@ -154,16 +151,16 @@ defmodule Core.Researcher.Scraper do
   defp validate_content(content) do
     cond do
       content == "" ->
-        {:error, :no_content}
+        @err_no_content
 
       String.contains?(content, "403 Forbidden") ->
-        {:error, :unprocessable}
+        @err_unprocessable
 
       String.contains?(content, "Robot Challenge") ->
-        {:error, :unprocessable}
+        @err_unprocessable
 
       String.contains?(content, "no content") ->
-        {:error, :no_content}
+        @err_no_content
 
       true ->
         {:ok, content}
