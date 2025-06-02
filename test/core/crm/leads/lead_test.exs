@@ -43,7 +43,7 @@ defmodule Core.Crm.Leads.LeadTest do
     end
 
     test "get_or_create/2 with invalid data returns error changeset" do
-      assert {:error, :not_found, "Tenant not found"} =
+      assert {:error, :not_found} =
                Core.Crm.Leads.get_or_create("invalid_tenant", %{})
     end
 

@@ -17,7 +17,6 @@ defmodule Core.Auth.Tenants.Tenant do
              :domain,
              :workspace_name,
              :workspace_icon_key,
-             :ideal_customer_profile,
              :inserted_at,
              :updated_at
            ]}
@@ -28,10 +27,6 @@ defmodule Core.Auth.Tenants.Tenant do
     field(:workspace_name, :string)
     field(:workspace_icon_key, :string)
 
-    has_one(:ideal_customer_profile, Core.Researcher.IcpProfiles.Profile,
-      foreign_key: :tenant_id
-    )
-
     timestamps(type: :utc_datetime)
   end
 
@@ -41,7 +36,6 @@ defmodule Core.Auth.Tenants.Tenant do
           domain: String.t(),
           workspace_name: String.t(),
           workspace_icon_key: String.t(),
-          ideal_customer_profile: Core.Researcher.IcpProfiles.Profile.t() | nil,
           inserted_at: DateTime.t(),
           updated_at: DateTime.t()
         }
@@ -53,8 +47,7 @@ defmodule Core.Auth.Tenants.Tenant do
       :name,
       :domain,
       :workspace_name,
-      :workspace_icon_key,
-      :ideal_customer_profile
+      :workspace_icon_key
     ])
     |> maybe_put_id()
     |> validate_required([:id, :name, :domain])
