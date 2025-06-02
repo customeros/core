@@ -227,7 +227,7 @@ defmodule Web.UserAuth do
       current_user = conn.assigns[:current_user]
 
       tenant =
-        case Tenants.get_tenant_by_id(current_user.tenant_id) do
+        case Tenants.get_tenant_with_icp(current_user.tenant_id) do
           {:ok, tenant} -> tenant
           _ -> nil
         end

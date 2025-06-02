@@ -33,6 +33,14 @@ defmodule Core.Auth.Tenants do
     end
   end
 
+  def get_tenant_with_icp(tenant_id) when is_binary(tenant_id) do
+    case Repo.get_by(Tenant, id: tenant_id)
+         |> Repo.preload(:ideal_customer_profile) do
+      %Tenant{} = tenant -> {:ok, tenant}
+      nil -> {:error, :not_found}
+    end
+  end
+
   ## Tenant updates
 
   @spec set_tenant_workspace_name(binary(), binary()) :: :ok | {:error, any()}

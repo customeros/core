@@ -111,7 +111,7 @@ defmodule Web.Router do
     get "/welcome", WelcomeController, :index
 
     # Catch-all route for undefined paths
-    # get "/*path", LandingController, :redirect
+    get "/*path", LandingController, :redirect
   end
 
   scope "/graphql" do
