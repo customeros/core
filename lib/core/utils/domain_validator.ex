@@ -76,14 +76,8 @@ defmodule Core.Utils.DomainValidator do
              std3_rules: true,
              transitional: false
            ) do
-        {:ok, normalized} ->
-          to_string(normalized)
-
         normalized when is_list(normalized) ->
           to_string(normalized)
-
-        _ ->
-          Errors.error(:unable_to_normalize_domain)
       end
     rescue
       _e -> Errors.error(:unable_to_normalize_domain)
@@ -123,10 +117,7 @@ defmodule Core.Utils.DomainValidator do
              std3_rules: true,
              transitional: false
            ) do
-        {:ok, _} -> true
-        {:error, _, _} -> false
         encoded when is_list(encoded) -> true
-        _ -> false
       end
     rescue
       _ -> false
