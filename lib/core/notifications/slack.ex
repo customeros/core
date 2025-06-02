@@ -206,113 +206,124 @@ defmodule Core.Notifications.Slack do
             {:error, :webhook_not_configured}
 
           _ ->
-            # Build the fields array
-            fields = [
-              %{
-                type: "mrkdwn",
-                text: "*Error Type:*\n`#{error_type}`"
-              },
-              %{
-                type: "mrkdwn",
-                text:
-                  "*Message:*\n```#{String.slice(error_message, 0, 200)}#{if String.length(error_message) > 200, do: "...", else: ""}```"
-              }
-            ]
-
-            # Add module/function if provided
-            fields =
-              if module_function do
-                fields ++
-                  [
-                    %{
-                      type: "mrkdwn",
-                      text: "*Location:*\n`#{module_function}`"
-                    }
-                  ]
-              else
-                fields
-              end
-
-            # Build the blocks
-            blocks = [
-              %{
-                type: "header",
-                text: %{
-                  type: "plain_text",
-                  text: "🚨 System Crash Detected",
-                  emoji: true
-                }
-              },
-              %{
-                type: "section",
-                fields: fields
-              },
-              %{
-                type: "context",
-                elements: [
-                  %{
-                    type: "mrkdwn",
-                    text:
-                      "Occurred at: #{DateTime.utc_now() |> Calendar.strftime("%Y-%m-%d %H:%M:%S UTC")}"
-                  }
-                ]
-              }
-            ]
-
-            # Add stacktrace section if provided
-            blocks =
-              if stacktrace && stacktrace != "" do
-                stacktrace_preview = String.slice(stacktrace, 0, 1000)
-
-                stacktrace_text =
-                  if String.length(stacktrace) > 1000,
-                    do: stacktrace_preview <> "...",
-                    else: stacktrace_preview
-
-                blocks ++
-                  [
-                    %{
-                      type: "section",
-                      text: %{
-                        type: "mrkdwn",
-                        text: "*Stacktrace:*\n```#{stacktrace_text}```"
-                      }
-                    }
-                  ]
-              else
-                blocks
-              end
-
-            message = %{blocks: blocks}
-
-            try do
-              case send_message(webhook_url, message) do
-                :ok ->
-                  :ok
-
-                {:error, reason} ->
-                  Logger.error(
-                    "Failed to send crash notification: #{inspect(reason)}"
-                  )
-
-                  {:error, reason}
-              end
-            rescue
-              e in Jason.EncodeError ->
-                Logger.error(
-                  "Failed to encode crash notification: #{inspect(e)}"
-                )
-
-                {:error, :encoding_error}
-
-              e ->
-                Logger.error(
-                  "Unexpected error sending crash notification: #{inspect(e)}"
-                )
-
-                {:error, :unexpected_error}
-            end
+            build_and_send_crash_messsage(
+              webhook_url,
+              stacktrace,
+              error_type,
+              error_message,
+              module_function
+            )
         end
+    end
+  end
+
+  defp build_and_send_crash_messsage(
+         webhook_url,
+         stacktrace,
+         error_type,
+         error_message,
+         module_function
+       ) do
+    fields = [
+      %{
+        type: "mrkdwn",
+        text: "*Error Type:*\n`#{error_type}`"
+      },
+      %{
+        type: "mrkdwn",
+        text:
+          "*Message:*\n```#{String.slice(error_message, 0, 200)}#{if String.length(error_message) > 200, do: "...", else: ""}```"
+      }
+    ]
+
+    # Add module/function if provided
+    fields =
+      if module_function do
+        fields ++
+          [
+            %{
+              type: "mrkdwn",
+              text: "*Location:*\n`#{module_function}`"
+            }
+          ]
+      else
+        fields
+      end
+
+    # Build the blocks
+    blocks = [
+      %{
+        type: "header",
+        text: %{
+          type: "plain_text",
+          text: "🚨 System Crash Detected",
+          emoji: true
+        }
+      },
+      %{
+        type: "section",
+        fields: fields
+      },
+      %{
+        type: "context",
+        elements: [
+          %{
+            type: "mrkdwn",
+            text:
+              "Occurred at: #{DateTime.utc_now() |> Calendar.strftime("%Y-%m-%d %H:%M:%S UTC")}"
+          }
+        ]
+      }
+    ]
+
+    # Add stacktrace section if provided
+    blocks =
+      if stacktrace && stacktrace != "" do
+        stacktrace_preview = String.slice(stacktrace, 0, 1000)
+
+        stacktrace_text =
+          if String.length(stacktrace) > 1000,
+            do: stacktrace_preview <> "...",
+            else: stacktrace_preview
+
+        blocks ++
+          [
+            %{
+              type: "section",
+              text: %{
+                type: "mrkdwn",
+                text: "*Stacktrace:*\n```#{stacktrace_text}```"
+              }
+            }
+          ]
+      else
+        blocks
+      end
+
+    message = %{blocks: blocks}
+
+    try do
+      case send_message(webhook_url, message) do
+        :ok ->
+          :ok
+
+        {:error, reason} ->
+          Logger.error("Failed to send crash notification: #{inspect(reason)}")
+
+          {:error, reason}
+      end
+    rescue
+      e in Jason.EncodeError ->
+        Logger.error("Failed to encode crash notification: #{inspect(e)}")
+
+        {:error, :encoding_error}
+
+      e ->
+        Logger.error(
+          "Unexpected error sending crash notification: #{inspect(e)}"
+        )
+
+        {:error, :unexpected_error}
     end
   end
 end
