@@ -1,5 +1,6 @@
 defmodule Core.Researcher.Builder.ProfileWriter do
   alias Core.Researcher.Builder.ProfileValidator
+  alias Core.Researcher.Webpages
   alias Core.Researcher.Errors
   alias Core.Ai
 
@@ -10,7 +11,7 @@ defmodule Core.Researcher.Builder.ProfileWriter do
 
   def generate_icp(domain) when is_binary(domain) do
     with {:ok, pages} <-
-           Core.Researcher.ScrapedWebpages.get_business_pages_by_domain(
+           Webpages.get_business_pages_by_domain(
              domain,
              limit: 10
            ),

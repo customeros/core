@@ -5,7 +5,7 @@ defmodule Core.Researcher.IcpProfiles do
 
   alias Core.Icp.Builder.Profile
   alias Core.Repo
-  alias Core.Researcher.Profiles.Profile
+  alias Core.Researcher.IcpProfiles.Profile
   import Ecto.Query
 
   ## Create ##

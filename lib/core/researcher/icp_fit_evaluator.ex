@@ -4,15 +4,19 @@ defmodule Core.Researcher.IcpFitEvaluator do
   alias Core.Researcher.IcpFitEvaluator.Validator
   alias Core.Researcher.Crawler
   alias Core.Researcher.IcpProfiles
-  alias Core.Researcher.ScrapedWebpages
+  alias Core.Researcher.Webpages
   alias Core.Utils.PrimaryDomainFinder
   alias Core.Crm.Leads
 
   # 5 mins
-  @icp_fit_timeout 5 * 60 * 1000
+  @crawl_timeout 5 * 60 * 1000
+  # 45 seconds
+  @icp_timeout 45 * 1000
+  @max_retries 1
 
-  def evaluate_start(domain, lead) do
-    Task.Supervisor.start_child(
+  def evaluate_supervised(domain, %Leads.Lead{} = lead)
+      when is_binary(domain) and byte_size(domain) > 0 do
+    Task.Supervisor.async(
       Core.TaskSupervisor,
       fn ->
         evaluate(domain, lead)
@@ -20,13 +24,27 @@ defmodule Core.Researcher.IcpFitEvaluator do
     )
   end
 
-  def evaluate(domain, lead) do
-    with {:ok, primary_domain} <-
-           PrimaryDomainFinder.get_primary_domain(domain),
-         {:ok, icp} <- IcpProfiles.get_by_tenant_id(lead.tenant_id),
-         {:ok, pages} <- get_prompt_context(primary_domain),
+  def evaluate(domain, %Leads.Lead{} = lead)
+      when is_binary(domain) and byte_size(domain) > 0 do
+    case PrimaryDomainFinder.get_primary_domain(domain) do
+      {:ok, primary_domain} -> evaluate_icp_fit(primary_domain, lead)
+      {:error, reason} -> {:error, reason}
+    end
+  end
+
+  def evaluate(domain, _lead) when not is_binary(domain) do
+    {:error, "Domain must be a string, got: #{inspect(domain)}"}
+  end
+
+  def evaluate(_domain, invalid_lead) do
+    {:error, "Expected Lead struct, got: #{inspect(invalid_lead)}"}
+  end
+
+  defp evaluate_icp_fit(domain, %Leads.Lead{} = lead) do
+    with {:ok, icp} <- IcpProfiles.get_by_tenant_id(lead.tenant_id),
+         {:ok, pages} <- get_prompt_context(domain),
          {:ok, fit} <-
-           get_icp_fit(primary_domain, pages, icp) do
+           get_icp_fit_with_retry(domain, pages, icp) do
       update_lead(lead, fit)
       {:ok, fit}
     else
@@ -35,7 +53,8 @@ defmodule Core.Researcher.IcpFitEvaluator do
     end
   end
 
-  defp update_lead(lead, fit) do
+  defp update_lead(%Leads.Lead{} = lead, fit)
+       when fit in [:strong, :moderate, :not_a_fit] do
     case fit do
       :strong ->
         Leads.update_lead(lead, %{icp_fit: :strong, stage: :education})
@@ -48,57 +67,63 @@ defmodule Core.Researcher.IcpFitEvaluator do
     end
   end
 
-  defp get_prompt_context(domain) do
+  defp crawl_website_with_retry(domain, attempts \\ 0) do
     task = Crawler.crawl_supervised(domain)
 
-    case Task.yield(task, @icp_fit_timeout) do
-      {:ok, {:ok, _result}} ->
-        case(
-          ScrapedWebpages.get_business_pages_by_domain(domain,
-            limit: 8
-          )
-        ) do
-          {:ok, pages} ->
-            {:ok, pages}
+    with {:ok, _response} <- await_task(task, @crawl_timeout) do
+      :ok
+    else
+      {:error, _reason} when attempts < @max_retries ->
+        :timer.sleep(:timer.seconds(attempts + 1))
+        crawl_website_with_retry(domain, attempts + 1)
 
-          {:error, reason} ->
-            {:error, reason}
-        end
-
-      {:ok, {:error, reason}} ->
+      {:error, reason} ->
         {:error, reason}
-
-      {:exit, reason} ->
-        {:exit, reason}
-
-      nil ->
-        Task.shutdown(task)
-        {:error, :icp_timeout}
     end
   end
 
-  defp get_icp_fit(domain, pages, icp) do
+  defp get_prompt_context(domain) do
+    with :ok <- crawl_website_with_retry(domain),
+         {:ok, pages} <-
+           Webpages.get_business_pages_by_domain(domain, limit: 8) do
+      {:ok, pages}
+    else
+      {:error, reason} -> {:error, reason}
+    end
+  end
+
+  defp get_icp_fit_with_retry(
+         domain,
+         [%Webpages.ScrapedWebpage{} | _] = pages,
+         %IcpProfiles.Profile{} = icp,
+         attempts \\ 0
+       ) do
     {system_prompt, prompt} =
       PromptBuilder.build_prompts(domain, pages, icp)
 
     task = Ai.ask_supervised(PromptBuilder.build_request(system_prompt, prompt))
 
-    case Task.yield(task, @icp_fit_timeout) do
-      {:ok, {:ok, answer}} ->
-        case Validator.validate_and_parse(answer) do
-          {:ok, fit} -> {:ok, fit}
-          {:error, reason} -> {:error, reason}
-        end
+    with {:ok, answer} <- await_task(task, @icp_timeout) do
+      case Validator.validate_and_parse(answer) do
+        {:ok, fit} -> {:ok, fit}
+        {:error, reason} -> {:error, reason}
+      end
+    else
+      {:error, _reason} when attempts < @max_retries ->
+        :timer.sleep(:timer.seconds(attempts + 1))
+        get_icp_fit_with_retry(domain, pages, icp, attempts + 1)
 
-      {:ok, {:error, reason}} ->
+      {:error, reason} ->
         {:error, reason}
+    end
+  end
 
-      nil ->
-        Task.shutdown(task)
-        {:error, :ai_timeout}
-
-      {:exit, reason} ->
-        {:error, reason}
+  defp await_task(task, timeout) do
+    case Task.yield(task, timeout) do
+      {:ok, {:ok, response}} -> {:ok, response}
+      {:ok, {:error, reason}} -> {:error, reason}
+      {:exit, reason} -> {:error, reason}
+      nil -> {:error, :timeout}
     end
   end
 end

@@ -3,13 +3,13 @@ defmodule Core.Researcher.BriefWriter do
   alias Core.Crm.Leads
   alias Core.Researcher.IcpProfiles
   alias Core.Crm.Documents
-  alias Core.Researcher.ScrapedWebpages
+  alias Core.Researcher.Webpages
   alias Core.Researcher.BriefWriter.PromptBuilder
 
   @timeout 60 * 1000
 
-  def start(tenant_id, lead_id, lead_domain) do
-    Task.Supervisor.start_child(
+  def create_brief_supervised(tenant_id, lead_id, lead_domain) do
+    Task.Supervisor.async(
       Core.TaskSupervisor,
       fn ->
         create_brief(tenant_id, lead_id, lead_domain)
@@ -21,7 +21,7 @@ defmodule Core.Researcher.BriefWriter do
     with {:ok, icp} <- IcpProfiles.get_by_tenant_id(tenant_id),
          {:ok, lead} <- Leads.get_by_id(tenant_id, lead_id),
          {:ok, pages} <-
-           ScrapedWebpages.get_business_pages_by_domain(lead_domain, limit: 8),
+           Webpages.get_business_pages_by_domain(lead_domain, limit: 8),
          request <- build_request(lead_domain, icp, pages),
          {:ok, brief} <-
            generate_brief(request) do
