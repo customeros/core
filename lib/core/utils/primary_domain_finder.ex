@@ -202,9 +202,8 @@ defmodule Core.Utils.PrimaryDomainFinder do
          result <- check_domain_validity(result),
          result <- check_domain_accessibility(result),
          result <- check_domain_redirects(result),
-         result <- check_domain_dns(result),
-         result <- determine_primary_domain_status(result) do
-      result
+         result <- check_domain_dns(result) do
+      determine_primary_domain_status(result)
     end
   end
 

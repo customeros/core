@@ -114,8 +114,7 @@ defmodule Core.ApiCallLogger.Logger do
   defp redact_sensitive_params(query) do
     query
     |> String.split("&")
-    |> Enum.map(&redact_param/1)
-    |> Enum.join("&")
+    |> Enum.map_join("&", &redact_param/1)
   end
 
   defp redact_param(param) do

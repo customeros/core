@@ -53,53 +53,58 @@ defmodule Core.Notifications.Slack do
              :webhook_not_configured | :slack_api_error | Finch.Error.t()}
   def notify_new_tenant(name, domain)
       when is_binary(name) and is_binary(domain) and name != "" and domain != "" do
-    unless slack_enabled?() do
-      :ok
-    else
-      webhook_url = Application.get_env(:core, :slack)[:new_tenant_webhook_url]
+    case slack_enabled?() do
+      false ->
+        :ok
 
-      unless webhook_url do
-        Logger.warning("Slack new tenant webhook URL not configured")
-        {:error, :webhook_not_configured}
-      else
-        message = %{
-          blocks: [
-            %{
-              type: "header",
-              text: %{
-                type: "plain_text",
-                text: "🏢 New Tenant Registration",
-                emoji: true
-              }
-            },
-            %{
-              type: "section",
-              fields: [
+      true ->
+        webhook_url =
+          Application.get_env(:core, :slack)[:new_tenant_webhook_url]
+
+        case webhook_url do
+          val when val in [nil, ""] ->
+            Logger.warning("Slack new tenant webhook URL not configured")
+            {:error, :webhook_not_configured}
+
+          _ ->
+            message = %{
+              blocks: [
                 %{
-                  type: "mrkdwn",
-                  text: "*Tenant:*\n#{name}"
+                  type: "header",
+                  text: %{
+                    type: "plain_text",
+                    text: "🏢 New Tenant Registration",
+                    emoji: true
+                  }
                 },
                 %{
-                  type: "mrkdwn",
-                  text: "*Domain:*\n#{domain}"
-                }
-              ]
-            },
-            %{
-              type: "context",
-              elements: [
+                  type: "section",
+                  fields: [
+                    %{
+                      type: "mrkdwn",
+                      text: "*Tenant:*\n#{name}"
+                    },
+                    %{
+                      type: "mrkdwn",
+                      text: "*Domain:*\n#{domain}"
+                    }
+                  ]
+                },
                 %{
-                  type: "mrkdwn",
-                  text:
-                    "Registered at: #{DateTime.utc_now() |> Calendar.strftime("%Y-%m-%d %H:%M:%S UTC")}"
+                  type: "context",
+                  elements: [
+                    %{
+                      type: "mrkdwn",
+                      text:
+                        "Registered at: #{DateTime.utc_now() |> Calendar.strftime("%Y-%m-%d %H:%M:%S UTC")}"
+                    }
+                  ]
                 }
               ]
             }
-          ]
-        }
 
-        send_message(webhook_url, message)
-      end
+            send_message(webhook_url, message)
+        end
     end
   end
 
@@ -116,53 +121,57 @@ defmodule Core.Notifications.Slack do
   def notify_new_user(email, tenant)
       when is_binary(email) and is_binary(tenant) and email != "" and
              tenant != "" do
-    unless slack_enabled?() do
-      :ok
-    else
-      webhook_url = Application.get_env(:core, :slack)[:new_user_webhook_url]
+    case slack_enabled?() do
+      false ->
+        :ok
 
-      unless webhook_url do
-        Logger.warning("Slack new user webhook URL not configured")
-        {:error, :webhook_not_configured}
-      else
-        message = %{
-          blocks: [
-            %{
-              type: "header",
-              text: %{
-                type: "plain_text",
-                text: "👤 New User Registration",
-                emoji: true
-              }
-            },
-            %{
-              type: "section",
-              fields: [
+      true ->
+        webhook_url = Application.get_env(:core, :slack)[:new_user_webhook_url]
+
+        case webhook_url do
+          val when val in [nil, ""] ->
+            Logger.warning("Slack new user webhook URL not configured")
+            {:error, :webhook_not_configured}
+
+          _ ->
+            message = %{
+              blocks: [
                 %{
-                  type: "mrkdwn",
-                  text: "*Email:*\n#{email}"
+                  type: "header",
+                  text: %{
+                    type: "plain_text",
+                    text: "👤 New User Registration",
+                    emoji: true
+                  }
                 },
                 %{
-                  type: "mrkdwn",
-                  text: "*Tenant:*\n#{tenant}"
-                }
-              ]
-            },
-            %{
-              type: "context",
-              elements: [
+                  type: "section",
+                  fields: [
+                    %{
+                      type: "mrkdwn",
+                      text: "*Email:*\n#{email}"
+                    },
+                    %{
+                      type: "mrkdwn",
+                      text: "*Tenant:*\n#{tenant}"
+                    }
+                  ]
+                },
                 %{
-                  type: "mrkdwn",
-                  text:
-                    "Registered at: #{DateTime.utc_now() |> Calendar.strftime("%Y-%m-%d %H:%M:%S UTC")}"
+                  type: "context",
+                  elements: [
+                    %{
+                      type: "mrkdwn",
+                      text:
+                        "Registered at: #{DateTime.utc_now() |> Calendar.strftime("%Y-%m-%d %H:%M:%S UTC")}"
+                    }
+                  ]
                 }
               ]
             }
-          ]
-        }
 
-        send_message(webhook_url, message)
-      end
+            send_message(webhook_url, message)
+        end
     end
   end
 
@@ -184,119 +193,126 @@ defmodule Core.Notifications.Slack do
       )
       when is_binary(error_type) and is_binary(error_message) and
              error_type != "" and error_message != "" do
-    unless slack_enabled?() do
-      :ok
-    else
-      webhook_url = Application.get_env(:core, :slack)[:crash_webhook_url]
+    case slack_enabled?() do
+      false ->
+        :ok
 
-      unless webhook_url do
-        Logger.warning("Slack crash webhook URL not configured")
-        {:error, :webhook_not_configured}
-      else
-        # Build the fields array
-        fields = [
-          %{
-            type: "mrkdwn",
-            text: "*Error Type:*\n`#{error_type}`"
-          },
-          %{
-            type: "mrkdwn",
-            text:
-              "*Message:*\n```#{String.slice(error_message, 0, 200)}#{if String.length(error_message) > 200, do: "...", else: ""}```"
-          }
-        ]
+      true ->
+        webhook_url = Application.get_env(:core, :slack)[:crash_webhook_url]
 
-        # Add module/function if provided
-        fields =
-          if module_function do
-            fields ++
-              [
-                %{
-                  type: "mrkdwn",
-                  text: "*Location:*\n`#{module_function}`"
-                }
-              ]
-          else
-            fields
-          end
+        case webhook_url do
+          val when val in [nil, ""] ->
+            Logger.warning("Slack crash webhook URL not configured")
+            {:error, :webhook_not_configured}
 
-        # Build the blocks
-        blocks = [
-          %{
-            type: "header",
-            text: %{
-              type: "plain_text",
-              text: "🚨 System Crash Detected",
-              emoji: true
-            }
-          },
-          %{
-            type: "section",
-            fields: fields
-          },
-          %{
-            type: "context",
-            elements: [
+          _ ->
+            # Build the fields array
+            fields = [
+              %{
+                type: "mrkdwn",
+                text: "*Error Type:*\n`#{error_type}`"
+              },
               %{
                 type: "mrkdwn",
                 text:
-                  "Occurred at: #{DateTime.utc_now() |> Calendar.strftime("%Y-%m-%d %H:%M:%S UTC")}"
+                  "*Message:*\n```#{String.slice(error_message, 0, 200)}#{if String.length(error_message) > 200, do: "...", else: ""}```"
               }
             ]
-          }
-        ]
 
-        # Add stacktrace section if provided
-        blocks =
-          if stacktrace && stacktrace != "" do
-            stacktrace_preview = String.slice(stacktrace, 0, 1000)
+            # Add module/function if provided
+            fields =
+              if module_function do
+                fields ++
+                  [
+                    %{
+                      type: "mrkdwn",
+                      text: "*Location:*\n`#{module_function}`"
+                    }
+                  ]
+              else
+                fields
+              end
 
-            stacktrace_text =
-              if String.length(stacktrace) > 1000,
-                do: stacktrace_preview <> "...",
-                else: stacktrace_preview
-
-            blocks ++
-              [
-                %{
-                  type: "section",
-                  text: %{
-                    type: "mrkdwn",
-                    text: "*Stacktrace:*\n```#{stacktrace_text}```"
-                  }
+            # Build the blocks
+            blocks = [
+              %{
+                type: "header",
+                text: %{
+                  type: "plain_text",
+                  text: "🚨 System Crash Detected",
+                  emoji: true
                 }
-              ]
-          else
-            blocks
-          end
+              },
+              %{
+                type: "section",
+                fields: fields
+              },
+              %{
+                type: "context",
+                elements: [
+                  %{
+                    type: "mrkdwn",
+                    text:
+                      "Occurred at: #{DateTime.utc_now() |> Calendar.strftime("%Y-%m-%d %H:%M:%S UTC")}"
+                  }
+                ]
+              }
+            ]
 
-        message = %{blocks: blocks}
+            # Add stacktrace section if provided
+            blocks =
+              if stacktrace && stacktrace != "" do
+                stacktrace_preview = String.slice(stacktrace, 0, 1000)
 
-        try do
-          case send_message(webhook_url, message) do
-            :ok ->
-              :ok
+                stacktrace_text =
+                  if String.length(stacktrace) > 1000,
+                    do: stacktrace_preview <> "...",
+                    else: stacktrace_preview
 
-            {:error, reason} ->
-              Logger.error(
-                "Failed to send crash notification: #{inspect(reason)}"
-              )
+                blocks ++
+                  [
+                    %{
+                      type: "section",
+                      text: %{
+                        type: "mrkdwn",
+                        text: "*Stacktrace:*\n```#{stacktrace_text}```"
+                      }
+                    }
+                  ]
+              else
+                blocks
+              end
 
-              {:error, reason}
-          end
-        rescue
-          e in Jason.EncodeError ->
-            Logger.error("Failed to encode crash notification: #{inspect(e)}")
-            {:error, :encoding_error}
+            message = %{blocks: blocks}
 
-          e ->
-            Logger.error(
-              "Unexpected error sending crash notification: #{inspect(e)}"
-            )
+            try do
+              case send_message(webhook_url, message) do
+                :ok ->
+                  :ok
 
-            {:error, :unexpected_error}
+                {:error, reason} ->
+                  Logger.error(
+                    "Failed to send crash notification: #{inspect(reason)}"
+                  )
+
+                  {:error, reason}
+              end
+            rescue
+              e in Jason.EncodeError ->
+                Logger.error(
+                  "Failed to encode crash notification: #{inspect(e)}"
+                )
+
+                {:error, :encoding_error}
+
+              e ->
+                Logger.error(
+                  "Unexpected error sending crash notification: #{inspect(e)}"
+                )
+
+                {:error, :unexpected_error}
+            end
         end
-      end
     end
   end
 end

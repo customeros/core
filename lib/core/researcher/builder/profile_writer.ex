@@ -130,10 +130,9 @@ defmodule Core.Researcher.Builder.ProfileWriter do
     content_sections =
       business_pages
       |> Enum.with_index(1)
-      |> Enum.map(fn {page, index} ->
+      |> Enum.map_join("\n\n", fn {page, index} ->
         build_individual_page_content(page, index)
       end)
-      |> Enum.join("\n\n")
 
     """
     WEBSITE CONTENT:
@@ -261,10 +260,11 @@ defmodule Core.Researcher.Builder.ProfileWriter do
     if Enum.any?(value_props) do
       section =
         "Value Propositions:\n" <>
-          (value_props
-           |> Enum.with_index(1)
-           |> Enum.map(fn {prop, idx} -> "#{idx}. #{prop}" end)
-           |> Enum.join("\n"))
+          Enum.map_join(
+            Enum.with_index(value_props, 1),
+            "\n",
+            fn {prop, idx} -> "#{idx}. #{prop}" end
+          )
 
       [section | sections]
     else
@@ -309,9 +309,9 @@ defmodule Core.Researcher.Builder.ProfileWriter do
 
     if Enum.any?(content_types) do
       type_summary =
-        content_types
-        |> Enum.map(fn {type, count} -> "#{count} #{type}" end)
-        |> Enum.join(", ")
+        Enum.map_join(content_types, ", ", fn {type, count} ->
+          "#{count} #{type}"
+        end)
 
       section =
         "Content Analysis: #{type_summary} (#{length(business_pages)} total pages analyzed)"
