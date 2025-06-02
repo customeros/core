@@ -1,4 +1,12 @@
 defmodule Core.Crm.Companies.CompanyDomainQueue do
+  @moduledoc """
+  Schema module for managing the queue of company domains to be processed.
+
+  This schema tracks domains that need to be processed for company enrichment,
+  including their insertion time and processing status. It's used to manage
+  the asynchronous processing of company data enrichment.
+  """
+
   use Ecto.Schema
   import Ecto.Changeset
 

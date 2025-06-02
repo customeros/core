@@ -1,4 +1,17 @@
 defmodule Core.Crm.Companies.Company do
+  @moduledoc """
+  Schema module representing a company in the CRM system.
+
+  This schema stores comprehensive company information including:
+  - Basic company details (name, domain, industry)
+  - Enrichment status and attempts for various data points
+  - LinkedIn integration data
+  - Scraped website content
+  - Country and icon information
+
+  Companies are identified by a unique ID with a 'cmp_' prefix.
+  """
+
   use Ecto.Schema
   import Ecto.Changeset
 

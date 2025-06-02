@@ -1,4 +1,12 @@
 defmodule Core.Auth.PersonalEmailProviders.PersonalEmailProvider do
+  @moduledoc """
+  Schema module for managing personal email provider domains.
+
+  This schema tracks domains that are known to be personal email providers
+  (e.g., gmail.com, outlook.com). It's used to identify and validate
+  personal email addresses in the system.
+  """
+
   use Ecto.Schema
   import Ecto.Changeset
 
