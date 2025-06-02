@@ -1,4 +1,4 @@
-defmodule Core.Researcher.Profiles.Profile do
+defmodule Core.Researcher.IcpProfiles.Profile do
   use Ecto.Schema
   import Ecto.Changeset
 

@@ -1,4 +1,4 @@
-defmodule Core.Researcher.ScrapedWebpages do
+defmodule Core.Researcher.Webpages do
   @moduledoc """
   Database operations for scraped webpages.
   """

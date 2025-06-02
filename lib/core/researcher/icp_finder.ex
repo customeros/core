@@ -2,7 +2,6 @@ defmodule Core.Researcher.IcpFinder do
   @moduledoc """
   Provides functionality to find companies that match ICP profiles using AI.
   """
-
   alias Core.Ai
   alias Core.Crm.Leads
   alias Core.Auth.Tenants
@@ -16,7 +15,6 @@ defmodule Core.Researcher.IcpFinder do
 
   @doc """
   Starts a task to find matching companies for a tenant.
-
   Returns `:ok` on success, or `{:error, reason}` on failure.
   """
   def find_matching_companies_start(tenant_id) do
@@ -30,31 +28,28 @@ defmodule Core.Researcher.IcpFinder do
 
   @doc """
   Generates a list of 20 ideal companies that match the given ICP profile.
-
   Returns `{:ok, companies}` on success where companies is a list of maps containing company information,
   or `{:error, reason}` on failure.
   """
-  @spec find_matching_companies(integer()) :: {:ok, [map()]} | {:error, term()}
   def find_matching_companies(profile_id) do
     with {:ok, profile} <- IcpProfiles.get_profile(profile_id),
          {:ok, tenant} <- Tenants.get_tenant_by_id(profile.tenant_id),
          {:ok, companies} <- generate_matches(profile, tenant) do
       {:ok, companies}
+    else
+      {:error, reason} -> {:error, reason}
     end
   end
 
   @doc """
   Generates a list of 20 ideal companies that match the given ICP profile using AI.
-
   Returns `{:ok, companies}` on success where companies is a list of maps containing company information,
   or `{:error, reason}` on failure.
   """
-  @spec generate_matches(
-          Core.Researcher.Profiles.Profile.t(),
-          Core.Auth.Tenants.Tenant.t()
-        ) ::
-          {:ok, [map()]} | {:error, term()}
-  def generate_matches(profile, tenant) do
+  def generate_matches(
+        %IcpProfiles.Profile{} = profile,
+        %Tenants.Tenant{} = tenant
+      ) do
     task =
       profile
       |> PromptBuilder.build_prompts()
@@ -63,17 +58,22 @@ defmodule Core.Researcher.IcpFinder do
 
     case Task.yield(task, @icp_finder_timeout) do
       {:ok, {:ok, answer}} ->
-        answer
-        |> parse_companies()
-        |> Enum.filter(fn company -> validate(company) end)
-        |> Enum.map(fn company -> Companies.get_or_create(company) end)
-        |> Enum.map(fn {:ok, company} ->
-          Leads.get_or_create(tenant.name, %{
-            ref_id: company.id,
-            type: :company,
-            stage: :target
-          })
-        end)
+        with {:ok, companies} <- parse_companies(answer),
+             valid_companies <- Enum.filter(companies, &validate/1),
+             created_companies <-
+               Enum.map(valid_companies, &Companies.get_or_create/1),
+             leads <-
+               Enum.map(created_companies, fn {:ok, company} ->
+                 Leads.get_or_create(tenant.name, %{
+                   ref_id: company.id,
+                   type: :company,
+                   stage: :target
+                 })
+               end) do
+          {:ok, leads}
+        else
+          {:error, reason} -> {:error, reason}
+        end
 
       {:ok, {:error, reason}} ->
         {:error, reason}
@@ -90,8 +90,8 @@ defmodule Core.Researcher.IcpFinder do
   defp parse_companies(response) do
     case Jason.decode(response) do
       {:ok, %{"companies" => companies}} when is_list(companies) ->
-        companies
-        |> Enum.map(&parse_company/1)
+        parsed_companies = Enum.map(companies, &parse_company/1)
+        {:ok, parsed_companies}
 
       {:ok, _} ->
         {:error, :invalid_response_format}
