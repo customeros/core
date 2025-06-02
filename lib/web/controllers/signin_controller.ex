@@ -11,15 +11,15 @@ defmodule Web.AuthController do
     with {:ok, _user} <- Users.login_or_register_user(email) do
       conn
       |> put_flash(:info, "Welcome back!")
-      |> redirect(to: "/signin")
+      |> redirect(to: ~p"/signin")
     else
-      {:error, reason} ->
+      {:error, errors} ->
         conn
-        |> put_flash(:error, reason)
+        |> assign_prop(:errors, %{
+          email: Keyword.get(errors, :email, "Something went wrong")
+        })
         |> render_inertia("Signin")
     end
-
-    conn |> render_inertia("Signin")
   end
 
   def signin_with_token(conn, %{"token" => token} = _params) do

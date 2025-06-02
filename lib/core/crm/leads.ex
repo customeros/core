@@ -119,11 +119,36 @@ defmodule Core.Crm.Leads do
               stage: Map.get(attrs, :stage, :pending)
             })
             |> Repo.insert()
+            |> tap(fn {:ok, result} -> after_insert_start(result) end)
 
           lead ->
             {:ok, lead}
         end
     end
+  end
+
+  defp after_insert_start(result) do
+    Task.start(fn ->
+      icon_url =
+        case Core.Crm.Companies.get_icon_url(result.ref_id) do
+          {:ok, icon_url} -> icon_url
+          _ -> nil
+        end
+
+      Web.Endpoint.broadcast("events:#{result.tenant_id}", "event", %{
+        type: :lead_created,
+        payload: %{
+          id: result.id,
+          icon_url: icon_url
+        }
+      })
+
+      Core.Researcher.NewLeadPipeline.start(result.id, result.tenant_id)
+    end)
+  end
+
+  defp after_insert_start(_) do
+    {:ok, nil}
   end
 
   def update_lead(%Lead{} = lead, attrs) do

@@ -103,6 +103,19 @@ defmodule Core.Auth.Tenants do
     end
   end
 
+  def get_or_create_tenant(tenant_name, domain) do
+    case get_tenant_by_name(tenant_name) do
+      {:error, :not_found} ->
+        case create_tenant(tenant_name, domain) do
+          {:ok, tenant} -> {:ok, tenant.id}
+          error -> error
+        end
+
+      {:ok, tenant} ->
+        {:ok, tenant.id}
+    end
+  end
+
   ## Private functions
 
   defp insert_tenant(name, domain) do
