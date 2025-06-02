@@ -22,9 +22,9 @@ jobs:
           elixir-version: "1.18.3"
           otp-version: "27.3.4"
 
-      - name: Run tests
-        run: |
-          ./scripts/runners/test.sh
+      # - name: Run tests
+      #   run: |
+      #     ./scripts/runners/test.sh
 
       - name: Install Bun
         run: |

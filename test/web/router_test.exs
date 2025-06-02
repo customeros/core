@@ -2,16 +2,12 @@ defmodule Web.RouterTest do
   use Web.ConnCase, async: true
   @endpoint Web.Endpoint
 
-  # Import Mox for mocking
   import Mox
 
-  # Make sure mocks are verified when the test exits
   setup :verify_on_exit!
 
-  # Setup to delete any existing sessions for the visitor
   setup do
-    # Delete any existing sessions for the visitor
-    Core.Repo.delete_all(Core.WebTracker.Schemas.WebSession)
+    Core.Repo.delete_all(Core.WebTracker.Sessions.Session)
     :ok
   end
 

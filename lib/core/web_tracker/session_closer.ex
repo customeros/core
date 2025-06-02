@@ -1,11 +1,11 @@
-defmodule Core.WebTracker.WebSessionCloser do
+defmodule Core.WebTracker.SessionCloser do
   @moduledoc """
   GenServer responsible for periodically closing inactive web sessions.
   """
   use GenServer
   require Logger
   require OpenTelemetry.Tracer
-  alias Core.WebTracker.WebSessions
+  alias Core.WebTracker.Sessions
   alias Core.Utils.Tracing
 
   # 2 minutes
@@ -27,7 +27,6 @@ defmodule Core.WebTracker.WebSessionCloser do
 
   @impl true
   def init(_opts) do
-    # Schedule the first check
     schedule_check(@default_interval_ms)
 
     {:ok, %{}}
@@ -36,7 +35,7 @@ defmodule Core.WebTracker.WebSessionCloser do
   @impl true
   def handle_info(:check_sessions, state) do
     OpenTelemetry.Tracer.with_span "web_session_closer.check_sessions" do
-      sessions = WebSessions.get_sessions_to_close(@default_batch_size)
+      sessions = Sessions.get_sessions_to_close(@default_batch_size)
       session_count = length(sessions)
 
       OpenTelemetry.Tracer.set_attributes([
@@ -91,7 +90,7 @@ defmodule Core.WebTracker.WebSessionCloser do
         {"session.visitor_id", session.visitor_id}
       ])
 
-      case WebSessions.close(session) do
+      case Sessions.close(session) do
         {:ok, closed_session} ->
           Tracing.ok()
           Logger.info("Closed web session: #{closed_session.id}")

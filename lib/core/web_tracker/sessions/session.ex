@@ -1,4 +1,4 @@
-defmodule Core.WebTracker.Schemas.WebSession do
+defmodule Core.WebTracker.Sessions.Session do
   @moduledoc """
   Schema definition for web sessions.
   """

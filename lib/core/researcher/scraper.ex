@@ -64,10 +64,8 @@ defmodule Core.Researcher.Scraper do
   end
 
   defp start_content_processing_task(content, url) do
-    # Capture OpenTelemetry context before starting supervised task
     current_ctx = OpenTelemetry.Ctx.get_current()
 
-    # Changed from start_child to async - returns Task struct directly
     Task.Supervisor.async(Core.TaskSupervisor, fn ->
       OpenTelemetry.Ctx.attach(current_ctx)
       ContentProcessor.handle_scraped_content(content, url)

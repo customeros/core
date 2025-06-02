@@ -1,4 +1,4 @@
-defmodule Core.Researcher.Builder.Profile do
+defmodule Core.Researcher.IcpBuilder.Profile do
   @moduledoc """
   Defines the data structure for Ideal Customer Profile (ICP) profiles.
 

@@ -28,7 +28,7 @@ defmodule Core.WebTracker.OriginTenantMapper do
 
     case find_tenant_for_domain(cleaned_origin) do
       {:ok, tenant} -> {:ok, tenant}
-      {:error, :not_found} -> check_subdomain_tenant(cleaned_origin)
+      @err_origin_not_configured -> check_subdomain_tenant(cleaned_origin)
     end
   end
 
@@ -38,7 +38,7 @@ defmodule Core.WebTracker.OriginTenantMapper do
 
   defp find_tenant_for_domain(domain) do
     case Map.get(@whitelisted_origins, domain) do
-      nil -> {:error, :not_found}
+      nil -> @err_origin_not_configured
       tenant -> {:ok, tenant}
     end
   end

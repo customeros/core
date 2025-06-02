@@ -1,4 +1,4 @@
-defmodule Core.WebTracker.Schemas.WebTrackerParams do
+defmodule Core.WebTracker.WebTracker.Event do
   @moduledoc """
   Struct and type definitions for web tracker event parameters.
   This module defines the expected shape of incoming web tracker events.

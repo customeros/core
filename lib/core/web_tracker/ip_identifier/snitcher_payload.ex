@@ -1,4 +1,4 @@
-defmodule Core.External.Snitcher.Types do
+defmodule Core.WebTracker.IpIdentifier.SnitcherPayload do
   @moduledoc """
   Types for Snitcher API responses.
   """

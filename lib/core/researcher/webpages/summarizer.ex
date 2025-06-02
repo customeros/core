@@ -15,12 +15,14 @@ defmodule Core.Researcher.Webpages.Summarizer do
   editorialization.
   """
 
-  alias Core.Researcher.Errors
   alias Core.Ai
-  @model :claude_sonnet
+
+  @model :gemini_flash
   @model_temperature 0.2
   @max_tokens 1024
   @timeout 60 * 1000
+
+  @err_timeout {:error, "generating content summary timed out"}
 
   def summarize_webpage_supervised(url, content) do
     Task.Supervisor.async(
@@ -49,11 +51,11 @@ defmodule Core.Researcher.Webpages.Summarizer do
         answer
 
       {:exit, reason} ->
-        Errors.error(reason)
+        {:error, reason}
 
       nil ->
         Task.shutdown(task)
-        Errors.error(:content_summary_timeout)
+        @err_timeout
     end
   end
 
