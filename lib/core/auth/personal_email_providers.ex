@@ -1,4 +1,12 @@
 defmodule Core.Auth.PersonalEmailProviders do
+  @moduledoc """
+  Context module for managing personal email provider domains.
+
+  Provides functions for checking if a given domain is a known personal
+  email provider. This is used to validate and categorize email addresses
+  in the authentication system.
+  """
+
   require OpenTelemetry.Tracer
   alias Core.Auth.PersonalEmailProviders.PersonalEmailProvider
   import Ecto.Query

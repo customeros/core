@@ -1,4 +1,13 @@
 defmodule Core.Ai.Gemini.Config do
+  @moduledoc """
+  Module for managing Gemini AI API configuration.
+
+  This module handles the configuration settings for the Gemini AI API,
+  including API path, API key, and timeout settings. It provides functions
+  for loading configuration from the application environment and validating
+  the configuration settings.
+  """
+
   @type t :: %__MODULE__{
           api_path: String.t(),
           api_key: String.t(),

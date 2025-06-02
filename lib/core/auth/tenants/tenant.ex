@@ -1,4 +1,12 @@
 defmodule Core.Auth.Tenants.Tenant do
+  @moduledoc """
+  Schema module representing a tenant in the authentication system.
+
+  A tenant represents a workspace or organization in the system, with properties
+  including name, domain, and workspace details. Each tenant has a unique ID
+  and is used to segregate data and users across different organizations.
+  """
+
   use Ecto.Schema
   import Ecto.Changeset
 

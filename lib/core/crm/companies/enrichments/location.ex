@@ -1,4 +1,13 @@
 defmodule Core.Crm.Companies.Enrichments.Location do
+  @moduledoc """
+  Module for enriching company location data using AI analysis.
+
+  This module uses AI to analyze company website content and identify
+  the company's primary country of operation using ISO 3166-1 alpha-2
+  country codes. It includes validation and confidence checks to ensure
+  accurate country identification.
+  """
+
   require Logger
   require OpenTelemetry.Tracer
   alias Core.Ai

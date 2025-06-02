@@ -1,4 +1,12 @@
 defmodule Core.Crm.Companies.Enrichments.Name do
+  @moduledoc """
+  Module for enriching company names using AI analysis.
+
+  This module uses AI to analyze company website content and identify
+  the commonly recognized brand name of a company. It includes validation
+  rules to ensure the extracted names meet business requirements.
+  """
+
   require Logger
   require OpenTelemetry.Tracer
   alias Core.Ai
