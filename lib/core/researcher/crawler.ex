@@ -175,11 +175,13 @@ defmodule Core.Researcher.Crawler do
   end
 
   defp scrape_url(url) do
-    with {:ok, valid_url} <- Core.Utils.UrlFormatter.to_https(url) do
-      valid_url
-      |> Core.Researcher.Scraper.scrape_webpage()
-    else
-      {:error, reason} -> {:error, reason}
+    case Core.Utils.UrlFormatter.to_https(url) do
+      {:ok, valid_url} ->
+        valid_url
+        |> Core.Researcher.Scraper.scrape_webpage()
+
+      {:error, reason} ->
+        {:error, reason}
     end
   end
 
