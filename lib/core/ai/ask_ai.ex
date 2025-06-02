@@ -1,4 +1,28 @@
 defmodule Core.Ai do
+  @moduledoc """
+  Provides a unified interface for AI model interactions across multiple providers.
+
+  This module handles:
+  - Multi-model AI request routing (Anthropic Claude and Google Gemini)
+  - Supervised and unsupervised AI requests
+  - Request validation and model selection
+  - Response handling and error management
+  - OpenTelemetry tracing and monitoring
+  - Model-specific configuration management
+
+  The module supports multiple AI models:
+  - Anthropic: Claude Haiku and Claude Sonnet
+  - Google: Gemini Pro and Gemini Flash
+
+  It implements proper AI integration practices including:
+  - Request validation
+  - Model selection
+  - Error handling
+  - Performance monitoring
+  - Proper request routing
+  - Configuration management
+  """
+
   require OpenTelemetry.Tracer
   alias Core.Ai.Anthropic
   alias Core.Ai.Gemini
@@ -9,7 +33,7 @@ defmodule Core.Ai do
   @supported_models @anthropic_models ++ @gemini_models
 
   @doc """
-  Supervised async AI request 
+  Supervised async AI request
   """
   @spec ask_supervised(Request.t()) :: Task.t()
   def ask_supervised(request) do

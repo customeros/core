@@ -1,4 +1,23 @@
 defmodule Core.Crm.Companies.CompanyEnrich do
+  @moduledoc """
+  Manages company data enrichment and enrichment tasks.
+
+  This module manages:
+  * Company homepage scraping
+  * Industry classification
+  * Company name extraction
+  * Country identification
+  * Company icon processing
+  * Enrichment task coordination
+  * Error handling and retries
+
+  It coordinates various enrichment tasks to gather and process
+  company information from multiple sources. The module handles
+  asynchronous processing of enrichment tasks, including website
+  scraping, AI-powered analysis, and data updates, with proper
+  error handling and retry mechanisms.
+  """
+
   require Logger
   require OpenTelemetry.Tracer
   import Ecto.Query

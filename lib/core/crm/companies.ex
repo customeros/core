@@ -1,4 +1,21 @@
 defmodule Core.Crm.Companies do
+  @moduledoc """
+  Manages company data and operations.
+
+  This module manages:
+  * Company creation and retrieval
+  * Domain-based company lookup
+  * Primary domain resolution
+  * Company enrichment triggering
+  * Icon URL management
+  * Error handling and tracing
+
+  It provides the core functionality for managing companies in the
+  system, including creation, lookup, and enrichment coordination.
+  The module handles domain normalization, company identification,
+  and proper error handling for all operations.
+  """
+
   require OpenTelemetry.Tracer
   alias Core.Crm.Companies.Company
   alias Core.Crm.Companies.CompanyEnrich

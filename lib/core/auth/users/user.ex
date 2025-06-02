@@ -1,4 +1,20 @@
 defmodule Core.Auth.Users.User do
+  @moduledoc """
+  Provides user account management functionality including registration, authentication,
+  and profile management.
+
+  This module handles:
+  - User registration and account creation
+  - Email validation and changes
+  - Account confirmation and status tracking
+  - Password hashing and security
+  - User profile data management
+  - Database schema and validation rules
+
+  The module implements secure user management practices including email validation,
+  proper password handling, and account state management.
+  """
+
   use Ecto.Schema
   import Ecto.Changeset
   alias Core.Utils.DomainExtractor

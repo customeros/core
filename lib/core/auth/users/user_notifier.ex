@@ -1,4 +1,21 @@
 defmodule Core.Auth.Users.UserNotifier do
+  @moduledoc """
+  Handles user notification and email delivery.
+
+  This module manages:
+  * Email template rendering
+  * User notification delivery
+  * Magic link generation
+  * Email update notifications
+  * Registration notifications
+  * HTML and text email formatting
+
+  It provides a comprehensive email notification system for
+  user-related events, including authentication, registration,
+  and email updates. The module handles both HTML and text
+  email formats, with proper templating and delivery tracking.
+  """
+
   import Swoosh.Email
 
   import Phoenix.Component

@@ -1,4 +1,29 @@
 defmodule Core.Ai.Anthropic.Ask do
+  @moduledoc """
+  Provides integration with Anthropic's Claude AI API for text generation and analysis.
+
+  This module handles:
+  - Claude API request construction and execution
+  - Response parsing and validation
+  - Error handling and retry logic
+  - Request configuration management
+  - System and user prompt handling
+  - Response format standardization
+
+  The module supports multiple Claude models:
+  - Claude 3.5 Haiku (2024-10-22)
+  - Claude 3.5 Sonnet (2024-10-22)
+
+  It implements proper API integration practices including:
+  - Secure API key handling
+  - Request validation
+  - Response parsing
+  - Error handling
+  - Timeout management
+  - Content type handling
+  - Version management
+  """
+
   alias Core.Ai.Anthropic.ApiRequest
   alias Core.Ai.Anthropic.Message
   alias Core.Ai.Anthropic.Request

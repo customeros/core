@@ -1,4 +1,24 @@
 defmodule Core.Auth.ApiTokens.ApiToken do
+  @moduledoc """
+  Manages API tokens for programmatic access to the system.
+
+  This module handles:
+  - API token generation and hashing
+  - Token validation and verification
+  - Token expiration and lifecycle management
+  - Scope-based access control
+  - Token usage tracking
+  - Secure token storage and retrieval
+
+  The module implements secure token practices including:
+  - Token hashing for storage
+  - Bearer token format support
+  - Expiration management
+  - Usage tracking
+  - Scope-based permissions
+  - Safe token deactivation
+  """
+
   use Ecto.Schema
   import Ecto.Query
   alias Core.Auth.ApiTokens.ApiToken
