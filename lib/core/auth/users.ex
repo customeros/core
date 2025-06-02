@@ -94,10 +94,10 @@ defmodule Core.Auth.Users do
         domain = get_change(changeset, :domain)
         tenant_name = get_change(changeset, :tenant_name)
 
-        with {:ok, tenant_id} <-
-               Tenants.get_or_create_tenant(tenant_name, domain) do
-          put_change(changeset, :tenant_id, tenant_id)
-        else
+        case Tenants.get_or_create_tenant(tenant_name, domain) do
+          {:ok, tenant_id} ->
+            put_change(changeset, :tenant_id, tenant_id)
+
           {:error, reason} ->
             Tracing.error(reason)
             Logger.error("Failed to register user: #{inspect(reason)}")

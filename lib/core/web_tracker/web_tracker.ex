@@ -302,7 +302,7 @@ defmodule Core.WebTracker do
                  type: :company
                }) do
             {:ok, _lead} -> :ok
-            {:error, reason} -> {:error, reason}
+            {:error, :not_found} -> {:error, :not_found}
           end
 
         {:error, reason} ->
