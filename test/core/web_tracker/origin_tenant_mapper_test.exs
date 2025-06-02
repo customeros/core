@@ -56,13 +56,13 @@ defmodule Core.WebTracker.OriginTenantMapperTest do
     end
 
     test "handles invalid input" do
-      assert {:error, :invalid_origin} =
+      assert {:error, "origin not provided"} =
                OriginTenantMapper.get_tenant_for_origin(nil)
 
-      assert {:error, :invalid_origin} =
+      assert {:error, "invalid origin"} =
                OriginTenantMapper.get_tenant_for_origin(123)
 
-      assert {:error, :origin_not_configured} =
+      assert {:error, "origin not provided"} =
                OriginTenantMapper.get_tenant_for_origin("")
 
       assert {:error, :origin_not_configured} =
