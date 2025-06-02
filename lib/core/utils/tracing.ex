@@ -3,9 +3,7 @@ defmodule Core.Utils.Tracing do
   Utility functions for tracing.
   """
 
-  import OpenTelemetry.Tracer,
-    only: [set_status: 1, set_status: 2, set_attributes: 1, current_span_ctx: 0]
-
+  require OpenTelemetry.Tracer
   require OpenTelemetry.Span
 
   @doc """
@@ -13,27 +11,27 @@ defmodule Core.Utils.Tracing do
   Does nothing if no active span context is present.
   """
   def error(reason) do
-    case current_span_ctx() do
+    case OpenTelemetry.Tracer.current_span_ctx() do
       :undefined ->
         :ok
 
       _ctx ->
         reason_str = to_reason_string(reason)
-        set_status(:error, reason_str)
+        OpenTelemetry.Tracer.set_status(:error, reason_str)
 
-        set_attributes([
+        OpenTelemetry.Tracer.set_attributes([
           {"error.reason", reason_str}
         ])
     end
   end
 
   def ok do
-    case current_span_ctx() do
+    case OpenTelemetry.Tracer.current_span_ctx() do
       :undefined ->
         :ok
 
       _ctx ->
-        set_status(:ok)
+        OpenTelemetry.Tracer.set_status(:ok, "")
     end
   end
 

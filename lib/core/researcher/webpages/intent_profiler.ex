@@ -2,7 +2,7 @@ defmodule Core.Researcher.Webpages.IntentProfiler do
   @moduledoc """
   Profiles webpage intent using AI.
   """
-  alias Core.Utils.Errors
+  alias Core.Researcher.Errors
   alias Core.Ai
   alias Core.Utils.Tracing
 

@@ -41,8 +41,6 @@ defmodule Core.WebTracker.OriginTenantMapper do
     end
   end
 
-  def get_tenant_for_origin(_), do: {:error, :invalid_origin}
-
   @doc """
   Returns true if the origin is in the whitelist.
   """
@@ -74,6 +72,4 @@ defmodule Core.WebTracker.OriginTenantMapper do
       |> List.first()
     end)
   end
-
-  defp clean_origin(_), do: ""
 end

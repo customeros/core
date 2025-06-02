@@ -63,6 +63,10 @@ defmodule Core.Crm.Companies.Enrichments.Industry do
 
           process_response(response)
 
+        {:ok, {:error, {:http_error, reason}}} ->
+          Tracing.error(reason)
+          {:error, :http_error}
+
         {:ok, {:error, reason}} ->
           Tracing.error(reason)
           {:error, reason}
