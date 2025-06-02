@@ -6,7 +6,7 @@ defmodule Web.WebTrackerController do
   alias Core.WebTracker
   alias Core.WebTracker.OriginValidator
   alias Core.WebTracker.OriginTenantMapper
-  alias Core.WebTracker.Schemas.WebTrackerParams
+  alias Core.WebTracker.WebTracker.Event
   alias Core.Utils.Tracing
 
   plug Web.Plugs.ValidateWebTrackerHeaders when action in [:create]
@@ -41,7 +41,7 @@ defmodule Web.WebTrackerController do
            :ok <- WebTracker.check_suspicious(header_referer),
            # Create event params with body values
            {:ok, event_params} <-
-             WebTrackerParams.new(
+             Event.new(
                Map.merge(params, %{
                  "tenant" => tenant,
                  "visitor_id" => visitor_id

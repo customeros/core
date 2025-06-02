@@ -1,4 +1,4 @@
-defmodule Core.External.Snitcher.Service do
+defmodule Core.WebTracker.IpIdentifier do
   @moduledoc """
   Integrates with the Snitcher API for IP-based company identification.
 
@@ -18,11 +18,10 @@ defmodule Core.External.Snitcher.Service do
   require Logger
 
   alias Core.ApiCallLogger.Logger, as: ApiLogger
-  alias Core.External.Snitcher.Types
+  alias Core.WebTracker.IpIdentifier.SnitcherPayload
 
   @vendor "snitcher"
 
-  @spec identify_ip(String.t()) :: {:ok, Types.t()} | {:error, term()}
   def identify_ip(ip) when is_binary(ip) do
     with {:ok, config} <- get_config(),
          {:ok, response} <- make_request(config, ip) do
@@ -51,7 +50,7 @@ defmodule Core.External.Snitcher.Service do
        when status in [200, 404] do
     case Jason.decode(body) do
       {:ok, data} ->
-        Types.parse_response(data)
+        SnitcherPayload.parse_response(data)
 
       {:error, error} ->
         Logger.error("Failed to decode Snitcher response: #{inspect(error)}")

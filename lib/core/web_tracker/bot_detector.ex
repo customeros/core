@@ -1,4 +1,4 @@
-defmodule Core.External.IPData.Service do
+defmodule Core.WebTracker.BotDetector do
   @moduledoc """
   IPData service integration.
   Handles IP address verification and intelligence gathering.
@@ -6,7 +6,6 @@ defmodule Core.External.IPData.Service do
   require Logger
 
   alias Core.ApiCallLogger.Logger, as: ApiLogger
-  @behaviour Core.External.IPData.Behaviour
 
   @vendor "ipdata"
 
@@ -17,7 +16,6 @@ defmodule Core.External.IPData.Service do
   - Threat assessment
   - Mobile carrier info
   """
-  @spec verify_ip(String.t()) :: {:ok, map()} | {:error, term()}
   def verify_ip(ip) do
     with %{api_key: api_key, api_url: api_url} <- get_config(),
          url <- "#{api_url}/#{ip}?api-key=#{api_key}",

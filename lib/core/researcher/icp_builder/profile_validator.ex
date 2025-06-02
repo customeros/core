@@ -1,4 +1,4 @@
-defmodule Core.Researcher.Builder.ProfileValidator do
+defmodule Core.Researcher.IcpBuilder.ProfileValidator do
   @moduledoc """
   Validates and parses AI responses into Profile structs.
 
@@ -16,7 +16,15 @@ defmodule Core.Researcher.Builder.ProfileValidator do
   clear error messages for debugging.
   """
 
-  alias Core.Researcher.Builder.Profile
+  alias Core.Researcher.IcpBuilder.Profile
+
+  @err_invalid_ai_response {:error, "Invalid JSON format in AI response"}
+  @err_response_not_string {:error, "Response must be a string"}
+  @err_invalid_qualified_attributes {:error,
+                                     "Missing or invalid 'qualifying_attributes' field"}
+  @err_invalid_profile {:error, "Missing or invalid 'profile' field"}
+  @err_missing_required_fields {:error,
+                                "Missing required fields: 'profile' and 'qualifying_attributes'"}
 
   @doc """
   Validates and parses the AI response into a Profile struct.
@@ -33,14 +41,14 @@ defmodule Core.Researcher.Builder.ProfileValidator do
       {:ok, profile}
     else
       {:error, %Jason.DecodeError{}} ->
-        {:error, "Invalid JSON format in AI response"}
+        @err_invalid_ai_response
 
       {:error, reason} ->
         {:error, reason}
     end
   end
 
-  def validate_and_parse(_), do: {:error, "Response must be a string"}
+  def validate_and_parse(_), do: @err_response_not_string
 
   defp extract_profile_data(%{
          "profile" => profile,
@@ -62,21 +70,21 @@ defmodule Core.Researcher.Builder.ProfileValidator do
   end
 
   defp extract_profile_data(%{"profile" => _}) do
-    {:error, "Missing or invalid 'qualifying_attributes' field"}
+    @err_invalid_qualified_attributes
   end
 
   defp extract_profile_data(%{"qualifying_attributes" => _}) do
-    {:error, "Missing or invalid 'profile' field"}
+    @err_invalid_profile
   end
 
   defp extract_profile_data(_) do
-    {:error, "Missing required fields: 'profile' and 'qualifying_attributes'"}
+    @err_missing_required_fields
   end
 
   defp validate_attributes(attributes) do
     case Enum.all?(attributes, &is_binary/1) do
       true -> :ok
-      false -> {:error, "All qualifying attributes must be strings"}
+      false -> @err_response_not_string
     end
   end
 end

@@ -1,4 +1,4 @@
-defmodule Core.WebTracker.Schemas.WebTrackerEvent do
+defmodule Core.WebTracker.Events.Event do
   @moduledoc """
   Schema definition for web tracker events.
   """

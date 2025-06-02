@@ -15,7 +15,7 @@ defmodule Core.Application do
       Core.Repo,
       Core.Crm.Companies.CompanyEnricher,
       Core.Crm.Companies.CompanyDomainProcessor,
-      Core.WebTracker.WebSessionCloser,
+      Core.WebTracker.SessionCloser,
       Web.Endpoint,
       Web.Presence,
       Web.Telemetry,

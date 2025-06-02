@@ -16,11 +16,13 @@ defmodule Core.Researcher.Scraper.ContentProcessor do
   sanitization and storage of the results.
   """
 
-  alias Core.Researcher.Errors
   alias Core.Researcher.Webpages
 
   # 1 min
   @default_timeout 60 * 1000
+
+  @err_not_utf8 {:error, "content not utf-8"}
+  @err_content_invalid {:error, "invalid content"}
 
   def handle_scraped_content_supervised(content, url) do
     Task.Supervisor.async(
@@ -34,7 +36,6 @@ defmodule Core.Researcher.Scraper.ContentProcessor do
   def handle_scraped_content(content, url) do
     with {:ok, sanitized_content} <- sanitize_content(content),
          {:ok, processed_data} <- process_webpage(url, sanitized_content) do
-      # Try to save to database but don't fail if it errors
       _ = save_to_database(url, processed_data)
       {:ok, processed_data}
     else
@@ -43,26 +44,21 @@ defmodule Core.Researcher.Scraper.ContentProcessor do
   end
 
   defp sanitize_content(content) when is_binary(content) do
-    # Remove null bytes and ensure valid UTF-8
     sanitized =
       content
-      # Remove null bytes
       |> String.replace(<<0>>, "")
-      # Convert to charlist to handle invalid UTF-8
       |> String.to_charlist()
-      # Keep only valid Unicode code points
       |> Enum.filter(&(&1 >= 0 and &1 <= 0x10FFFF))
-      # Convert back to string
       |> List.to_string()
 
     if String.valid?(sanitized) do
       {:ok, sanitized}
     else
-      {:error, :invalid_utf8}
+      @err_not_utf8
     end
   end
 
-  defp sanitize_content(_), do: {:error, :invalid_content_type}
+  defp sanitize_content(_), do: @err_content_invalid
 
   defp process_webpage(url, content) do
     links = Webpages.LinkExtractor.extract_links(content)
@@ -88,7 +84,7 @@ defmodule Core.Researcher.Scraper.ContentProcessor do
          links: links
        }}
     else
-      {:error, reason} -> Errors.error(reason)
+      {:error, reason} -> {:error, reason}
     end
   end
 

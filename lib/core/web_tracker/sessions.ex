@@ -1,13 +1,14 @@
-defmodule Core.WebTracker.WebSessions do
+defmodule Core.WebTracker.Sessions do
   @moduledoc """
   Context module for managing web sessions.
   Handles all business logic and database operations related to web sessions.
   """
 
   import Ecto.Query
+  alias Plug.Session
   alias Core.Repo
   alias Core.Utils.IdGenerator
-  alias Core.WebTracker.Schemas.WebSession
+  alias Core.WebTracker.Sessions.Session
 
   # Session timeout constants (in minutes)
   @page_exit_timeout_minutes 5
@@ -17,20 +18,19 @@ defmodule Core.WebTracker.WebSessions do
   @doc """
   Creates a new web session.
   """
-  @spec create(map()) :: {:ok, WebSession.t()} | {:error, Ecto.Changeset.t()}
   def create(attrs) do
     now = DateTime.utc_now() |> DateTime.truncate(:second)
 
     attrs =
       attrs
-      |> Map.put(:id, IdGenerator.generate_id_21(WebSession.id_prefix()))
+      |> Map.put(:id, IdGenerator.generate_id_21(Session.id_prefix()))
       |> Map.put(:created_at, now)
       |> Map.put(:updated_at, now)
       |> Map.put(:started_at, now)
       |> Map.put(:last_event_at, now)
 
-    %WebSession{}
-    |> WebSession.changeset(attrs)
+    %Session{}
+    |> Session.changeset(attrs)
     |> Repo.insert()
   end
 
@@ -38,12 +38,10 @@ defmodule Core.WebTracker.WebSessions do
   Gets an active session for the given tenant, visitor_id and origin combination.
   Returns nil if no active session is found.
   """
-  @spec get_active_session(String.t(), String.t(), String.t()) ::
-          WebSession.t() | nil
   def get_active_session(tenant, visitor_id, origin) do
     result =
       Repo.one(
-        from s in WebSession,
+        from s in Session,
           where:
             s.tenant == ^tenant and
               s.visitor_id == ^visitor_id and
@@ -59,13 +57,11 @@ defmodule Core.WebTracker.WebSessions do
   @doc """
   Updates the last event information (timestamp and type) for a session.
   """
-  @spec update_last_event(WebSession.t(), String.t()) ::
-          {:ok, WebSession.t()} | {:error, Ecto.Changeset.t()}
-  def update_last_event(%WebSession{} = session, event_type) do
+  def update_last_event(%Session{} = session, event_type) do
     now = DateTime.utc_now() |> DateTime.truncate(:second)
 
     session
-    |> WebSession.changeset(%{
+    |> Session.changeset(%{
       last_event_at: now,
       last_event_type: event_type,
       updated_at: now
@@ -84,8 +80,6 @@ defmodule Core.WebTracker.WebSessions do
   Results are ordered by last_event_at (oldest first) and limited by the input parameter.
   If limit is 0 or negative, defaults to #{@default_limit}.
   """
-  @spec get_sessions_to_close(integer) ::
-          [WebSession.t()] | {:error, String.t()}
   def get_sessions_to_close(limit) when not is_integer(limit),
     do: {:error, "limit must be an integer"}
 
@@ -101,7 +95,7 @@ defmodule Core.WebTracker.WebSessions do
     default_cutoff = DateTime.add(now, -@default_timeout_minutes * 60, :second)
     page_exit_event_str = :page_exit |> Atom.to_string()
 
-    from(s in WebSession,
+    from(s in Session,
       where:
         s.active == true and
           ((s.last_event_type == ^page_exit_event_str and
@@ -118,18 +112,16 @@ defmodule Core.WebTracker.WebSessions do
   Closes a web session by setting active to false and ended_at to the last_event_at timestamp.
   Returns {:ok, session} if closed successfully or if already closed.
   """
-  @spec close(WebSession.t()) ::
-          {:ok, WebSession.t()} | {:error, Ecto.Changeset.t() | String.t()}
-  def close(%WebSession{} = session) when is_nil(session.id),
+  def close(%Session{} = session) when is_nil(session.id),
     do: {:error, "Session ID is required"}
 
-  def close(%WebSession{active: false} = session),
+  def close(%Session{active: false} = session),
     # Session already closed, return as is
     do: {:ok, session}
 
-  def close(%WebSession{} = session) do
+  def close(%Session{} = session) do
     session
-    |> WebSession.changeset(%{
+    |> Session.changeset(%{
       active: false,
       ended_at: session.last_event_at
     })

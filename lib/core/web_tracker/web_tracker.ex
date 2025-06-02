@@ -11,8 +11,8 @@ defmodule Core.WebTracker do
   require Logger
   require OpenTelemetry.Tracer
 
-  alias Core.WebTracker.WebSessions
-  alias Core.WebTracker.WebTrackerEvents
+  alias Core.WebTracker.Sessions
+  alias Core.WebTracker.Events
   alias Core.Crm.Companies
   alias Core.Utils.Tracing
 
@@ -113,7 +113,7 @@ defmodule Core.WebTracker do
         {"origin", attrs.origin}
       ])
 
-      case WebSessions.get_active_session(
+      case Sessions.get_active_session(
              attrs.tenant,
              attrs.visitor_id,
              attrs.origin
@@ -184,7 +184,7 @@ defmodule Core.WebTracker do
         just_created: true
       }
 
-      case WebSessions.create(session_attrs) do
+      case Sessions.create(session_attrs) do
         {:ok, session} ->
           Tracing.ok()
           {:ok, attrs, session}
@@ -202,9 +202,9 @@ defmodule Core.WebTracker do
     OpenTelemetry.Tracer.with_span "web_tracker.create_event" do
       event_attrs = build_event_attrs(attrs, session)
 
-      with {:ok, _event} <- WebTrackerEvents.create(event_attrs),
+      with {:ok, _event} <- Events.create(event_attrs),
            {:ok, _session} <-
-             WebSessions.update_last_event(session, attrs.event_type) do
+             Sessions.update_last_event(session, attrs.event_type) do
         Tracing.ok()
         {:ok, attrs, session, :event_created}
       else
@@ -219,7 +219,6 @@ defmodule Core.WebTracker do
 
   defp enrich_with_company_data({:ok, attrs, session, :event_created}) do
     OpenTelemetry.Tracer.with_span "web_tracker.enrich_with_company_data" do
-      # Only enrich for new sessions using just_created flag
       if session.just_created do
         OpenTelemetry.Tracer.set_attributes([
           {"enrichment.type", "new_session"}
@@ -325,8 +324,8 @@ defmodule Core.WebTracker do
   defp get_ip_intelligence_module do
     Application.get_env(
       :core,
-      Core.WebTracker.IPIntelligence,
-      Core.WebTracker.IPIntelligence
+      Core.WebTracker.IPProfiler,
+      Core.WebTracker.IPProfiler
     )
   end
 

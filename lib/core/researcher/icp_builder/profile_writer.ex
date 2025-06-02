@@ -1,4 +1,4 @@
-defmodule Core.Researcher.Builder.ProfileWriter do
+defmodule Core.Researcher.IcpBuilder.ProfileWriter do
   @moduledoc """
   Generates Ideal Customer Profiles (ICPs) based on business pages.
 
@@ -16,15 +16,16 @@ defmodule Core.Researcher.Builder.ProfileWriter do
   effective lead evaluation.
   """
 
-  alias Core.Researcher.Builder.ProfileValidator
+  alias Core.Researcher.IcpBuilder.ProfileValidator
   alias Core.Researcher.Webpages
-  alias Core.Researcher.Errors
   alias Core.Ai
 
   @model :claude_sonnet
   @model_temperature 0.2
   @max_tokens 2048
   @timeout 60 * 1000
+
+  @err_task_timeout {:error, :task_timeout}
 
   def generate_icp(domain) when is_binary(domain) do
     with {:ok, pages} <-
@@ -35,7 +36,7 @@ defmodule Core.Researcher.Builder.ProfileWriter do
          {system_prompt, prompt} <- build_prompts(domain, pages) do
       ask_ai_for_icp(build_request(system_prompt, prompt))
     else
-      {:error, reason} -> Errors.error(reason)
+      {:error, reason} -> {:error, reason}
     end
   end
 
@@ -47,14 +48,14 @@ defmodule Core.Researcher.Builder.ProfileWriter do
         ProfileValidator.validate_and_parse(answer)
 
       {:ok, {:error, reason}} ->
-        Errors.error(reason)
+        {:error, reason}
 
       {:exit, reason} ->
-        Errors.error(reason)
+        {:error, reason}
 
       nil ->
         Task.shutdown(task)
-        Errors.error(:timeout)
+        @err_task_timeout
     end
   end
 
@@ -130,9 +131,10 @@ defmodule Core.Researcher.Builder.ProfileWriter do
     content_sections =
       business_pages
       |> Enum.with_index(1)
-      |> Enum.map_join("\n\n", fn {page, index} ->
+      |> Enum.map(fn {page, index} ->
         build_individual_page_content(page, index)
       end)
+      |> Enum.join("\n\n")
 
     """
     WEBSITE CONTENT:
@@ -260,11 +262,10 @@ defmodule Core.Researcher.Builder.ProfileWriter do
     if Enum.any?(value_props) do
       section =
         "Value Propositions:\n" <>
-          Enum.map_join(
-            Enum.with_index(value_props, 1),
-            "\n",
-            fn {prop, idx} -> "#{idx}. #{prop}" end
-          )
+          (value_props
+           |> Enum.with_index(1)
+           |> Enum.map(fn {prop, idx} -> "#{idx}. #{prop}" end)
+           |> Enum.join("\n"))
 
       [section | sections]
     else
@@ -309,9 +310,9 @@ defmodule Core.Researcher.Builder.ProfileWriter do
 
     if Enum.any?(content_types) do
       type_summary =
-        Enum.map_join(content_types, ", ", fn {type, count} ->
-          "#{count} #{type}"
-        end)
+        content_types
+        |> Enum.map(fn {type, count} -> "#{count} #{type}" end)
+        |> Enum.join(", ")
 
       section =
         "Content Analysis: #{type_summary} (#{length(business_pages)} total pages analyzed)"
