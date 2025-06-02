@@ -3,6 +3,10 @@ defmodule Core.WebTracker.OriginTenantMapper do
   Manages the mapping between whitelisted origins and their corresponding tenants.
   """
 
+  @err_invalid_origin {:error, "invalid origin"}
+  @err_origin_not_provided {:error, "origin not provided"}
+  @err_origin_not_configured {:error, :origin_not_configured}
+
   # TODO: Move this to db later
   @whitelisted_origins %{
     "getkanda.com" => "getkandacom",
@@ -18,9 +22,8 @@ defmodule Core.WebTracker.OriginTenantMapper do
   The origin can be provided with or without http:// or https:// prefix.
   If exact match is not found, checks if the origin is a subdomain of a whitelisted root domain.
   """
-  @spec get_tenant_for_origin(String.t()) ::
-          {:ok, String.t()} | {:error, :origin_not_configured | :invalid_origin}
-  def get_tenant_for_origin(origin) when is_binary(origin) do
+  def get_tenant_for_origin(origin)
+      when is_binary(origin) and byte_size(origin) > 0 do
     cleaned_origin = clean_origin(origin)
 
     case Map.get(@whitelisted_origins, cleaned_origin) do
@@ -33,13 +36,17 @@ defmodule Core.WebTracker.OriginTenantMapper do
             end
 
           {:error, _} ->
-            {:error, :origin_not_configured}
+            @err_origin_not_configured
         end
 
       tenant ->
         {:ok, tenant}
     end
   end
+
+  def get_tenant_for_origin(""), do: @err_origin_not_provided
+  def get_tenant_for_origin(nil), do: @err_origin_not_provided
+  def get_tenant_for_origin(_), do: @err_invalid_origin
 
   @doc """
   Returns true if the origin is in the whitelist.

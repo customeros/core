@@ -3,7 +3,15 @@ defmodule Core.Researcher.Scraper.Jina do
   Service for fetching web pages using the Jina API.
   """
   require Logger
-  alias Core.Researcher.Errors
+
+  @err_invalid_url {:error, :invalid_url}
+  @err_url_not_provided {:error, :url_not_provided}
+  @err_empty_response {:error, "empty API response"}
+  @err_ratelimit_exceeded {:error, :rate_limit_exceeded}
+  @err_api_key_not_set {:error, "Jina API key not set"}
+  @err_api_path_not_set {:error, "Jina API path not set"}
+  @err_invalid_api_response {:error, "invalid API response format"}
+  @err_unable_to_decode_response {:error, "unable to decode response"}
 
   # 45 seconds
   @timeout 45 * 1000
@@ -11,39 +19,29 @@ defmodule Core.Researcher.Scraper.Jina do
   @doc """
   Fetches a web page async with supervision.
   """
-  @spec fetch_page_supervised(String.t()) ::
-          Task.t() | {:error, Errors.researcher_error()}
-  def fetch_page_supervised(url) when is_binary(url) and url != "" do
+  def fetch_page_supervised(url) do
     Task.Supervisor.async(
       Core.TaskSupervisor,
       fn -> fetch_page(url) end
     )
   end
 
-  def fetch_page_supervised(""), do: Errors.error(:url_not_provided)
-  def fetch_page_supervised(nil), do: Errors.error(:url_not_provided)
-  def fetch_page_supervised(_), do: Errors.error(:invalid_url)
-
   @doc """
   Fetches a web page synchronously using the Jina API.
   """
-  @spec fetch_page(String.t()) ::
-          {:ok, String.t()}
-          | {:error, Errors.researcher_error()}
-          | {:error, {:http_error, String.t()}}
-  def fetch_page(url) when is_binary(url) do
+  def fetch_page(url) when is_binary(url) and byte_size(url) > 0 do
     with {:ok, config} <- validate_config(),
          request_url <- build_request_url(config.api_path, url),
          response <- make_request(request_url, config.api_key) do
       handle_response(response)
     else
-      {:error, reason} -> Errors.error(reason)
+      {:error, reason} -> {:error, reason}
     end
   end
 
-  def fetch_page(""), do: Errors.error(:url_not_provided)
-  def fetch_page(nil), do: Errors.error(:url_not_provided)
-  def fetch_page(_), do: Errors.error(:invalid_url)
+  def fetch_page(""), do: @err_url_not_provided
+  def fetch_page(nil), do: @err_url_not_provided
+  def fetch_page(_), do: @err_invalid_url
 
   # Private functions
   defp build_request_url(api_path, url), do: api_path <> url
@@ -68,8 +66,8 @@ defmodule Core.Researcher.Scraper.Jina do
         response
 
       {:error, reason} ->
-        Logger.error("Jina API request failed: #{inspect(reason)}")
-        {:error, :http_error}
+        err = "Jina API request failed: #{inspect(reason)}"
+        {:error, err}
     end
   end
 
@@ -94,10 +92,10 @@ defmodule Core.Researcher.Scraper.Jina do
 
     cond do
       is_nil(api_key) or api_key == "" ->
-        Errors.error(:jina_api_key_not_set)
+        @err_api_key_not_set
 
       is_nil(api_path) or api_path == "" ->
-        Errors.error(:jina_api_path_not_set)
+        @err_api_path_not_set
 
       true ->
         {:ok, %{api_key: api_key, api_path: api_path}}
@@ -105,22 +103,41 @@ defmodule Core.Researcher.Scraper.Jina do
   end
 
   # Pure response handling
-  defp handle_response(%Finch.Response{status: 200, body: body}),
-    do: {:ok, body}
+  def handle_response_test(response), do: handle_response(response)
 
-  defp handle_response(%Finch.Response{status: 402}),
-    do: Errors.error(:payment_required)
+  defp handle_response(%Finch.Response{status: 200, body: body}) do
+    case Jason.decode(body) do
+      {:ok, %{"success" => true, "data" => %{"markdown" => content}}}
+      when is_binary(content) and content != "" ->
+        {:ok, content}
 
-  defp handle_response(%Finch.Response{status: 422}),
-    do: Errors.error(:unprocessable)
+      {:ok, %{"success" => true, "data" => _}} ->
+        @err_empty_response
+
+      {:ok, _decoded} ->
+        @err_invalid_api_response
+
+      {:error, _reason} ->
+        @err_unable_to_decode_response
+    end
+  end
 
   defp handle_response(%Finch.Response{status: status, body: body}) do
-    Logger.error("Jina API error - Status: #{status}, Body: #{body}")
-    {:error, :http_error}
+    case status do
+      429 ->
+        @err_ratelimit_exceeded
+
+      _ ->
+        decoded_body =
+          case Jason.decode(body) do
+            {:ok, decoded} -> decoded
+            _ -> body
+          end
+
+        err = "Status: #{status}, Body: #{inspect(decoded_body)}"
+        {:error, err}
+    end
   end
 
-  defp handle_response({:error, reason}) do
-    Logger.error("Jina API error: #{inspect(reason)}")
-    {:error, :http_error}
-  end
+  defp handle_response({:error, reason}), do: {:error, reason}
 end

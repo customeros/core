@@ -4,12 +4,19 @@ defmodule Core.Researcher.Scraper.Puremd do
   """
 
   require Logger
-  alias Core.Researcher.Errors
+
+  @err_invalid_url {:error, :invalid_url}
+  @err_url_not_provided {:error, :url_not_provided}
+  @err_empty_response {:error, "empty API response"}
+  @err_ratelimit_exceeded {:error, :rate_limit_exceeded}
+  @err_api_key_not_set {:error, "PureMD API key not set"}
+  @err_api_path_not_set {:error, "PureMD API path not set"}
+  @err_invalid_api_response {:error, "invalid API response format"}
+  @err_unable_to_decode_response {:error, "unable to decode response"}
 
   @doc """
   Fetches a web page async with supervision.
   """
-  @spec fetch_page_supervised(String.t()) :: Task.t()
   def fetch_page_supervised(url) do
     Task.Supervisor.async(
       Core.TaskSupervisor,
@@ -21,23 +28,19 @@ defmodule Core.Researcher.Scraper.Puremd do
   Fetches a web page using the PureMD API.
   """
 
-  @spec fetch_page(String.t()) ::
-          {:ok, String.t()}
-          | {:error, Errors.researcher_error()}
-          | {:error, {:http_error, String.t()}}
-  def fetch_page(url) when is_binary(url) do
+  def fetch_page(url) when is_binary(url) and byte_size(url) > 0 do
     with {:ok, config} <- validate_config(),
          request_url <- config.api_path <> url,
          {:ok, response} <- make_request(request_url, config.api_key) do
       handle_response(response)
     else
-      {:error, reason} -> Errors.error(reason)
+      {:error, reason} -> {:error, reason}
     end
   end
 
-  def fetch_page(""), do: Errors.error(:url_not_provided)
-  def fetch_page(nil), do: Errors.error(:url_not_provided)
-  def fetch_page(_), do: Errors.error(:invalid_url)
+  def fetch_page(""), do: @err_url_not_provided
+  def fetch_page(nil), do: @err_url_not_provided
+  def fetch_page(_), do: @err_invalid_url
 
   defp make_request(request_url, api_key)
        when request_url != "" and api_key != "" do
@@ -76,21 +79,54 @@ defmodule Core.Researcher.Scraper.Puremd do
 
     cond do
       api_key == nil || api_key == "" ->
-        Errors.error(:puremd_api_key_not_set)
+        @err_api_key_not_set
 
       api_path == nil || api_path == "" ->
-        Errors.error(:puremd_api_path_not_set)
+        @err_api_path_not_set
 
       true ->
         {:ok, %{api_key: api_key, api_path: api_path}}
     end
   end
 
-  defp handle_response(%Finch.Response{status: 200, body: body}),
-    do: {:ok, body}
+  def handle_response_test(response), do: handle_response(response)
+
+  defp handle_response(%Finch.Response{status: 200, body: body}) do
+    case Jason.decode(body) do
+      {:ok, %{"success" => true, "data" => %{"markdown" => content}}}
+      when is_binary(content) and content != "" ->
+        {:ok, content}
+
+      {:ok, %{"success" => true, "data" => _}} ->
+        @err_empty_response
+
+      {:ok, _decoded} ->
+        @err_invalid_api_response
+
+      {:error, _reason} ->
+        @err_unable_to_decode_response
+    end
+  end
 
   defp handle_response(%Finch.Response{status: status, body: body}) do
-    Logger.error("PureMD API error - Status: #{status}, Body: #{body}")
-    {:error, :http_error}
+    err = "PureMD API error - Status: #{status}, Body: #{body}"
+    {:error, err}
+
+    case status do
+      429 ->
+        @err_ratelimit_exceeded
+
+      _ ->
+        decoded_body =
+          case Jason.decode(body) do
+            {:ok, decoded} -> decoded
+            _ -> body
+          end
+
+        err = "Status: #{status}, Body: #{inspect(decoded_body)}"
+        {:error, err}
+    end
   end
+
+  defp handle_response({:error, reason}), do: {:error, reason}
 end

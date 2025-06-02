@@ -4,17 +4,21 @@ defmodule Core.Researcher.Scraper do
   alias Core.Researcher.Scraper.Jina
   alias Core.Researcher.Scraper.Puremd
   alias Core.Researcher.Webpages.Cleaner
+  alias Core.Researcher.Scraper.Firecrawl
   alias Core.Researcher.Scraper.ContentProcessor
 
   # 60 seconds
   @scraper_timeout 60 * 1000
 
   @err_no_content {:error, :no_content}
+  @err_invalid_url {:error, :invalid_url}
   @err_unprocessable {:error, :unprocessable}
+  @err_url_not_provided {:error, :url_not_provided}
   @err_webscraper_timed_out {:error, "webscraper timed out"}
   @err_unexpected_response {:error, "webscraper returned unexpected response"}
 
-  def scrape_webpage(url) do
+  def scrape_webpage(url)
+      when is_binary(url) and byte_size(url) > 0 do
     OpenTelemetry.Tracer.with_span "scraper.scrape_webpage" do
       OpenTelemetry.Tracer.set_attributes([
         {"url", url}
@@ -26,6 +30,10 @@ defmodule Core.Researcher.Scraper do
       end
     end
   end
+
+  def scrape_webpage(""), do: @err_url_not_provided
+  def scrape_webpage(nil), do: @err_url_not_provided
+  def scrape_webpage(_), do: @err_invalid_url
 
   defp fetch_and_process_webpage(url) do
     with {:ok, content} <- fetch_webpage(url),
@@ -49,8 +57,9 @@ defmodule Core.Researcher.Scraper do
   end
 
   defp fetch_webpage(url) do
-    with {:error, _jina_reason} <- try_jina_service(url),
-         {:error, puremd_reason} <- try_puremd_service(url) do
+    with {:error, _jina_reason} <- try_jina(url),
+         {:error, _firecrawl_reason} <- try_firecrawl(url),
+         {:error, puremd_reason} <- try_puremd(url) do
       handle_fetch_error(puremd_reason)
     else
       {:ok, content} ->
@@ -76,13 +85,11 @@ defmodule Core.Researcher.Scraper do
     {:error, err}
   end
 
-  defp try_jina_service(url) do
+  defp try_jina(url) do
     Logger.info("Attempting to fetch #{url} with Jina service")
 
-    # Capture context before starting supervised task
     current_ctx = OpenTelemetry.Ctx.get_current()
 
-    # Changed from start_child to async - returns Task struct directly
     task =
       Task.Supervisor.async(Core.TaskSupervisor, fn ->
         OpenTelemetry.Ctx.attach(current_ctx)
@@ -92,12 +99,21 @@ defmodule Core.Researcher.Scraper do
     await_scraped_webpage(url, task, @scraper_timeout, "Jina webscraper")
   end
 
-  defp try_puremd_service(url) do
-    Logger.info("Attempting to fetch #{url} with PureMD service")
-
+  defp try_firecrawl(url) do
     current_ctx = OpenTelemetry.Ctx.get_current()
 
-    # Changed from start_child to async - returns Task struct directly
+    task =
+      Task.Supervisor.async(Core.TaskSupervisor, fn ->
+        OpenTelemetry.Ctx.attach(current_ctx)
+        Firecrawl.fetch_page(url)
+      end)
+
+    await_scraped_webpage(url, task, @scraper_timeout, "Firecrawl webscraper")
+  end
+
+  defp try_puremd(url) do
+    current_ctx = OpenTelemetry.Ctx.get_current()
+
     task =
       Task.Supervisor.async(Core.TaskSupervisor, fn ->
         OpenTelemetry.Ctx.attach(current_ctx)
@@ -116,10 +132,6 @@ defmodule Core.Researcher.Scraper do
       {:ok, {:error, reason}} ->
         {:error, reason}
 
-      {:ok, {:http_error, reason}} ->
-        err = "http error => #{task_name} failed for #{url}: #{inspect(reason)}"
-        {:error, err}
-
       {:ok, _unexpected} ->
         @err_unexpected_response
 
@@ -134,9 +146,6 @@ defmodule Core.Researcher.Scraper do
   end
 
   defp use_cached_content(record) do
-    Logger.info("Using cached content for #{record.url}")
-
-    # Return the full scraped data structure for consistency
     {:ok,
      %{
        content: record.content,
