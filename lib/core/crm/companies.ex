@@ -69,14 +69,15 @@ defmodule Core.Crm.Companies do
         {"primary_domain", primary_domain}
       ])
 
-      with {:ok, company} <- create_with_domain(primary_domain) do
-        CompanyEnrich.scrape_homepage_start(company.id)
-        Tracing.ok()
-        {:ok, company}
-      else
-        {:error, _reason} = error ->
-          Tracing.error("creation_failed")
-          error
+      case create_with_domain(primary_domain) do
+        {:ok, company} ->
+          CompanyEnrich.scrape_homepage_start(company.id)
+          Tracing.ok()
+          {:ok, company}
+
+        {:error, reason} ->
+          Tracing.error(reason)
+          {:error, reason}
       end
     end
   end

@@ -60,21 +60,22 @@ defmodule Core.Crm.Documents do
   end
 
   def update_document(attrs \\ %{}) do
-    with %Document{} = document <- Repo.get(Document, attrs.id) do
-      document
-      |> Document.update_changeset(attrs)
-      |> Repo.update()
-    else
-      nil -> {:error, :not_found}
+    case Repo.get(Document, attrs.id) do
+      %Document{} = document ->
+        document
+        |> Document.update_changeset(attrs)
+        |> Repo.update()
+      nil ->
+        {:error, :not_found}
     end
   end
 
   def delete_document(id) do
-    with %Document{} = document <- Repo.get(Document, id) do
-      document
-      |> Repo.delete()
-    else
-      nil -> {:error, :not_found}
+    case Repo.get(Document, id) do
+      %Document{} = document ->
+        Repo.delete(document)
+      nil ->
+        {:error, :not_found}
     end
   end
 
