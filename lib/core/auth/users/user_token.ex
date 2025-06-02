@@ -1,4 +1,22 @@
 defmodule Core.Auth.Users.UserToken do
+  @moduledoc """
+  Manages user authentication and session tokens.
+
+  This module manages:
+  * Session token generation and validation
+  * Email token handling
+  * Token expiration and cleanup
+  * Secure token hashing
+  * Token context management
+  * User session tracking
+
+  It provides a secure token system for user authentication,
+  including session management and email-based authentication
+  flows. The module implements proper token hashing, expiration
+  policies, and validation mechanisms to ensure secure user
+  authentication.
+  """
+
   use Ecto.Schema
   import Ecto.Query
   alias Core.Auth.Users.UserToken

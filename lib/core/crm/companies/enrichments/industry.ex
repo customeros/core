@@ -1,4 +1,21 @@
 defmodule Core.Crm.Companies.Enrichments.Industry do
+  @moduledoc """
+  Handles company industry classification using AI and NAICS codes.
+
+  This module manages:
+  * Industry classification of companies
+  * NAICS code identification
+  * AI-powered industry analysis
+  * Response validation and processing
+  * Error handling and tracing
+
+  It uses AI to analyze company website content and classify
+  companies according to the 2022 NAICS (North American Industry
+  Classification System) codes. The module ensures accurate
+  industry classification through strict validation and proper
+  error handling.
+  """
+
   require Logger
   require OpenTelemetry.Tracer
   alias Core.Ai

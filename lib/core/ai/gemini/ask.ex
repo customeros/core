@@ -1,4 +1,24 @@
 defmodule Core.Ai.Gemini.Ask do
+  @moduledoc """
+  Provides integration with Google's Gemini AI API for text generation and analysis.
+
+  This module handles:
+  - Gemini API request construction and execution
+  - Response parsing and validation
+  - Error handling and retry logic
+  - Request configuration management
+  - System and user prompt handling
+  - Response format standardization
+
+  The module implements proper API integration practices including:
+  - Secure API key handling
+  - Request validation
+  - Response parsing
+  - Error handling
+  - Timeout management
+  - Content type handling
+  """
+
   alias Core.Ai.Gemini
 
   require Logger
