@@ -1,4 +1,20 @@
 defmodule Core.Researcher.Webpages.Summarizer do
+  @moduledoc """
+  Provides AI-powered webpage content summarization functionality.
+
+  This module handles:
+  - Webpage content summarization using Claude AI
+  - Supervised and unsupervised summarization tasks
+  - Prompt construction and management
+  - Timeout handling and error management
+  - Integration with AI services
+  - Task supervision for long-running operations
+
+  The module uses Claude Sonnet to generate concise, informative summaries
+  of webpage content while maintaining critical information and avoiding
+  editorialization.
+  """
+
   alias Core.Researcher.Errors
   alias Core.Ai
   @model :claude_sonnet

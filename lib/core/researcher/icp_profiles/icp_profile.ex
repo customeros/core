@@ -1,4 +1,12 @@
 defmodule Core.Researcher.IcpProfiles.Profile do
+  @moduledoc """
+  Defines and manages Ideal Customer Profile (ICP) data structures and operations.
+
+  This module handles the representation and manipulation of ICP profiles, which define
+  the characteristics and attributes of ideal customers for a business. It includes
+  functionality for creating, updating, and analyzing ICP profiles.
+  """
+
   use Ecto.Schema
   import Ecto.Changeset
 

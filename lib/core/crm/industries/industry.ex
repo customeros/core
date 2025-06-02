@@ -1,4 +1,11 @@
 defmodule Core.Crm.Industries.Industry do
+  @moduledoc """
+  Schema module representing an industry in the CRM system.
+
+  Industries are identified by a unique code and have a name.
+  This schema is used to categorize and organize CRM entities by industry.
+  """
+
   use Ecto.Schema
   import Ecto.Changeset
 

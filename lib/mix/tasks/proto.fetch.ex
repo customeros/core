@@ -1,4 +1,20 @@
 defmodule Mix.Tasks.Proto.Fetch do
+  @moduledoc """
+  Mix task for fetching Protocol Buffer definitions from GitHub.
+
+  This task manages the retrieval of .proto files from the CustomerOS GitHub repository.
+  It performs the following operations:
+
+  - Cleans the target directory (priv/protos)
+  - Fetches the list of available .proto files from GitHub
+  - Downloads each .proto file to the local priv/protos directory
+  - Maintains proper file organization
+  - Handles GitHub API authentication and rate limiting
+
+  The task ensures that the local .proto files are in sync with the remote
+  repository, providing a clean way to update protocol definitions.
+  """
+
   use Mix.Task
 
   @shortdoc "Fetches .proto files from GitHub"

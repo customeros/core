@@ -1,4 +1,12 @@
 defmodule Core.Researcher.IcpFinder.PromptBuilder do
+  @moduledoc """
+  Builds prompts for identifying and discovering potential Ideal Customer Profiles (ICPs).
+
+  This module is responsible for constructing prompts that help in the process of
+  identifying and defining new ICPs. It generates structured prompts for AI-based
+  analysis to discover and validate potential ICPs based on various business criteria.
+  """
+
   alias Core.Ai
   @model :claude_sonnet
   @model_temperature 0.2

@@ -1,4 +1,12 @@
 defmodule Core.Researcher.IcpFitEvaluator.PromptBuilder do
+  @moduledoc """
+  Constructs prompts for evaluating how well a potential customer fits an Ideal Customer Profile (ICP).
+
+  This module is responsible for building and formatting prompts that are used to assess
+  the fit between a potential customer and defined ICP criteria. It helps in generating
+  structured prompts for AI-based ICP fit evaluation.
+  """
+
   alias Core.Ai
   @model :claude_sonnet
   @model_temperature 0.2

@@ -1,4 +1,21 @@
 defmodule Mix.Tasks.Compile.Script do
+  @moduledoc """
+  Mix task for compiling TypeScript scripts using Bun.
+
+  This task manages the compilation of TypeScript scripts into executable JavaScript
+  files. It handles:
+
+  - Compilation of TypeScript files using Bun
+  - Support for multiple script files
+  - Output directory management
+  - Build process monitoring
+  - Error handling and reporting
+  - ElixirLS integration
+
+  The task compiles scripts from the scripts/ directory into the priv/scripts/
+  directory, making them available for use in the application.
+  """
+
   use Mix.Task
 
   @shortdoc "Compiles the TypeScript scripts using Bun"

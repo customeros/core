@@ -1,4 +1,15 @@
 defmodule Core.Crm.Leads.Lead do
+  @moduledoc """
+  Defines and manages the Lead data structure and lifecycle in the CRM system.
+
+  This module handles the representation and management of leads, including:
+  - Lead data structure and validation
+  - Lead lifecycle stages (from pending to customer)
+  - ICP fit assessment
+  - Lead creation and event broadcasting
+  - Integration with the new lead pipeline
+  """
+
   use Ecto.Schema
   import Ecto.Changeset
 

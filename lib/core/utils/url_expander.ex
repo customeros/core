@@ -1,4 +1,18 @@
 defmodule Core.Utils.UrlExpander do
+  @moduledoc """
+  Provides functionality for expanding shortened URLs to their full domains.
+
+  This module handles:
+  - Detection of shortened URLs (e.g., bit.ly, hubs.ly)
+  - Expansion of shortened URLs to their full domains
+  - Validation of URL formats
+  - Error handling for invalid or unexpandable URLs
+  - Integration with primary domain finder
+
+  The module ensures that shortened URLs are properly expanded while maintaining
+  proper error handling and validation throughout the process.
+  """
+
   alias Core.Utils.Errors
 
   @doc """
