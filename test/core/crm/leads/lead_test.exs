@@ -3,10 +3,22 @@ defmodule Core.Crm.Leads.LeadTest do
 
   alias Core.Crm.Leads.Lead
 
+  # Helper to allow background tasks to use the database
+  defp allow_background_tasks do
+    # Allow background tasks to use the database connection
+    Ecto.Adapters.SQL.Sandbox.mode(Core.Repo, {:shared, self()})
+  end
+
   describe "lead" do
     alias Core.Crm.Leads.Lead
 
     import Core.Crm.LeadsFixtures
+
+    setup do
+      # Allow background tasks to use the database
+      allow_background_tasks()
+      :ok
+    end
 
     test "list_by_tenant_id/1 returns all leads for tenant" do
       lead = lead_fixture()
