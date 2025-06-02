@@ -48,13 +48,13 @@ defmodule Core.ApiCallLogger.Logger do
         case Finch.request(request, Core.Finch) do
           {:ok, response} = result ->
             OpenTelemetry.Tracer.set_attributes([
-              {"http.status_code", response.status},
+              {"result.http_status_code", response.status},
               {"result.success", response.status in 200..299}
             ])
 
-            OpenTelemetry.Tracer.set_status(
-              if response.status in 200..299, do: :ok, else: :error
-            )
+            if response.status in 200..299 do
+              Tracing.ok()
+            end
 
             log_success(vendor, request, response, start_time)
             result
@@ -77,7 +77,7 @@ defmodule Core.ApiCallLogger.Logger do
             {"error.message", Exception.message(e)}
           ])
 
-          Tracing.error("#{inspect(e)}")
+          Tracing.error(e)
           Logger.error("Request failed with exception: #{inspect(e)}")
           log_error(vendor, request, e, start_time)
           {:error, :request_failed}

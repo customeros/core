@@ -9,7 +9,7 @@ defmodule Core.Utils.DomainValidator do
 
   alias Core.Utils.Errors
 
-  # Multi-level TLDs 
+  # Multi-level TLDs
   @known_multi_level_tlds [
     "co.uk",
     "co.jp",
@@ -78,9 +78,6 @@ defmodule Core.Utils.DomainValidator do
            ) do
         {:ok, normalized} ->
           to_string(normalized)
-
-        {:error, _reason, _} ->
-          Errors.error(:invalid_domain)
 
         normalized when is_list(normalized) ->
           to_string(normalized)
@@ -244,7 +241,7 @@ defmodule Core.Utils.DomainValidator do
   @doc """
   Extracts the registrable domain (the part users can register) from a URL or domain.
 
-  This function strips protocols, paths, and subdomains to return just the 
+  This function strips protocols, paths, and subdomains to return just the
   registrable portion of the domain.
 
   """
@@ -303,7 +300,7 @@ defmodule Core.Utils.DomainValidator do
   Tests connectivity to determine if a domain is accessible for HTTP/HTTPS traffic.
   """
   @spec check_connection(String.t()) ::
-          {:ok, Boolean.t()}
+          {:ok, boolean()}
           | {:error, Core.Utils.Errors.domain_error()}
           | {:error, Core.Utils.Errors.dns_error()}
   def check_connection(domain)
