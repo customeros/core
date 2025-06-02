@@ -4,18 +4,15 @@ defmodule Core.Auth.Users do
   """
 
   import Ecto.Query, warn: false
+  import Ecto.Changeset
   require Logger
   require OpenTelemetry.Tracer
   alias Core.Repo
   alias Core.Notifications.Slack
-  alias Core.Auth.PersonalEmailProviders
   alias Core.Utils.Tracing
 
   alias Core.Auth.Users.{User, UserToken, UserNotifier}
   alias Core.Auth.Tenants
-
-  alias Core.Utils.DomainExtractor
-  alias Core.Utils.PrimaryDomainFinder
 
   ## Database getters
 
@@ -74,93 +71,67 @@ defmodule Core.Auth.Users do
       {:error, %Ecto.Changeset{}}
 
   """
+  @spec register_user(map()) :: {:ok, User.t()} | {:error, Ecto.Changeset.t()}
   def register_user(attrs) do
     OpenTelemetry.Tracer.with_span "users.register_user" do
       OpenTelemetry.Tracer.set_attributes([
         {"user.email", Map.get(attrs, :email)}
       ])
 
-      email = Map.fetch!(attrs, :email)
-      domain = extract_domain(email)
+      %User{}
+      |> User.registration_changeset(attrs)
+      |> User.extract_tenant_name_from_email()
+      |> User.extract_domain_from_email()
+      |> create_tenant_if_not_exists()
+      |> Repo.insert()
+      |> deliver_slack_notification()
+    end
+  end
 
-      if PersonalEmailProviders.exists?(domain) do
-        {:error,
-         %Ecto.Changeset{
-           data: %User{},
-           errors: [email: {"personal email not allowed", []}]
-         }}
-      else
-        with {:ok, tenant_name} <- extract_tenant_name_from_email(email),
-             tenant_id <- get_or_create_tenant(tenant_name, domain),
-             {:ok, user} <- create_user(attrs, tenant_id, email, tenant_name) do
-          {:ok, user}
+  defp create_tenant_if_not_exists(changeset) do
+    case changeset do
+      %{errors: []} ->
+        domain = get_change(changeset, :domain)
+        tenant_name = get_change(changeset, :tenant_name)
+
+        with {:ok, tenant_id} <-
+               Tenants.get_or_create_tenant(tenant_name, domain) do
+          put_change(changeset, :tenant_id, tenant_id)
         else
-          {:error, reason} = error ->
+          {:error, reason} ->
             Tracing.error(reason)
             Logger.error("Failed to register user: #{inspect(reason)}")
-            error
+            changeset
         end
+
+      _ ->
+        changeset
+    end
+  end
+
+  defp deliver_slack_notification({:ok, user}) do
+    email = user.email
+    tenant_name = user.tenant_name
+
+    Task.start(fn ->
+      case Slack.notify_new_user(email, tenant_name) do
+        :ok ->
+          :ok
+
+        {:error, reason} ->
+          Logger.error(
+            "Failed to send Slack notification for user #{email} creation: #{inspect(reason)}"
+          )
+
+          reason
       end
-    end
+    end)
+
+    {:ok, user}
   end
 
-  defp get_or_create_tenant(tenant_name, domain) do
-    case Tenants.get_tenant_by_name(tenant_name) do
-      {:error, :not_found} ->
-        case Tenants.create_tenant(tenant_name, domain) do
-          {:ok, tenant} -> {:ok, tenant.id}
-          error -> error
-        end
-
-      {:ok, tenant} ->
-        {:ok, tenant.id}
-    end
-  end
-
-  defp create_user(attrs, {:ok, tenant_id}, email, tenant_name) do
-    result =
-      %User{}
-      |> User.registration_changeset(Map.put(attrs, :tenant_id, tenant_id))
-      |> Repo.insert()
-
-    case result do
-      {:ok, user} ->
-        # Notify Slack about new user
-        Task.start(fn ->
-          case Slack.notify_new_user(email, tenant_name) do
-            :ok ->
-              :ok
-
-            {:error, reason} ->
-              Logger.error(
-                "Failed to send Slack notification for user #{email} creation: #{inspect(reason)}"
-              )
-          end
-        end)
-
-        {:ok, user}
-
-      error ->
-        error
-    end
-  end
-
-  defp extract_domain(email) do
-    [_, domain] = String.split(email, "@")
-    domain
-  end
-
-  defp extract_tenant_name_from_email(email) do
-    with {:ok, domain} <- DomainExtractor.extract_domain_from_email(email),
-         {:ok, primary_domain} <- PrimaryDomainFinder.get_primary_domain(domain) do
-      tenant_name =
-        primary_domain
-        |> String.replace(".", "")
-
-      {:ok, tenant_name}
-    else
-      {:error, _} -> {:error, :invalid_email_domain}
-    end
+  defp deliver_slack_notification(error) do
+    error
   end
 
   ## Settings
@@ -317,15 +288,25 @@ defmodule Core.Auth.Users do
 
       # New user, create a new account.
       _ ->
-        {:ok, user} = register_user(%{email: email})
+        case register_user(%{email: email}) do
+          {:ok, user} ->
+            {email_token, token} =
+              UserToken.build_email_token(user, "magic_link")
 
-        {email_token, token} = UserToken.build_email_token(user, "magic_link")
-        Repo.insert!(token)
+            Repo.insert!(token)
 
-        UserNotifier.deliver_register_link(
-          user,
-          "#{Web.Endpoint.url()}/signup/token/#{email_token}"
-        )
+            UserNotifier.deliver_register_link(
+              user,
+              "#{Web.Endpoint.url()}/signup/token/#{email_token}"
+            )
+
+          {:error, errors} ->
+            {:error, parse_changeset_errors(errors)}
+        end
     end
+  end
+
+  defp parse_changeset_errors(%Ecto.Changeset{errors: errors}) do
+    Enum.map(errors, fn {key, {message, _}} -> {key, message} end)
   end
 end

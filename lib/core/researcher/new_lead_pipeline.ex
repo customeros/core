@@ -11,12 +11,9 @@ defmodule Core.Researcher.NewLeadPipeline do
   @crawl_timeout 5 * 60 * 1000
 
   def start(lead_id, tenant_id) do
-    Task.Supervisor.start_child(
-      Core.TaskSupervisor,
-      fn ->
-        new_lead_pipeline(lead_id, tenant_id)
-      end
-    )
+    Task.start(fn ->
+      new_lead_pipeline(lead_id, tenant_id)
+    end)
   end
 
   def new_lead_pipeline(lead_id, tenant_id) do

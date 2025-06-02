@@ -4,6 +4,7 @@ import { useForm, usePage, router } from '@inertiajs/react';
 import { RootLayout } from '../layouts/Root';
 import { Input } from '../components/Input';
 import { Button } from '../components/Button';
+import { cn } from 'src/utils/cn';
 
 export const Signin = () => {
   const [emailSent, setEmailSent] = useState(false);
@@ -62,13 +63,24 @@ export const Signin = () => {
                     ) : (
                       <>
                         <p className="text-gray-500">Sign in to your account</p>
-                        <Input
-                          placeholder="Enter your email"
-                          variant="outline"
-                          value={data.email}
-                          className="rounded-lg"
-                          onChange={e => setData('email', e.target.value)}
-                        />
+                        <div className="w-full flex flex-col items-start">
+                          <Input
+                            placeholder="Enter your email"
+                            variant="outline"
+                            value={data.email}
+                            className="rounded-lg"
+                            onChange={e => setData('email', e.target.value)}
+                            invalid={!!errors.email}
+                          />
+                          <p
+                            className={cn(
+                              'text-error-500 text-xs h-[0px] transition-all mt-0',
+                              errors.email?.length && 'h-[13px] mt-1'
+                            )}
+                          >
+                            {errors.email}
+                          </p>
+                        </div>
                         <Button
                           className="w-full"
                           colorScheme="primary"

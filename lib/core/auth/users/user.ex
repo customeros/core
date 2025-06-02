@@ -2,6 +2,7 @@ defmodule Core.Auth.Users.User do
   use Ecto.Schema
   import Ecto.Changeset
   alias Core.Utils.DomainExtractor
+  alias Core.Utils.PrimaryDomainFinder
   alias Core.Auth.PersonalEmailProviders
 
   @derive {Jason.Encoder,
@@ -18,6 +19,8 @@ defmodule Core.Auth.Users.User do
     field(:email, :string)
     field(:confirmed_at, :naive_datetime)
     field(:tenant_id, :string)
+    field(:domain, :string, virtual: true)
+    field(:tenant_name, :string, virtual: true)
 
     timestamps(type: :utc_datetime)
   end
@@ -42,14 +45,13 @@ defmodule Core.Auth.Users.User do
     |> cast(attrs, [:email, :tenant_id])
     |> maybe_put_id()
     |> validate_email(opts)
-    |> validate_tenant_id()
   end
 
   defp validate_email(changeset, opts) do
     changeset
-    |> validate_required([:email])
+    |> validate_required([:email], message: "Huston, we have a blank")
     |> validate_format(:email, ~r/^[^\s]+@[^\s]+$/,
-      message: "must have the @ sign and no spaces"
+      message: "This seems like an invalid email address"
     )
     |> validate_length(:email, max: 160)
     |> validate_personal_email_domain()
@@ -65,7 +67,11 @@ defmodule Core.Auth.Users.User do
         case DomainExtractor.extract_domain_from_email(String.downcase(email)) do
           {:ok, domain} ->
             if PersonalEmailProviders.exists?(domain) do
-              add_error(changeset, :email, "cannot use a personal email")
+              add_error(
+                changeset,
+                :email,
+                "Please sign in with your work email"
+              )
             else
               changeset
             end
@@ -84,11 +90,6 @@ defmodule Core.Auth.Users.User do
     else
       changeset
     end
-  end
-
-  defp validate_tenant_id(changeset) do
-    changeset
-    |> validate_required([:tenant_id])
   end
 
   @doc """
@@ -119,4 +120,44 @@ defmodule Core.Auth.Users.User do
   end
 
   defp maybe_put_id(changeset), do: changeset
+
+  def extract_tenant_name_from_email(changeset) do
+    case changeset do
+      %{errors: []} ->
+        email = get_change(changeset, :email)
+
+        with {:ok, domain} <- DomainExtractor.extract_domain_from_email(email),
+             {:ok, primary_domain} <-
+               PrimaryDomainFinder.get_primary_domain(domain) do
+          tenant_name =
+            primary_domain
+            |> String.replace(".", "")
+
+          put_change(changeset, :tenant_name, tenant_name)
+        else
+          {:error, _} -> add_error(changeset, :email, "invalid email domain")
+        end
+
+      _ ->
+        changeset
+    end
+  end
+
+  def extract_domain_from_email(changeset) do
+    case changeset do
+      %{errors: []} ->
+        email = get_change(changeset, :email, "")
+
+        case String.split(email, "@") do
+          [_, domain] ->
+            put_change(changeset, :domain, domain)
+
+          _ ->
+            add_error(changeset, :email, "invalid email domain")
+        end
+
+      _ ->
+        changeset
+    end
+  end
 end
