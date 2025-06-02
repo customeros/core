@@ -6,20 +6,22 @@ defmodule Web.Channels.DocumentsChannel do
   alias Yex.Sync.SharedDoc
 
   @impl true
-  def join("documents:" <> doc_name, payload, socket) do
-    if authorized?(payload) do
-      case start_shared_doc(doc_name) do
-        {:ok, docpid} ->
-          Process.monitor(docpid)
-          SharedDoc.observe(docpid)
-          {:ok, socket |> assign(doc_name: doc_name, doc_pid: docpid)}
+  def join("documents:" <> doc_name, _payload, socket) do
+    # TODO: code for authorization is commented until implemented
+    #    if authorized?(payload) do
+    case start_shared_doc(doc_name) do
+      {:ok, docpid} ->
+        Process.monitor(docpid)
+        SharedDoc.observe(docpid)
+        {:ok, socket |> assign(doc_name: doc_name, doc_pid: docpid)}
 
-        {:error, reason} ->
-          {:error, %{reason: reason}}
-      end
-    else
-      {:error, %{reason: "unauthorized"}}
+      {:error, reason} ->
+        {:error, %{reason: reason}}
     end
+
+    #    else
+    #      {:error, %{reason: "unauthorized"}}
+    #    end
   end
 
   @impl true
@@ -76,8 +78,8 @@ defmodule Web.Channels.DocumentsChannel do
     end
   end
 
-  # Add authorization logic here as required.
-  defp authorized?(_payload) do
-    true
-  end
+  # TODO: Add authorization logic here as required.
+  #  defp authorized?(_payload) do
+  #    true
+  #  end
 end

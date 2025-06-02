@@ -130,9 +130,6 @@ defmodule Core.Utils.DnsResolver do
           else
             Errors.error(:no_records_found)
           end
-
-        _ ->
-          Errors.error(:dns_lookup_failed)
       end
     rescue
       _ -> Errors.error(:dns_lookup_failed)
@@ -225,8 +222,6 @@ defmodule Core.Utils.DnsResolver do
     {:ok, sorted}
   end
 
-  defp process_mx_records(_), do: Errors.error(:dns_lookup_failed)
-
   defp lookup_txt_records(domain) do
     case :inet_res.lookup(String.to_charlist(domain), :in, :txt) do
       [] ->
@@ -234,9 +229,6 @@ defmodule Core.Utils.DnsResolver do
 
       records when is_list(records) ->
         {:ok, records}
-
-      _ ->
-        Errors.error(:dns_lookup_failed)
     end
   end
 

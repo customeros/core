@@ -30,7 +30,8 @@ defmodule Core.MixProject do
           :phoenix_template,
           :phoenix_ecto,
           :phoenix_html,
-          :phoenix_live_view
+          :phoenix_live_view,
+          :telemetry
         ]
       ]
     ]

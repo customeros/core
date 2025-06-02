@@ -115,7 +115,7 @@ defmodule Core.Researcher.Webpages.Cleaner do
         # Filter out navigation markers from content
         clean_content =
           Enum.reject(section.content, fn line ->
-            is_navigation_marker(line) || is_link_section(line) ||
+            is_navigation_marker(line) || link_section?(line) ||
               is_link_list_item(line)
           end)
 
@@ -202,7 +202,7 @@ defmodule Core.Researcher.Webpages.Cleaner do
     end)
   end
 
-  defp is_link_section(line) do
+  defp link_section?(line) do
     link_section_regex = ~r/^(Links|Nav|Menu|Navigation|Footer)(\W|$)/
     Regex.match?(link_section_regex, String.trim(line))
   end

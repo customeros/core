@@ -21,7 +21,7 @@ defmodule Core.Researcher.Scraper do
         {"url", url}
       ])
 
-      case Webpages.get_by_url(url) do
+      case Core.Researcher.Webpages.get_by_url(url) do
         {:ok, existing_record} -> use_cached_content(existing_record)
         {:error, :not_found} -> fetch_and_process_webpage(url)
       end
