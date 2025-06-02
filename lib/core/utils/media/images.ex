@@ -55,9 +55,8 @@ defmodule Core.Utils.Media.Images do
           {:ok, String.t()} | {:error, term()}
   def download_and_store(url, opts \\ %{}) do
     with {:ok, image_data} <- download_image(url),
-         content_type <- get_content_type(url) |> handle_content_type(url),
-         {:ok, storage_key} <- store_image(image_data, content_type, url, opts) do
-      {:ok, storage_key}
+         content_type <- get_content_type(url) |> handle_content_type(url) do
+      store_image(image_data, content_type, url, opts)
     end
   end
 
