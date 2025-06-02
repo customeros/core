@@ -213,7 +213,7 @@ defmodule Core.Crm.Companies.CompanyEnrich do
            :ok <- validate_industry_eligibility(company),
            :ok <- mark_industry_attempt(company_id),
            {:ok, industry_code} <- get_industry_from_ai(company),
-           {:ok, industry} <- lookup_industry(industry_code, company_id),
+           {:ok, industry} <- lookup_industry(industry_code, company),
            :ok <- update_company_industry(company_id, industry) do
         :ok
       else
@@ -278,17 +278,13 @@ defmodule Core.Crm.Companies.CompanyEnrich do
     end
   end
 
-  defp lookup_industry(industry_code, company_id) do
+  defp lookup_industry(industry_code, company) do
     case Industries.get_by_code(industry_code) do
       nil ->
-        OpenTelemetry.Tracer.set_status(:error, "Industry not found")
-
-        OpenTelemetry.Tracer.set_attributes([
-          {"error.reason", "Industry not found"}
-        ])
+        OpenTelemetry.Tracer.set_status(:error, :industry_not_found)
 
         Logger.error(
-          "Industry code #{industry_code} not found for company #{company_id}"
+          "Industry code #{industry_code} not found in db for company #{company.id}, domain: #{company.primary_domain}"
         )
 
         {:error, :industry_not_found}
