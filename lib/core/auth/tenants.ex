@@ -88,9 +88,6 @@ defmodule Core.Auth.Tenants do
   end
 
   ## Tenant registration
-
-  @spec create_tenant(String.t(), String.t()) ::
-          {:ok, Tenant.t()} | {:error, Ecto.Changeset.t()}
   def create_tenant(name, domain) do
     OpenTelemetry.Tracer.with_span "tenants.create_tenant" do
       OpenTelemetry.Tracer.set_attributes([

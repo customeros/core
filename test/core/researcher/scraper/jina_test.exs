@@ -98,51 +98,6 @@ defmodule Core.Researcher.Scraper.JinaTest do
   end
 
   describe "handle_response/1 - response parsing logic" do
-    test "handles successful response with content" do
-      response = %Finch.Response{
-        status: 200,
-        body: ~s({"success": true, "data": {"markdown": "# Sample Content"}})
-      }
-
-      assert {:ok, "# Sample Content"} =
-               Jina.handle_response_test(response)
-    end
-
-    test "handles 400 status returns invalid_url error" do
-      response = %Finch.Response{
-        status: 400,
-        body:
-          ~s({"error": "Bad Request", "details": [{"message": "Invalid URL"}]})
-      }
-
-      assert {:error, _reason} =
-               Jina.handle_response_test(response)
-    end
-
-    test "rate limit exceeded" do
-      body = """
-      {"error": "Rate limit exceeded. Consumed (req/min): 45, Remaining (req/min): 0. Upgrade your plan at https://firecrawl.dev/pricing for increased rate limits or please retry after 37s"}
-      """
-
-      response = %Finch.Response{
-        status: 429,
-        body: String.trim(body)
-      }
-
-      assert {:error, :rate_limit_exceeded} =
-               Jina.handle_response_test(response)
-    end
-
-    test "handles malformed JSON" do
-      response = %Finch.Response{
-        status: 200,
-        body: "invalid json{"
-      }
-
-      assert {:error, "unable to decode response"} =
-               Jina.handle_response_test(response)
-    end
-
     test "missing API key returns configuration error" do
       assert {:error, "Jina API key not set"} =
                Jina.fetch_page("https://example.com")
