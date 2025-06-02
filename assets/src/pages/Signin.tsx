@@ -25,7 +25,7 @@ export const Signin = () => {
       },
       onError: errors => {
         console.log(errors);
-        if (errors.email === 'personal email not allowed') {
+        if (errors.email === 'Please sign in with your work email') {
           setError('Personal email addresses are not allowed. Please use your work email.');
           setShowPersonalEmailError(true);
           setEmailSent(false);
@@ -93,7 +93,6 @@ export const Signin = () => {
                         <p className="text-3xl font-semibold -mt-[34px] text-gray-900">
                           Welcome back
                         </p>
-                        <p className="text-base mt-3">Sign in to your account</p>
                       </>
                     )}
                   </div>
@@ -117,7 +116,7 @@ export const Signin = () => {
                       </div>
                     ) : (
                       <>
-                        <p className="text-gray-500">Sign in to your account</p>
+                        <p className="text-base mt-3">Sign in to your account</p>
                         <div className="w-full flex flex-col items-start">
                           <Input
                             placeholder="Enter your email"

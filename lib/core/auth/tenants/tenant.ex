@@ -20,7 +20,7 @@ defmodule Core.Auth.Tenants.Tenant do
     field(:workspace_name, :string)
     field(:workspace_icon_key, :string)
 
-    has_one(:ideal_customer_profile, Core.Researcher.Profiles.Profile,
+    has_one(:ideal_customer_profile, Core.Researcher.IcpProfiles.Profile,
       foreign_key: :tenant_id
     )
 
@@ -33,7 +33,7 @@ defmodule Core.Auth.Tenants.Tenant do
           domain: String.t(),
           workspace_name: String.t(),
           workspace_icon_key: String.t(),
-          ideal_customer_profile: Core.Researcher.Profiles.Profile.t() | nil,
+          ideal_customer_profile: Core.Researcher.IcpProfiles.Profile.t() | nil,
           inserted_at: DateTime.t(),
           updated_at: DateTime.t()
         }
