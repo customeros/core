@@ -64,8 +64,12 @@ defmodule Core.Researcher.Scraper.Jina do
            receive_timeout: @timeout,
            pool_timeout: @timeout
          ) do
-      {:ok, response} -> response
-      {:error, reason} -> Errors.error({:http_error, reason})
+      {:ok, response} ->
+        response
+
+      {:error, reason} ->
+        Logger.error("Jina API request failed: #{inspect(reason)}")
+        {:error, :http_error}
     end
   end
 
@@ -111,8 +115,12 @@ defmodule Core.Researcher.Scraper.Jina do
     do: Errors.error(:unprocessable)
 
   defp handle_response(%Finch.Response{status: status, body: body}) do
-    Errors.error({:http_error, "Status: #{status}, Body: #{body}"})
+    Logger.error("Jina API error - Status: #{status}, Body: #{body}")
+    {:error, :http_error}
   end
 
-  defp handle_response({:error, reason}), do: Errors.error(reason)
+  defp handle_response({:error, reason}) do
+    Logger.error("Jina API error: #{inspect(reason)}")
+    {:error, :http_error}
+  end
 end

@@ -18,14 +18,14 @@ defmodule Core.Utils.HttpClient.AwsHttpClient do
         opts -> Logger.debug("ExAws HTTP options: #{inspect(opts)}")
       end
 
-      with {:ok, resp} <-
-             Finch.build(method, url, headers, body)
-             |> Finch.request(Core.Finch) do
-        Tracing.ok()
+      case Finch.build(method, url, headers, body)
+           |> Finch.request(Core.Finch) do
+        {:ok, resp} ->
+          Tracing.ok()
 
-        {:ok,
-         %{status_code: resp.status, body: resp.body, headers: resp.headers}}
-      else
+          {:ok,
+           %{status_code: resp.status, body: resp.body, headers: resp.headers}}
+
         {:error, reason} ->
           Logger.error("ExAws HTTP request failed: #{inspect(reason)}")
           Tracing.error(reason)

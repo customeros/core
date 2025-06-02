@@ -70,9 +70,10 @@ defmodule Core.Researcher.IcpFitEvaluator do
   defp crawl_website_with_retry(domain, attempts \\ 0) do
     task = Crawler.crawl_supervised(domain)
 
-    with {:ok, _response} <- await_task(task, @crawl_timeout) do
-      :ok
-    else
+    case await_task(task, @crawl_timeout) do
+      {:ok, _response} ->
+        :ok
+
       {:error, _reason} when attempts < @max_retries ->
         :timer.sleep(:timer.seconds(attempts + 1))
         crawl_website_with_retry(domain, attempts + 1)
@@ -103,12 +104,13 @@ defmodule Core.Researcher.IcpFitEvaluator do
 
     task = Ai.ask_supervised(PromptBuilder.build_request(system_prompt, prompt))
 
-    with {:ok, answer} <- await_task(task, @icp_timeout) do
-      case Validator.validate_and_parse(answer) do
-        {:ok, fit} -> {:ok, fit}
-        {:error, reason} -> {:error, reason}
-      end
-    else
+    case await_task(task, @icp_timeout) do
+      {:ok, answer} ->
+        case Validator.validate_and_parse(answer) do
+          {:ok, fit} -> {:ok, fit}
+          {:error, reason} -> {:error, reason}
+        end
+
       {:error, _reason} when attempts < @max_retries ->
         :timer.sleep(:timer.seconds(attempts + 1))
         get_icp_fit_with_retry(domain, pages, icp, attempts + 1)
