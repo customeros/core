@@ -1,4 +1,14 @@
 defmodule Core.Researcher.IcpBuilder do
+  @moduledoc """
+  Orchestrates the process of building and managing Ideal Customer Profiles (ICPs).
+
+  This module coordinates the creation and management of ICPs by:
+  - Crawling company websites to gather data
+  - Generating ICP profiles based on the gathered data
+  - Managing the ICP creation process for tenants
+  - Initiating company matching processes for new ICPs
+  """
+
   alias Core.Researcher.Builder.ProfileWriter
   alias Core.Researcher.Crawler
 

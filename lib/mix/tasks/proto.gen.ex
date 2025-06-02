@@ -1,4 +1,20 @@
 defmodule Mix.Tasks.Proto.Gen do
+  @moduledoc """
+  Mix task for generating Elixir modules from Protocol Buffer definitions.
+
+  This task handles the generation of Elixir modules from .proto files using the
+  protobuf.generate tool. It performs the following operations:
+
+  - Cleans the output directory (lib/proto)
+  - Collects all .proto files from priv/protos/
+  - Generates Elixir modules with proper package prefixes
+  - Includes descriptor generation
+  - Maintains proper directory structure
+
+  The generated modules follow the core package prefix and are placed in the
+  lib/proto directory, ready for use in the application.
+  """
+
   use Mix.Task
 
   @shortdoc "Generates Elixir modules from .proto files using protobuf.generate"

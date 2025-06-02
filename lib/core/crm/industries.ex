@@ -1,4 +1,11 @@
 defmodule Core.Crm.Industries do
+  @moduledoc """
+  Context module for managing industries in the CRM system.
+
+  Provides functions for retrieving and creating industry records.
+  Industries are used to categorize and organize CRM entities.
+  """
+
   alias Core.Repo
   alias Core.Crm.Industries.Industry
 

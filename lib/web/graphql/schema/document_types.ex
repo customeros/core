@@ -1,4 +1,24 @@
 defmodule Web.Graphql.DocumentTypes do
+  @moduledoc """
+  Defines GraphQL types and operations for document management.
+
+  This module provides the GraphQL type definitions and operations for working with
+  documents in the system, including:
+
+  Types:
+  - `:document` - The core document type with all document fields
+  - `:create_document_input` - Input type for document creation
+  - `:update_document_input` - Input type for document updates
+
+  Operations:
+  - Queries for fetching documents and organization document lists
+  - Mutations for creating, updating, and deleting documents
+  - Field-level resolvers for document operations
+
+  The module integrates with DocumentResolver for implementing the actual
+  document operations and data access.
+  """
+
   use Absinthe.Schema.Notation
   alias Web.Graphql.Resolvers.DocumentResolver
 

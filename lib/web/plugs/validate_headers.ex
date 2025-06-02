@@ -1,4 +1,22 @@
 defmodule Web.Plugs.ValidateHeaders do
+  @moduledoc """
+  A Plug that validates required headers for API requests.
+
+  This plug ensures that all requests include the necessary tenant and user context
+  by validating the presence of required headers. It supports both standard and
+  legacy header formats:
+
+  Required Headers:
+  - `x-tenant` or `x-openline-tenant` - Identifies the tenant context
+  - `x-username` or `x-openline-username` - Identifies the user context
+
+  The plug will:
+  - Check for required headers
+  - Return 401 Unauthorized with appropriate error messages if headers are missing
+  - Add validated context to the Absinthe GraphQL context
+  - Support header format migration through fallback checks
+  """
+
   import Plug.Conn
 
   def init(opts), do: opts

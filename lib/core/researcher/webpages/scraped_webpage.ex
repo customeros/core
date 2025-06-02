@@ -1,4 +1,23 @@
 defmodule Core.Researcher.Webpages.ScrapedWebpage do
+  @moduledoc """
+  Defines the schema and validation rules for scraped webpage data.
+
+  This module provides:
+  - Ecto schema for scraped webpage storage
+  - Content classification fields
+  - Intent scoring system
+  - Link management
+  - Validation rules and constraints
+  - Changeset functions for data integrity
+
+  The schema includes fields for:
+  - Basic webpage data (URL, domain, content)
+  - Content classification (topics, focus, type)
+  - Industry and business context
+  - Customer and value proposition data
+  - Intent scoring across multiple dimensions
+  """
+
   use Ecto.Schema
   import Ecto.Changeset
 

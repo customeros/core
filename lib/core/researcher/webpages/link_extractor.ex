@@ -1,4 +1,26 @@
 defmodule Core.Researcher.Webpages.LinkExtractor do
+  @moduledoc """
+  Extracts and processes links from webpage content.
+
+  This module handles:
+  - Link extraction from markdown-formatted content
+  - URL validation and normalization
+  - Filtering of irrelevant or utility links
+  - Duplicate link removal
+  - URL cleaning and standardization
+
+  The module implements smart filtering to exclude:
+  - Authentication and account management URLs
+  - Utility and administrative pages
+  - API endpoints and webhooks
+  - Search and filtering pages
+  - Support and help pages
+  - Other non-content URLs
+
+  It ensures that only relevant, content-focused links are extracted
+  while maintaining proper URL formatting and validation.
+  """
+
   def extract_links(links_section) do
     links_section
     |> String.split("\n")

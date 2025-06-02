@@ -1,4 +1,11 @@
 defmodule Core.Researcher.Webpages.Classification do
+  @moduledoc """
+  Manages the classification of webpages based on various attributes and characteristics.
+
+  This module provides functionality to categorize and classify webpages according to
+  different criteria such as content type, purpose, and target audience.
+  """
+
   @derive Jason.Encoder
 
   @type content_type ::

@@ -1,4 +1,13 @@
 defmodule Core.Researcher.BriefWriter.PromptBuilder do
+  @moduledoc """
+  Constructs prompts for generating detailed account briefs for potential customers.
+
+  This module is responsible for building and formatting prompts that help create
+  comprehensive account briefs. These briefs provide deep insights into potential
+  customers, including their business model, pain points, and strategic context,
+  to enable high-value, relevant conversations.
+  """
+
   alias Core.Ai
   @model :claude_sonnet
   @model_temperature 0.3
