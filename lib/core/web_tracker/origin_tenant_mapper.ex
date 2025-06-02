@@ -26,27 +26,29 @@ defmodule Core.WebTracker.OriginTenantMapper do
       when is_binary(origin) and byte_size(origin) > 0 do
     cleaned_origin = clean_origin(origin)
 
-    case Map.get(@whitelisted_origins, cleaned_origin) do
-      nil ->
-        case Core.Utils.DomainValidator.parse_root_and_subdomain(cleaned_origin) do
-          {:ok, root_domain, _subdomain} ->
-            case Map.get(@whitelisted_origins, root_domain) do
-              nil -> {:error, :origin_not_configured}
-              tenant -> {:ok, tenant}
-            end
-
-          {:error, _} ->
-            @err_origin_not_configured
-        end
-
-      tenant ->
-        {:ok, tenant}
+    case find_tenant_for_domain(cleaned_origin) do
+      {:ok, tenant} -> {:ok, tenant}
+      {:error, :not_found} -> check_subdomain_tenant(cleaned_origin)
     end
   end
 
   def get_tenant_for_origin(""), do: @err_origin_not_provided
   def get_tenant_for_origin(nil), do: @err_origin_not_provided
   def get_tenant_for_origin(_), do: @err_invalid_origin
+
+  defp find_tenant_for_domain(domain) do
+    case Map.get(@whitelisted_origins, domain) do
+      nil -> {:error, :not_found}
+      tenant -> {:ok, tenant}
+    end
+  end
+
+  defp check_subdomain_tenant(domain) do
+    case Core.Utils.DomainValidator.parse_root_and_subdomain(domain) do
+      {:ok, root_domain, _subdomain} -> find_tenant_for_domain(root_domain)
+      {:error, _} -> @err_origin_not_configured
+    end
+  end
 
   @doc """
   Returns true if the origin is in the whitelist.

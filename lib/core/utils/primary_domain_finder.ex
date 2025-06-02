@@ -90,41 +90,39 @@ defmodule Core.Utils.PrimaryDomainFinder do
   def get_primary_domain(_), do: Errors.error(:invalid_domain)
 
   defp follow_domain_chain(current_domain, visited, redirects_remaining) do
-    cond do
-      MapSet.member?(visited, current_domain) ->
-        handle_error({:error, :circular_domain_reference})
+    if MapSet.member?(visited, current_domain) do
+      handle_error({:error, :circular_domain_reference})
+    else
+      new_visited = MapSet.put(visited, current_domain)
 
-      true ->
-        new_visited = MapSet.put(visited, current_domain)
+      with {:ok, {_is_primary, primary_domain}} <-
+             primary_domain_check(current_domain),
+           :ok <- validate_non_empty(primary_domain),
+           :ok <- validate_suspicious_domain(primary_domain) do
+        if String.downcase(primary_domain) == String.downcase(current_domain) do
+          # Found stable domain - success!
+          Tracing.ok()
 
-        with {:ok, {_is_primary, primary_domain}} <-
-               primary_domain_check(current_domain),
-             :ok <- validate_non_empty(primary_domain),
-             :ok <- validate_suspicious_domain(primary_domain) do
-          if String.downcase(primary_domain) == String.downcase(current_domain) do
-            # Found stable domain - success!
-            Tracing.ok()
+          OpenTelemetry.Tracer.set_attributes([
+            {"result.primary_domain", primary_domain}
+          ])
 
-            OpenTelemetry.Tracer.set_attributes([
-              {"result.primary_domain", primary_domain}
-            ])
-
-            {:ok, primary_domain}
-          else
-            # Need to follow redirect
-            if redirects_remaining > 0 do
-              follow_domain_chain(
-                primary_domain,
-                new_visited,
-                redirects_remaining - 1
-              )
-            else
-              handle_error({:error, :too_many_redirects})
-            end
-          end
+          {:ok, primary_domain}
         else
-          error -> handle_error(error)
+          # Need to follow redirect
+          if redirects_remaining > 0 do
+            follow_domain_chain(
+              primary_domain,
+              new_visited,
+              redirects_remaining - 1
+            )
+          else
+            handle_error({:error, :too_many_redirects})
+          end
         end
+      else
+        error -> handle_error(error)
+      end
     end
   end
 
