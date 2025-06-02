@@ -8,37 +8,19 @@ defmodule Core.Crm.Documents do
   alias Core.Crm.Documents.{Document, RefDocument}
 
   def create_document(attrs \\ %{}, opts \\ []) do
+    attrs
+    |> prepare_payload(opts)
+    |> create_document_with_lexical_state()
+  end
+
+  defp prepare_payload(attrs, opts) do
     parse_dto = Keyword.get(opts, :parse_dto, false)
+    if parse_dto, do: from_dto(attrs), else: attrs
+  end
 
-    payload =
-      case parse_dto do
-        true -> from_dto(attrs)
-        _ -> attrs
-      end
-
+  defp create_document_with_lexical_state(payload) do
     ref_id = Map.get(payload, :ref_id)
-
-    lexical_state =
-      case Map.get(payload, :lexical_state, nil) do
-        nil ->
-          case Map.get(payload, :body, nil) do
-            nil ->
-              nil
-
-            body ->
-              case convert_md_to_lexical(body) do
-                {:ok, state} ->
-                  state
-
-                {:error, _} ->
-                  nil
-              end
-          end
-
-        existing_lexical_state ->
-          existing_lexical_state
-      end
-
+    lexical_state = get_lexical_state(payload)
     payload_with_lexical_state = Map.put(payload, :lexical_state, lexical_state)
 
     Ecto.Multi.new()
@@ -49,15 +31,28 @@ defmodule Core.Crm.Documents do
     |> maybe_insert_ref_document(ref_id)
     |> maybe_initialize_ydoc(lexical_state)
     |> Repo.transaction()
-    |> case do
-      {:ok, %{document: document} = result} ->
-        decorated_doc = %Document{document | ref_id: ref_id}
-        {:ok, Map.put(result, :document, decorated_doc)}
+    |> handle_transaction_result(ref_id)
+  end
 
-      error ->
-        error
+  defp get_lexical_state(%{lexical_state: existing_state})
+       when not is_nil(existing_state),
+       do: existing_state
+
+  defp get_lexical_state(%{body: body}) when not is_nil(body) do
+    case convert_md_to_lexical(body) do
+      {:ok, state} -> state
+      {:error, _} -> nil
     end
   end
+
+  defp get_lexical_state(_), do: nil
+
+  defp handle_transaction_result({:ok, %{document: document} = result}, ref_id) do
+    decorated_doc = %Document{document | ref_id: ref_id}
+    {:ok, Map.put(result, :document, decorated_doc)}
+  end
+
+  defp handle_transaction_result(error, _ref_id), do: error
 
   def update_document(attrs \\ %{}) do
     case Repo.get(Document, attrs.id) do

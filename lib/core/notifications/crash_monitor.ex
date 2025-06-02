@@ -171,26 +171,24 @@ defmodule Core.Notifications.CrashMonitor do
     msg_str = to_string(msg)
 
     # Try to extract the actual error message, not the full crash report
-    cond do
-      String.contains?(msg_str, "** (") ->
-        # Extract message after exception type
-        case Regex.run(~r/\*\* \([^)]+\) (.+)/, msg_str) do
-          [_, error_msg] ->
-            error_msg
-            |> String.split("\n")
-            |> List.first()
-            |> String.slice(0, 200)
+    if String.contains?(msg_str, "** (") do
+      # Extract message after exception type
+      case Regex.run(~r/\*\* \([^)]+\) (.+)/, msg_str) do
+        [_, error_msg] ->
+          error_msg
+          |> String.split("\n")
+          |> List.first()
+          |> String.slice(0, 200)
 
-          _ ->
-            String.slice(msg_str, 0, 200)
-        end
-
-      true ->
-        # Just take first line and truncate
-        msg_str
-        |> String.split("\n")
-        |> List.first()
-        |> String.slice(0, 200)
+        _ ->
+          String.slice(msg_str, 0, 200)
+      end
+    else
+      # Just take first line and truncate
+      msg_str
+      |> String.split("\n")
+      |> List.first()
+      |> String.slice(0, 200)
     end
   end
 
