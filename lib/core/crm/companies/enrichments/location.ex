@@ -30,8 +30,9 @@ defmodule Core.Crm.Companies.Enrichments.Location do
           homepage_content: String.t()
         }
 
-  @spec identifyCountryCodeA2(input()) :: {:ok, String.t()} | {:error, term()}
-  def identifyCountryCodeA2(%{domain: domain, homepage_content: content}) do
+  @spec identify_country_code_a2(input()) ::
+          {:ok, String.t()} | {:error, term()}
+  def identify_country_code_a2(%{domain: domain, homepage_content: content}) do
     OpenTelemetry.Tracer.with_span "country.identify" do
       prompt = build_prompt(domain, content)
 

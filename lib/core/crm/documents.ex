@@ -8,11 +8,11 @@ defmodule Core.Crm.Documents do
   alias Core.Crm.Documents.{Document, RefDocument}
 
   def create_document(attrs \\ %{}, opts \\ []) do
-    parseDto = Keyword.get(opts, :parseDto, false)
+    parse_dto = Keyword.get(opts, :parse_dto, false)
 
     payload =
-      case parseDto do
-        true -> fromDto(attrs)
+      case parse_dto do
+        true -> from_dto(attrs)
         _ -> attrs
       end
 
@@ -193,7 +193,7 @@ defmodule Core.Crm.Documents do
     end)
   end
 
-  defp fromDto(dto) do
+  defp from_dto(dto) do
     %{
       "name" => name,
       "userId" => user_id,

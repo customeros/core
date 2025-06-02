@@ -36,7 +36,7 @@ defmodule Core.Researcher.Webpages.Cleaner do
     {sections, current} =
       Enum.reduce(lines, {[], %DocumentSection{}}, fn line,
                                                       {sections, current} ->
-        if is_heading(line) || is_horizontal_rule(line) do
+        if heading?(line) || horizontal_rule?(line) do
           # Save previous section if it exists
           sections =
             if current.heading != "" || length(current.content) > 0 do
@@ -53,15 +53,15 @@ defmodule Core.Researcher.Webpages.Cleaner do
 
           current =
             cond do
-              is_markdown_link(line) || is_html_link(line) ||
-                  is_link_definition(line) ->
+              markdown_link?(line) || html_link?(line) ||
+                  link_definition?(line) ->
                 %{
                   current
                   | link_count: current.link_count + 1,
                     content: current.content ++ [line]
                 }
 
-              is_link_list_item(line) ->
+              link_list_item?(line) ->
                 %{
                   current
                   | list_count: current.list_count + 1,
@@ -115,8 +115,8 @@ defmodule Core.Researcher.Webpages.Cleaner do
         # Filter out navigation markers from content
         clean_content =
           Enum.reject(section.content, fn line ->
-            is_navigation_marker(line) || link_section?(line) ||
-              is_link_list_item(line)
+            navigation_marker?(line) || link_section?(line) ||
+              link_list_item?(line)
           end)
 
         # Only keep sections with content after cleaning
@@ -146,39 +146,39 @@ defmodule Core.Researcher.Webpages.Cleaner do
 
   # Helper functions to identify different elements
 
-  defp is_heading(line) do
+  defp heading?(line) do
     heading_regex = ~r/^\#{1,6}\s+.+$|^.+\n[=\-]+$/
     Regex.match?(heading_regex, line)
   end
 
-  defp is_horizontal_rule(line) do
+  defp horizontal_rule?(line) do
     hr_regex = ~r/^(\*{3,}|-{3,}|_{3,})$/
     Regex.match?(hr_regex, String.trim(line))
   end
 
-  defp is_markdown_link(line) do
+  defp markdown_link?(line) do
     link_regex = ~r/\[([^\]]+)\]\([^)]+\)/
     Regex.match?(link_regex, line)
   end
 
-  defp is_html_link(line) do
+  defp html_link?(line) do
     html_link_regex = ~r/<a\s+[^>]*>[^<]*<\/a>/
     Regex.match?(html_link_regex, line)
   end
 
-  defp is_link_definition(line) do
+  defp link_definition?(line) do
     link_def_regex = ~r/^\s*\[[^\]]+\]:\s*http.+$/
     Regex.match?(link_def_regex, line)
   end
 
-  defp is_link_list_item(line) do
+  defp link_list_item?(line) do
     link_list_item_regex =
       ~r/^\s*[\*\-+]\s+\[.+\]\(.+\).*$|^\s*\d+\.\s+\[.+\]\(.+\).*$/
 
     Regex.match?(link_list_item_regex, line)
   end
 
-  defp is_navigation_marker(line) do
+  defp navigation_marker?(line) do
     nav_markers = [
       "Navigation",
       "Menu",

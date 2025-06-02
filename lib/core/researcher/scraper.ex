@@ -1,7 +1,6 @@
 defmodule Core.Researcher.Scraper do
   require OpenTelemetry.Tracer
   require Logger
-  alias Core.Researcher.Webpages
   alias Core.Researcher.Scraper.Jina
   alias Core.Researcher.Scraper.Puremd
   alias Core.Researcher.Webpages.Cleaner

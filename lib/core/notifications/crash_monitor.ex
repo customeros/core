@@ -26,7 +26,7 @@ defmodule Core.Notifications.CrashMonitor do
 
   def handle_event({level, _gl, {Logger, msg, _timestamp, metadata}}, state)
       when level in [:error] do
-    if is_crash_report?(msg) and should_send_alert?(state) do
+    if crash_report?(msg) and should_send_alert?(state) do
       # Send alert in background to avoid blocking logging
       Task.start(fn ->
         send_crash_notification(msg, metadata)
@@ -57,7 +57,7 @@ defmodule Core.Notifications.CrashMonitor do
   end
 
   # Detect if this is actually a crash report
-  defp is_crash_report?(msg) do
+  defp crash_report?(msg) do
     msg_str = to_string(msg)
 
     # Look for common crash indicators

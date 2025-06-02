@@ -19,25 +19,27 @@ defmodule Core.Researcher.Webpages do
         intent \\ nil,
         summary \\ nil
       ) do
-    with {:ok, domain} <- DomainExtractor.extract_base_domain(url) do
-      attrs =
-        %{
-          url: url,
-          domain: domain,
-          content: content,
-          links: links,
-          summary: summary
-        }
-        |> maybe_add_classification(classification)
-        |> maybe_add_intent(intent)
+    case DomainExtractor.extract_base_domain(url) do
+      {:ok, domain} ->
+        attrs =
+          %{
+            url: url,
+            domain: domain,
+            content: content,
+            links: links,
+            summary: summary
+          }
+          |> maybe_add_classification(classification)
+          |> maybe_add_intent(intent)
 
-      changeset =
-        %ScrapedWebpage{}
-        |> ScrapedWebpage.changeset(attrs)
+        changeset =
+          %ScrapedWebpage{}
+          |> ScrapedWebpage.changeset(attrs)
 
-      Repo.insert(changeset)
-    else
-      {:error, reason} -> {:error, reason}
+        Repo.insert(changeset)
+
+      {:error, reason} ->
+        {:error, reason}
     end
   end
 
