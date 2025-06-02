@@ -274,17 +274,26 @@ defmodule Core.Notifications.Slack do
 
         try do
           case send_message(webhook_url, message) do
-            :ok -> :ok
+            :ok ->
+              :ok
+
             {:error, reason} ->
-              Logger.error("Failed to send crash notification: #{inspect(reason)}")
+              Logger.error(
+                "Failed to send crash notification: #{inspect(reason)}"
+              )
+
               {:error, reason}
           end
         rescue
           e in Jason.EncodeError ->
             Logger.error("Failed to encode crash notification: #{inspect(e)}")
             {:error, :encoding_error}
+
           e ->
-            Logger.error("Unexpected error sending crash notification: #{inspect(e)}")
+            Logger.error(
+              "Unexpected error sending crash notification: #{inspect(e)}"
+            )
+
             {:error, :unexpected_error}
         end
       end

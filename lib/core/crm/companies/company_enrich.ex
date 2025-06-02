@@ -281,7 +281,7 @@ defmodule Core.Crm.Companies.CompanyEnrich do
   defp lookup_industry(industry_code, company) do
     case Industries.get_by_code(industry_code) do
       nil ->
-        OpenTelemetry.Tracer.set_status(:error, :industry_not_found)
+        Tracing.error(:industry_not_found)
 
         Logger.error(
           "Industry code #{industry_code} not found in db for company #{company.id}, domain: #{company.primary_domain}"

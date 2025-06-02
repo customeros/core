@@ -10,7 +10,16 @@ defmodule Core.Researcher.IcpProfiles.Profile do
   use Ecto.Schema
   import Ecto.Changeset
 
-  @derive {Jason.Encoder, only: [:id, :domain, :tenant_id, :profile, :qualifying_attributes, :inserted_at, :updated_at]}
+  @derive {Jason.Encoder,
+           only: [
+             :id,
+             :domain,
+             :tenant_id,
+             :profile,
+             :qualifying_attributes,
+             :inserted_at,
+             :updated_at
+           ]}
 
   @type t :: %__MODULE__{
           id: integer() | nil,
