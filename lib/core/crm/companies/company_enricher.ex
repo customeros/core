@@ -49,17 +49,17 @@ defmodule Core.Crm.Companies.CompanyEnricher do
   @impl true
   def handle_info(:enrich_companies, state) do
     OpenTelemetry.Tracer.with_span "company_enricher.enrich_companies" do
-      {_, numCompaniesForIconEnrichment} = enrich_companies_icon()
-      {_, numCompaniesForIndustryEnrichment} = enrich_companies_industry()
-      {_, numCompaniesForNameEnrichment} = enrich_companies_name()
-      {_, numCompaniesForCountryEnrichment} = enrich_companies_country()
+      {_, num_companies_for_icon_enrichment} = enrich_companies_icon()
+      {_, num_companies_for_industry_enrichment} = enrich_companies_industry()
+      {_, num_companies_for_name_enrichment} = enrich_companies_name()
+      {_, num_companies_for_country_enrichment} = enrich_companies_country()
 
       # Schedule the next check - use default interval if either enrichment hit the batch size
       next_interval_ms =
-        if numCompaniesForIconEnrichment == @default_batch_size or
-             numCompaniesForNameEnrichment == @default_batch_size or
-             numCompaniesForCountryEnrichment == @default_batch_size or
-             numCompaniesForIndustryEnrichment == @default_batch_size do
+        if num_companies_for_icon_enrichment == @default_batch_size or
+             num_companies_for_name_enrichment == @default_batch_size or
+             num_companies_for_country_enrichment == @default_batch_size or
+             num_companies_for_industry_enrichment == @default_batch_size do
           @default_interval_ms
         else
           @long_interval_ms
@@ -78,17 +78,17 @@ defmodule Core.Crm.Companies.CompanyEnricher do
 
   defp enrich_companies_icon() do
     OpenTelemetry.Tracer.with_span "company_enricher.enrich_companies_icon" do
-      companiesForIconEnrichment =
+      companies_for_icon_enrichment =
         fetch_companies_for_icon_enrichment(@default_batch_size)
 
       OpenTelemetry.Tracer.set_attributes([
-        {"companies.found", length(companiesForIconEnrichment)},
+        {"companies.found", length(companies_for_icon_enrichment)},
         {"batch.size", @default_batch_size}
       ])
 
       # Enrich each company's icon
-      Enum.each(companiesForIconEnrichment, &enrich_company_icon/1)
-      {:ok, length(companiesForIconEnrichment)}
+      Enum.each(companies_for_icon_enrichment, &enrich_company_icon/1)
+      {:ok, length(companies_for_icon_enrichment)}
     end
   end
 
@@ -145,17 +145,17 @@ defmodule Core.Crm.Companies.CompanyEnricher do
 
   defp enrich_companies_industry() do
     OpenTelemetry.Tracer.with_span "company_enricher.enrich_companies_industry" do
-      companiesForIndustryEnrichment =
+      companies_for_industry_enrichment =
         fetch_companies_for_industry_enrichment(@default_batch_size)
 
       OpenTelemetry.Tracer.set_attributes([
-        {"companies.found", length(companiesForIndustryEnrichment)},
+        {"companies.found", length(companies_for_industry_enrichment)},
         {"batch.size", @default_batch_size}
       ])
 
       # Enrich each company's icon
-      Enum.each(companiesForIndustryEnrichment, &enrich_company_industry/1)
-      {:ok, length(companiesForIndustryEnrichment)}
+      Enum.each(companies_for_industry_enrichment, &enrich_company_industry/1)
+      {:ok, length(companies_for_industry_enrichment)}
     end
   end
 
@@ -208,17 +208,17 @@ defmodule Core.Crm.Companies.CompanyEnricher do
 
   defp enrich_companies_name() do
     OpenTelemetry.Tracer.with_span "company_enricher.enrich_companies_name" do
-      companiesForNameEnrichment =
+      companies_for_name_enrichment =
         fetch_companies_for_name_enrichment(@default_batch_size)
 
       OpenTelemetry.Tracer.set_attributes([
-        {"companies.found", length(companiesForNameEnrichment)},
+        {"companies.found", length(companies_for_name_enrichment)},
         {"batch.size", @default_batch_size}
       ])
 
       # Enrich each company's name
-      Enum.each(companiesForNameEnrichment, &enrich_company_name/1)
-      {:ok, length(companiesForNameEnrichment)}
+      Enum.each(companies_for_name_enrichment, &enrich_company_name/1)
+      {:ok, length(companies_for_name_enrichment)}
     end
   end
 
@@ -264,17 +264,17 @@ defmodule Core.Crm.Companies.CompanyEnricher do
 
   defp enrich_companies_country() do
     OpenTelemetry.Tracer.with_span "company_enricher.enrich_companies_country" do
-      companiesForCountryEnrichment =
+      companies_for_country_enrichment =
         fetch_companies_for_country_enrichment(@default_batch_size)
 
       OpenTelemetry.Tracer.set_attributes([
-        {"companies.found", length(companiesForCountryEnrichment)},
+        {"companies.found", length(companies_for_country_enrichment)},
         {"batch.size", @default_batch_size}
       ])
 
       # Enrich each company's icon
-      Enum.each(companiesForCountryEnrichment, &enrich_company_country/1)
-      {:ok, length(companiesForCountryEnrichment)}
+      Enum.each(companies_for_country_enrichment, &enrich_company_country/1)
+      {:ok, length(companies_for_country_enrichment)}
     end
   end
 

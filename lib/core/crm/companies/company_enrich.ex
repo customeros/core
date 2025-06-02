@@ -439,7 +439,7 @@ defmodule Core.Crm.Companies.CompanyEnrich do
   end
 
   defp get_country_from_ai(company) do
-    case Enrichments.Location.identifyCountryCodeA2(%{
+    case Enrichments.Location.identify_country_code_a2(%{
            domain: company.primary_domain,
            homepage_content: company.homepage_content
          }) do

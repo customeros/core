@@ -42,7 +42,7 @@ defmodule Web.DocumentController do
   end
 
   defp handle_create(conn, params) do
-    case Documents.create_document(params, parseDto: true) do
+    case Documents.create_document(params, parse_dto: true) do
       {:ok, %{document: document}} ->
         json_response =
           document
