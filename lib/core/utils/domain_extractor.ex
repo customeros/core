@@ -17,15 +17,17 @@ defmodule Core.Utils.DomainExtractor do
              | Core.Utils.Errors.domain_error()}
   def extract_base_domain(url_or_host)
       when is_binary(url_or_host) and byte_size(url_or_host) > 0 do
-    with {:ok, host} <- extract_host(url_or_host) do
-      base_domain = DomainExtractor.clean_domain(host)
+    case extract_host(url_or_host) do
+      {:ok, host} ->
+        base_domain = DomainExtractor.clean_domain(host)
 
-      case DomainValidator.validate_domain(base_domain) do
-        {:ok, normalized_domain} -> {:ok, normalized_domain}
-        {:error, reason} -> {:error, reason}
-      end
-    else
-      {:error, reason} -> {:error, reason}
+        case DomainValidator.validate_domain(base_domain) do
+          {:ok, normalized_domain} -> {:ok, normalized_domain}
+          {:error, reason} -> {:error, reason}
+        end
+
+      {:error, reason} ->
+        {:error, reason}
     end
   end
 

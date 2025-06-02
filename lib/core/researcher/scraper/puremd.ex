@@ -90,6 +90,7 @@ defmodule Core.Researcher.Scraper.Puremd do
     do: {:ok, body}
 
   defp handle_response(%Finch.Response{status: status, body: body}) do
-    Errors.error({:http_error, "Status: #{status}, Body: #{body}"})
+    Logger.error("PureMD API error - Status: #{status}, Body: #{body}")
+    {:error, :http_error}
   end
 end

@@ -66,9 +66,10 @@ defmodule Core.Researcher.NewLeadPipeline do
        ) do
     task = BriefWriter.create_brief_supervised(lead.tenant_id, lead.id, domain)
 
-    with {:ok, _response} <- await_task(task, @default_timeout) do
-      :ok
-    else
+    case await_task(task, @default_timeout) do
+      {:ok, _response} ->
+        :ok
+
       {:error, _reason} when attempts < @max_retries ->
         :timer.sleep(:timer.seconds(attempts + 1))
         generate_account_brief_with_retry(lead, domain, attempts + 1)
@@ -100,9 +101,10 @@ defmodule Core.Researcher.NewLeadPipeline do
   defp crawl_website_with_retry(domain, attempts \\ 0) do
     task = Crawler.crawl_supervised(domain)
 
-    with {:ok, _response} <- await_task(task, @crawl_timeout) do
-      :ok
-    else
+    case await_task(task, @crawl_timeout) do
+      {:ok, _response} ->
+        :ok
+
       {:error, _reason} when attempts < @max_retries ->
         :timer.sleep(:timer.seconds(attempts + 1))
         crawl_website_with_retry(domain, attempts + 1)

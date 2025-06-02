@@ -295,15 +295,16 @@ defmodule Core.WebTracker do
 
       Logger.info("Found company for domain #{domain}: #{company.name}")
 
-      with {:ok, db_company} <- Companies.get_or_create_by_domain(domain) do
-        case Core.Crm.Leads.get_or_create(tenant, %{
-               ref_id: db_company.id,
-               type: :company
-             }) do
-          {:ok, _lead} -> :ok
-          {:error, reason} -> {:error, reason}
-        end
-      else
+      case Companies.get_or_create_by_domain(domain) do
+        {:ok, db_company} ->
+          case Core.Crm.Leads.get_or_create(tenant, %{
+                 ref_id: db_company.id,
+                 type: :company
+               }) do
+            {:ok, _lead} -> :ok
+            {:error, reason} -> {:error, reason}
+          end
+
         {:error, reason} ->
           Tracing.error("lead_creation_failed")
 

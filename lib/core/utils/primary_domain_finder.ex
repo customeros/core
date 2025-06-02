@@ -159,24 +159,26 @@ defmodule Core.Utils.PrimaryDomainFinder do
 
   defp domain_redirect_check(domain)
        when is_binary(domain) and byte_size(domain) > 0 do
-    with {:ok, cleaned_domain} <- safe_clean_domain(domain) do
-      # Try HTTPS first
-      case check_redirect("https", cleaned_domain) do
-        {:ok, result} ->
-          handle_redirect_result(result, cleaned_domain)
+    case safe_clean_domain(domain) do
+      {:ok, cleaned_domain} ->
+        # Try HTTPS first
+        case check_redirect("https", cleaned_domain) do
+          {:ok, result} ->
+            handle_redirect_result(result, cleaned_domain)
 
-        {:error, :cannot_resolve_domain} ->
-          # If HTTPS fails to connect, try HTTP
-          case check_redirect("http", cleaned_domain) do
-            {:ok, result} -> handle_redirect_result(result, cleaned_domain)
-            {:error, reason} -> {:error, reason}
-          end
+          {:error, :cannot_resolve_domain} ->
+            # If HTTPS fails to connect, try HTTP
+            case check_redirect("http", cleaned_domain) do
+              {:ok, result} -> handle_redirect_result(result, cleaned_domain)
+              {:error, reason} -> {:error, reason}
+            end
 
-        {:error, reason} ->
-          {:error, reason}
-      end
-    else
-      {:error, reason} -> {:error, reason}
+          {:error, reason} ->
+            {:error, reason}
+        end
+
+      {:error, reason} ->
+        {:error, reason}
     end
   end
 
