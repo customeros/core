@@ -1,4 +1,21 @@
 defmodule Core.Researcher.Scraper.ContentProcessor do
+  @moduledoc """
+  Processes and analyzes scraped webpage content.
+
+  This module handles:
+  * Content sanitization and validation
+  * Parallel processing of webpage analysis
+  * Content classification and intent profiling
+  * Webpage summarization
+  * Link extraction and processing
+  * Database persistence of processed content
+
+  It coordinates multiple analysis tasks (classification,
+  intent profiling, summarization) in parallel and manages
+  the overall content processing pipeline, including
+  sanitization and storage of the results.
+  """
+
   alias Core.Researcher.Errors
   alias Core.Researcher.Webpages
 

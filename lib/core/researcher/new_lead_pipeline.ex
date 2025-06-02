@@ -1,4 +1,21 @@
 defmodule Core.Researcher.NewLeadPipeline do
+  @moduledoc """
+  Manages the automated processing pipeline for new leads.
+
+  This module coordinates:
+  * Lead domain extraction and validation
+  * Website crawling and content analysis
+  * ICP fit evaluation
+  * Account brief generation
+  * Error handling and retry logic
+
+  It implements a robust pipeline that processes new leads
+  asynchronously, with retry mechanisms and proper error
+  handling for each step. The pipeline ensures leads are
+  properly analyzed and categorized based on their fit
+  and potential value.
+  """
+
   require Logger
   alias Core.Crm.Leads
   alias Core.Crm.Companies

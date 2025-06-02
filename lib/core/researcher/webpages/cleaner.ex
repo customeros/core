@@ -1,4 +1,21 @@
 defmodule Core.Researcher.Webpages.Cleaner do
+  @moduledoc """
+  Processes and cleans markdown content from webpages.
+
+  This module handles:
+  * Removing navigation sections and elements
+  * Cleaning up link-heavy sections
+  * Processing document sections and headings
+  * Filtering out navigation markers
+  * Managing document structure and formatting
+
+  It uses a sophisticated approach to identify and remove
+  navigation elements, lists, and other non-content elements
+  while preserving the meaningful content of webpages.
+  The module processes content in sections to maintain
+  document structure and readability.
+  """
+
   defmodule DocumentSection do
     @moduledoc """
     Represents a section of a document with its heading and content.

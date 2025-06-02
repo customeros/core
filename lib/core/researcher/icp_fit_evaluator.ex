@@ -1,4 +1,21 @@
 defmodule Core.Researcher.IcpFitEvaluator do
+  @moduledoc """
+  Evaluates leads against Ideal Customer Profiles (ICPs).
+
+  This module manages:
+  * ICP fit evaluation for leads
+  * Website content analysis
+  * Lead stage updates based on fit
+  * Parallel processing of evaluations
+  * Retry logic for failed evaluations
+
+  It coordinates the evaluation of leads against tenant-specific
+  ICPs, using website content analysis and AI-powered evaluation
+  to determine if a lead is a strong fit, moderate fit, or not
+  a fit. The module updates lead stages accordingly and handles
+  the entire evaluation process asynchronously.
+  """
+
   alias Core.Ai
   alias Core.Researcher.IcpFitEvaluator.PromptBuilder
   alias Core.Researcher.IcpFitEvaluator.Validator

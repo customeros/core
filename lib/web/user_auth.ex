@@ -1,4 +1,19 @@
 defmodule Web.UserAuth do
+  @moduledoc """
+  Handles user authentication and session management for the web application.
+
+  This module provides functions for:
+  * User login and signup
+  * Session management and token handling
+  * Remember me functionality
+  * LiveView authentication
+  * User logout and session cleanup
+
+  It integrates with the core authentication system and provides
+  both traditional web session management and LiveView-specific
+  authentication hooks.
+  """
+
   use Web, :verified_routes
 
   import Plug.Conn

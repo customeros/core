@@ -1,4 +1,21 @@
 defmodule Core.Researcher.Builder.ProfileWriter do
+  @moduledoc """
+  Generates Ideal Customer Profiles (ICPs) based on business pages.
+
+  This module manages:
+  * ICP generation from business pages
+  * AI prompt construction
+  * Response validation and parsing
+  * Profile data extraction
+  * Error handling and retries
+
+  It coordinates the generation of actionable ICPs by analyzing
+  business pages, constructing prompts for AI evaluation, and
+  validating the responses. The module ensures generated profiles
+  are well-structured and contain all necessary information for
+  effective lead evaluation.
+  """
+
   alias Core.Researcher.Builder.ProfileValidator
   alias Core.Researcher.Webpages
   alias Core.Researcher.Errors

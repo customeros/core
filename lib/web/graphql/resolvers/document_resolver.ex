@@ -1,4 +1,20 @@
 defmodule Web.Graphql.Resolvers.DocumentResolver do
+  @moduledoc """
+  GraphQL resolvers for document-related operations.
+
+  This module provides the GraphQL resolvers that handle document
+  operations through the GraphQL API. It includes resolvers for:
+  * Listing documents by organization
+  * Retrieving individual documents
+  * Creating new documents
+  * Updating existing documents
+  * Deleting documents
+
+  Each resolver integrates with the core Documents context to
+  perform the actual database operations while providing a
+  GraphQL-friendly interface.
+  """
+
   alias Core.Crm.Documents
 
   def list_documents(_parent, %{organization_id: id}, %{
