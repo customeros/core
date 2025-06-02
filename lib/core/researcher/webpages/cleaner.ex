@@ -51,65 +51,61 @@ defmodule Core.Researcher.Webpages.Cleaner do
 
   defp parse_document_sections(lines) do
     {sections, current} =
-      Enum.reduce(lines, {[], %DocumentSection{}}, fn line,
-                                                      {sections, current} ->
-        if heading?(line) || horizontal_rule?(line) do
-          # Save previous section if it exists
-          sections =
-            if current.heading != "" || length(current.content) > 0 do
-              [current | sections]
-            else
-              sections
-            end
+      Enum.reduce(lines, {[], %DocumentSection{}}, &process_line/2)
 
-          # Start a new section
-          {sections, %DocumentSection{heading: line}}
-        else
-          # Analyze line content
-          trimmed_line = String.trim(line)
+    # Add the final section and reverse to maintain original order
+    sections
+    |> add_final_section(current)
+    |> Enum.reverse()
+  end
 
-          current =
-            cond do
-              markdown_link?(line) || html_link?(line) ||
-                  link_definition?(line) ->
-                %{
-                  current
-                  | link_count: current.link_count + 1,
-                    content: current.content ++ [line]
-                }
+  defp process_line(line, {sections, current}) do
+    if section_boundary?(line) do
+      {add_section_if_valid(sections, current), %DocumentSection{heading: line}}
+    else
+      {sections, update_current_section(current, line)}
+    end
+  end
 
-              link_list_item?(line) ->
-                %{
-                  current
-                  | list_count: current.list_count + 1,
-                    content: current.content ++ [line]
-                }
+  defp section_boundary?(line), do: heading?(line) || horizontal_rule?(line)
 
-              String.length(trimmed_line) > 0 ->
-                %{
-                  current
-                  | text_count: current.text_count + 1,
-                    content: current.content ++ [line]
-                }
+  defp add_section_if_valid(sections, current) do
+    if valid_section?(current), do: [current | sections], else: sections
+  end
 
-              true ->
-                %{current | content: current.content ++ [line]}
-            end
+  defp valid_section?(%{heading: heading, content: content}) do
+    heading != "" || length(content) > 0
+  end
 
-          {sections, current}
-        end
-      end)
+  defp update_current_section(current, line) do
+    trimmed_line = String.trim(line)
+    update = analyze_line_content(line, trimmed_line)
 
-    # Add the final section
-    sections =
-      if current.heading != "" || length(current.content) > 0 do
-        [current | sections]
-      else
-        sections
-      end
+    Map.merge(current, update)
+  end
 
-    # Reverse to maintain original order
-    Enum.reverse(sections)
+  defp analyze_line_content(line, trimmed_line) do
+    cond do
+      link?(line) ->
+        %{link_count: 1, content: [line]}
+
+      link_list_item?(line) ->
+        %{list_count: 1, content: [line]}
+
+      String.length(trimmed_line) > 0 ->
+        %{text_count: 1, content: [line]}
+
+      true ->
+        %{content: [line]}
+    end
+  end
+
+  defp link?(line) do
+    markdown_link?(line) || html_link?(line) || link_definition?(line)
+  end
+
+  defp add_final_section(sections, current) do
+    if valid_section?(current), do: [current | sections], else: sections
   end
 
   defp remove_navigation_heavy_sections(sections) do

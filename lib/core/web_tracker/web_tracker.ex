@@ -57,43 +57,50 @@ defmodule Core.WebTracker do
     end
   end
 
-  defp validate_event_params_impl(
-         %{
-           tenant: tenant,
-           visitor_id: visitor_id,
-           origin: origin,
-           ip: ip,
-           event_type: event_type,
-           event_data: _event_data,
-           href: href,
-           search: _search,
-           hostname: hostname,
-           pathname: pathname,
-           referrer: referrer,
-           user_agent: user_agent,
-           language: language,
-           cookies_enabled: cookies_enabled,
-           screen_resolution: _screen_resolution,
-           timestamp: _timestamp
-         } = attrs
-       )
-       when is_binary(tenant) and
-              is_binary(visitor_id) and
-              is_binary(origin) and
-              is_binary(ip) and
-              is_binary(event_type) and
-              is_binary(href) and
-              is_binary(hostname) and
-              is_binary(pathname) and
-              is_binary(user_agent) and
-              is_binary(language) and
-              is_binary(referrer) and
-              is_boolean(cookies_enabled) do
-    {:ok, attrs}
+  defp validate_event_params_impl(attrs) do
+    with :ok <- validate_required_strings(attrs),
+         :ok <- validate_boolean_fields(attrs) do
+      {:ok, attrs}
+    else
+      :error -> {:error, :bad_request, "invalid or missing parameters"}
+    end
   end
 
-  defp validate_event_params_impl(_) do
-    {:error, :bad_request, "invalid or missing parameters"}
+  defp validate_required_strings(attrs) do
+    required_fields = [
+      :tenant,
+      :visitor_id,
+      :origin,
+      :ip,
+      :event_type,
+      :href,
+      :hostname,
+      :pathname,
+      :user_agent,
+      :language,
+      :referrer
+    ]
+
+    if Enum.all?(required_fields, &valid_string_field?(attrs, &1)) do
+      :ok
+    else
+      :error
+    end
+  end
+
+  defp valid_string_field?(attrs, field) do
+    case Map.get(attrs, field) do
+      value when is_binary(value) and value != "" -> true
+      _ -> false
+    end
+  end
+
+  defp validate_boolean_fields(attrs) do
+    if Map.get(attrs, :cookies_enabled) in [true, false] do
+      :ok
+    else
+      :error
+    end
   end
 
   defp get_or_create_session({:error, _, _} = error), do: error

@@ -90,12 +90,10 @@ defmodule Core.Researcher.Scraper.Puremd do
   def handle_response_test(response), do: handle_response(response)
 
   defp handle_response(%Finch.Response{status: 200, body: body}) do
-    cond do
-      is_binary(body) and String.trim(body) != "" ->
-        {:ok, body}
-
-      true ->
-        @err_empty_response
+    if is_binary(body) and String.trim(body) != "" do
+      {:ok, body}
+    else
+      @err_empty_response
     end
   end
 

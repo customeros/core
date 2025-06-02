@@ -139,15 +139,12 @@ defmodule Core.Utils.PrimaryDomainFinder do
   defp validate_suspicious_domain(domain) do
     case parse_domain(domain) do
       {:ok, {_root, subdomain}} ->
-        cond do
-          # Check if domain has at least 2 dots (is a subdomain) and matches the pattern ww followed by 1-3 digits and a dot
-          subdomain != "" &&
-            Enum.count(String.graphemes(domain), &(&1 == ".")) >= 2 &&
-              Regex.match?(~r/^ww\d{1,3}\./, subdomain) ->
-            {:error, :suspicious_domain}
-
-          true ->
-            :ok
+        if subdomain != "" &&
+             Enum.count(String.graphemes(domain), &(&1 == ".")) >= 2 &&
+             Regex.match?(~r/^ww\d{1,3}\./, subdomain) do
+          {:error, :suspicious_domain}
+        else
+          :ok
         end
 
       {:error, reason} ->
