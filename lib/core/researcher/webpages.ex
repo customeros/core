@@ -15,8 +15,6 @@ defmodule Core.Researcher.Webpages do
         url,
         content,
         links,
-        classification \\ nil,
-        intent \\ nil,
         summary \\ nil
       ) do
     case DomainExtractor.extract_base_domain(url) do
@@ -29,8 +27,6 @@ defmodule Core.Researcher.Webpages do
             links: links,
             summary: summary
           }
-          |> maybe_add_classification(classification)
-          |> maybe_add_intent(intent)
 
         changeset =
           %ScrapedWebpage{}
@@ -41,15 +37,6 @@ defmodule Core.Researcher.Webpages do
       {:error, reason} ->
         {:error, reason}
     end
-  end
-
-  def save_full_scraped_data(url, %{
-        content: content,
-        classification: classification,
-        intent: intent,
-        links: links
-      }) do
-    save_scraped_content(url, content, links, classification, intent)
   end
 
   ## Update ##

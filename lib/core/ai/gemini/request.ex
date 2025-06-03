@@ -3,18 +3,22 @@ defmodule Core.Ai.Gemini.Request do
   Represents a request to ask a question to Gemini.
   """
   @type model :: :gemini_pro | :gemini_flash
+  @type response_type :: :text | :json
+
   @type t :: %__MODULE__{
           model: model(),
           prompt: String.t(),
           system_prompt: String.t() | nil,
           max_output_tokens: integer() | nil,
-          model_temperature: float() | nil
+          model_temperature: float() | nil,
+          response_type: response_type()
         }
 
   defstruct [
     :model,
     :prompt,
     :system_prompt,
+    :response_type,
     max_output_tokens: 1024,
     model_temperature: 0.7
   ]

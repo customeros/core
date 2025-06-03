@@ -15,7 +15,7 @@ defmodule Core.Researcher.Scraper.ContentProcessor do
   the overall content processing pipeline, including
   sanitization and storage of the results.
   """
-
+  require Logger
   alias Core.Researcher.Webpages
 
   # 1 min
@@ -23,24 +23,15 @@ defmodule Core.Researcher.Scraper.ContentProcessor do
 
   @err_not_utf8 {:error, "content not utf-8"}
   @err_content_invalid {:error, "invalid content"}
+  @err_summary_timeout {:error, "summary generation timed out"}
+  @err_summary_crashed {:error, "summary generation crashed"}
 
-  def handle_scraped_content_supervised(content, url) do
-    Task.Supervisor.async(
-      Core.TaskSupervisor,
-      fn ->
-        handle_scraped_content(content, url)
-      end
-    )
-  end
-
-  def handle_scraped_content(content, url) do
-    with {:ok, sanitized_content} <- sanitize_content(content),
-         {:ok, processed_data} <- process_webpage(url, sanitized_content) do
-      _ = save_to_database(url, processed_data)
-      {:ok, processed_data}
-    else
-      {:error, reason} -> {:error, reason}
-    end
+  def process_scraped_content(url, content) do
+    content
+    |> sanitize_content()
+    |> extract_links()
+    |> summarize_content(url)
+    |> save_to_database(url)
   end
 
   defp sanitize_content(content) when is_binary(content) do
@@ -60,51 +51,52 @@ defmodule Core.Researcher.Scraper.ContentProcessor do
 
   defp sanitize_content(_), do: @err_content_invalid
 
-  defp process_webpage(url, content) do
+  defp extract_links({:ok, content}) do
     links = Webpages.LinkExtractor.extract_links(content)
+    {:ok, content, links}
+  end
 
-    tasks = [
-      Webpages.Classifier.classify_content_supervised(url, content),
-      Webpages.IntentProfiler.profile_intent_supervised(url, content),
-      Webpages.Summarizer.summarize_webpage_supervised(url, content)
-    ]
+  defp extract_links({:error, reason}), do: {:error, reason}
 
-    [classification_result, intent_result, summary_result] =
-      Task.await_many(tasks, @default_timeout)
+  defp summarize_content({:ok, content, links}, url) do
+    Logger.metadata(module: __MODULE__, function: :summarize_content)
 
-    with {:ok, classification} <- classification_result,
-         {:ok, intent} <- intent_result,
-         {:ok, summary} <- summary_result do
-      {:ok,
-       %{
-         content: content,
-         classification: classification,
-         intent: intent,
-         summary: summary,
-         links: links
-       }}
-    else
-      {:error, reason} -> {:error, reason}
+    Logger.info("Starting webpage summarization",
+      url: url
+    )
+
+    task = Webpages.Summarizer.summarize_webpage_supervised(url, content)
+
+    case Task.yield(task, @default_timeout) do
+      {:ok, {:ok, summary}} ->
+        {:ok, content, links, summary}
+
+      {:ok, {:error, reason}} ->
+        Logger.error("Webpage summary failed for #{url}: #{reason}")
+        {:error, reason}
+
+      {:exit, reason} ->
+        Logger.error("Webpage summarization crashed for #{url}: #{reason}")
+        @err_summary_crashed
+
+      nil ->
+        Logger.warning("Webpage summary timed out for #{url}")
+        @err_summary_timeout
     end
   end
 
-  defp save_to_database(url, %{
-         content: content,
-         classification: classification,
-         intent: intent,
-         links: links,
-         summary: summary
-       }) do
+  defp summarize_content({:error, reason}, _url), do: {:error, reason}
+
+  defp save_to_database({:ok, content, links, summary}, url) do
     case Webpages.save_scraped_content(
            url,
            content,
            links,
-           classification,
-           intent,
            summary
          ) do
-      {:ok, saved_webpage} ->
-        {:ok, saved_webpage}
+      {:ok, _saved_webpage} ->
+        Logger.info("#{url} saved to database")
+        {:ok, :saved}
 
       {:error, db_error} ->
         {:error, "Database save failed: #{inspect(db_error)}"}

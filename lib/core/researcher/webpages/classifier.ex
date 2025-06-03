@@ -2,7 +2,6 @@ defmodule Core.Researcher.Webpages.Classifier do
   @moduledoc """
   Classifies webpage content using AI.
   """
-  alias Core.Researcher.Errors
   alias Core.Ai
 
   @model :gemini_pro
@@ -43,14 +42,14 @@ defmodule Core.Researcher.Webpages.Classifier do
         end
 
       {:ok, {:error, reason}} ->
-        Errors.error(reason)
+        {:error, reason}
 
       {:exit, reason} ->
-        Errors.error(reason)
+        {:error, reason}
 
       nil ->
         Task.shutdown(task)
-        Errors.error(:content_classification_timeout)
+        {:error, :timeout}
     end
   end
 

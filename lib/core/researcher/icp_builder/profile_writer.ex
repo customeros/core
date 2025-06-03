@@ -128,18 +128,9 @@ defmodule Core.Researcher.IcpBuilder.ProfileWriter do
   end
 
   def build_page_content_section(business_pages) do
-    content_sections =
-      business_pages
-      |> Enum.with_index(1)
-      |> Enum.map(fn {page, index} ->
-        build_individual_page_content(page, index)
-      end)
-      |> Enum.join("\n\n")
-
     """
     WEBSITE CONTENT:
-
-    #{content_sections}
+    #{business_pages |> Enum.with_index(1) |> Enum.map_join("\n\n", fn {page, index} -> build_individual_page_content(page, index) end)}
     """
   end
 
@@ -264,8 +255,7 @@ defmodule Core.Researcher.IcpBuilder.ProfileWriter do
         "Value Propositions:\n" <>
           (value_props
            |> Enum.with_index(1)
-           |> Enum.map(fn {prop, idx} -> "#{idx}. #{prop}" end)
-           |> Enum.join("\n"))
+           |> Enum.map_join("\n", fn {prop, idx} -> "#{idx}. #{prop}" end))
 
       [section | sections]
     else
@@ -311,8 +301,7 @@ defmodule Core.Researcher.IcpBuilder.ProfileWriter do
     if Enum.any?(content_types) do
       type_summary =
         content_types
-        |> Enum.map(fn {type, count} -> "#{count} #{type}" end)
-        |> Enum.join(", ")
+        |> Enum.map_join(", ", fn {type, count} -> "#{count} #{type}" end)
 
       section =
         "Content Analysis: #{type_summary} (#{length(business_pages)} total pages analyzed)"

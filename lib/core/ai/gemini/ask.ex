@@ -26,8 +26,6 @@ defmodule Core.Ai.Gemini.Ask do
   @api_key_param "key"
   @content_type_header "content-type"
 
-  @spec ask(Gemini.Request.t(), Gemini.Config.t()) ::
-          {:ok, String.t()} | {:error, any()}
   def ask(%Gemini.Request{} = message, %Gemini.Config{} = config) do
     with :ok <- Gemini.Request.validate(message),
          :ok <- Gemini.Config.validate(config),
@@ -44,15 +42,29 @@ defmodule Core.Ai.Gemini.Ask do
   end
 
   defp build_request(%Gemini.Request{} = message) do
-    prompt =
-      if message.system_prompt && String.trim(message.system_prompt) != "" do
-        """
-        System: #{message.system_prompt}
+    response_mime =
+      case message.response_type do
+        :json -> "application/json"
+        _ -> "text/plain"
+      end
 
-        User: #{message.prompt}
-        """
-      else
-        message.prompt
+    prompt =
+      case message.system_prompt do
+        nil ->
+          message.prompt
+
+        "" ->
+          message.prompt
+
+        system_prompt when is_binary(system_prompt) ->
+          if String.trim(system_prompt) != "" do
+            """
+            System: #{system_prompt}
+            User: #{message.prompt}
+            """
+          else
+            message.prompt
+          end
       end
 
     request = %Gemini.ApiRequest{
@@ -65,7 +77,7 @@ defmodule Core.Ai.Gemini.Ask do
       generationConfig: %Gemini.GenerationConfig{
         temperature: message.model_temperature,
         maxOutputTokens: message.max_output_tokens,
-        responseMimeType: "application/json"
+        responseMimeType: response_mime
       }
     }
 
