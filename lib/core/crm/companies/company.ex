@@ -36,6 +36,7 @@ defmodule Core.Crm.Companies.Company do
     field(:icon_enrich_attempt_at, :utc_datetime)
 
     # Enrichment attempt counters
+    field(:domain_scrape_attempts, :integer, default: 0)
     field(:industry_enrichment_attempts, :integer, default: 0)
     field(:name_enrichment_attempts, :integer, default: 0)
     field(:country_enrichment_attempts, :integer, default: 0)
@@ -67,6 +68,7 @@ defmodule Core.Crm.Companies.Company do
           country_enrich_attempt_at: DateTime.t() | nil,
           icon_enrich_attempt_at: DateTime.t() | nil,
           # Enrichment attempt counters
+          domain_scrape_attempts: integer(),
           industry_enrichment_attempts: integer(),
           name_enrichment_attempts: integer(),
           country_enrichment_attempts: integer(),
@@ -97,6 +99,7 @@ defmodule Core.Crm.Companies.Company do
       :name_enrich_attempt_at,
       :country_enrich_attempt_at,
       :icon_enrich_attempt_at,
+      :domain_scrape_attempts,
       :industry_enrichment_attempts,
       :name_enrichment_attempts,
       :country_enrichment_attempts,

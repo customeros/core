@@ -1,15 +1,12 @@
 defmodule Core.Crm.Companies.CompanyEnricher do
   @moduledoc """
   GenServer responsible for periodically enriching company data.
-  Runs every 15 minutes and processes companies that need enrichment for various fields:
+  Runs every 2 or 15 minutes (based on found records) and processes companies that need enrichment for various fields:
   - Icon
   - Industry
   - Name
   - Country
-
-  Configuration:
-  - Uses general cron configuration from :core, :crons, :enabled
-  - Other settings (interval_ms, batch_size) are configured in config.exs
+  - Homepage
   """
   use GenServer
   require Logger
@@ -21,8 +18,8 @@ defmodule Core.Crm.Companies.CompanyEnricher do
   alias Core.Crm.Companies.CompanyEnrich
   alias Core.Utils.Tracing
 
-  # 1 minute
-  @default_interval_ms 60 * 1000
+  # 2 minutes
+  @default_interval_ms 2 * 60 * 1000
   # 15 minutes
   @long_interval_ms 15 * 60 * 1000
   @default_batch_size 5
@@ -54,12 +51,16 @@ defmodule Core.Crm.Companies.CompanyEnricher do
       {_, num_companies_for_name_enrichment} = enrich_companies_name()
       {_, num_companies_for_country_enrichment} = enrich_companies_country()
 
+      {_, num_companies_for_homepage_scrape} =
+        enrich_companies_homepage_scrape()
+
       # Schedule the next check - use default interval if either enrichment hit the batch size
       next_interval_ms =
         if num_companies_for_icon_enrichment == @default_batch_size or
              num_companies_for_name_enrichment == @default_batch_size or
              num_companies_for_country_enrichment == @default_batch_size or
-             num_companies_for_industry_enrichment == @default_batch_size do
+             num_companies_for_industry_enrichment == @default_batch_size or
+             num_companies_for_homepage_scrape == @default_batch_size do
           @default_interval_ms
         else
           @long_interval_ms
@@ -314,6 +315,65 @@ defmodule Core.Crm.Companies.CompanyEnricher do
     )
     |> where([c], c.inserted_at < ^minutes_ago_10)
     |> order_by([c], asc: c.country_enrich_attempt_at)
+    |> limit(^batch_size)
+    |> Repo.all()
+  end
+
+  defp enrich_companies_homepage_scrape() do
+    OpenTelemetry.Tracer.with_span "company_enricher.enrich_companies_homepage_scrape" do
+      companies_for_homepage_scrape =
+        fetch_companies_for_homepage_scrape(@default_batch_size)
+
+      OpenTelemetry.Tracer.set_attributes([
+        {"companies.found", length(companies_for_homepage_scrape)},
+        {"batch.size", @default_batch_size}
+      ])
+
+      # Enrich each company's icon
+      Enum.each(
+        companies_for_homepage_scrape,
+        &enrich_company_homepage_scrape/1
+      )
+
+      {:ok, length(companies_for_homepage_scrape)}
+    end
+  end
+
+  defp enrich_company_homepage_scrape(company) do
+    OpenTelemetry.Tracer.with_span "company_enricher.enrich_company_homepage_scrape" do
+      OpenTelemetry.Tracer.set_attributes([
+        {"company.id", company.id},
+        {"company.domain", company.primary_domain}
+      ])
+
+      case CompanyEnrich.scrape_homepage(company.id) do
+        :ok ->
+          Tracing.ok()
+          :ok
+
+        {:error, reason} ->
+          Tracing.error(reason)
+
+          {:error, reason}
+      end
+    end
+  end
+
+  defp fetch_companies_for_homepage_scrape(batch_size) do
+    hours_ago_24 = DateTime.add(DateTime.utc_now(), -24 * 60 * 60)
+    minutes_ago_30 = DateTime.add(DateTime.utc_now(), -30 * 60)
+    max_attempts = 5
+
+    Company
+    |> where([c], is_nil(c.homepage_content) or c.homepage_content == "")
+    |> where([c], c.domain_scrape_attempts < ^max_attempts)
+    |> where(
+      [c],
+      is_nil(c.domain_scrape_attempt_at) or
+        c.domain_scrape_attempt_at < ^hours_ago_24
+    )
+    |> where([c], c.inserted_at < ^minutes_ago_30)
+    |> order_by([c], asc: c.domain_scrape_attempt_at)
     |> limit(^batch_size)
     |> Repo.all()
   end

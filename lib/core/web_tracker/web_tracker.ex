@@ -76,7 +76,7 @@ defmodule Core.WebTracker do
       :hostname,
       :pathname,
       :user_agent,
-      :language,
+      :language
     ]
 
     if Enum.all?(required_fields, &valid_string_field?(attrs, &1)) do

@@ -127,7 +127,8 @@ defmodule Core.WebTracker.IpIdentifier.IpIntelligence do
 
   def get_domain_by_ip(ip, lookback_days) when is_binary(ip) do
     case get_by_ip(ip, lookback_days) do
-      {:ok, %__MODULE__{domain: domain}} when is_binary(domain) and domain != "" ->
+      {:ok, %__MODULE__{domain: domain}}
+      when is_binary(domain) and domain != "" ->
         {:ok, domain}
 
       {:ok, _} ->
