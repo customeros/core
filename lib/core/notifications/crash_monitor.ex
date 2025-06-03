@@ -27,30 +27,24 @@ defmodule Core.Notifications.CrashMonitor do
 
   def handle_event({level, _gl, {Logger, msg, _timestamp, metadata}}, state)
       when level in [:error] do
-    cond do
-      crash_report?(msg) and should_send_alert?(state) ->
-        # Send crash alert in background
+    if not slack_notification_error?(msg) and should_send_alert?(state) do
+      if crash_report?(msg) do
         Task.start(fn ->
           send_crash_notification(msg, metadata)
         end)
 
-        # Update state with new alert timestamp
         new_state = update_alert_state(state, :crash)
         {:ok, new_state}
-
-      error_report?(msg) and should_send_alert?(state) ->
-        # Send error alert in background
+      else
         Task.start(fn ->
           send_error_notification(msg, metadata)
         end)
 
-        # Update state with new alert timestamp
         new_state = update_alert_state(state, :error)
         {:ok, new_state}
-
-      true ->
-        # Count but don't alert (rate limited or not a reportable error)
-        {:ok, %{state | total_errors: state.total_errors + 1}}
+      end
+    else
+      {:ok, %{state | total_errors: state.total_errors + 1}}
     end
   end
 
@@ -70,11 +64,9 @@ defmodule Core.Notifications.CrashMonitor do
     {:ok, state}
   end
 
-  # Detect if this is actually a crash report
   defp crash_report?(msg) do
     msg_str = to_string(msg)
 
-    # Look for common crash indicators
     crash_indicators = [
       "GenServer",
       "Task",
@@ -86,37 +78,10 @@ defmodule Core.Notifications.CrashMonitor do
       "EXIT"
     ]
 
-    # Must contain crash indicator AND not be our own notifications
     Enum.any?(crash_indicators, &String.contains?(msg_str, &1)) and
       not slack_notification_error?(msg_str)
   end
 
-  # Detect if this is an error report (not a crash)
-  defp error_report?(msg) do
-    msg_str = to_string(msg)
-
-    # Look for error indicators but exclude crashes
-    error_indicators = [
-      "** (error)",
-      "** (ArithmeticError)",
-      "** (RuntimeError)",
-      "** (MatchError)",
-      "** (FunctionClauseError)",
-      "** (ArgumentError)",
-      "** (CaseClauseError)",
-      "** (KeyError)",
-      "** (BadMapError)",
-      "** (UndefinedFunctionError)",
-      "** (BadFunctionError)"
-    ]
-
-    # Must contain error indicator AND not be a crash AND not be our own notifications
-    Enum.any?(error_indicators, &String.contains?(msg_str, &1)) and
-      not crash_report?(msg) and
-      not slack_notification_error?(msg_str)
-  end
-
-  # Prevent infinite loops from our own Slack notification failures
   defp slack_notification_error?(msg_str) do
     String.contains?(msg_str, [
       "Finch",
@@ -126,24 +91,20 @@ defmodule Core.Notifications.CrashMonitor do
     ])
   end
 
-  # Rate limiting logic
   defp should_send_alert?(state) do
     now = System.system_time(:second)
 
-    # Remove old alerts outside the window
     recent_alerts =
       Enum.filter(state.alerts_sent, fn timestamp ->
         now - timestamp < @rate_limit_window_seconds
       end)
 
-    # Check if we're under the limit
     length(recent_alerts) < @max_alerts_per_window
   end
 
   defp update_alert_state(state, type) do
     now = System.system_time(:second)
 
-    # Add current timestamp and clean old ones
     new_alerts =
       [now | state.alerts_sent]
       |> Enum.filter(fn timestamp ->
@@ -165,52 +126,44 @@ defmodule Core.Notifications.CrashMonitor do
 
   defp send_crash_notification(msg, metadata) do
     try do
-      # Extract useful information
       error_type = extract_error_type(msg)
       error_message = format_error_message(msg)
       location = extract_location(metadata, msg)
       stacktrace = extract_stacktrace(msg)
 
-      # Send to Slack
       case Slack.notify_crash(error_type, error_message, location, stacktrace) do
         :ok ->
           :ok
 
         {:error, reason} ->
-          # Log but don't crash - we don't want notification failures to cause more crashes
           Logger.warning(
             "Failed to send crash notification to Slack: #{inspect(reason)}"
           )
       end
     rescue
       error ->
-        # Absolutely prevent notification errors from causing more notifications
         Logger.warning("Error in crash notification system: #{inspect(error)}")
     end
   end
 
   defp send_error_notification(msg, metadata) do
     try do
-      # Extract useful information for errors
       error_type = extract_error_type(msg)
       error_message = format_error_message(msg)
       location = extract_location(metadata, msg)
       stacktrace = extract_stacktrace(msg)
 
-      # Send to Slack with different formatting/priority
       case Slack.notify_error(error_type, error_message, location, stacktrace) do
         :ok ->
           :ok
 
         {:error, reason} ->
-          # Log but don't crash
           Logger.warning(
             "Failed to send error notification to Slack: #{inspect(reason)}"
           )
       end
     rescue
       error ->
-        # Absolutely prevent notification errors from causing more notifications
         Logger.warning("Error in error notification system: #{inspect(error)}")
     end
   end
@@ -226,7 +179,6 @@ defmodule Core.Notifications.CrashMonitor do
         "Task Crash"
 
       String.contains?(msg_str, "** (") ->
-        # Extract exception type from ** (ExceptionType) format
         case Regex.run(~r/\*\* \(([^)]+)\)/, msg_str) do
           [_, exception_type] -> exception_type
           _ -> "Exception"
@@ -240,9 +192,7 @@ defmodule Core.Notifications.CrashMonitor do
   defp format_error_message(msg) do
     msg_str = to_string(msg)
 
-    # Try to extract the actual error message, not the full crash report
     if String.contains?(msg_str, "** (") do
-      # Extract message after exception type
       case Regex.run(~r/\*\* \([^)]+\) (.+)/, msg_str) do
         [_, error_msg] ->
           error_msg
@@ -254,7 +204,6 @@ defmodule Core.Notifications.CrashMonitor do
           String.slice(msg_str, 0, 200)
       end
     else
-      # Just take first line and truncate
       msg_str
       |> String.split("\n")
       |> List.first()
@@ -264,7 +213,6 @@ defmodule Core.Notifications.CrashMonitor do
 
   defp extract_location(metadata, msg) do
     cond do
-      # Try to get from metadata first (most reliable)
       metadata[:mfa] ->
         {mod, fun, arity} = metadata[:mfa]
         "#{mod}.#{fun}/#{arity}"
@@ -272,7 +220,6 @@ defmodule Core.Notifications.CrashMonitor do
       metadata[:module] ->
         "#{metadata[:module]}"
 
-      # Try to extract from crash report
       true ->
         msg_str = to_string(msg)
 
@@ -286,10 +233,8 @@ defmodule Core.Notifications.CrashMonitor do
   defp extract_stacktrace(msg) do
     msg_str = to_string(msg)
 
-    # Look for stacktrace in the message
     if String.contains?(msg_str, "stacktrace") or
          String.contains?(msg_str, "    (") do
-      # Try to extract just the stacktrace part
       lines = String.split(msg_str, "\n")
 
       stacktrace_lines =
@@ -297,7 +242,6 @@ defmodule Core.Notifications.CrashMonitor do
         |> Enum.drop_while(fn line ->
           not String.contains?(line, ["stacktrace", "    ("])
         end)
-        # Limit to first 10 lines of stacktrace
         |> Enum.take(10)
 
       if length(stacktrace_lines) > 0 do
