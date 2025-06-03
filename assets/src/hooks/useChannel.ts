@@ -1,5 +1,3 @@
-import type { Channel } from 'phoenix';
-
 import { useState, useEffect, useContext } from 'react';
 
 import { Presence } from 'phoenix';
@@ -14,63 +12,60 @@ type Meta = {
   online_at: number;
   metadata: { source: string };
 };
-type PresenceDiff = {
-  [key: string]: {
-    metas: Meta[];
-  };
-};
 
 type PresenceState = { metas: Meta[] }[];
 
 type User = { email: string; id: string; name: string };
 
 export const useChannel = (channelName: string) => {
-  const { socket } = useContext(PhoenixSocketContext);
   const page = usePage();
-  const [presenceState, setPresenceState] = useState<PresenceState | null>(null);
-
-  const [channel, setChannel] = useState<Channel | null>(null);
-  const [presence, setPresence] = useState<PresenceDiff | null>(null);
-  const presentUsers = parsePresentUsers(presenceState || []);
+  const { socket, createChannel, channels } = useContext(PhoenixSocketContext);
+  const channel = channels.get(channelName);
 
   const user_id = (page?.props?.currentUser as User)?.id ?? '';
   const username = (page?.props?.currentUser as User)?.email;
 
   useEffect(() => {
     if (!socket || !user_id) return;
+    (async () => {
+      try {
+        await createChannel(channelName, {
+          user_id,
+          username,
+        });
+      } catch (err) {
+        console.error(err);
+      }
+    })();
 
-    if (channel?.state === 'joined') {
-      channel.leave();
-    }
+    return () => {
+      channel?.leave();
+    };
+  }, [socket, user_id, username, createChannel, channelName]);
 
-    const phoenixChannel = socket?.channel(channelName, {
-      user_id,
-      username,
-    });
+  return { channel };
+};
 
-    if (!phoenixChannel) return;
+export const usePresenceChannel = (channelName: string) => {
+  const { channel } = useChannel(channelName);
+  const [presenceState, setPresenceState] = useState<PresenceState | null>(null);
 
-    phoenixChannel
-      ?.join()
-      ?.receive('ok', () => {
-        setChannel(phoenixChannel);
-      })
-      .receive('error', () => {
-        // TODO: handle error
-      });
+  const presentUsers = parsePresentUsers(presenceState || []);
 
-    const presence = new Presence(phoenixChannel);
+  useEffect(() => {
+    if (!channel) return;
+    const presence = new Presence(channel);
 
     presence.onSync(() => {
       setPresenceState(presence.list());
     });
 
     return () => {
-      phoenixChannel.leave();
+      channel.leave();
     };
-  }, [setPresence, socket, user_id, username]);
+  }, [channel]);
 
-  return { channel, presence, presentUsers, currentUserId: user_id };
+  return { channel, presentUsers };
 };
 
 function parsePresentUsers(presenceState: PresenceState) {

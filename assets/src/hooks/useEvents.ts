@@ -5,7 +5,7 @@ import { PageProps } from '@inertiajs/core';
 import { Lead, Tenant, User } from 'src/types';
 import { useChannel } from './useChannel';
 
-type EventType = 'lead_created';
+type EventType = 'lead_created' | 'lead_updated';
 
 type Event<K extends EventType = EventType, T extends object = object> = {
   type: K;
@@ -13,6 +13,8 @@ type Event<K extends EventType = EventType, T extends object = object> = {
 };
 
 export type LeadCreatedEvent = Event<'lead_created', { id: string; icon_url: string }>;
+
+export type LeadUpdatedEvent = Event<'lead_updated', { id: string }>;
 
 export const useEventsChannel = <E extends Event>(onEvent: (event: E) => void) => {
   const page = usePage<PageProps & { tenant: Tenant; currentUser: User; companies: Lead[] }>();
