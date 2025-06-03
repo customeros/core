@@ -7,9 +7,6 @@ defmodule Core.WebTracker.VisitorIntentPipeline do
   * Identifying visitor intent patterns
   * Running background tasks for intent analysis
   * Managing the intent analysis pipeline lifecycle
-
-  The pipeline runs asynchronously using a Task Supervisor to analyze
-  visitor behavior without blocking the main application flow.
   """
 
   def start() do

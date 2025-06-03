@@ -9,7 +9,7 @@ defmodule Core.Researcher.IcpBuilder do
   - Initiating company matching processes for new ICPs
   """
 
-  alias Core.Researcher.Builder.ProfileWriter
+  alias Core.Researcher.IcpBuilder.ProfileWriter
   alias Core.Researcher.Crawler
 
   @crawl_timeout 5 * 60 * 1000

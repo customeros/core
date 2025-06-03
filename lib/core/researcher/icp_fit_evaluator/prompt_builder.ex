@@ -37,9 +37,9 @@ defmodule Core.Researcher.IcpFitEvaluator.PromptBuilder do
 
     Lead's Website: #{domain}
 
-    #{Core.Researcher.Builder.ProfileWriter.build_company_analysis(business_pages)}
+    #{Core.Researcher.IcpBuilder.ProfileWriter.build_company_analysis(business_pages)}
 
-    #{Core.Researcher.Builder.ProfileWriter.build_page_content_section(business_pages)}
+    #{Core.Researcher.IcpBuilder.ProfileWriter.build_page_content_section(business_pages)}
     """
 
     {system_prompt, prompt}
