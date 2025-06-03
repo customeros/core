@@ -17,8 +17,8 @@ defmodule Core.Crm.Leads.IcpFitEvaluator do
   alias Core.Utils.Tracing
 
   # Constants
-  # 1 minute in milliseconds
-  @default_interval 60_000
+  # 2 minutes in milliseconds
+  @default_interval 2 * 60 * 1000
   # Number of leads to process in each batch
   @default_batch_size 5
 
