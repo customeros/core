@@ -108,8 +108,8 @@ defmodule Core.Crm.Companies.CompanyDomainProcessor do
             {:error, reason} ->
               Tracing.error(reason)
 
-              Logger.error(
-                "Failed to process domain #{queue_item.domain} (base: #{base_domain}): #{inspect(reason)}"
+              Logger.warning(
+                "Rejected domain #{queue_item.domain} (base domain: #{base_domain}), reason: #{inspect(reason)}"
               )
 
               mark_as_processed(queue_item.id)

@@ -375,12 +375,22 @@ defmodule Core.Crm.Companies.CompanyEnrich do
         OpenTelemetry.Tracer.set_attributes([{"ai.name", name}])
         {:ok, name}
 
-      {:error, reason} ->
+      {:error, reason, name} ->
+        Tracing.error(reason)
+
         Logger.error(
-          "Failed to get name from AI for company #{company.id}: #{inspect(reason)}"
+          "Rejected name #{name} for company #{company.id}, (domain: #{company.primary_domain}): #{inspect(reason)}"
         )
 
+        {:error, reason}
+
+      {:error, reason} ->
         Tracing.error(reason)
+
+        Logger.error(
+          "Failed to get name from AI for company #{company.id}, (domain: #{company.primary_domain}): #{inspect(reason)}"
+        )
+
         {:error, reason}
     end
   end
