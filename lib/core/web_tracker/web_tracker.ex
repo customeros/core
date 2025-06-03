@@ -50,6 +50,7 @@ defmodule Core.WebTracker do
 
         {:error, :bad_request, reason} = result ->
           Tracing.error(reason)
+          Logger.error("Error in web tracker event params: #{reason}")
           result
       end
     end
@@ -76,7 +77,6 @@ defmodule Core.WebTracker do
       :pathname,
       :user_agent,
       :language,
-      :referrer
     ]
 
     if Enum.all?(required_fields, &valid_string_field?(attrs, &1)) do

@@ -29,16 +29,24 @@ defmodule Web.WebTrackerController do
       # Header values used only for validation
       header_origin = conn.assigns.origin
       header_user_agent = conn.assigns.user_agent
-      header_referer = conn.assigns.referer
+      header_referrer = conn.assigns.referer
 
       visitor_id = Map.get(params, "visitorId")
+
+      # If referrer is not provided in the body, use the header value
+      params =
+        if(Map.get(params, "referrer") in [nil, ""]) do
+          Map.put(params, "referrer", header_referrer)
+        else
+          params
+        end
 
       with {:ok, visitor_id} <- validate_visitor_id(visitor_id),
            :ok <- validate_origin(header_origin),
            {:ok, tenant} <-
              OriginTenantMapper.get_tenant_for_origin(header_origin),
            :ok <- WebTracker.check_bot(header_user_agent),
-           :ok <- WebTracker.check_suspicious(header_referer),
+           :ok <- WebTracker.check_suspicious(header_referrer),
            # Create event params with body values
            {:ok, event_params} <-
              Event.new(
