@@ -1,6 +1,15 @@
 defmodule Core.WebTracker.VisitorIntentPipeline do
   @moduledoc """
+  Manages the visitor intent analysis pipeline for web tracking.
 
+  This module is responsible for:
+  * Processing and analyzing visitor behavior data
+  * Identifying visitor intent patterns
+  * Running background tasks for intent analysis
+  * Managing the intent analysis pipeline lifecycle
+
+  The pipeline runs asynchronously using a Task Supervisor to analyze
+  visitor behavior without blocking the main application flow.
   """
 
   def start() do
