@@ -116,9 +116,12 @@ defmodule Core.Crm.Companies.CompanyEnrich do
   end
 
   defp mark_scrape_attempt(company_id) do
+    now = DateTime.utc_now()
+
     case Repo.update_all(
            from(c in Company, where: c.id == ^company_id),
-           set: [domain_scrape_attempt_at: DateTime.utc_now()]
+           set: [domain_scrape_attempt_at: now],
+           inc: [domain_scrape_attempts: 1]
          ) do
       {0, _} ->
         Logger.error(
@@ -767,7 +770,8 @@ defmodule Core.Crm.Companies.CompanyEnrich do
       ])
 
       cond do
-        not is_nil(company.homepage_content) and company.homepage_content != "" ->
+        is_binary(company.homepage_content) and
+            String.length(company.homepage_content) > 0 ->
           false
 
         is_nil(company.primary_domain) or company.primary_domain == "" ->
