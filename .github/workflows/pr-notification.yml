@@ -15,31 +15,17 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-      - name: Setup Node.js
-        uses: actions/setup-node@v4
+      - name: Slack Notification
+        uses: slackapi/slack-github-action@v1.25.0
         with:
-          node-version: "20"
-
-      - name: Install Dependencies
-        run: npm install @actions/core @actions/github node-fetch@3
-
-      - name: Debug Environment
-        run: |
-          echo "Node version: $(node --version)"
-          echo "NPM version: $(npm --version)"
-          echo "Current directory: $(pwd)"
-          echo "Listing directory contents:"
-          ls -la ./scripts/runners/
-          echo "Event name: ${{ github.event_name }}"
-          echo "Action: ${{ github.event.action }}"
-
-      - name: Run PR Notification Script
-        run: node ./scripts/runners/pr-notification.mjs
+          channel-id: ${{ secrets.SLACK_CHANNEL_ID }}
+          slack-message: |
+            *Pull Request ${{ github.event.action }}*
+            *Repository:* ${{ github.repository }}
+            *PR Title:* ${{ github.event.pull_request.title }}
+            *PR Number:* #${{ github.event.pull_request.number }}
+            *Author:* ${{ github.event.pull_request.user.login }}
+            *Status:* ${{ github.event.action }}
+            *URL:* ${{ github.event.pull_request.html_url }}
         env:
-          SLACK_CHANNEL_ID: ${{ secrets.SLACK_CHANNEL_ID }}
-          SLACK_API_TOKEN: ${{ secrets.SLACK_API_TOKEN }}
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-
-      - name: Check Script Exit
-        if: always()
-        run: 'echo "Script exit code: $?"'
+          SLACK_BOT_TOKEN: ${{ secrets.SLACK_API_TOKEN }}
