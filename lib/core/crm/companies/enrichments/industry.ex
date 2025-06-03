@@ -86,10 +86,17 @@ defmodule Core.Crm.Companies.Enrichments.Industry do
 
         {:ok, {:error, reason}} ->
           Tracing.error(reason)
+          Logger.error("Failed to identify industry: #{inspect(reason)}")
+          {:error, reason}
+
+        {:error, reason} ->
+          Tracing.error(reason)
+          Logger.error("Failed to identify industry: #{inspect(reason)}")
           {:error, reason}
 
         {:exit, reason} ->
           Tracing.error(reason)
+          Logger.error("Failed to identify industry: #{inspect(reason)}")
           {:error, reason}
 
         nil ->

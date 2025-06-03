@@ -76,10 +76,17 @@ defmodule Core.Crm.Companies.Enrichments.Location do
 
         {:ok, {:error, reason}} ->
           Tracing.error(reason)
+          Logger.error("Failed to identify country: #{inspect(reason)}")
           {:error, reason}
 
         {:exit, reason} ->
           Tracing.error(reason)
+          Logger.error("Failed to identify country: #{inspect(reason)}")
+          {:error, reason}
+
+        {:error, reason} ->
+          Tracing.error(reason)
+          Logger.error("Failed to identify country: #{inspect(reason)}")
           {:error, reason}
 
         nil ->

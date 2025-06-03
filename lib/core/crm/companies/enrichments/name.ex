@@ -95,10 +95,17 @@ defmodule Core.Crm.Companies.Enrichments.Name do
 
         {:ok, {:error, reason}} ->
           Tracing.error(reason)
+          Logger.error("Failed to identify name: #{inspect(reason)}")
           {:error, reason}
 
         {:exit, reason} ->
           Tracing.error(reason)
+          Logger.error("Failed to identify name: #{inspect(reason)}")
+          {:error, reason}
+
+        {:error, reason} ->
+          Tracing.error(reason)
+          Logger.error("Failed to identify name: #{inspect(reason)}")
           {:error, reason}
 
         nil ->
