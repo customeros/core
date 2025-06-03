@@ -141,7 +141,7 @@ defmodule Core.Utils.PrimaryDomainFinder do
       {:ok, {_root, subdomain}} ->
         if subdomain != "" &&
              Enum.count(String.graphemes(domain), &(&1 == ".")) >= 2 &&
-             Regex.match?(~r/^ww\d{1,3}\./, subdomain) do
+             Regex.match?(~r/^w{2,3}\d{1,3}/, subdomain) do
           {:error, :suspicious_domain}
         else
           :ok
