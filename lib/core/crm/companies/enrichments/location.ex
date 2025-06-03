@@ -13,10 +13,10 @@ defmodule Core.Crm.Companies.Enrichments.Location do
   alias Core.Ai
   alias Core.Utils.Tracing
 
-  @timeout 60 * 1000
-  @model :claude_sonnet
-  @max_tokens 250
-  @temperature 0.1
+  @timeout 30 * 1000
+  @model :gemini_flash
+  @max_tokens 20
+  @temperature 0.05
   @system_prompt_country """
   I'm going to provide you metadata about a company, including their website content.
   Your job is to identify the company's primary country of operation using ISO 3166-1 alpha-2 country codes.
