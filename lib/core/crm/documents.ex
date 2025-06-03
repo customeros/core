@@ -49,6 +49,16 @@ defmodule Core.Crm.Documents do
 
   defp handle_transaction_result({:ok, %{document: document} = result}, ref_id) do
     decorated_doc = %Document{document | ref_id: ref_id}
+
+    case Core.Crm.Leads.get_by_id(document.tenant_id, ref_id) do
+      {:ok, lead} ->
+        Core.Crm.Leads.LeadNotifier.notify_lead_updated(lead)
+        {:ok, lead}
+
+      {:error, _} ->
+        {:ok, decorated_doc}
+    end
+
     {:ok, Map.put(result, :document, decorated_doc)}
   end
 

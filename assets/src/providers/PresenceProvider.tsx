@@ -1,7 +1,7 @@
 import { createContext, useContext, ReactNode } from 'react';
-import { useChannel } from '../hooks/useChannel';
+import { usePresenceChannel } from '../hooks/useChannel';
 import { usePage } from '@inertiajs/react';
-import { Tenant } from '../types';
+import { Tenant, User } from '../types';
 
 type PresenceContextType = {
   presentUsers: {
@@ -24,7 +24,8 @@ export const PresenceProvider = ({ children }: { children: ReactNode }) => {
   const page = usePage();
   const tenant = page.props.tenant as Tenant | undefined;
   const tenantId = tenant?.id;
-  const { presentUsers, currentUserId } = useChannel(tenantId ? `leads:${tenantId}` : '');
+  const currentUserId = (page?.props?.currentUser as User)?.id ?? '';
+  const { presentUsers } = usePresenceChannel(tenantId ? `leads:${tenantId}` : '');
 
   return (
     <PresenceContext.Provider value={{ presentUsers, currentUserId }}>

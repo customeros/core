@@ -14,6 +14,7 @@ defmodule Core.Crm.Leads do
   alias Core.Crm.Companies.Company
   alias Core.Utils.Media.Images
   alias Core.Utils.Tracing
+  alias Core.Crm.Leads.LeadNotifier
 
   @spec get_by_ref_id(tenant_id :: String.t(), ref_id :: String.t()) ::
           {:ok, Lead.t()} | {:error, :not_found}
@@ -74,6 +75,7 @@ defmodule Core.Crm.Leads do
         on: c.id == l.ref_id,
         left_join: rd in subquery(latest_doc),
         on: rd.ref_id == l.id,
+        order_by: [desc: l.inserted_at],
         select: %{
           id: l.id,
           ref_id: l.ref_id,
@@ -140,19 +142,7 @@ defmodule Core.Crm.Leads do
 
   defp after_insert_start(result) do
     Task.start(fn ->
-      icon_url =
-        case Core.Crm.Companies.get_icon_url(result.ref_id) do
-          {:ok, icon_url} -> icon_url
-          _ -> nil
-        end
-
-      Web.Endpoint.broadcast("events:#{result.tenant_id}", "event", %{
-        type: :lead_created,
-        payload: %{
-          id: result.id,
-          icon_url: icon_url
-        }
-      })
+      LeadNotifier.notify_lead_created(result)
     end)
 
     Core.Crm.Leads.NewLeadPipeline.start(result.id, result.tenant_id)
@@ -162,6 +152,7 @@ defmodule Core.Crm.Leads do
     lead
     |> Lead.changeset(attrs)
     |> Repo.update()
+    |> tap(fn {:ok, result} -> LeadNotifier.notify_lead_updated(result) end)
   end
 
   @doc """

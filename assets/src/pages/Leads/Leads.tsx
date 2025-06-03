@@ -15,6 +15,7 @@ import {
 } from 'src/components/Collapsible';
 
 import { Lead, Tenant, User } from 'src/types';
+import { LeadUpdatedEvent, useEventsChannel } from 'src/hooks';
 
 interface LeadsProps {
   companies: Lead[];
@@ -87,6 +88,7 @@ export const Leads = memo(({ companies }: LeadsProps) => {
 
   return (
     <RootLayout>
+      <Plm />
       <Header />
       {companies.length === 0 ? (
         <EmptyState />
@@ -153,9 +155,9 @@ export const Leads = memo(({ companies }: LeadsProps) => {
                       <CollapsibleContent className="bg-white">
                         {filteredCompanies
                           .filter(c => c.stage === stage.value)
-                          .map((c, index) => (
+                          .map(c => (
                             <div
-                              key={c.document_id || c.name}
+                              key={c.id}
                               className="flex items-center w-full relative group hover:bg-gray-50"
                             >
                               <div className="flex items-center gap-2 pl-5 min-w-0 flex-1 md:flex-none md:flex-shrink-0 bg-white group-hover:bg-gray-50">
@@ -178,7 +180,7 @@ export const Leads = memo(({ companies }: LeadsProps) => {
                                     handleOpenDocument(c);
                                   }}
                                 >
-                                  {c.name}
+                                  {c.name || 'Unnamed'}
                                 </p>
                               </div>
                               <p className="flex-4 text-right mr-4 min-w-0 flex-shrink-0 bg-white hidden md:block group-hover:bg-gray-50">
@@ -228,3 +230,13 @@ export const Leads = memo(({ companies }: LeadsProps) => {
     </RootLayout>
   );
 });
+
+const Plm = () => {
+  useEventsChannel<LeadUpdatedEvent>(event => {
+    if (event.type === 'lead_updated') {
+      router.reload({ only: ['companies'] });
+    }
+  });
+
+  return null;
+};

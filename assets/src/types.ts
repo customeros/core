@@ -1,4 +1,5 @@
 export type Lead = {
+  id: string;
   icon: string;
   name: string;
   count: number;
