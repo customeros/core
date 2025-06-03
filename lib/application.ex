@@ -15,6 +15,7 @@ defmodule Core.Application do
       Core.Repo,
       Core.Crm.Companies.CompanyEnricher,
       Core.Crm.Companies.CompanyDomainProcessor,
+      Core.Crm.Leads.IcpFitEvaluator,
       Core.WebTracker.SessionCloser,
       Web.Endpoint,
       Web.Presence,

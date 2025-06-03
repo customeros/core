@@ -5,12 +5,14 @@ defmodule Core.Crm.Leads do
 
   import Ecto.Query, warn: false
   require OpenTelemetry.Tracer
+  require Logger
   alias Ecto.Repo
   alias Core.Repo
   alias Core.Crm.Leads.{Lead, LeadView}
   alias Core.Auth.Tenants
   alias Core.Crm.Companies.Company
   alias Core.Utils.Media.Images
+  alias Core.Utils.Tracing
 
   @spec get_by_ref_id(tenant_id :: String.t(), ref_id :: String.t()) ::
           {:ok, Lead.t()} | {:error, :not_found}
@@ -151,5 +153,25 @@ defmodule Core.Crm.Leads do
     lead
     |> Lead.changeset(attrs)
     |> Repo.update()
+  end
+
+  @doc """
+  Marks an attempt for a lead by updating the attempt timestamp and incrementing the attempts counter.
+  Returns :ok on success or {:error, :update_failed} if the update fails.
+  """
+  def mark_icp_fit_attempt(lead_id) do
+    case Repo.update_all(
+           from(l in Lead, where: l.id == ^lead_id),
+           set: [icp_fit_evaluation_attempt_at: DateTime.utc_now()],
+           inc: [icp_fit_evaluation_attempts: 1]
+         ) do
+      {0, _} ->
+        Tracing.error(:update_failed)
+        Logger.error("Failed to mark attempt for lead #{lead_id}")
+        {:error, :update_failed}
+
+      {_count, _} ->
+        :ok
+    end
   end
 end
