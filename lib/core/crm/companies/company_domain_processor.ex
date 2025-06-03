@@ -18,10 +18,10 @@ defmodule Core.Crm.Companies.CompanyDomainProcessor do
   import Ecto.Query
 
   # 1 minute
-  @default_interval_ms 60 * 1000
+  @default_interval_ms 2 * 60 * 1000
   # 15 minutes
   @long_interval_ms 15 * 60 * 1000
-  @default_batch_size 10
+  @default_batch_size 5
 
   def start_link(opts \\ []) do
     crons_enabled = Application.get_env(:core, :crons)[:enabled] || false
