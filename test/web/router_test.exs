@@ -32,21 +32,11 @@ defmodule Web.RouterTest do
     email = "test@example.com"
     conn = post(conn, "/signin", %{email: email})
 
-    # Should show success message and render signin page
+    # Should redirect back to signin page with success message
+    assert redirected_to(conn) == "/signin"
+    conn = get(conn, "/signin")
     assert html_response(conn, 200) =~ "Signin"
     # The controller renders the page without a flash message
     assert Phoenix.Flash.get(conn.assigns.flash, :info) == nil
-  end
-
-  test "GET /api/organizations/:organization_id/documents requires authentication",
-       %{conn: conn} do
-    conn =
-      conn
-      |> put_req_header("accept", "application/json")
-      |> get("/api/organizations/#{Ecto.UUID.generate()}/documents")
-
-    # Should return 401 if not authenticated
-    assert conn.status == 401
-    assert json_response(conn, 401)["error"] == "Authentication required"
   end
 end

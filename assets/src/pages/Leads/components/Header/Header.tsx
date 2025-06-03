@@ -18,6 +18,12 @@ import {
 import { ModalContent } from 'src/components/Modal/Modal';
 import { Modal } from 'src/components/Modal';
 
+const defaultIconSet = [
+  'https://images.cust.cx/_companies/img_6qggfu0eyp2ixcillgd5t.jpg',
+  'https://images.cust.cx/_companies/img_ml571h9vzoqtykm4r74tc.jpg',
+  'https://images.cust.cx/_companies/img_ph7o54ooitopkynfs5p62.jpg',
+];
+
 export const Header = () => {
   const [createdLeadIcons, setCreatedLeadIcons] = useState<string[]>([]);
   const page = usePage<PageProps & { tenant: Tenant; currentUser: User; companies: Lead[] }>();
@@ -44,7 +50,7 @@ export const Header = () => {
   }, [createdLeadIcons]);
 
   const headIcons = useMemo(() => {
-    return createdLeadIcons.slice(0, 3);
+    return createdLeadIcons.slice(0, 3).map((v, index) => (v === '' ? defaultIconSet[index] : v));
   }, [createdLeadIcons]);
 
   return (

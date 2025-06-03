@@ -14,8 +14,15 @@ defmodule Web.LeadsController do
       %{tenant_id: tenant_id} = conn.assigns.current_user
       companies = Leads.list_view_by_tenant_id(tenant_id)
 
+      profile =
+        case Core.Researcher.IcpProfiles.get_by_tenant_id(tenant_id) do
+          {:ok, profile} -> Map.get(profile, :profile)
+          _ -> nil
+        end
+
       conn
       |> assign_prop(:companies, companies)
+      |> assign_prop(:profile, profile)
       |> render_inertia("Leads")
     end
   end

@@ -8,75 +8,60 @@ import { cn } from 'src/utils/cn';
 
 export const Signin = () => {
   const [emailSent, setEmailSent] = useState(false);
-  const [error, setError] = useState('');
-  const [showPersonalEmailError, setShowPersonalEmailError] = useState(false);
   const { data, post, setData, processing, reset, errors } = useForm({
     email: '',
   });
 
   const submit = (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
-    setError('');
-    setShowPersonalEmailError(false);
     post('/signin', {
       onSuccess: () => {
         setEmailSent(true);
-        setShowPersonalEmailError(false);
-      },
-      onError: errors => {
-        console.log(errors);
-        if (errors.email === 'Please sign in with your work email') {
-          setError('Personal email addresses are not allowed. Please use your work email.');
-          setShowPersonalEmailError(true);
-          setEmailSent(false);
-        }
       },
     });
   };
 
-  if (showPersonalEmailError) {
-    return (
-      <RootLayout>
-        <div className="h-screen w-screen flex overflow-hidden max-h-screen max-w-screen">
-          <div className="flex-1 items-center h-screen overflow-hidden">
-            <div className="h-full flex items-center justify-center relative">
-              <div className="relative flex flex-col items-center justify-center w-[768px] h-full px-6 pb-6 bg-white">
-                <div className="h-full flex items-center justify-center relative">
-                  <div className="flex flex-col items-center justify-center w-full">
-                    <div className="flex flex-col items-center w-[360px] z-10">
-                      <img width={264} alt="CustomerOS" src="/images/CustomerOs-logo.png" />
-                    </div>
-                    <div className="space-y-2 text-center pt-4 -mt-[60px]  w-[360px]">
-                      <p className="font-semibold text-3xl">Sign in with your work email</p>
-                      <p className="text-gray-500">
-                        Looks like you&apos;re trying to sign in with a personal email like Gmail or
-                        Yahoo.
-                      </p>
-                      <p className="text-gray-500">
-                        To sign in, you&apos;ll need to use your work or company email instead.
-                      </p>
-                      <Button
-                        variant="outline"
-                        className="mt-4 w-full"
-                        onClick={() => {
-                          setShowPersonalEmailError(false);
-                          setEmailSent(false);
-                          setError('');
-                          reset();
-                        }}
-                      >
-                        Go back
-                      </Button>
-                    </div>
-                  </div>
-                </div>
-              </div>
-            </div>
-          </div>
-        </div>
-      </RootLayout>
-    );
-  }
+  // if (showPersonalEmailError) {
+  //   return (
+  //     <RootLayout>
+  //       <div className="h-screen w-screen flex overflow-hidden max-h-screen max-w-screen">
+  //         <div className="flex-1 items-center h-screen overflow-hidden">
+  //           <div className="h-full flex items-center justify-center relative">
+  //             <div className="relative flex flex-col items-center justify-center w-[768px] h-full px-6 pb-6 bg-white">
+  //               <div className="h-full flex items-center justify-center relative">
+  //                 <div className="flex flex-col items-center justify-center w-full">
+  //                   <div className="flex flex-col items-center w-[360px] z-10">
+  //                     <img width={264} alt="CustomerOS" src="/images/CustomerOs-logo.png" />
+  //                   </div>
+  //                   <div className="space-y-2 text-center pt-4 -mt-[60px]  w-[360px]">
+  //                     <p className="font-semibold text-3xl">Sign in with your work email</p>
+  //                     <p className="text-gray-500">
+  //                       Looks like you&apos;re trying to sign in with a personal email like Gmail or
+  //                       Yahoo.
+  //                     </p>
+  //                     <p className="text-gray-500">
+  //                       To sign in, you&apos;ll need to use your work or company email instead.
+  //                     </p>
+  //                     <Button
+  //                       variant="outline"
+  //                       className="mt-4 w-full"
+  //                       onClick={() => {
+  //                         setEmailSent(false);
+  //                         reset();
+  //                       }}
+  //                     >
+  //                       Go back
+  //                     </Button>
+  //                   </div>
+  //                 </div>
+  //               </div>
+  //             </div>
+  //           </div>
+  //         </div>
+  //       </div>
+  //     </RootLayout>
+  //   );
+  // }
 
   return (
     <RootLayout>
