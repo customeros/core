@@ -154,7 +154,7 @@ defmodule Core.Crm.Companies.CompanyEnricher do
         {"batch.size", @default_batch_size}
       ])
 
-      # Enrich each company's icon
+      # Enrich each company's industry
       Enum.each(companies_for_industry_enrichment, &enrich_company_industry/1)
       {:ok, length(companies_for_industry_enrichment)}
     end
@@ -273,7 +273,7 @@ defmodule Core.Crm.Companies.CompanyEnricher do
         {"batch.size", @default_batch_size}
       ])
 
-      # Enrich each company's icon
+      # Enrich each company's country
       Enum.each(companies_for_country_enrichment, &enrich_company_country/1)
       {:ok, length(companies_for_country_enrichment)}
     end
@@ -329,7 +329,6 @@ defmodule Core.Crm.Companies.CompanyEnricher do
         {"batch.size", @default_batch_size}
       ])
 
-      # Enrich each company's icon
       Enum.each(
         companies_for_homepage_scrape,
         &enrich_company_homepage_scrape/1
