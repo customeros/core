@@ -17,11 +17,11 @@ defmodule Core.Crm.Companies.CompanyDomainProcessor do
   alias Core.Utils.Tracing
   import Ecto.Query
 
-  # 2 minutes
-  @default_interval_ms 2 * 60 * 1000
+  # 1 minute
+  @default_interval_ms 1 * 60 * 1000
   # 15 minutes
   @long_interval_ms 15 * 60 * 1000
-  @default_batch_size 5
+  @default_batch_size 10
 
   def start_link(opts \\ []) do
     crons_enabled = Application.get_env(:core, :crons)[:enabled] || false
