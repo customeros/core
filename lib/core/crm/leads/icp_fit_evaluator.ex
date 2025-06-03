@@ -58,46 +58,7 @@ defmodule Core.Crm.Leads.IcpFitEvaluator do
       Enum.each(leads, fn lead ->
         case Leads.get_by_id(lead.tenant_id, lead.id) do
           {:ok, lead} ->
-            Logger.info("Evaluating lead stage for lead_id: #{lead.id}")
-
-            # Mark the attempt before evaluation
-            case Leads.mark_icp_fit_attempt(lead.id) do
-              :ok ->
-                domain =
-                  case Core.Crm.Companies.get_by_id(lead.ref_id) do
-                    {:ok, company} ->
-                      company.primary_domain
-
-                    {:error, :not_found} ->
-                      Logger.error(
-                        "Company not found for lead #{lead.id} (ref_id: #{lead.ref_id})"
-                      )
-
-                      Tracing.error(:company_not_found)
-                      nil
-                  end
-
-                if domain do
-                  case Core.Researcher.IcpFitEvaluator.evaluate(domain, lead) do
-                    {:ok, _} ->
-                      :ok
-
-                    {:error, reason} ->
-                      Logger.error(
-                        "Failed to evaluate lead #{lead.id}: #{inspect(reason)}"
-                      )
-
-                      Tracing.error(reason)
-                  end
-                end
-
-              {:error, :update_failed} ->
-                Logger.error(
-                  "Failed to mark ICP fit attempt for lead: #{lead.id}"
-                )
-
-                Tracing.error(:update_failed)
-            end
+            evaluate_lead(lead)
 
           {:error, :not_found} ->
             Logger.error("Lead not found for evaluation: #{lead.id}")
@@ -111,6 +72,55 @@ defmodule Core.Crm.Leads.IcpFitEvaluator do
   end
 
   # Private Functions
+  defp evaluate_lead(%Lead{} = lead) do
+    OpenTelemetry.Tracer.with_span "icp_fit_evaluator.evaluate_lead" do
+      OpenTelemetry.Tracer.set_attributes([
+        {"lead.id", lead.id},
+        {"lead.tenant_id", lead.tenant_id}
+      ])
+
+      Logger.info(
+        "Evaluating lead, lead_id: #{lead.id}, attempt: #{lead.icp_fit_evaluation_attempts + 1}"
+      )
+
+      case Leads.mark_icp_fit_attempt(lead.id) do
+        :ok ->
+          domain =
+            case Core.Crm.Companies.get_by_id(lead.ref_id) do
+              {:ok, company} ->
+                company.primary_domain
+
+              {:error, :not_found} ->
+                Logger.error(
+                  "Company not found for lead #{lead.id} (ref_id: #{lead.ref_id})"
+                )
+
+                Tracing.error(:company_not_found)
+                nil
+            end
+
+          if domain do
+            case Core.Researcher.IcpFitEvaluator.evaluate(domain, lead) do
+              {:ok, _} ->
+                Tracing.ok()
+                :ok
+
+              {:error, reason} ->
+                Logger.error(
+                  "Failed to evaluate lead #{lead.id}: #{inspect(reason)}"
+                )
+
+                Tracing.error(reason)
+            end
+          end
+
+        {:error, :update_failed} ->
+          Logger.error("Failed to mark ICP fit attempt for lead: #{lead.id}")
+
+          Tracing.error(:update_failed)
+      end
+    end
+  end
 
   defp schedule_initial_check do
     Process.send_after(self(), :check_pending_leads, @default_interval)
