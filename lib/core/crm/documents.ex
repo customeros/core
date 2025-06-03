@@ -52,7 +52,7 @@ defmodule Core.Crm.Documents do
     {:ok, Map.put(result, :document, decorated_doc)}
   end
 
-  defp handle_transaction_result(error, _ref_id), do: error
+  defp handle_transaction_result(error, _ref_id), do: {:error, error}
 
   def update_document(attrs \\ %{}) do
     case Repo.get(Document, attrs.id) do

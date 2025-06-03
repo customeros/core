@@ -74,8 +74,5 @@ config :inertia,
 # Cron jobs configuration
 config :core, :crons, enabled: true
 
-config :logger,
-  backends: [Core.Notifications.CrashMonitor, :console]
-
 # Import environment specific config
 import_config "#{config_env()}.exs"

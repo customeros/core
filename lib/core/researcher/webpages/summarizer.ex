@@ -9,10 +9,6 @@ defmodule Core.Researcher.Webpages.Summarizer do
   - Timeout handling and error management
   - Integration with AI services
   - Task supervision for long-running operations
-
-  The module uses Claude Sonnet to generate concise, informative summaries
-  of webpage content while maintaining critical information and avoiding
-  editorialization.
   """
 
   alias Core.Ai

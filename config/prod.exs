@@ -6,7 +6,9 @@ config :core, Web.Endpoint,
     "https://preview.customeros.ai"
   ]
 
-config :logger, level: :info
+config :logger,
+  backends: [:console, Core.Notifications.CrashMonitor],
+  level: :warning
 
 config :core, :app_env, :prod
 
