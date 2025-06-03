@@ -32,8 +32,8 @@ defmodule Core.Crm.Leads.Lead do
           stage: lead_stage,
           icp_fit: icp_fit,
           error_message: String.t(),
-          icp_fit_attempt_at: DateTime.t(),
-          icp_fit_attempts: integer(),
+          icp_fit_evaluation_attempt_at: DateTime.t(),
+          icp_fit_evaluation_attempts: integer(),
           inserted_at: DateTime.t(),
           updated_at: DateTime.t()
         }
@@ -60,8 +60,8 @@ defmodule Core.Crm.Leads.Lead do
     )
 
     field(:error_message, :string)
-    field(:icp_fit_attempt_at, :utc_datetime)
-    field(:icp_fit_attempts, :integer, default: 0)
+    field(:icp_fit_evaluation_attempt_at, :utc_datetime)
+    field(:icp_fit_evaluation_attempts, :integer, default: 0)
 
     timestamps(type: :utc_datetime)
   end
@@ -77,8 +77,8 @@ defmodule Core.Crm.Leads.Lead do
     :stage,
     :icp_fit,
     :error_message,
-    :icp_fit_attempt_at,
-    :icp_fit_attempts
+    :icp_fit_evaluation_attempt_at,
+    :icp_fit_evaluation_attempts
   ]
 
   def changeset(%__MODULE__{} = lead, attrs) do

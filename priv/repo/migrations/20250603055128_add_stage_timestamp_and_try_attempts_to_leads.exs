@@ -3,22 +3,22 @@ defmodule Core.Repo.Migrations.AddStageTimestampAndTryAttemptsToLeads do
 
   def up do
     alter table(:leads) do
-      add :icp_fit_attempt_at, :utc_datetime
-      add :icp_fit_attempts, :integer, default: 0, null: false
+      add :icp_fit_evaluation_attempt_at, :utc_datetime
+      add :icp_fit_evaluation_attempts, :integer, default: 0, null: false
     end
 
     # Create index for efficient querying of leads that need ICP fit evaluation
-    create index(:leads, [:icp_fit_attempts, :icp_fit_attempt_at])
+    create index(:leads, [:icp_fit_evaluation_attempts, :icp_fit_evaluation_attempt_at])
   end
 
   def down do
     # Drop index first
-    drop index(:leads, [:icp_fit_attempts, :icp_fit_attempt_at])
+    drop index(:leads, [:icp_fit_evaluation_attempts, :icp_fit_evaluation_attempt_at])
 
     # Remove columns
     alter table(:leads) do
-      remove :icp_fit_attempt_at
-      remove :icp_fit_attempts
+      remove :icp_fit_evaluation_attempt_at
+      remove :icp_fit_evaluation_attempts
     end
   end
 end
