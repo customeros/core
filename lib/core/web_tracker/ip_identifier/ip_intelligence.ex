@@ -108,4 +108,36 @@ defmodule Core.WebTracker.IpIdentifier.IpIntelligence do
   end
 
   def get_by_ip(_, _), do: {:error, :invalid_arguments}
+
+  @doc """
+  Gets the domain associated with an IP address from the most recent IP intelligence record.
+
+  ## Parameters
+    - ip: The IP address to search for (string)
+    - lookback_days: Number of days to look back (default: 90)
+
+  ## Returns
+    - {:ok, domain} if a record is found and has a non-empty domain
+    - {:error, :not_found} if no record exists or the record has no domain
+    - {:error, reason} if there's an error during the query
+  """
+  @spec get_domain_by_ip(String.t(), non_neg_integer()) ::
+          {:ok, String.t()} | {:error, :not_found | term()}
+  def get_domain_by_ip(ip, lookback_days \\ 90)
+
+  def get_domain_by_ip(ip, lookback_days) when is_binary(ip) do
+    case get_by_ip(ip, lookback_days) do
+      {:ok, %__MODULE__{domain: domain}} when is_binary(domain) and domain != "" ->
+        {:ok, domain}
+
+      {:ok, _} ->
+        {:error, :not_found}
+
+      {:error, reason} ->
+        Logger.error("Failed to get domain by IP: #{inspect(reason)}")
+        {:error, reason}
+    end
+  end
+
+  def get_domain_by_ip(_, _), do: {:error, :invalid_arguments}
 end
