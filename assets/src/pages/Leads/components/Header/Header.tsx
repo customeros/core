@@ -17,6 +17,7 @@ import {
 } from 'src/components/Modal/Modal';
 import { ModalContent } from 'src/components/Modal/Modal';
 import { Modal } from 'src/components/Modal';
+import { cn } from 'src/utils/cn';
 
 const defaultIconSet = [
   'https://images.cust.cx/_companies/img_6qggfu0eyp2ixcillgd5t.jpg',
@@ -26,8 +27,11 @@ const defaultIconSet = [
 
 export const Header = () => {
   const [createdLeadIcons, setCreatedLeadIcons] = useState<string[]>([]);
-  const page = usePage<PageProps & { tenant: Tenant; currentUser: User; companies: Lead[] }>();
+  const page = usePage<
+    PageProps & { tenant: Tenant; currentUser: User; companies: Lead[]; profile: string }
+  >();
   const [isOpen, setIsOpen] = useState(false);
+  const [displayProfile, setDisplayProfile] = useState(false);
 
   const worksspaceLogo = page.props.tenant?.workspace_icon_key;
   const workspaceName = page.props.tenant?.workspace_name;
@@ -50,7 +54,7 @@ export const Header = () => {
   }, [createdLeadIcons]);
 
   const headIcons = useMemo(() => {
-    return createdLeadIcons.slice(0, 3).map((v, index) => (v === '' ? defaultIconSet[index] : v));
+    return createdLeadIcons.slice(0, 3).map((v, index) => v || defaultIconSet[index]);
   }, [createdLeadIcons]);
 
   return (
@@ -59,7 +63,12 @@ export const Header = () => {
         <div className="h-[1px] mb-[-0px] bg-gradient-to-l from-gray-200 to-transparent self-end 2xl:w-[calc((100%-1440px)/2)]" />
 
         <div className="flex justify-between items-center border-b border-gray-200 w-full 2xl:w-[1440px] 2xl:mx-auto py-2 px-4">
-          <div className="flex items-center gap-2 cursor-default">
+          <div
+            className={cn('flex items-center gap-2 cursor-default', {
+              'cursor-pointer': page.props.profile,
+            })}
+            onClick={() => page.props.profile && setDisplayProfile(true)}
+          >
             {worksspaceLogo ? (
               <img src={worksspaceLogo} alt="Workspace logo" className="size-6 rounded-full" />
             ) : (
@@ -128,7 +137,7 @@ export const Header = () => {
       <Modal open={isOpen} onOpenChange={setIsOpen}>
         <ModalPortal>
           <ModalOverlay />
-          <ModalContent>
+          <ModalContent placement="top">
             <ModalHeader className="font-semibold text-base">See who's ready to buy</ModalHeader>
             <ModalCloseButton className="absolute top-4 right-4" asChild>
               <Button
@@ -165,6 +174,33 @@ export const Header = () => {
               >
                 Book a call
               </Button>
+            </ModalFooter>
+          </ModalContent>
+        </ModalPortal>
+      </Modal>
+
+      <Modal open={displayProfile} onOpenChange={setDisplayProfile}>
+        <ModalPortal>
+          <ModalOverlay />
+          <ModalContent placement="center" aria-describedby="profile-modal">
+            <ModalHeader className="font-semibold text-base">See who's ready to buy</ModalHeader>
+            <ModalCloseButton className="absolute top-4 right-4" asChild>
+              <Button
+                colorScheme="gray"
+                size="xs"
+                leftIcon={<Icon name="x-close" />}
+                variant="ghost"
+              />
+            </ModalCloseButton>
+            <ModalBody className="flex flex-col gap-2">
+              <p>{page.props?.profile}</p>
+            </ModalBody>
+            <ModalFooter className="flex justify-between gap-2">
+              <ModalCloseButton asChild>
+                <Button colorScheme="gray" size="sm" className="w-full">
+                  Cancel
+                </Button>
+              </ModalCloseButton>
             </ModalFooter>
           </ModalContent>
         </ModalPortal>

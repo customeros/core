@@ -243,8 +243,15 @@ defmodule Web.UserAuth do
 
       tenant =
         case Tenants.get_tenant_by_id(current_user.tenant_id) do
-          {:ok, tenant} -> tenant
-          _ -> nil
+          {:ok, tenant} ->
+            tenant
+            |> Map.put(
+              :workspace_icon_key,
+              Core.Utils.Media.Images.get_cdn_url(tenant.workspace_icon_key)
+            )
+
+          _ ->
+            nil
         end
 
       conn

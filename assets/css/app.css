@@ -418,23 +418,11 @@
   @keyframes contentShowTop {
     from {
       opacity: 0;
-      transform: translate(-50%, -4%) scale(0.96);
+      transform: translateY(-5%) scale(0.96);
     }
     to {
       opacity: 1;
-      transform: translate(-50%, 0%) scale(1);
-    }
-  }
-
-  --animate-contentShowCenter: contentShowCenter 300ms ease-out;
-  @keyframes contentShowCenter {
-    from {
-      opacity: 0;
-      transform: translate(-50%, -48%) scale(0.96);
-    }
-    to {
-      opacity: 1;
-      transform: translate(-50%, -50%) scale(1);
+      transform: translateY(0%) scale(1);
     }
   }
 
