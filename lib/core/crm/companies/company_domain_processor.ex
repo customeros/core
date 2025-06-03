@@ -17,7 +17,7 @@ defmodule Core.Crm.Companies.CompanyDomainProcessor do
   alias Core.Utils.Tracing
   import Ecto.Query
 
-  # 1 minute
+  # 2 minutes
   @default_interval_ms 2 * 60 * 1000
   # 15 minutes
   @long_interval_ms 15 * 60 * 1000

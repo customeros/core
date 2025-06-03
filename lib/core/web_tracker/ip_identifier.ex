@@ -16,16 +16,23 @@ defmodule Core.WebTracker.IpIdentifier do
   """
 
   require Logger
+  require OpenTelemetry.Tracer
 
   alias Core.ApiCallLogger.Logger, as: ApiLogger
   alias Core.WebTracker.IpIdentifier.SnitcherPayload
+  alias Core.WebTracker.IpIdentifier.IpIntelligence
+  alias Core.Repo
+  alias Core.Utils.IdGenerator
+  alias Core.Utils.Tracing
 
   @vendor "snitcher"
 
-  def identify_ip(ip) when is_binary(ip) do
+  def identify_ip(ip) when is_binary(ip) and byte_size(ip) > 0 do
     with {:ok, config} <- get_config(),
-         {:ok, response} <- make_request(config, ip) do
-      parse_response(response)
+         {:ok, response} <- make_request(config, ip),
+         {:ok, snitcher_response} <- parse_response(response) do
+      update_ip_intelligence_with_snitcher_response(ip, snitcher_response)
+      {:ok, snitcher_response}
     else
       {:error, reason} -> {:error, reason}
     end
@@ -84,4 +91,76 @@ defmodule Core.WebTracker.IpIdentifier do
         end
     end
   end
+
+  defp update_ip_intelligence_with_snitcher_response(_ip, %{company: nil}),
+    do: :ok
+
+  defp update_ip_intelligence_with_snitcher_response(ip, %{
+         company: %{domain: company_domain},
+         domain: domain
+       })
+       when is_binary(company_domain) do
+    OpenTelemetry.Tracer.with_span "ip_identifier.update_ip_intelligence_with_snitcher_response" do
+      attrs = %{
+        domain: domain,
+        domain_source: :snithcer
+      }
+
+      case IpIntelligence.get_by_ip(ip) do
+        {:ok, nil} ->
+          # Create new record with company data
+          %IpIntelligence{}
+          |> IpIntelligence.changeset(
+            Map.merge(attrs, %{
+              id: IdGenerator.generate_id_21(IpIntelligence.id_prefix()),
+              ip: ip
+            })
+          )
+          |> Repo.insert()
+          |> case do
+            {:ok, _record} ->
+              :ok
+
+            {:error, changeset} ->
+              Tracing.error(changeset.errors)
+
+              Logger.error(
+                "Failed to create IP intelligence record with company data: #{inspect(changeset.errors)}"
+              )
+
+              :error
+          end
+
+        {:ok, record} ->
+          # Update existing record with company data
+          record
+          |> IpIntelligence.changeset(attrs)
+          |> Repo.update()
+          |> case do
+            {:ok, _record} ->
+              :ok
+
+            {:error, changeset} ->
+              Tracing.error(changeset.errors)
+
+              Logger.error(
+                "Failed to update IP intelligence record with company data: #{inspect(changeset.errors)}"
+              )
+
+              :error
+          end
+
+        {:error, reason} ->
+          Tracing.error(reason)
+
+          Logger.error(
+            "Failed to query IP intelligence record: #{inspect(reason)}"
+          )
+
+          :error
+      end
+    end
+  end
+
+  defp update_ip_intelligence_with_snitcher_response(_, _), do: :ok
 end
