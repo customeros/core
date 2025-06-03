@@ -35,7 +35,7 @@ defmodule Web.WebTrackerController do
 
       # If referrer is not provided in the body, use the header value
       params =
-        if(Map.get(params, "referrer") in [nil, ""]) do
+        if Map.get(params, "referrer") in [nil, ""] do
           Map.put(params, "referrer", header_referrer)
         else
           params

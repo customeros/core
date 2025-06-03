@@ -1,6 +1,14 @@
 defmodule Core.Crm.Leads.LeadStagePipeline do
   @moduledoc """
+  Manages the automated pipeline for lead stage transitions.
 
+  This module is responsible for:
+  * Evaluating and determining appropriate stage transitions for leads
+  * Running stage evaluation asynchronously via task supervisor
+  * Coordinating the stage transition process
+
+  The pipeline ensures leads progress through their lifecycle stages
+  based on predefined criteria and business rules.
   """
 
   require Logger
