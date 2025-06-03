@@ -21,15 +21,13 @@ defmodule Core.WebTracker do
   Handles session management and IP validation.
   """
   @spec process_new_event(map()) :: {:ok, map()} | {:error, atom(), String.t()}
-  def process_new_event(attrs) when is_map(attrs) do
+  def process_new_event(event_params) when is_map(event_params) do
     OpenTelemetry.Tracer.with_span "web_tracker.process_event" do
       OpenTelemetry.Tracer.set_attributes([
-        {"event.type", attrs.event_type},
-        {"tenant", attrs.tenant},
-        {"visitor.id", attrs.visitor_id}
+        {"event.params", inspect(event_params)}
       ])
 
-      attrs
+      event_params
       |> validate_event_params()
       |> get_or_create_session()
       |> create_event()
