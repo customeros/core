@@ -23,7 +23,16 @@ config :core, Web.Endpoint,
 # Logger
 config :logger, :console,
   format: "$time $metadata[$level] $message\n",
-  metadata: [:request_id]
+  metadata: [
+    :request_id,
+    :tenant_id,
+    :lead_id,
+    :domain,
+    :error,
+    :module,
+    :function,
+    :icp_fit
+  ]
 
 # Phoenix
 config :phoenix, :json_library, Jason
