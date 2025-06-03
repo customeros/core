@@ -5,6 +5,7 @@ import type {
   DialogContentProps,
   DialogTriggerProps,
   DialogOverlayProps,
+  DialogDescriptionProps,
 } from '@radix-ui/react-dialog';
 
 import { forwardRef } from 'react';
@@ -52,6 +53,14 @@ export const ModalHeader = ({ children, className, ...props }: DialogTitleProps)
   );
 };
 
+export const ModalDescription = ({ children, className, ...props }: DialogDescriptionProps) => {
+  return (
+    <Dialog.Description className={twMerge('hidden', className)} {...props}>
+      {children}
+    </Dialog.Description>
+  );
+};
+
 export const ModalClose = (props: DialogCloseProps) => {
   return <Dialog.Close {...props} />;
 };
@@ -61,11 +70,11 @@ export const ModalCloseButton = (props: DialogCloseProps) => {
 };
 
 const modalContentVariant = cva(
-  'z-[9999] fixed left-[50%] w-[90vw] max-w-[450px] translate-x-[-50%] rounded-[6px] bg-white shadow-xl focus:outline-none data-[state=open]:will-change-auto',
+  'z-[9999] fixed left-1/2 w-[90vw] max-w-[450px] -translate-x-1/2 rounded-[6px] bg-white shadow-xl focus:outline-none data-[state=open]:will-change-auto',
   {
     variants: {
       placement: {
-        center: ['top-[50%]', 'translate-y-[-50%]', 'data-[state=open]:animate-contentShowCenter'],
+        center: ['data-[state=open]:animate-contentShowTop', 'top-1/2', '-translate-y-1/2'],
         top: ['data-[state=open]:animate-contentShowTop', 'top-[4%]'],
       },
     },
@@ -83,9 +92,11 @@ export const ModalContent = forwardRef<
     <Dialog.Content
       ref={ref}
       className={twMerge(modalContentVariant({ placement, className }))}
+      aria-describedby={undefined}
       {...props}
     >
       {children}
+      <ModalDescription>{}</ModalDescription>
     </Dialog.Content>
   );
 });

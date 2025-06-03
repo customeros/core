@@ -64,7 +64,7 @@ defmodule Core.Crm.Leads do
         join: c in Company,
         on: c.id == l.ref_id,
         left_join: rd in subquery(latest_doc),
-        on: rd.ref_id == l.ref_id,
+        on: rd.ref_id == l.id,
         select: %{
           id: l.id,
           ref_id: l.ref_id,

@@ -157,7 +157,6 @@ export const Leads = memo(({ companies }: LeadsProps) => {
                             <div
                               key={c.document_id || c.name}
                               className="flex items-center w-full relative group hover:bg-gray-50"
-                              style={{ zIndex: 100 - index }}
                             >
                               <div className="flex items-center gap-2 pl-5 min-w-0 flex-1 md:flex-none md:flex-shrink-0 bg-white group-hover:bg-gray-50">
                                 {c.icon ? (
