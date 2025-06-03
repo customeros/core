@@ -25,15 +25,14 @@ defmodule Core.Crm.Industries do
     |> Repo.insert()
   end
 
-  @doc """
-  Map of old (2017 and before) NAICS codes to new (2022) NAICS codes.
-  """
+  # Map of old NAICS codes to new ones
   @naics_code_map %{
     "448110" => "458110",
     "453210" => "459410",
     "454110" => "444140",
     "485110" => "48511",
     "517110" => "517111",
+    "519130" => "513120",
     "523110" => "523150",
     "532290" => "532289"
   }
