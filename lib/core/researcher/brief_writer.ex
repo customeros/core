@@ -25,15 +25,6 @@ defmodule Core.Researcher.BriefWriter do
 
   @timeout 60 * 1000
 
-  def create_brief_supervised(tenant_id, lead_id, lead_domain) do
-    Task.Supervisor.async(
-      Core.TaskSupervisor,
-      fn ->
-        create_brief(tenant_id, lead_id, lead_domain)
-      end
-    )
-  end
-
   def create_brief(tenant_id, lead_id, lead_domain) do
     with {:ok, icp} <- IcpProfiles.get_by_tenant_id(tenant_id),
          {:ok, lead} <- Leads.get_by_id(tenant_id, lead_id),

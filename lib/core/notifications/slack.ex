@@ -217,6 +217,49 @@ defmodule Core.Notifications.Slack do
     end
   end
 
+  @doc """
+  Send a notification about an application error (non-crash).
+  Includes error type, message, module/function context, and timestamp.
+  Uses warning-level styling instead of critical crash styling.
+  """
+  @spec notify_error(String.t(), String.t(), String.t() | nil, String.t() | nil) ::
+          :ok
+          | {:error,
+             :webhook_not_configured | :slack_api_error | Finch.Error.t()}
+  def notify_error(
+        error_type,
+        error_message,
+        module_function \\ nil,
+        stacktrace \\ nil
+      )
+      when is_binary(error_type) and is_binary(error_message) and
+             error_type != "" and error_message != "" do
+    case slack_enabled?() do
+      false ->
+        :ok
+
+      true ->
+        webhook_url =
+          Application.get_env(:core, :slack)[:error_webhook_url] ||
+            Application.get_env(:core, :slack)[:crash_webhook_url]
+
+        case webhook_url do
+          val when val in [nil, ""] ->
+            Logger.warning("Slack error webhook URL not configured")
+            {:error, :webhook_not_configured}
+
+          _ ->
+            build_and_send_error_message(
+              webhook_url,
+              stacktrace,
+              error_type,
+              error_message,
+              module_function
+            )
+        end
+    end
+  end
+
   defp build_and_send_crash_messsage(
          webhook_url,
          stacktrace,
@@ -309,18 +352,124 @@ defmodule Core.Notifications.Slack do
 
         {:error, reason} ->
           Logger.error("Failed to send crash notification: #{inspect(reason)}")
-
           {:error, reason}
       end
     rescue
       e in Jason.EncodeError ->
         Logger.error("Failed to encode crash notification: #{inspect(e)}")
-
         {:error, :encoding_error}
 
       e ->
         Logger.error(
           "Unexpected error sending crash notification: #{inspect(e)}"
+        )
+
+        {:error, :unexpected_error}
+    end
+  end
+
+  defp build_and_send_error_message(
+         webhook_url,
+         stacktrace,
+         error_type,
+         error_message,
+         module_function
+       ) do
+    fields = [
+      %{
+        type: "mrkdwn",
+        text: "*Error Type:*\n`#{error_type}`"
+      },
+      %{
+        type: "mrkdwn",
+        text:
+          "*Message:*\n```#{String.slice(error_message, 0, 200)}#{if String.length(error_message) > 200, do: "...", else: ""}```"
+      }
+    ]
+
+    # Add module/function if provided
+    fields =
+      if module_function do
+        fields ++
+          [
+            %{
+              type: "mrkdwn",
+              text: "*Location:*\n`#{module_function}`"
+            }
+          ]
+      else
+        fields
+      end
+
+    # Build the blocks with warning styling
+    blocks = [
+      %{
+        type: "header",
+        text: %{
+          type: "plain_text",
+          text: "⚠️ Application Error",
+          emoji: true
+        }
+      },
+      %{
+        type: "section",
+        fields: fields
+      },
+      %{
+        type: "context",
+        elements: [
+          %{
+            type: "mrkdwn",
+            text:
+              "Occurred at: #{DateTime.utc_now() |> Calendar.strftime("%Y-%m-%d %H:%M:%S UTC")}"
+          }
+        ]
+      }
+    ]
+
+    # Add stacktrace section if provided
+    blocks =
+      if stacktrace && stacktrace != "" do
+        stacktrace_preview = String.slice(stacktrace, 0, 800)
+
+        stacktrace_text =
+          if String.length(stacktrace) > 800,
+            do: stacktrace_preview <> "...",
+            else: stacktrace_preview
+
+        blocks ++
+          [
+            %{
+              type: "section",
+              text: %{
+                type: "mrkdwn",
+                text: "*Stacktrace:*\n```#{stacktrace_text}```"
+              }
+            }
+          ]
+      else
+        blocks
+      end
+
+    message = %{blocks: blocks}
+
+    try do
+      case send_message(webhook_url, message) do
+        :ok ->
+          :ok
+
+        {:error, reason} ->
+          Logger.error("Failed to send error notification: #{inspect(reason)}")
+          {:error, reason}
+      end
+    rescue
+      e in Jason.EncodeError ->
+        Logger.error("Failed to encode error notification: #{inspect(e)}")
+        {:error, :encoding_error}
+
+      e ->
+        Logger.error(
+          "Unexpected error sending error notification: #{inspect(e)}"
         )
 
         {:error, :unexpected_error}

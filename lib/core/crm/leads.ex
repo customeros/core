@@ -8,8 +8,9 @@ defmodule Core.Crm.Leads do
   require Logger
   alias Ecto.Repo
   alias Core.Repo
-  alias Core.Crm.Leads.{Lead, LeadView}
+  alias Core.Crm.Leads.{Lead, LeadView, LeadContext}
   alias Core.Auth.Tenants
+  alias Core.Crm.Companies
   alias Core.Crm.Companies.Company
   alias Core.Utils.Media.Images
   alias Core.Utils.Tracing
@@ -30,6 +31,14 @@ defmodule Core.Crm.Leads do
       nil -> {:error, :not_found}
       %Lead{} = lead -> {:ok, lead}
     end
+  end
+
+  def get_domain_for_lead_company(tenant_id, lead_id) do
+    %LeadContext{lead_id: lead_id, tenant_id: tenant_id}
+    |> fetch_lead()
+    |> validate_company_type()
+    |> fetch_company()
+    |> extract_domain()
   end
 
   @spec list_by_tenant_id(tenant_id :: String.t()) ::
@@ -146,7 +155,7 @@ defmodule Core.Crm.Leads do
       })
     end)
 
-    Core.Researcher.NewLeadPipeline.start(result.id, result.tenant_id)
+    Core.Crm.Leads.NewLeadPipeline.start(result.id, result.tenant_id)
   end
 
   def update_lead(%Lead{} = lead, attrs) do
@@ -174,4 +183,36 @@ defmodule Core.Crm.Leads do
         :ok
     end
   end
+
+  defp fetch_lead(%LeadContext{} = ctx) do
+    case get_by_id(ctx.tenant_id, ctx.lead_id) do
+      {:ok, lead} -> {:ok, %{ctx | lead: lead}}
+      {:error, reason} -> {:error, reason}
+    end
+  end
+
+  defp validate_company_type(
+         {:ok, %LeadContext{lead: %{type: :company}} = ctx}
+       ),
+       do: {:ok, ctx}
+
+  defp validate_company_type({:ok, _}), do: :not_a_company
+  defp validate_company_type({:error, reason}), do: {:error, reason}
+
+  defp fetch_company({:ok, %LeadContext{lead: lead} = ctx}) do
+    case Companies.get_by_id(lead.ref_id) do
+      {:ok, company} -> {:ok, %{ctx | company: company}}
+      {:error, :not_found} -> :stop
+      {:error, reason} -> {:error, reason}
+    end
+  end
+
+  defp fetch_company({:error, reason}), do: {:error, reason}
+  defp fetch_company(:not_a_company), do: :not_a_company
+
+  defp extract_domain({:ok, %LeadContext{company: company, lead: lead}}),
+    do: {:ok, company.primary_domain, lead}
+
+  defp extract_domain({:error, reason}), do: {:error, reason}
+  defp extract_domain(:not_a_company), do: :not_a_company
 end

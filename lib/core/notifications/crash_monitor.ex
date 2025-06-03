@@ -1,6 +1,6 @@
 defmodule Core.Notifications.CrashMonitor do
   @moduledoc """
-  Logger backend that captures crashes and sends them to Slack.
+  Logger backend that captures crashes and errors and sends them to Slack.
   Includes rate limiting and error prevention to avoid notification loops.
   """
 
@@ -16,7 +16,8 @@ defmodule Core.Notifications.CrashMonitor do
     {:ok,
      %{
        alerts_sent: [],
-       total_crashes: 0
+       total_crashes: 0,
+       total_errors: 0
      }}
   end
 
@@ -26,17 +27,30 @@ defmodule Core.Notifications.CrashMonitor do
 
   def handle_event({level, _gl, {Logger, msg, _timestamp, metadata}}, state)
       when level in [:error] do
-    if crash_report?(msg) and should_send_alert?(state) do
-      # Send alert in background to avoid blocking logging
-      Task.start(fn ->
-        send_crash_notification(msg, metadata)
-      end)
+    cond do
+      crash_report?(msg) and should_send_alert?(state) ->
+        # Send crash alert in background
+        Task.start(fn ->
+          send_crash_notification(msg, metadata)
+        end)
 
-      # Update state with new alert timestamp
-      new_state = update_alert_state(state)
-      {:ok, new_state}
-    else
-      {:ok, %{state | total_crashes: state.total_crashes + 1}}
+        # Update state with new alert timestamp
+        new_state = update_alert_state(state, :crash)
+        {:ok, new_state}
+
+      error_report?(msg) and should_send_alert?(state) ->
+        # Send error alert in background
+        Task.start(fn ->
+          send_error_notification(msg, metadata)
+        end)
+
+        # Update state with new alert timestamp
+        new_state = update_alert_state(state, :error)
+        {:ok, new_state}
+
+      true ->
+        # Count but don't alert (rate limited or not a reportable error)
+        {:ok, %{state | total_errors: state.total_errors + 1}}
     end
   end
 
@@ -69,16 +83,36 @@ defmodule Core.Notifications.CrashMonitor do
       "terminated",
       "** (exit)",
       "** (throw)",
-      "** (error)",
-      "** (ArithmeticError)",
-      "** (RuntimeError)",
-      "** (MatchError)",
-      "** (FunctionClauseError)",
       "EXIT"
     ]
 
     # Must contain crash indicator AND not be our own notifications
     Enum.any?(crash_indicators, &String.contains?(msg_str, &1)) and
+      not slack_notification_error?(msg_str)
+  end
+
+  # Detect if this is an error report (not a crash)
+  defp error_report?(msg) do
+    msg_str = to_string(msg)
+
+    # Look for error indicators but exclude crashes
+    error_indicators = [
+      "** (error)",
+      "** (ArithmeticError)",
+      "** (RuntimeError)",
+      "** (MatchError)",
+      "** (FunctionClauseError)",
+      "** (ArgumentError)",
+      "** (CaseClauseError)",
+      "** (KeyError)",
+      "** (BadMapError)",
+      "** (UndefinedFunctionError)",
+      "** (BadFunctionError)"
+    ]
+
+    # Must contain error indicator AND not be a crash AND not be our own notifications
+    Enum.any?(error_indicators, &String.contains?(msg_str, &1)) and
+      not crash_report?(msg) and
       not slack_notification_error?(msg_str)
   end
 
@@ -106,7 +140,7 @@ defmodule Core.Notifications.CrashMonitor do
     length(recent_alerts) < @max_alerts_per_window
   end
 
-  defp update_alert_state(state) do
+  defp update_alert_state(state, type) do
     now = System.system_time(:second)
 
     # Add current timestamp and clean old ones
@@ -116,7 +150,17 @@ defmodule Core.Notifications.CrashMonitor do
         now - timestamp < @rate_limit_window_seconds
       end)
 
-    %{state | alerts_sent: new_alerts, total_crashes: state.total_crashes + 1}
+    case type do
+      :crash ->
+        %{
+          state
+          | alerts_sent: new_alerts,
+            total_crashes: state.total_crashes + 1
+        }
+
+      :error ->
+        %{state | alerts_sent: new_alerts, total_errors: state.total_errors + 1}
+    end
   end
 
   defp send_crash_notification(msg, metadata) do
@@ -142,6 +186,32 @@ defmodule Core.Notifications.CrashMonitor do
       error ->
         # Absolutely prevent notification errors from causing more notifications
         Logger.warning("Error in crash notification system: #{inspect(error)}")
+    end
+  end
+
+  defp send_error_notification(msg, metadata) do
+    try do
+      # Extract useful information for errors
+      error_type = extract_error_type(msg)
+      error_message = format_error_message(msg)
+      location = extract_location(metadata, msg)
+      stacktrace = extract_stacktrace(msg)
+
+      # Send to Slack with different formatting/priority
+      case Slack.notify_error(error_type, error_message, location, stacktrace) do
+        :ok ->
+          :ok
+
+        {:error, reason} ->
+          # Log but don't crash
+          Logger.warning(
+            "Failed to send error notification to Slack: #{inspect(reason)}"
+          )
+      end
+    rescue
+      error ->
+        # Absolutely prevent notification errors from causing more notifications
+        Logger.warning("Error in error notification system: #{inspect(error)}")
     end
   end
 

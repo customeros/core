@@ -31,16 +31,6 @@ defmodule Core.Researcher.IcpFitEvaluator do
   @icp_timeout 45 * 1000
   @max_retries 1
 
-  def evaluate_supervised(domain, %Leads.Lead{} = lead)
-      when is_binary(domain) and byte_size(domain) > 0 do
-    Task.Supervisor.async(
-      Core.TaskSupervisor,
-      fn ->
-        evaluate(domain, lead)
-      end
-    )
-  end
-
   def evaluate(domain, %Leads.Lead{} = lead)
       when is_binary(domain) and byte_size(domain) > 0 do
     case PrimaryDomainFinder.get_primary_domain(domain) do
