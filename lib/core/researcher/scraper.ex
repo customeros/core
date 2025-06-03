@@ -96,7 +96,7 @@ defmodule Core.Researcher.Scraper do
         :ok
 
       {:error, reason} ->
-        Logger.error("Failed processing scraped content for #{content}")
+        Logger.error("Failed processing scraped content for #{url}")
         {:error, reason}
     end
   end
@@ -224,6 +224,9 @@ defmodule Core.Researcher.Scraper do
         @err_unprocessable
 
       String.contains?(content, "Why have I been blocked?") ->
+        @err_unprocessable
+
+      String.contains?(content, "Privacy error") ->
         @err_unprocessable
 
       true ->

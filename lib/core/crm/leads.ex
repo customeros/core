@@ -42,6 +42,13 @@ defmodule Core.Crm.Leads do
     |> extract_company_domain()
   end
 
+  def get_lead_by_company_ref(tenant_id, ref_id) do
+    case Repo.get_by(Lead, tenant_id: tenant_id, ref_id: ref_id, type: :company) do
+      %Lead{} = lead -> {:ok, lead}
+      nil -> {:error, :not_found}
+    end
+  end
+
   @spec list_by_tenant_id(tenant_id :: String.t()) ::
           {:ok, [Lead.t()]} | {:error, :not_found}
   def list_by_tenant_id(tenant_id) do
