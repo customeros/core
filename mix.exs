@@ -119,6 +119,7 @@ defmodule Core.MixProject do
       "ecto.seed": ["run priv/repo/seeds.exs"],
       proto: ["proto.fetch", "proto.gen"],
       setup: ["deps.get", "ecto.setup"],
+      check: ["compile", "format", "credo", "dialyzer"],
       tidy: ["deps.get"],
       "assets.setup": [
         "tailwind.install --if-missing",
