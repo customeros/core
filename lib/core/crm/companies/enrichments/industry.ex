@@ -32,10 +32,11 @@ defmodule Core.Crm.Companies.Enrichments.Industry do
   Important rules:
   1. Use ONLY the 2022 NAICS codes. Some codes from previous versions (like 2007 or 2012) have been changed or replaced.
   2. For example, code 511210 from 2012 is now 513210 in 2022.
-  3. Choose the most specific and appropriate code that best describes the company's primary business activity.
-  4. If multiple codes might apply, choose the one that represents the company's main revenue source or core business.
-  5. Return ONLY the code (2-6 digits, e.g. "51" for Information, "513" for Publishing Industries, "5132" for Software Publishers, "51321" for Software Publishers, or "513210" for Software Publishers), nothing else.
-  6. DO NOT include any explanation or additional text - just the code.
+  3. Full list of 2022 NAICS codes available online at https://www.bls.gov/cew/classifications/industry/qcew-naics-hierarchy-crosswalk.htm
+  4. Choose the most specific and appropriate code that best describes the company's primary business activity.
+  5. If multiple codes might apply, choose the one that represents the company's main revenue source or core business.
+  6. Return ONLY the code (2-6 digits, e.g. "51" for Information, "513" for Publishing Industries, "5132" for Software Publishers, "51321" for Software Publishers, or "513210" for Software Publishers), nothing else.
+  7. DO NOT include any explanation or additional text - just the code.
   """
 
   @type input :: %{
