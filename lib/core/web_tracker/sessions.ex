@@ -55,6 +55,16 @@ defmodule Core.WebTracker.Sessions do
   end
 
   @doc """
+  Gets a web session record by the session ID
+  """
+  def get_session_by_id(session_id) do
+    case Repo.get(Session, session_id) do
+      %Session{} = session -> {:ok, session}
+      nil -> {:error, :not_found}
+    end
+  end
+
+  @doc """
   Updates the last event information (timestamp and type) for a session.
   """
   def update_last_event(%Session{} = session, event_type) do

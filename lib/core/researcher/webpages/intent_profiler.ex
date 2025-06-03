@@ -2,7 +2,6 @@ defmodule Core.Researcher.Webpages.IntentProfiler do
   @moduledoc """
   Profiles webpage intent using AI.
   """
-  alias Core.Researcher.Errors
   alias Core.Ai
   alias Core.Utils.Tracing
 
@@ -53,14 +52,14 @@ defmodule Core.Researcher.Webpages.IntentProfiler do
         end
 
       {:ok, {:error, reason}} ->
-        Errors.error(reason)
+        {:error, reason}
 
       {:exit, reason} ->
-        Errors.error(reason)
+        {:error, reason}
 
       nil ->
         Task.shutdown(task)
-        Errors.error(:intent_profiler_timeout)
+        {:error, :timeout}
     end
   end
 

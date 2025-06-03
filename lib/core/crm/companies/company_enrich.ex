@@ -141,6 +141,11 @@ defmodule Core.Crm.Companies.CompanyEnrich do
       {:ok, result} ->
         {:ok, result.content}
 
+      {:error, :empty_content} ->
+        Logger.warning(
+          "No webpage content for #{company.id} | domain: #{company.primary_domain}"
+        )
+
       {:error, reason} ->
         Logger.error(
           "Failed to scrape homepage for company #{company.id} (domain: #{company.primary_domain}): #{inspect(reason)}"

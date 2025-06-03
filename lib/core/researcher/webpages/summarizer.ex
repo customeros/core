@@ -37,7 +37,8 @@ defmodule Core.Researcher.Webpages.Summarizer do
         model: @model,
         system_prompt: system_prompt,
         max_tokens: @max_tokens,
-        temperature: @model_temperature
+        temperature: @model_temperature,
+        response_type: :text
       )
 
     task = Ai.ask_supervised(request)

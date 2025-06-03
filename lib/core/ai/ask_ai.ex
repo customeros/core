@@ -87,7 +87,8 @@ defmodule Core.Ai do
         prompt: request.prompt,
         system_prompt: request.system_prompt,
         max_output_tokens: request.max_output_tokens,
-        model_temperature: request.model_temperature
+        model_temperature: request.model_temperature,
+        response_type: request.response_type
       }
 
       Gemini.Ask.ask(gemini_request, Gemini.Config.from_application_env())
