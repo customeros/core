@@ -36,7 +36,8 @@ defmodule Core.Crm.Companies.Enrichments.Name do
           homepage_content: String.t()
         }
 
-  @spec identify(input()) :: {:ok, String.t()} | {:error, term()}
+  @spec identify(input()) ::
+          {:ok, String.t()} | {:error, term()} | {:error, term(), String.t()}
   def identify(%{domain: domain, homepage_content: content}) do
     OpenTelemetry.Tracer.with_span "name.identify" do
       prompt = build_prompt(domain, content)
@@ -90,7 +91,7 @@ defmodule Core.Crm.Companies.Enrichments.Name do
 
             {:error, reason} ->
               Tracing.error(reason)
-              {:error, reason}
+              {:error, reason, name}
           end
 
         {:ok, {:error, reason}} ->
@@ -143,7 +144,7 @@ defmodule Core.Crm.Companies.Enrichments.Name do
 
       # Check for names that are just the domain
       String.match?(name, ~r/^[a-z0-9\-]+\.(?:com|org|net|io|co|ai)$/i) ->
-        {:error, :domain_as_name}
+        {:error, :name_as_domain}
 
       # Name looks valid
       true ->
