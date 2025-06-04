@@ -107,16 +107,7 @@ defmodule Core.Crm.Documents do
   end
 
   def get_document(id) do
-    query =
-      from(d in Document,
-        join: od in OrganizationDocument,
-        on: d.id == od.document_id,
-        where: d.id == ^id,
-        select: merge(d, %{organization_id: od.organization_id}),
-        limit: 1
-      )
-
-    case Repo.one(query) do
+    case Repo.get(Document, id) do
       nil -> {:error, :not_found}
       doc -> {:ok, doc}
     end
@@ -178,6 +169,82 @@ defmodule Core.Crm.Documents do
     after
       File.rm(temp_path)
     end
+  end
+
+  def convert_to_pdf(%Document{} = document) do
+    with {:ok, html, _} <- Earmark.as_html(document.body),
+         html_with_style <- add_pdf_styles(html),
+         {:ok, pdf} <-
+           PdfGenerator.generate(html_with_style, page_size: "A4", zoom: 1.0) do
+      {:ok, pdf}
+    else
+      {:error, reason} ->
+        Logger.error("PDF generation failed: #{inspect(reason)}")
+        {:error, "Could not generate PDF"}
+    end
+  end
+
+  defp add_pdf_styles(html) do
+    """
+    <!DOCTYPE html>
+    <html>
+    <head>
+      <meta charset="utf-8">
+      <style>
+        body {
+          font-family: "IBM Plex Sans Regular", "Inter Medium", "Inter", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+          line-height: 1.6;
+          color: #333;
+          max-width: 800px;
+          margin: 0 auto;
+          padding: 20px;
+        }
+        h1 {
+          font-size: 20px;
+          margin-bottom: 20px;
+          font-family: "IBM Plex Sans Bold", "Inter SemiBold", "Inter", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+        }
+        h2 {
+          font-size: 16px;
+          margin-top: 30px;
+          margin-bottom: 15px;
+          font-family: "IBM Plex Sans Bold", "Inter SemiBold", "Inter", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+        }
+        p {
+          margin-bottom: 15px;
+          font-family: "IBM Plex Sans Regular", "Inter Medium", "Inter", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+        }
+        ul, ol {
+          margin-bottom: 15px;
+          padding-left: 20px;
+          font-family: "IBM Plex Sans Regular", "Inter Medium", "Inter", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+        }
+        li {
+          margin-bottom: 5px;
+          font-family: "IBM Plex Sans Regular", "Inter Medium", "Inter", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+        }
+        strong {
+          font-family: "IBM Plex Sans Bold", "Inter SemiBold", "Inter", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+        }
+        b {
+          font-family: "IBM Plex Sans Bold", "Inter SemiBold", "Inter", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+        }
+        em {
+          font-family: "IBM Plex Sans Regular", "Inter Medium", "Inter", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+          font-style: italic;
+        }
+      </style>
+    </head>
+    <body>
+      #{html}
+    </body>
+    </html>
+    """
+  end
+
+  def list_all_by_tenant(tenant_id) do
+    from(d in Document, where: d.tenant_id == ^tenant_id)
+    |> Repo.all()
   end
 
   defp maybe_insert_ref_document(multi, nil), do: multi

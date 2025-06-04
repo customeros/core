@@ -44,7 +44,8 @@ defmodule Core.MixProject do
         :logger,
         :runtime_tools,
         :inets,
-        :tls_certificate_check
+        :tls_certificate_check,
+        :pdf_generator
       ]
     ]
   end
@@ -107,7 +108,8 @@ defmodule Core.MixProject do
       {:ex_aws, "~> 2.5"},
       {:ex_aws_s3, "~> 2.5"},
       {:sweet_xml, "~> 0.7"},
-      {:countriex, "~> 0.4.1"}
+      {:countriex, "~> 0.4.1"},
+      {:pdf_generator, "~> 0.6.2"}
     ]
   end
 
@@ -118,7 +120,7 @@ defmodule Core.MixProject do
       "ecto.setup": ["ecto.create", "ecto.migrate"],
       "ecto.seed": ["run priv/repo/seeds.exs"],
       proto: ["proto.fetch", "proto.gen"],
-      setup: ["deps.get", "ecto.setup"],
+      setup: ["deps.get", "wkhtmltopdf.install", "ecto.setup"],
       check: ["compile", "format", "credo", "dialyzer"],
       tidy: ["deps.get"],
       "assets.setup": [

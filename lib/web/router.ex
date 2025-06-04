@@ -111,18 +111,8 @@ defmodule Web.Router do
     get "/welcome", WelcomeController, :index
 
     # Catch-all route for undefined paths
-    get "/*path", LandingController, :redirect
+    # get "/*path", LandingController, :redirect
   end
-
-  scope "/graphql" do
-    pipe_through :graphql
-    forward "/", Absinthe.Plug, schema: Web.Graphql.Schema
-  end
-
-  forward "/graphiql",
-          Absinthe.Plug.GraphiQL,
-          schema: Web.Graphql.Schema,
-          interface: :simple
 
   # V1 API endpoints
   scope "/v1", Web do
@@ -158,6 +148,7 @@ defmodule Web.Router do
 
     # Read-only endpoints
     get "/organizations/:organization_id/documents", DocumentController, :index
+    get "/documents/:id/download", DocumentController, :download
   end
 
   scope "/api/v1", Web do
