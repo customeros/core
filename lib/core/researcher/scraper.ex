@@ -92,8 +92,8 @@ defmodule Core.Researcher.Scraper do
     Logger.metadata(module: __MODULE__, function: :process_content)
 
     case ContentProcessor.process_scraped_content(url, content) do
-      {:ok, _} ->
-        :ok
+      {:ok, content} ->
+        {:ok, content}
 
       {:error, reason} ->
         Logger.error("Failed processing scraped content for #{url}")

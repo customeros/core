@@ -96,7 +96,7 @@ defmodule Core.Researcher.Scraper.ContentProcessor do
          ) do
       {:ok, _saved_webpage} ->
         Logger.info("#{url} saved to database")
-        {:ok, :saved}
+        {:ok, content}
 
       {:error, db_error} ->
         {:error, "Database save failed: #{inspect(db_error)}"}
