@@ -20,6 +20,7 @@ defmodule Core.WebTracker.Sessions.Session do
     field(:active, :boolean, default: true)
     field(:metadata, :map, default: %{})
     field(:just_created, :boolean, virtual: true, default: false)
+    field(:company_id, :string)
 
     # IP information
     field(:ip, :string)
@@ -45,6 +46,7 @@ defmodule Core.WebTracker.Sessions.Session do
           active: boolean(),
           metadata: map(),
           just_created: boolean(),
+          company_id: String.t() | nil,
           # IP information
           ip: String.t() | nil,
           city: String.t() | nil,
@@ -78,6 +80,7 @@ defmodule Core.WebTracker.Sessions.Session do
       :active,
       :metadata,
       :just_created,
+      :company_id,
       :ip,
       :city,
       :region,
