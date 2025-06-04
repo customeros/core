@@ -109,6 +109,7 @@ defmodule Web.Router do
     get "/icons.svg", IconsController, :index
     get "/favicon/*path", FaviconController, :serve
     get "/welcome", WelcomeController, :index
+    get "/documents/:id/download", DocumentController, :download
 
     # Catch-all route for undefined paths
     # get "/*path", LandingController, :redirect
@@ -140,6 +141,7 @@ defmodule Web.Router do
          :create
 
     get "/organizations/:organization_id/documents", DocumentController, :index
+    get "/documents/:tenant_id/download-all", DocumentController, :download_all
   end
 
   # Bearer token authenticated API routes
@@ -149,6 +151,7 @@ defmodule Web.Router do
     # Read-only endpoints
     get "/organizations/:organization_id/documents", DocumentController, :index
     get "/documents/:id/download", DocumentController, :download
+    get "/documents/:tenant_id/download-all", DocumentController, :download_all
   end
 
   scope "/api/v1", Web do
