@@ -96,85 +96,85 @@ defmodule Core.Crm.Documents do
     end
   end
 
-  def convert_all_documents_to_pdf(tenant_id) do
-    case list_all_by_tenant(tenant_id) do
-      {:ok, documents} ->
-        results =
-          documents
-          |> Enum.map(fn doc_with_lead ->
-            case get_document(doc_with_lead.document_id) do
-              {:ok, document} ->
-                case convert_to_pdf(document) do
-                  {:ok, pdf_content} -> {:ok, {document, pdf_content}}
-                  error -> error
-                end
+  # def convert_all_documents_to_pdf(tenant_id) do
+  #   case list_all_by_tenant(tenant_id) do
+  #     {:ok, documents} ->
+  #       results =
+  #         documents
+  #         |> Enum.map(fn doc_with_lead ->
+  #           case get_document(doc_with_lead.document_id) do
+  #             {:ok, document} ->
+  #               case convert_to_pdf(document) do
+  #                 {:ok, pdf_content} -> {:ok, {document, pdf_content}}
+  #                 error -> error
+  #               end
 
-              error ->
-                error
-            end
-          end)
+  #             error ->
+  #               error
+  #           end
+  #         end)
 
-        # Check if all conversions were successful
-        if Enum.all?(results, &match?({:ok, _}, &1)) do
-          {:ok, Enum.map(results, fn {:ok, result} -> result end)}
-        else
-          {:error, "Some documents failed to convert to PDF"}
-        end
+  #       # Check if all conversions were successful
+  #       if Enum.all?(results, &match?({:ok, _}, &1)) do
+  #         {:ok, Enum.map(results, fn {:ok, result} -> result end)}
+  #       else
+  #         {:error, "Some documents failed to convert to PDF"}
+  #       end
 
-      {:error, reason} ->
-        {:error, reason}
-    end
-  end
+  #     {:error, reason} ->
+  #       {:error, reason}
+  #   end
+  # end
 
   def save_all_documents_to_zip(tenant_id, target_path) do
-    case convert_all_documents_to_pdf(tenant_id) do
-      {:ok, document_pdf_pairs} ->
-        # Group documents by name to handle duplicates
-        {_, numbered_pairs} =
-          Enum.reduce(document_pdf_pairs, {%{}, []}, fn {doc, pdf},
-                                                        {name_counts, acc} ->
-            count = Map.get(name_counts, doc.name, 0) + 1
+    # case convert_all_documents_to_pdf(tenant_id) do
+    #   {:ok, document_pdf_pairs} ->
+    #     # Group documents by name to handle duplicates
+    #     {_, numbered_pairs} =
+    #       Enum.reduce(document_pdf_pairs, {%{}, []}, fn {doc, pdf},
+    #                                                     {name_counts, acc} ->
+    #         count = Map.get(name_counts, doc.name, 0) + 1
 
-            new_name =
-              if count > 1, do: "#{doc.name} (#{count})", else: doc.name
+    #         new_name =
+    #           if count > 1, do: "#{doc.name} (#{count})", else: doc.name
 
-            {Map.put(name_counts, doc.name, count),
-             [{doc, pdf, new_name} | acc]}
-          end)
+    #         {Map.put(name_counts, doc.name, count),
+    #          [{doc, pdf, new_name} | acc]}
+    #       end)
 
-        # Create zip file with numbered PDFs
-        :zip.create(
-          target_path,
-          Enum.map(numbered_pairs, fn {_doc, pdf, new_name} ->
-            {String.to_charlist("#{new_name}.pdf"), pdf}
-          end)
-        )
+    #     # Create zip file with numbered PDFs
+    #     :zip.create(
+    #       target_path,
+    #       Enum.map(numbered_pairs, fn {_doc, pdf, new_name} ->
+    #         {String.to_charlist("#{new_name}.pdf"), pdf}
+    #       end)
+    #     )
 
-        {:ok, target_path}
+    #     {:ok, target_path}
 
-      error ->
-        error
-    end
+    #   error ->
+    #     error
+    # end
   end
 
   # === PDF Conversion ===
 
-  def convert_to_pdf(%Document{} = document) do
-    with {:ok, content} <- extract_document_content(document),
-         {:ok, html, _} <- Earmark.as_html(content),
-         html_with_style <- add_pdf_styles(html),
-         {:ok, header_path} <- create_header_file(document),
-         {:ok, footer_path} <- create_footer_file(),
-         {:ok, pdf} <- generate_pdf(html_with_style, header_path, footer_path) do
-      cleanup_temp_files([header_path, footer_path])
-      {:ok, pdf}
-    else
-      {:error, reason} ->
-        cleanup_all_temp_files()
-        Logger.error("PDF generation failed: #{inspect(reason)}")
-        {:error, "Could not generate PDF: #{inspect(reason)}"}
-    end
-  end
+  # def convert_to_pdf(%Document{} = document) do
+  #   with {:ok, content} <- extract_document_content(document),
+  #        {:ok, html, _} <- Earmark.as_html(content),
+  #        html_with_style <- add_pdf_styles(html),
+  #        {:ok, header_path} <- create_header_file(document),
+  #        {:ok, footer_path} <- create_footer_file(),
+  #        {:ok, pdf} <- generate_pdf(html_with_style, header_path, footer_path) do
+  #     cleanup_temp_files([header_path, footer_path])
+  #     {:ok, pdf}
+  #   else
+  #     {:error, reason} ->
+  #       cleanup_all_temp_files()
+  #       Logger.error("PDF generation failed: #{inspect(reason)}")
+  #       {:error, "Could not generate PDF: #{inspect(reason)}"}
+  #   end
+  # end
 
   # === Private Functions - Document Creation ===
 
@@ -358,42 +358,42 @@ defmodule Core.Crm.Documents do
     end
   end
 
-  defp generate_pdf(html_content, header_path, footer_path) do
-    PdfGenerator.generate_binary(html_content,
-      page_size: "A4",
-      zoom: 1.0,
-      shell_params: [
-        "--encoding",
-        "UTF-8",
-        "--margin-top",
-        "40",
-        "--margin-right",
-        "20",
-        "--margin-bottom",
-        "20",
-        "--margin-left",
-        "20",
-        "--header-html",
-        header_path,
-        "--header-spacing",
-        "0",
-        "--footer-html",
-        footer_path,
-        "--footer-spacing",
-        "0",
-        "--disable-smart-shrinking",
-        "--print-media-type",
-        "--enable-local-file-access",
-        "--no-stop-slow-scripts",
-        "--javascript-delay",
-        "1000",
-        "--load-error-handling",
-        "ignore",
-        "--load-media-error-handling",
-        "ignore"
-      ]
-    )
-  end
+  # defp generate_pdf(html_content, header_path, footer_path) do
+  #   PdfGenerator.generate_binary(html_content,
+  #     page_size: "A4",
+  #     zoom: 1.0,
+  #     shell_params: [
+  #       "--encoding",
+  #       "UTF-8",
+  #       "--margin-top",
+  #       "40",
+  #       "--margin-right",
+  #       "20",
+  #       "--margin-bottom",
+  #       "20",
+  #       "--margin-left",
+  #       "20",
+  #       "--header-html",
+  #       header_path,
+  #       "--header-spacing",
+  #       "0",
+  #       "--footer-html",
+  #       footer_path,
+  #       "--footer-spacing",
+  #       "0",
+  #       "--disable-smart-shrinking",
+  #       "--print-media-type",
+  #       "--enable-local-file-access",
+  #       "--no-stop-slow-scripts",
+  #       "--javascript-delay",
+  #       "1000",
+  #       "--load-error-handling",
+  #       "ignore",
+  #       "--load-media-error-handling",
+  #       "ignore"
+  #     ]
+  #   )
+  # end
 
   # === Private Functions - HTML Generation ===
 

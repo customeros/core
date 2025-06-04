@@ -15,12 +15,10 @@ import { usePage } from '@inertiajs/react';
 import { Lead, Tenant, User } from 'src/types';
 import { PageProps } from '@inertiajs/core';
 import { FeaturedIcon } from 'src/components/FeaturedIcon/FeaturedIcon';
-import { cn } from 'src/utils/cn';
 
 export const DocumentEditor = () => {
   const page = usePage<PageProps & { tenant: Tenant; currentUser: User; companies: Lead[] }>();
   const [viewMode, setViewMode] = useState('default');
-  const [isTransitioning, setIsTransitioning] = useState(false);
   const docId = new URLSearchParams(window.location.search).get('doc');
   const urlViewMode = new URLSearchParams(window.location.search).get('viewMode');
 
@@ -48,14 +46,6 @@ export const DocumentEditor = () => {
     }
   }, [urlViewMode]);
 
-  useEffect(() => {
-    setIsTransitioning(true);
-    const timer = setTimeout(() => {
-      setIsTransitioning(false);
-    }, 50);
-    return () => clearTimeout(timer);
-  }, [docId, currentLead?.id]);
-
   const handleViewModeChange = () => {
     const params = new URLSearchParams(window.location.search);
     if (viewMode === 'default') {
@@ -72,7 +62,6 @@ export const DocumentEditor = () => {
     const params = new URLSearchParams(window.location.search);
     params.delete('doc');
     params.delete('viewMode');
-    setViewMode('default');
     router.visit('/leads', {
       preserveState: true,
       replace: true,
@@ -84,71 +73,60 @@ export const DocumentEditor = () => {
     <>
       <ScrollAreaRoot>
         <ScrollAreaViewport>
-          <div className="relative w-full h-full bg-white">
-            <div className={cn(
-              "bg-white border-b border-gray-200",
-              viewMode === 'default' && "sticky top-0 z-10"
-            )}>
-              <div className="mx-auto w-full md:min-w-[680px] max-w-[680px]">
-                <div className="flex items-center justify-between py-3 px-6">
-                  {currentLead && (
-                    <div className="flex items-center w-full justify-start gap-2">
-                      <img
-                        className="size-6 object-contain border border-gray-200 rounded flex-shrink-0"
-                        loading="lazy"
-                        src={currentLead?.icon}
-                        alt="Lead icon"
-                      />
-                      <p className="text-sm font-medium text-gray-900">
-                        {currentLead?.name} Account Brief
-                      </p>
-                      {currentLead?.icp_fit === 'strong' && (
-                        <div className="bg-error-100 w-fit px-2 py-1 rounded-[4px] max-w-[100px] truncate flex items-center gap-1">
-                          <Icon name="flame" className="w-[14px] h-[14px] text-error-500" />
-                          <span className="text-error-700 text-xs">Strong fit</span>
-                        </div>
-                      )}
-                    </div>
-                  )}
-
-                  <div className="flex items-center gap-2 ml-auto">
-                    {docId && (
-                      <><IconButton
-                      size="xs"
-                      variant="ghost"
-                      onClick={() => {
-                        if (docId) {
-                          window.location.href = `/documents/${docId}/download`;
-                        }
-                      }}
-                      aria-label="download document"
-                      icon={<Icon name="download-02" />}
+          <div className="relative w-full h-full bg-white px-6">
+            <div className="relative bg-white h-full mx-auto pt-[2px] w-full md:min-w-[680px] max-w-[680px]">
+              <div className="flex items-center justify-between mt-[1px]">
+                {currentLead && (
+                  <div className="flex items-center w-full justify-start  mb-3 gap-2">
+                    <img
+                      className="size-6 object-contain border border-gray-200 rounded flex-shrink-0"
+                      loading="lazy"
+                      src={currentLead?.icon}
+                      alt="Lead icon"
                     />
-                      <IconButton
-                        size="xs"
-                        variant="ghost"
-                        aria-label="toggle view mode"
-                        className="hidden md:flex"
-                        onClick={handleViewModeChange}
-                        icon={<Icon name={viewMode === 'default' ? 'expand-01' : 'collapse-01'} />}
-                      />
-                      </>
+                    <p className="text-sm font-medium text-gray-900">
+                      {currentLead?.name} Account Brief
+                    </p>
+                    {currentLead?.icp_fit === 'strong' && (
+                      <div className="bg-error-100 w-fit px-2 py-1 rounded-[4px] max-w-[100px] truncate flex items-center gap-1">
+                        <Icon name="flame" className="w-[14px] h-[14px] text-error-500" />
+                        <span className="text-error-700 text-xs">Strong fit</span>
+                      </div>
                     )}
-                    <IconButton
-                      size="xs"
-                      variant="ghost"
-                      onClick={closeEditor}
-                      aria-label="close document"
-                      icon={<Icon name="x-close" />}
-                    />
                   </div>
+                )}
+
+                <div className="flex items-center w-full justify-end mb-3 gap-2">
+                  {/* <IconButton
+                    size="xs"
+                    variant="ghost"
+                    onClick={() => {
+                      if (docId) {
+                        window.location.href = `/documents/${docId}/download`;
+                      }
+                    }}
+                    aria-label="download document"
+                    icon={<Icon name="download-02" />}
+                  /> */}
+                  <IconButton
+                    size="xs"
+                    variant="ghost"
+                    aria-label="toggle view mode"
+                    className="hidden md:flex"
+                    onClick={handleViewModeChange}
+                    icon={<Icon name={viewMode === 'default' ? 'expand-01' : 'collapse-01'} />}
+                  />
+                  <IconButton
+                    size="xs"
+                    variant="ghost"
+                    onClick={closeEditor}
+                    aria-label="close document"
+                    icon={<Icon name="x-close" />}
+                  />
                 </div>
               </div>
-            </div>
-            <div className="relative bg-white h-full mx-auto w-full md:min-w-[680px] max-w-[680px] px-6">
-              {isTransitioning ? (
-                <div className="h-full" />
-              ) : docId ? (
+
+              {docId ? (
                 <Editor
                   documentId={docId}
                   useYjs={true}
@@ -159,12 +137,12 @@ export const DocumentEditor = () => {
                 />
               ) : (
                 <div className="flex items-center justify-center flex-col h-full">
-                  <div className="flex items-center justify-center">
+                  <div className="   flex items-center justify-center">
                     <FeaturedIcon className="mb-6 mt-[40px]">
                       <Icon name="clock-fast-forward" />
                     </FeaturedIcon>
                   </div>
-                  <div className="flex flex-col items-center justify-center">
+                  <div className="flex flex-col items-center justify-center ">
                     <p className="text-base font-medium mb-1">Preparing account brief</p>
                     <div className="max-w-[340px] text-center gap-2 flex flex-col">
                       <p>

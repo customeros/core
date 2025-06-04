@@ -40,13 +40,7 @@ defmodule Core.MixProject do
   def application do
     [
       mod: {Core.Application, []},
-      extra_applications: [
-        :logger,
-        :runtime_tools,
-        :inets,
-        :tls_certificate_check,
-        :pdf_generator
-      ]
+      extra_applications: [:logger, :runtime_tools, :os_mon, :recon]
     ]
   end
 
@@ -108,9 +102,7 @@ defmodule Core.MixProject do
       {:ex_aws, "~> 2.5"},
       {:ex_aws_s3, "~> 2.5"},
       {:sweet_xml, "~> 0.7"},
-      {:countriex, "~> 0.4.1"},
-      {:pdf_generator, "~> 0.6.2"},
-      {:mogrify, "~> 0.9.3"}
+      {:countriex, "~> 0.4.1"}
     ]
   end
 
@@ -123,8 +115,6 @@ defmodule Core.MixProject do
       proto: ["proto.fetch", "proto.gen"],
       setup: [
         "deps.get",
-        "wkhtmltopdf.install",
-        "imagemagick.install",
         "ecto.setup"
       ],
       check: ["compile", "format", "credo", "dialyzer"],
