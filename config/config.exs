@@ -34,7 +34,8 @@ config :logger, :console,
     :function,
     :icp_fit,
     :url,
-    :session_id
+    :session_id,
+    :message
   ]
 
 # Phoenix

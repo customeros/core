@@ -138,18 +138,27 @@ defmodule Core.Researcher.Scraper do
   defp classify_content({:error, reason}, _url), do: {:error, reason}
 
   defp handle_fetch_error({:http_error, message}, url) do
-    Logger.error("HTTP error while attempting to scrape #{url}: #{message}")
+    Logger.error("HTTP error while attempting to scrape #{url}: #{message}",
+      url: url,
+      reason: :http_error,
+      message: message
+    )
+
     err = "http error => message: #{message}"
     {:error, err}
   end
 
   defp handle_fetch_error(reason, url) when is_binary(reason) do
-    Logger.error("Failed to scrape #{url}", reason: reason)
+    Logger.error("Failed to scrape #{url}", url: url, reason: reason)
     {:error, reason}
   end
 
   defp handle_fetch_error(reason, url) do
-    Logger.error("Failed to scrape #{url}", reason: "#{inspect(reason)}")
+    Logger.error("Failed to scrape #{url}",
+      url: url,
+      reason: "#{inspect(reason)}"
+    )
+
     err = "Error: #{inspect(reason)}"
     {:error, err}
   end

@@ -99,6 +99,7 @@ defmodule Core.Researcher.Scraper.ContentProcessor do
         {:ok, content}
 
       {:error, db_error} ->
+        Logger.error("Failed to save webpage to database", reason: "#{inspect(db_error)}", url: url)
         {:error, "Database save failed: #{inspect(db_error)}"}
     end
   end
