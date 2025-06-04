@@ -3,17 +3,45 @@ defmodule Core.WebTracker.StageIdentifier do
 
   def identify(page_visits)
       when is_list(page_visits) and length(page_visits) > 0 do
+    dbg(page_visits)
+
     session_contexts =
       Enum.map(page_visits, fn {url, summary, intent} ->
         %SessionContext{url: url, summary: summary, intent: intent}
       end)
 
     session_contexts
-    |> calculate_session_stage_scores()
-    |> determine_primary_stage()
+    |> check_for_high_priority_stages()
+    |> case do
+      {:priority, stage} ->
+        {:ok, stage}
+
+      :continue ->
+        session_contexts
+        |> calculate_session_stage_scores()
+        |> determine_primary_stage()
+    end
   end
 
   def identify(_), do: {:error, :invalid_input}
+
+  defp check_for_high_priority_stages(session_contexts) do
+    has_max_purchase =
+      Enum.any?(session_contexts, fn %SessionContext{intent: intent} ->
+        intent.purchase_readiness == 5
+      end)
+
+    has_max_evaluation =
+      Enum.any?(session_contexts, fn %SessionContext{intent: intent} ->
+        intent.evaluation == 5
+      end)
+
+    cond do
+      has_max_purchase -> {:priority, :ready_to_buy}
+      has_max_evaluation -> {:priority, :evaluation}
+      true -> :continue
+    end
+  end
 
   defp calculate_session_stage_scores(session_contexts) do
     totals =

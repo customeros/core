@@ -64,10 +64,10 @@ defmodule Core.Researcher.IcpFitEvaluator do
        when fit in [:strong, :moderate, :not_a_fit] do
     case fit do
       :strong ->
-        Leads.update_lead(lead, %{icp_fit: :strong})
+        Leads.update_lead(lead, %{icp_fit: :strong, stage: :target})
 
       :moderate ->
-        Leads.update_lead(lead, %{icp_fit: :moderate})
+        Leads.update_lead(lead, %{icp_fit: :moderate, stage: :target})
 
       :not_a_fit ->
         Leads.update_lead(lead, %{stage: :not_a_fit})

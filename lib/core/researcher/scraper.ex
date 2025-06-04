@@ -40,17 +40,18 @@ defmodule Core.Researcher.Scraper do
   @err_unexpected_response {:error, "webscraper returned unexpected response"}
 
   def scrape_webpage(url) when is_binary(url) and byte_size(url) > 0 do
+    dbg(url)
     Logger.metadata(module: __MODULE__, function: :scrape_webpage)
-
-    Logger.info("Starting to scrape #{url}",
-      url: url
-    )
 
     case validate_url(url) do
       {:error, reason} ->
         {:error, reason}
 
       url ->
+        Logger.info("Starting to scrape #{url}",
+          url: url
+        )
+
         case Core.Researcher.Webpages.get_by_url(url) do
           {:ok, existing_record} -> use_cached_content(existing_record)
           {:error, :not_found} -> fetch_and_process_webpage(url)
@@ -70,20 +71,14 @@ defmodule Core.Researcher.Scraper do
   end
 
   defp validate_url(url) do
-    case DomainExtractor.extract_base_domain(url) do
-      {:ok, host} ->
-        case PrimaryDomainFinder.primary_domain?(host) do
-          {:ok, true} ->
-            {:ok, url} = UrlFormatter.to_https(url)
-            url
-
-          {:ok, false} ->
-            @err_invalid_url
-
-          {:error, reason} ->
-            Logger.info("#{url} is invalid, stopping scraper")
-            {:error, reason}
-        end
+    with {:ok, host} <- DomainExtractor.extract_base_domain(url),
+         {:ok, true} <- PrimaryDomainFinder.primary_domain?(host),
+         {:ok, base_url} <- UrlFormatter.get_base_url(url),
+         {:ok, clean_url} <- UrlFormatter.to_https(base_url) do
+      clean_url
+    else
+      {:ok, false} ->
+        @err_invalid_url
 
       {:error, reason} ->
         Logger.info("#{url} is invalid, stopping scraper")
