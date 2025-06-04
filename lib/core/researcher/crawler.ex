@@ -26,8 +26,9 @@ defmodule Core.Researcher.Crawler do
     case Core.Utils.DomainExtractor.extract_base_domain(domain) do
       {:ok, base_domain} ->
         # Start crawling with concurrent workers
+        home_page_url = Core.Utils.UrlFormatter.to_https(base_domain)
         crawl_concurrent(%{
-          queue: [{domain, 0}],
+          queue: [{home_page_url, 0}],
           visited: MapSet.new(),
           results: %{},
           base_domain: base_domain,
