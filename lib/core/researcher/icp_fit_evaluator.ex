@@ -57,6 +57,12 @@ defmodule Core.Researcher.IcpFitEvaluator do
 
   defp evaluate_icp_fit(domain, %Leads.Lead{} = lead) do
     OpenTelemetry.Tracer.with_span "icp_fit_evaluator.evaluate_icp_fit" do
+      OpenTelemetry.Tracer.set_attributes([
+        {"lead.id", lead.id},
+        {"lead.tenant_id", lead.tenant_id},
+        {"domain", domain}
+      ])
+
       with {:ok, icp} <- IcpProfiles.get_by_tenant_id(lead.tenant_id),
            {:ok, pages} <- get_prompt_context(domain),
            {:ok, fit} <-
@@ -109,12 +115,16 @@ defmodule Core.Researcher.IcpFitEvaluator do
   end
 
   defp get_prompt_context(domain) do
-    with :ok <- crawl_website_with_retry(domain),
-         {:ok, pages} <-
-           Webpages.get_business_pages_by_domain(domain, limit: 8) do
-      {:ok, pages}
-    else
-      {:error, reason} -> {:error, reason}
+    OpenTelemetry.Tracer.with_span "icp_fit_evaluator.get_prompt_context" do
+      with :ok <- crawl_website_with_retry(domain),
+           {:ok, pages} <-
+             Webpages.get_business_pages_by_domain(domain, limit: 8) do
+        {:ok, pages}
+      else
+        {:error, reason} ->
+          Tracing.error(reason)
+          {:error, reason}
+      end
     end
   end
 
@@ -124,24 +134,37 @@ defmodule Core.Researcher.IcpFitEvaluator do
          %IcpProfiles.Profile{} = icp,
          attempts \\ 0
        ) do
-    {system_prompt, prompt} =
-      PromptBuilder.build_prompts(domain, pages, icp)
+    OpenTelemetry.Tracer.with_span "icp_fit_evaluator.get_icp_fit_with_retry" do
+      OpenTelemetry.Tracer.set_attributes([
+        {"domain", domain},
+        {"attempt", attempts}
+      ])
 
-    task = Ai.ask_supervised(PromptBuilder.build_request(system_prompt, prompt))
+      {system_prompt, prompt} =
+        PromptBuilder.build_prompts(domain, pages, icp)
 
-    case await_task(task, @icp_timeout) do
-      {:ok, answer} ->
-        case Validator.validate_and_parse(answer) do
-          {:ok, fit} -> {:ok, fit}
-          {:error, reason} -> {:error, reason}
-        end
+      task =
+        Ai.ask_supervised(PromptBuilder.build_request(system_prompt, prompt))
 
-      {:error, _reason} when attempts < @max_retries ->
-        :timer.sleep(:timer.seconds(attempts + 1))
-        get_icp_fit_with_retry(domain, pages, icp, attempts + 1)
+      case await_task(task, @icp_timeout) do
+        {:ok, answer} ->
+          case Validator.validate_and_parse(answer) do
+            {:ok, fit} ->
+              {:ok, fit}
 
-      {:error, reason} ->
-        {:error, reason}
+            {:error, reason} ->
+              Tracing.error(reason)
+              {:error, reason}
+          end
+
+        {:error, _reason} when attempts < @max_retries ->
+          :timer.sleep(:timer.seconds(attempts + 1))
+          get_icp_fit_with_retry(domain, pages, icp, attempts + 1)
+
+        {:error, reason} ->
+          Tracing.error(reason)
+          {:error, reason}
+      end
     end
   end
 
