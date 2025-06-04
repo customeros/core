@@ -12,16 +12,21 @@ import {
 } from 'src/components/ScrollArea';
 import { usePresence } from 'src/providers/PresenceProvider';
 import { usePage } from '@inertiajs/react';
-import { Tenant } from 'src/types';
+import { Lead, Tenant, User } from 'src/types';
+import { PageProps } from '@inertiajs/core';
 
 export const DocumentEditor = () => {
-  const page = usePage();
-  const tenantId = (page.props.tenant as Tenant).id;
+  const page = usePage<PageProps & { tenant: Tenant; currentUser: User; companies: Lead[] }>();
   const [viewMode, setViewMode] = useState('default');
   const docId = new URLSearchParams(window.location.search).get('doc');
   const urlViewMode = new URLSearchParams(window.location.search).get('viewMode');
 
   const { presentUsers, currentUserId } = usePresence();
+  console.log(page);
+
+  const currentLead = useMemo(() => {
+    return page.props.companies.find(c => c.document_id === docId);
+  }, [page.props.companies, docId]);
 
   const presenceUser = useMemo(() => {
     const found = presentUsers.find(u => u.user_id === currentUserId);
@@ -59,29 +64,51 @@ export const DocumentEditor = () => {
       preserveScroll: true,
     });
   };
-
+  console.log(currentLead);
   return (
     <>
       <ScrollAreaRoot>
         <ScrollAreaViewport>
           <div className="relative w-full h-full bg-white px-6">
             <div className="relative bg-white h-full mx-auto pt-[2px] w-full md:min-w-[680px] max-w-[680px]">
-              <div className="flex items-center w-full justify-end mb-3 gap-2">
-                <IconButton
-                  size="xs"
-                  variant="ghost"
-                  aria-label="toggle view mode"
-                  className="hidden md:flex"
-                  onClick={handleViewModeChange}
-                  icon={<Icon name={viewMode === 'default' ? 'expand-01' : 'collapse-01'} />}
-                />
-                <IconButton
-                  size="xs"
-                  variant="ghost"
-                  onClick={closeEditor}
-                  aria-label="close document"
-                  icon={<Icon name="x-close" />}
-                />
+              <div className="flex items-center justify-between mt-[1px]">
+                {currentLead && (
+                  <div className="flex items-center w-full justify-start  mb-3 gap-2">
+                    <img
+                      className="size-6 object-contain border border-gray-200 rounded flex-shrink-0"
+                      loading="lazy"
+                      src={currentLead?.icon}
+                      alt="Lead icon"
+                    />
+                    <p className="text-sm font-medium text-gray-900">
+                      {currentLead?.name} Account Brief
+                    </p>
+                    {currentLead?.icp_fit === 'strong' && (
+                      <div className="bg-error-100 w-fit px-2 py-1 rounded-[4px] max-w-[100px] truncate flex items-center gap-1">
+                        <Icon name="flame" className="w-[14px] h-[14px] text-error-500" />
+                        <span className="text-error-700 text-xs">Strong fit</span>
+                      </div>
+                    )}
+                  </div>
+                )}
+
+                <div className="flex items-center w-full justify-end mb-3 gap-2">
+                  <IconButton
+                    size="xs"
+                    variant="ghost"
+                    aria-label="toggle view mode"
+                    className="hidden md:flex"
+                    onClick={handleViewModeChange}
+                    icon={<Icon name={viewMode === 'default' ? 'expand-01' : 'collapse-01'} />}
+                  />
+                  <IconButton
+                    size="xs"
+                    variant="ghost"
+                    onClick={closeEditor}
+                    aria-label="close document"
+                    icon={<Icon name="x-close" />}
+                  />
+                </div>
               </div>
 
               {docId ? (
@@ -89,12 +116,27 @@ export const DocumentEditor = () => {
                   documentId={docId}
                   useYjs={true}
                   namespace="leads"
+                  size="sm"
                   user={presenceUser}
                   key={docId}
                 />
               ) : (
-                <div className="flex items-center justify-center h-full">
-                  Preparing account brief...
+                <div className="flex items-center justify-center flex-col h-full">
+                  <div className="bg-[url('/images/half-circle-pattern.svg')] bg-cover bg-center bg-no-repeat w-[700px] h-[600px] mt-[-100px] flex items-center justify-center z-[0]">
+                    <div className="bg-[url('/images/empty-table.svg')] w-[180px] h-[142px] bg-cover bg-center bg-no-repeat translate-y-[135px]" />
+                  </div>
+                  <div className="flex flex-col items-center justify-center mt-[-95px]">
+                    <p className="text-base font-medium text-gray-900 mb-1">
+                      Preparing account brief
+                    </p>
+                    <div className="max-w-[340px] text-center gap-2 flex flex-col">
+                      <p className="">
+                        We’re now busy analysing and pulling together everything you need to know
+                        about this lead.
+                      </p>
+                      <p>Hang tight, the brief should be available in a moment.</p>
+                    </div>
+                  </div>
                 </div>
               )}
 

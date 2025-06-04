@@ -36,7 +36,8 @@ export type IconName =
   | 'building-06'
   | 'magnet'
   | 'radar'
-  | 'briefcase-02';
+  | 'briefcase-02'
+  | 'flame';
 
 export const Icon = ({
   name,

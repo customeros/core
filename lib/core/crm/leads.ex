@@ -86,6 +86,7 @@ defmodule Core.Crm.Leads do
         select: %{
           id: l.id,
           ref_id: l.ref_id,
+          icp_fit: l.icp_fit,
           type: l.type,
           stage: l.stage,
           name: c.name,

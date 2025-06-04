@@ -57,9 +57,10 @@ export const Header = () => {
     return createdLeadIcons.slice(0, 3).map((v, index) => v || defaultIconSet[index]);
   }, [createdLeadIcons]);
 
+  const leadsMessage = leadCount > 1 ? 'leads' : 'lead';
   return (
     <>
-      <div className="flex w-full relative z-10 bg-white">
+      <div className="flex w-full z-[99999] bg-white sticky top-0">
         <div className="h-[1px] mb-[-0px] bg-gradient-to-l from-gray-200 to-transparent self-end 2xl:w-[calc((100%-1440px)/2)]" />
 
         <div className="flex justify-between items-center border-b border-gray-200 w-full 2xl:w-[1440px] 2xl:mx-auto py-2 px-4">
@@ -87,17 +88,18 @@ export const Header = () => {
             >
               See who's ready to buy
             </Button> */}
-
-            <Button
-              colorScheme="gray"
-              size="xs"
-              leftIcon={<Icon name="download-02" />}
-              onClick={() => {
-                window.location.href = '/leads/download';
-              }}
-            >
-              Download
-            </Button>
+            {page.props.companies.length > 0 && (
+              <Button
+                colorScheme="gray"
+                size="xs"
+                leftIcon={<Icon name="download-02" />}
+                onClick={() => {
+                  window.location.href = '/leads/download';
+                }}
+              >
+                Download
+              </Button>
+            )}
           </div>
         </div>
 
@@ -128,7 +130,9 @@ export const Header = () => {
                 )
               )}
               <div className="flex flex-col">
-                <span className="text-sm font-medium text-primary-700">{leadCount} new leads</span>
+                <span className="text-sm font-medium text-primary-700">
+                  {leadCount} new {leadsMessage}
+                </span>
               </div>
             </div>
           </div>

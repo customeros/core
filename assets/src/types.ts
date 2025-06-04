@@ -9,6 +9,7 @@ export type Lead = {
   domain: string;
   industry: string;
   document_id: string;
+  icp_fit: 'strong' | 'moderate';
 };
 
 export type Tenant = {
