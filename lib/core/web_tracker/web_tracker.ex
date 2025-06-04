@@ -222,7 +222,7 @@ defmodule Core.WebTracker do
           {"enrichment.type", "new_session"}
         ])
 
-        fetch_and_process_company_data(attrs.ip, attrs.tenant)
+        fetch_and_process_company_data(attrs.ip, attrs.tenant, session.id)
       else
         OpenTelemetry.Tracer.set_attributes([
           {"enrichment.type", "existing_session"}
@@ -264,7 +264,7 @@ defmodule Core.WebTracker do
     }
   end
 
-  defp fetch_and_process_company_data(ip, tenant) do
+  defp fetch_and_process_company_data(ip, tenant, session_id) do
     span_ctx = OpenTelemetry.Tracer.current_span_ctx()
 
     Task.start(fn ->
@@ -275,7 +275,7 @@ defmodule Core.WebTracker do
 
         case ip_intelligence_mod.get_company_info(ip) do
           {:ok, %{domain: domain, company: company}} ->
-            process_company_info(domain, company, tenant)
+            process_company_info(domain, company, tenant, session_id)
 
           {:error, reason} ->
             Tracing.error("company_info_fetch_failed")
@@ -285,22 +285,33 @@ defmodule Core.WebTracker do
     end)
   end
 
-  defp process_company_info(domain, nil, _tenant) do
+  defp process_company_info(domain, nil, _tenant, _session_id) do
     Logger.warning("Company not found for domain: #{domain}")
   end
 
-  defp process_company_info(domain, company, tenant) do
+  defp process_company_info(domain, company, tenant, session_id) do
     OpenTelemetry.Tracer.with_span "web_tracker.process_company_info" do
       OpenTelemetry.Tracer.set_attributes([
         {"company.domain", domain},
         {"company.name", company.name},
-        {"tenant", tenant}
+        {"tenant", tenant},
+        {"session.id", session_id}
       ])
 
       Logger.info("Found company for domain #{domain}: #{company.name}")
 
       case Companies.get_or_create_by_domain(domain) do
         {:ok, db_company} ->
+          # Try to update session with company ID, but continue even if it fails
+          _ = case Core.WebTracker.Sessions.set_company_id(session_id, db_company.id) do
+            {:ok, _session} ->
+              Logger.info("Updated session #{session_id} with company ID #{db_company.id}")
+              :ok
+            {:error, reason} ->
+              Logger.warning("Failed to update session with company ID: #{inspect(reason)}")
+              :ok
+          end
+
           case Core.Crm.Leads.get_or_create(tenant, %{
                  ref_id: db_company.id,
                  type: :company
@@ -311,7 +322,6 @@ defmodule Core.WebTracker do
 
         {:error, reason} ->
           Tracing.error("lead_creation_failed")
-
           Logger.error(
             "Failed to create lead for company #{company.name}: #{inspect(reason)}"
           )
