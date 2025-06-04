@@ -90,8 +90,10 @@ defmodule Web.DocumentController do
           "attachment; filename=\"#{zip_filename}\""
         )
         |> send_file(200, zip_path)
-        |> Plug.Conn.after_send(fn _conn ->
+        |> register_before_send(fn conn ->
+          # Clean up the temporary zip file
           File.rm(zip_path)
+          conn
         end)
 
       {:error, reason} ->
@@ -101,6 +103,23 @@ defmodule Web.DocumentController do
           400,
           Jason.encode!(%{error: "Could not generate PDFs: #{reason}"})
         )
+    end
+  end
+
+  def save_all_documents_to_zip(tenant_id, target_path) do
+    case Documents.convert_all_documents_to_pdf(tenant_id) do
+      {:ok, document_pdf_pairs} ->
+        :zip.create(
+          target_path,
+          Enum.map(document_pdf_pairs, fn {doc, pdf} ->
+            {String.to_charlist("#{doc.name}.pdf"), pdf}
+          end)
+        )
+
+        {:ok, target_path}
+
+      error ->
+        error
     end
   end
 

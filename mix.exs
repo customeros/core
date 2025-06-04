@@ -124,8 +124,8 @@ defmodule Core.MixProject do
       setup: [
         "deps.get",
         "wkhtmltopdf.install",
-        "ecto.setup",
-        "mogrify.install"
+        "imagemagick.install",
+        "ecto.setup"
       ],
       check: ["compile", "format", "credo", "dialyzer"],
       tidy: ["deps.get"],
