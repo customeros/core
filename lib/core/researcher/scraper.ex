@@ -94,7 +94,9 @@ defmodule Core.Researcher.Scraper do
 
       {:error, reason} ->
         Logger.error(
-          "Failed processing scraped content for #{url} | reason: #{inspect(reason)}"
+          "Failed processing scraped content",
+          url: url,
+          reason: reason
         )
 
         {:error, reason}
@@ -142,12 +144,12 @@ defmodule Core.Researcher.Scraper do
   end
 
   defp handle_fetch_error(reason, url) when is_binary(reason) do
-    Logger.error("Failed to scrape #{url}: #{reason}")
+    Logger.error("Failed to scrape #{url}", reason: reason)
     {:error, reason}
   end
 
   defp handle_fetch_error(reason, url) do
-    Logger.error("Failed to scrape #{url}: #{inspect(reason)}")
+    Logger.error("Failed to scrape #{url}", reason: "#{inspect(reason)}")
     err = "Error: #{inspect(reason)}"
     {:error, err}
   end
