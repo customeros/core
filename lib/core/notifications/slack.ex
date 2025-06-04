@@ -30,12 +30,18 @@ defmodule Core.Notifications.Slack do
         {:ok, %{status: 200}} ->
           :ok
 
-        {:ok, %{status: status_code}} ->
+        {:ok, %{status: status_code, body: body}} ->
           Logger.error("Slack API returned status code #{status_code}")
+          Logger.warning("Slack API response body: #{inspect(body)}")
           {:error, :slack_api_error}
 
         {:error, %Finch.Error{} = error} ->
           Logger.error("Failed to send Slack message: #{inspect(error)}")
+          case error do
+            %Finch.Error{reason: {:status, _status, body}} ->
+              Logger.warning("Slack API response body: #{inspect(body)}")
+            _ -> :ok
+          end
           {:error, error}
       end
     else
