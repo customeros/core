@@ -185,8 +185,7 @@ defmodule Core.Notifications.Slack do
           String.t(),
           String.t(),
           String.t() | nil,
-          String.t() | nil,
-          map() | nil
+          String.t() | nil
         ) ::
           :ok
           | {:error,
@@ -195,8 +194,7 @@ defmodule Core.Notifications.Slack do
         error_type,
         error_message,
         module_function \\ nil,
-        stacktrace \\ nil,
-        metadata \\ nil
+        stacktrace \\ nil
       )
       when is_binary(error_type) and is_binary(error_message) and
              error_type != "" and error_message != "" do
@@ -218,8 +216,7 @@ defmodule Core.Notifications.Slack do
               stacktrace,
               error_type,
               error_message,
-              module_function,
-              metadata
+              module_function
             )
         end
     end
@@ -281,33 +278,8 @@ defmodule Core.Notifications.Slack do
          stacktrace,
          error_type,
          error_message,
-         module_function,
-         metadata
+         module_function
        ) do
-    metadata = if is_list(metadata), do: Map.new(metadata), else: metadata
-
-    system_keys = [
-      :module,
-      :function,
-      :line,
-      :file,
-      :pid,
-      :time,
-      :gl,
-      :domain,
-      :application,
-      :mfa,
-      :erl_level
-    ]
-
-    custom_metadata =
-      metadata
-      |> Enum.reject(fn {k, _v} -> k in system_keys end)
-      |> Enum.reject(fn {k, _v} ->
-        k in [:otel_span_id, :otel_trace_flags, :otel_trace_id]
-      end)
-      |> Enum.into(%{})
-
     fields = [
       %{
         type: "mrkdwn",
@@ -328,25 +300,6 @@ defmodule Core.Notifications.Slack do
             %{
               type: "mrkdwn",
               text: "*Location:*\n`#{module_function}`"
-            }
-          ]
-      else
-        fields
-      end
-
-    # Add metadata if present
-    fields =
-      if custom_metadata && map_size(custom_metadata) > 0 do
-        metadata_lines =
-          custom_metadata
-          |> Enum.map(fn {k, v} -> "*#{k}:* #{v}" end)
-          |> Enum.join("\n")
-
-        fields ++
-          [
-            %{
-              type: "mrkdwn",
-              text: "*Metadata:*\n" <> metadata_lines
             }
           ]
       else
@@ -449,15 +402,15 @@ defmodule Core.Notifications.Slack do
       :domain,
       :application,
       :mfa,
-      :erl_level
+      :erl_level,
+      :otel_span_id,
+      :otel_trace_flags,
+      :otel_trace_id
     ]
 
     custom_metadata =
       metadata
       |> Enum.reject(fn {k, _v} -> k in system_keys end)
-      |> Enum.reject(fn {k, _v} ->
-        k in [:otel_span_id, :otel_trace_flags, :otel_trace_id]
-      end)
       |> Enum.into(%{})
 
     fields = [
