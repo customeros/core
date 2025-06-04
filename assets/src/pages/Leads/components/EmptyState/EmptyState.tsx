@@ -8,7 +8,7 @@ export const EmptyState = () => {
       </div>
       <div className="flex flex-col items-center justify-center mt-[-95px]">
         <p className="text-base font-medium text-gray-900 mb-1">Let the leads flow</p>
-        <div className="max-w-[330px] text-center gap-2 flex flex-col">
+        <div className="max-w-[340px] text-center gap-2 flex flex-col">
           <p className="">Hang tight, we are now finding 20 highly qualified leads for you....</p>
           <p>
             While you wait, book a call to set up your web tracker and start seeing exactly who’s

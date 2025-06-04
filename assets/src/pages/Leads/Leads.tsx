@@ -55,6 +55,8 @@ export const Leads = memo(({ companies }: LeadsProps) => {
   const [selectedAccordion, setSelectedAccordion] = useState<string>('');
   const hasDocParam = new URLSearchParams(window.location.search).has('doc');
   const viewMode = new URLSearchParams(window.location.search).get('viewMode');
+  const params = new URLSearchParams(window.location.search);
+  const currentDocId = params.get('doc');
 
   const filteredCompanies = useMemo(
     () => (selectedStage ? companies.filter(c => c.stage === selectedStage) : companies),
@@ -70,12 +72,10 @@ export const Leads = memo(({ companies }: LeadsProps) => {
   };
 
   const handleOpenDocument = useCallback((company: { document_id: string }) => {
-    const params = new URLSearchParams(window.location.search);
-    const currentDocId = params.get('doc');
-
-    if (currentDocId === company.document_id) {
+    if (currentDocId === company.document_id || params.size === 1) {
       params.delete('doc');
-    } else {
+    }
+    if (params.size === 0) {
       params.set('doc', company.document_id ?? '');
     }
 
@@ -95,14 +95,14 @@ export const Leads = memo(({ companies }: LeadsProps) => {
       ) : (
         <div className="flex h-full overflow-hidden relative bg-white p-0 transition-[width] duration-300 ease-in-out w-full 2xl:w-[1440px] 2xl:mx-auto md:mt-2 animate-fadeIn">
           <div className="w-full">
-            <div className="w-full items-center justify-center mb-2 px-4 2xl:px-0 hidden md:flex">
+            <div className="w-full items-center justify-center mb-2 p-1 hidden md:flex max-w-[800px] mx-auto bg-primary-25 rounded-[8px]  ">
               {stages.map((stage, index) => {
                 const count = companies.filter(c => c.stage === stage.value).length;
                 return (
                   <div
                     key={stage.value}
                     className={cn(
-                      'flex-1 flex items-center justify-center rounded-md bg-primary-100 cursor-pointer min-h-[14px]',
+                      'flex-1 flex items-center justify-center rounded-md bg-primary-100 cursor-pointer hover:bg-primary-200 duration-300',
                       index > 0 && 'ml-[-10px]',
                       selectedStage === stage.value && 'bg-primary-200'
                     )}
@@ -110,6 +110,7 @@ export const Leads = memo(({ companies }: LeadsProps) => {
                       height: `${count ? count * 5 : 15}px`,
                       zIndex: 10 - index,
                       maxHeight: '100px',
+                      minHeight: '20px',
                     }}
                     onClick={() => setSelectedStage(stage.value)}
                   >
@@ -139,7 +140,10 @@ export const Leads = memo(({ companies }: LeadsProps) => {
                       <CollapsibleTrigger className="w-full">
                         <SegmentedView
                           label={stage.label}
-                          className={index === 0 ? 'mt-0' : ''}
+                          className={cn(
+                            index === 0 ? 'mt-0' : '',
+                            params.size !== 0 && 'md:rounded-r-none'
+                          )}
                           isSelected={isSelected(stage.value) || isAccordionSelected(stage.value)}
                           count={companies.filter(c => c.stage === stage.value).length}
                           icon={<Icon name={stage.icon as IconName} className="text-gray-500" />}
@@ -162,13 +166,27 @@ export const Leads = memo(({ companies }: LeadsProps) => {
                             >
                               <div className="flex items-center gap-2 pl-5 min-w-0 flex-1 md:flex-none md:flex-shrink-0 bg-white group-hover:bg-gray-50">
                                 {c.icon ? (
-                                  <img
-                                    key={c.icon}
-                                    src={c.icon}
-                                    alt={c.name}
-                                    className="size-6 object-contain border border-gray-200 rounded flex-shrink-0"
-                                    loading="lazy"
-                                  />
+                                  <div
+                                    className="cursor-pointer"
+                                    onClick={() => {
+                                      handleOpenDocument(c);
+                                    }}
+                                  >
+                                    <img
+                                      key={c.icon}
+                                      src={c.icon}
+                                      alt={c.name}
+                                      className="size-6 object-contain border border-gray-200 rounded flex-shrink-0 relative "
+                                      loading="lazy"
+                                    />
+                                    {c?.icp_fit === 'strong' && (
+                                      <Icon
+                                        name="flame"
+                                        className="absolute bottom-[5px] left-[35px] w-[14px] h-[14px] z-20 text-error-500 ring-offset-1
+                                      rounded-full  ring-[1px] bg-error-100 ring-white"
+                                      />
+                                    )}
+                                  </div>
                                 ) : (
                                   <div className="size-6 flex items-center justify-center border border-gray-200 rounded flex-shrink-0">
                                     <Icon name="building-06" />
@@ -189,7 +207,10 @@ export const Leads = memo(({ companies }: LeadsProps) => {
                                     {c.industry}
                                   </span>
                                 ) : (
-                                  <span>Not found</span>
+                                  // <span className=" w-fit px-2 py-1 rounded-[4px] max-w-[100px] truncate border-[1px] border-gray-300">
+                                  //   Industry not found
+                                  // </span>
+                                  <></>
                                 )}
                               </p>
 

@@ -63,7 +63,7 @@ export const Welcome = () => {
         <div className="bg-[url('/images/box-illustration.svg')] w-[152px] h-[130px] bg-cover bg-center bg-no-repeat " />
 
         <h1 className="text-xl font-semibold text-gray-900 mt-8">Welcome!</h1>
-        <p className="text-sm text-gray-500">3 things you can do in CustomerOS…</p>
+        <p className="text-sm text-gray-500 mt-2">3 things you can do in CustomerOS…</p>
 
         <div className="relative mt-8 h-[260px] flex items-center justify-center w-full max-w-4xl">
           <div className="relative w-full h-full flex items-center justify-center">
