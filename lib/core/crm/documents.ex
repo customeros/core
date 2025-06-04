@@ -126,15 +126,9 @@ defmodule Core.Crm.Documents do
              stderr_to_stdout: true
            ) do
         {output, 0} ->
-          Logger.info("Successfully converted lexical state to Yjs document")
-
           Core.Crm.Documents.YDoc.insert_update(doc_id, output)
 
         {error_output, exit_code} ->
-          Logger.error(
-            "Script execution failed (exit #{exit_code}): #{error_output}"
-          )
-
           {:error, "Could not convert lexical state to Yjs document"}
       end
     after
@@ -156,14 +150,9 @@ defmodule Core.Crm.Documents do
              stderr_to_stdout: true
            ) do
         {output, 0} ->
-          Logger.info("Successfully converted markdown to lexical state")
           {:ok, output}
 
         {error_output, exit_code} ->
-          Logger.error(
-            "Script execution failed (exit #{exit_code}): #{error_output}"
-          )
-
           {:error, "Could not convert markdown to lexical state"}
       end
     after
@@ -171,17 +160,196 @@ defmodule Core.Crm.Documents do
     end
   end
 
-  def convert_to_pdf(%Document{} = document) do
-    with {:ok, html, _} <- Earmark.as_html(document.body),
-         html_with_style <- add_pdf_styles(html),
-         {:ok, pdf} <-
-           PdfGenerator.generate(html_with_style, page_size: "A4", zoom: 1.0) do
-      {:ok, pdf}
-    else
-      {:error, reason} ->
-        Logger.error("PDF generation failed: #{inspect(reason)}")
-        {:error, "Could not generate PDF"}
+  defp generate_header_html(document) do
+    # Get the lead through RefDocument
+    lead =
+      from(l in Core.Crm.Leads.Lead,
+        join: rd in RefDocument,
+        on: rd.ref_id == l.id,
+        where: rd.document_id == ^document.id,
+        select: %{id: l.id, ref_id: l.ref_id}
+      )
+      |> Repo.one()
+
+    # Get company information if lead exists
+    company_info =
+      if lead do
+        from(c in Core.Crm.Companies.Company,
+          where: c.id == ^lead.ref_id,
+          select: %{name: c.name, icon_key: c.icon_key}
+        )
+        |> Repo.one()
+      end
+
+    # Use company info if available, otherwise fallback to default
+    {logo_path, company_name} =
+      if company_info && company_info.name do
+        if company_info.icon_key do
+          case Core.Utils.Media.Images.get_cdn_url(company_info.icon_key) do
+            url when is_binary(url) ->
+              extension = Path.extname(url)
+              {:ok, temp_path} = Temp.path(%{suffix: extension})
+
+              case Core.Utils.Media.Images.download_image(url) do
+                {:ok, image_data} ->
+                  case File.write(temp_path, image_data) do
+                    :ok ->
+                      case File.stat(temp_path) do
+                        {:ok, _stat} ->
+                          {temp_path, company_info.name}
+
+                        _ ->
+                          {Application.app_dir(
+                             :core,
+                             "priv/static/images/customeros.png"
+                           ), company_info.name}
+                      end
+
+                    _ ->
+                      {Application.app_dir(
+                         :core,
+                         "priv/static/images/customeros.png"
+                       ), company_info.name}
+                  end
+
+                _ ->
+                  {Application.app_dir(
+                     :core,
+                     "priv/static/images/customeros.png"
+                   ), company_info.name}
+              end
+
+            _ ->
+              {Application.app_dir(:core, "priv/static/images/customeros.png"),
+               company_info.name}
+          end
+        else
+          {Application.app_dir(:core, "priv/static/images/customeros.png"),
+           company_info.name}
+        end
+      else
+        default_path =
+          Application.app_dir(:core, "priv/static/images/customeros.png")
+
+        {default_path, "CustomerOS"}
+      end
+
+    # Create a temporary directory for the image
+    {:ok, temp_dir} = Temp.mkdir()
+    image_path = Path.join(temp_dir, "logo#{Path.extname(logo_path)}")
+    File.cp!(logo_path, image_path)
+    IO.puts("Image copied to temp: #{image_path}")
+    # Clean up the original temporary file if it was created
+    if String.contains?(logo_path, "/tmp/") do
+      File.rm(logo_path)
     end
+
+    # Determine mime type based on extension
+    extension =
+      Path.extname(image_path) |> String.trim_leading(".") |> String.downcase()
+
+    mime_type =
+      case extension do
+        "png" -> "image/png"
+        "jpg" -> "image/jpeg"
+        "jpeg" -> "image/jpeg"
+        "gif" -> "image/gif"
+        _ -> "application/octet-stream"
+      end
+
+    # Read image and encode to base64
+    logo_data = File.read!(image_path) |> Base.encode64()
+    IO.puts("Logo data: #{logo_data}")
+    logo_base64 = "data:#{mime_type};base64,#{logo_data}"
+
+    html = """
+    <!DOCTYPE html>
+    <html>
+    <head>
+      <meta charset="utf-8">
+      <meta http-equiv="Content-Type" content="text/html; charset=utf-8">
+      <style>
+        @page {
+          margin: 0;
+          padding: 0;
+        }
+        body {
+          margin: 0;
+          padding: 0;
+          font-family: Arial, sans-serif;
+        }
+        .header {
+          height: 50px;
+          padding: 15px 20px 0 20px;
+          border-bottom: 1px solid #eee;
+          background: white;
+          box-sizing: border-box;
+        }
+        .header img {
+          height: 24px;
+          width: auto;
+          vertical-align: middle;
+          display: inline-block;
+          max-width: 200px;
+        }
+        .header span {
+          font-size: 14px;
+          vertical-align: middle;
+          margin-left: 10px;
+          font-weight: bold;
+          display: inline-block;
+        }
+      </style>
+    </head>
+    <body>
+      <div class="header">
+    <img src="file://#{image_path}" alt="#{company_name} Logo" />
+    <span>#{company_name} Report</span>
+      </div>
+    </body>
+    </html>
+    """
+  end
+
+  defp generate_footer_html() do
+    logo_path = Application.app_dir(:core, "priv/static/images/customeros.png")
+    logo_base64 = File.read!(logo_path) |> Base.encode64()
+
+    """
+    <!DOCTYPE html>
+    <html>
+    <head>
+      <meta charset="utf-8">
+      <style>
+        body {
+          margin: 0;
+          padding: 0;
+        }
+        .footer {
+          height: 50px;
+          padding: 15px 20px 0 20px;
+          border-top: 1px solid #eee;
+          background: white;
+        }
+        .footer img {
+          height: 24px;
+          vertical-align: middle;
+        }
+        .footer span {
+          font-size: 10px;
+          vertical-align: middle;
+          margin-left: 10px;
+        }
+      </style>
+    </head>
+    <body>
+      <div class="footer">
+        <img src="data:image/png;base64,#{logo_base64}" alt="CustomerOS Logo" />
+        <span>CustomerOS</span>
+      </div>
+    </body>
+    </html>
+    """
   end
 
   defp add_pdf_styles(html) do
@@ -191,60 +359,139 @@ defmodule Core.Crm.Documents do
     <head>
       <meta charset="utf-8">
       <style>
+        @page {
+          margin: 20mm;
+          size: A4;
+        }
         body {
-          font-family: "IBM Plex Sans Regular", "Inter Medium", "Inter", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+          font-family: "IBM Plex Sans", sans-serif;
           line-height: 1.6;
           color: #333;
           max-width: 800px;
           margin: 0 auto;
           padding: 20px;
+          position: relative;
+          min-height: 100vh;
         }
-        h1 {
-          font-size: 20px;
-          margin-bottom: 20px;
-          font-family: "IBM Plex Sans Bold", "Inter SemiBold", "Inter", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+        h1, h2 {
+          font-weight: bold;
         }
-        h2 {
-          font-size: 16px;
-          margin-top: 30px;
-          margin-bottom: 15px;
-          font-family: "IBM Plex Sans Bold", "Inter SemiBold", "Inter", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
-        }
-        p {
-          margin-bottom: 15px;
-          font-family: "IBM Plex Sans Regular", "Inter Medium", "Inter", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
-        }
-        ul, ol {
-          margin-bottom: 15px;
-          padding-left: 20px;
-          font-family: "IBM Plex Sans Regular", "Inter Medium", "Inter", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
-        }
-        li {
-          margin-bottom: 5px;
-          font-family: "IBM Plex Sans Regular", "Inter Medium", "Inter", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
-        }
-        strong {
-          font-family: "IBM Plex Sans Bold", "Inter SemiBold", "Inter", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
-        }
-        b {
-          font-family: "IBM Plex Sans Bold", "Inter SemiBold", "Inter", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
-        }
-        em {
-          font-family: "IBM Plex Sans Regular", "Inter Medium", "Inter", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
-          font-style: italic;
+        .content {
+          margin-bottom: 100px;
         }
       </style>
     </head>
     <body>
-      #{html}
+      <div class="content">
+        #{html}
+      </div>
     </body>
     </html>
     """
   end
 
-  @doc """
-  Gets documents and their associated lead_id for a specific tenant.
-  """
+  def convert_to_pdf(%Document{} = document) do
+    content =
+      case document.lexical_state do
+        nil ->
+          document.body
+
+        state ->
+          case Jason.decode(state) do
+            {:ok, %{"root" => %{"children" => children}}} ->
+              markdown =
+                children
+                |> Enum.map(fn
+                  %{
+                    "type" => "heading",
+                    "tag" => tag,
+                    "children" => [%{"text" => text} | _]
+                  } ->
+                    level = String.to_integer(String.replace(tag, "h", ""))
+                    String.duplicate("#", level) <> " " <> text
+
+                  %{
+                    "type" => "paragraph",
+                    "children" => [%{"text" => text} | _]
+                  } ->
+                    text
+
+                  _ ->
+                    ""
+                end)
+                |> Enum.join("\n\n")
+
+              markdown
+
+            _ ->
+              document.body
+          end
+      end
+
+    with {:ok, html, _} <- Earmark.as_html(content),
+         html_with_style <- add_pdf_styles(html),
+         footer_html <- generate_footer_html(),
+         footer_path = "/tmp/pdf_footer.html",
+         :ok <- File.write(footer_path, footer_html),
+         header_html <- generate_header_html(document),
+         dbg(header_html),
+         header_path = "/tmp/pdf_header.html",
+         :ok <- File.write(header_path, header_html),
+         {:ok, pdf} <-
+           PdfGenerator.generate_binary(html_with_style,
+             page_size: "A4",
+             zoom: 1.0,
+             shell_params: [
+               "--encoding",
+               "UTF-8",
+               "--margin-top",
+               "40",
+               "--margin-right",
+               "20",
+               "--margin-bottom",
+               "20",
+               "--margin-left",
+               "20",
+               "--header-html",
+               header_path,
+               "--header-spacing",
+               "0",
+               "--footer-html",
+               footer_path,
+               "--footer-spacing",
+               "0",
+               "--disable-smart-shrinking",
+               "--print-media-type",
+               "--enable-local-file-access",
+               "--no-stop-slow-scripts",
+               "--javascript-delay",
+               "1000",
+               "--load-error-handling",
+               "ignore",
+               "--load-media-error-handling",
+               "ignore"
+             ]
+           ) do
+      # Clean up temporary files
+      File.rm(footer_path)
+      File.rm(header_path)
+
+      if temp_dir = Process.get(:temp_dir) do
+        File.rm_rf!(temp_dir)
+      end
+
+      {:ok, pdf}
+    else
+      {:error, reason} ->
+        # Clean up temporary files even on error
+        if temp_dir = Process.get(:temp_dir) do
+          File.rm_rf!(temp_dir)
+        end
+
+        {:error, "Could not generate PDF"}
+    end
+  end
+
   def list_all_by_tenant(tenant_id) do
     query =
       from d in Document,

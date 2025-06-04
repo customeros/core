@@ -100,6 +100,17 @@ export const DocumentEditor = () => {
                   <IconButton
                     size="xs"
                     variant="ghost"
+                    onClick={() => {
+                      if (docId) {
+                        window.location.href = `/documents/${docId}/download`;
+                      }
+                    }}
+                    aria-label="download document"
+                    icon={<Icon name="download-02" />}
+                  />
+                  <IconButton
+                    size="xs"
+                    variant="ghost"
                     aria-label="toggle view mode"
                     className="hidden md:flex"
                     onClick={handleViewModeChange}
@@ -135,7 +146,7 @@ export const DocumentEditor = () => {
                     <p className="text-base font-medium mb-1">Preparing account brief</p>
                     <div className="max-w-[340px] text-center gap-2 flex flex-col">
                       <p>
-                        We’re now busy analyzing and pulling together everything you need to know
+                        We're now busy analyzing and pulling together everything you need to know
                         about this lead.
                       </p>
                       <p>Hang tight, the brief should be available in a moment.</p>

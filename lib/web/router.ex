@@ -109,6 +109,7 @@ defmodule Web.Router do
     get "/icons.svg", IconsController, :index
     get "/favicon/*path", FaviconController, :serve
     get "/welcome", WelcomeController, :index
+    get "/documents/:id/download", DocumentController, :download
 
     # Catch-all route for undefined paths
     # get "/*path", LandingController, :redirect

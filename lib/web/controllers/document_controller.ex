@@ -48,6 +48,10 @@ defmodule Web.DocumentController do
           {:ok, pdf} ->
             conn
             |> put_resp_content_type("application/pdf")
+            |> put_resp_header(
+              "content-disposition",
+              "attachment; filename=\"#{doc.name}.pdf\""
+            )
             |> send_resp(200, pdf)
 
           {:error, _} ->
