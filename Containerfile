@@ -30,10 +30,12 @@ COPY scripts /app/scripts
 WORKDIR /app/scripts
 RUN bun install
 RUN bun build --compile convert_lexical_to_yjs.ts --output convert_lexical_to_yjs
+RUN bun build --compile convert_md_to_lexical.ts --output convert_md_to_lexical
 
 # Create priv/scripts directory and move compiled script
 RUN mkdir -p /app/priv/scripts
 RUN mv convert_lexical_to_yjs /app/priv/scripts/
+RUN mv convert_md_to_lexical /app/priv/scripts/
 
 # Set working directory to Elixir app directory
 WORKDIR /app
@@ -100,10 +102,16 @@ RUN mix release
 #
 FROM --platform=linux/arm64 ${RUNNER_IMAGE}
 
-# Install runtime dependencies
+# Install runtime dependencies and wkhtmltopdf
 RUN apt-get update -y && \
-  apt-get install -y libstdc++6 openssl libncurses5 locales ca-certificates \
-  && apt-get clean && rm -f /var/lib/apt/lists/*_*
+  apt-get install -y libstdc++6 openssl libncurses5 locales ca-certificates gnupg2 && \
+  # Add wkhtmltopdf repository
+  curl -fsSL https://github.com/wkhtmltopdf/packaging/releases/download/0.12.6-1/wkhtmltox_0.12.6-1.bookworm_arm64.deb -o wkhtmltox.deb && \
+  dpkg -i wkhtmltox.deb || true && \
+  apt-get install -f -y && \
+  rm wkhtmltox.deb && \
+  apt-get clean && \
+  rm -f /var/lib/apt/lists/*_*
 
 # Set the locale
 RUN sed -i '/en_US.UTF-8/s/^# //g' /etc/locale.gen && locale-gen
