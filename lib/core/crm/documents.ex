@@ -243,7 +243,7 @@ defmodule Core.Crm.Documents do
   end
 
   @doc """
-  Gets documents and their assiciated lead_id for a specific tenant.
+  Gets documents and their associated lead_id for a specific tenant.
   """
   def list_all_by_tenant(tenant_id) do
     query =
