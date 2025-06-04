@@ -113,6 +113,17 @@ export const DocumentEditor = () => {
 
                   <div className="flex items-center gap-2 ml-auto">
                     {docId && (
+                      <><IconButton
+                      size="xs"
+                      variant="ghost"
+                      onClick={() => {
+                        if (docId) {
+                          window.location.href = `/documents/${docId}/download`;
+                        }
+                      }}
+                      aria-label="download document"
+                      icon={<Icon name="download-02" />}
+                    />
                       <IconButton
                         size="xs"
                         variant="ghost"
@@ -121,6 +132,7 @@ export const DocumentEditor = () => {
                         onClick={handleViewModeChange}
                         icon={<Icon name={viewMode === 'default' ? 'expand-01' : 'collapse-01'} />}
                       />
+                      </>
                     )}
                     <IconButton
                       size="xs"
