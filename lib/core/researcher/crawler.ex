@@ -157,7 +157,19 @@ defmodule Core.Researcher.Crawler do
   end
 
   defp queue_new_links(state, content, depth) do
-    new_links = extract_new_links(Map.get(content, :links, []), depth, state)
+    links =
+      case content do
+        %{links: links} when is_list(links) ->
+          links
+
+        content when is_binary(content) ->
+          Core.Researcher.Webpages.LinkExtractor.extract_links(content)
+
+        _ ->
+          []
+      end
+
+    new_links = extract_new_links(links, depth, state)
     %{state | queue: state.queue ++ new_links}
   end
 

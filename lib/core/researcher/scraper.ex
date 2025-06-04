@@ -19,6 +19,8 @@ defmodule Core.Researcher.Scraper do
 
   require OpenTelemetry.Tracer
   require Logger
+  alias Core.Researcher.Webpages
+  alias Core.Researcher.Webpages.Classifier
   alias Core.Utils.PrimaryDomainFinder
   alias Core.Utils.DomainExtractor
   alias Core.Utils.UrlFormatter
@@ -64,6 +66,7 @@ defmodule Core.Researcher.Scraper do
     url
     |> fetch_webpage()
     |> process_content(url)
+    |> classify_content(url)
   end
 
   defp validate_url(url) do
@@ -112,6 +115,28 @@ defmodule Core.Researcher.Scraper do
       {:ok, content} -> {:ok, content}
     end
   end
+
+  defp classify_content({:ok, content}, url) do
+    task = Classifier.classify_content_supervised(url, content)
+    results = Task.yield(task, @scraper_timeout)
+
+    case results do
+      {:ok, {:ok, classification}} ->
+        Webpages.update_classification(url, classification)
+        {:ok, content}
+
+      {:ok, {:error, reason}} ->
+        {:error, reason}
+
+      {:exit, reason} ->
+        {:error, reason}
+
+      nil ->
+        {:error, :timeout}
+    end
+  end
+
+  defp classify_content({:error, reason}, _url), do: {:error, reason}
 
   defp handle_fetch_error({:http_error, message}, url) do
     Logger.error("HTTP error while attempting to scrape #{url}: #{message}")

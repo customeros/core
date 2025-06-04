@@ -4,6 +4,7 @@ defmodule Core.Researcher.Webpages.IntentProfiler do
   """
   alias Core.Ai
   alias Core.Utils.Tracing
+  require Logger
 
   @model :claude_sonnet
   @model_temperature 0.2
@@ -32,6 +33,10 @@ defmodule Core.Researcher.Webpages.IntentProfiler do
   end
 
   def profile_intent(url, content) when is_binary(content) and content != "" do
+    Logger.info("Starting profile intent analysis for #{url}",
+      url: url
+    )
+
     {system_prompt, prompt} = build_profile_intent_prompts(url, content)
 
     request =

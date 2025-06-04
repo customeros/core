@@ -3,6 +3,7 @@ defmodule Core.Researcher.Webpages.Classifier do
   Classifies webpage content using AI.
   """
   alias Core.Ai
+  require Logger
 
   @model :gemini_pro
   @model_temperature 0.2
@@ -21,6 +22,10 @@ defmodule Core.Researcher.Webpages.Classifier do
   end
 
   def classify_content(url, content) when is_binary(content) do
+    Logger.info("Starting classify content analysis for #{url}",
+      url: url
+    )
+
     {system_prompt, prompt} =
       build_classify_webpage_prompts(url, content)
 
@@ -29,7 +34,8 @@ defmodule Core.Researcher.Webpages.Classifier do
         model: @model,
         system_prompt: system_prompt,
         temperature: @model_temperature,
-        max_tokens: @max_tokens
+        max_tokens: @max_tokens,
+        response_type: :json
       )
 
     task = Ai.ask_supervised(request)

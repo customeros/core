@@ -150,26 +150,31 @@ defmodule Core.WebTracker.SessionAnalyzer do
 
   defp analyze_content_parallel(url, content) do
     tasks = [
-      Task.async(fn ->
-        Webpages.Classifier.classify_content_supervised(url, content)
-      end),
-      Task.async(fn ->
-        Webpages.IntentProfiler.profile_intent_supervised(url, content)
-      end)
+      Webpages.Classifier.classify_content_supervised(url, content),
+      Webpages.IntentProfiler.profile_intent_supervised(url, content)
     ]
 
-    case Task.await_many(tasks, @analysis_timeout) do
-      [{:ok, classification}, {:ok, intent}] ->
+    results = Task.yield_many(tasks, @analysis_timeout)
+
+    Logger.debug("Task results: #{inspect(results)}")
+
+    Enum.each(tasks, &Task.shutdown(&1, :brutal_kill))
+
+    case results do
+      [{_task1, {:ok, {:ok, classification}}}, {_task2, {:ok, {:ok, intent}}}] ->
         {:ok, classification, intent}
 
-      [{:error, reason}, _] ->
-        {:error, reason}
+      [{_task1, {:exit, reason}}, _] ->
+        Logger.error("Classification task exited: #{inspect(reason)}")
+        {:error, :classification_failed}
 
-      [_, {:error, reason}] ->
-        {:error, reason}
+      [_, {_task2, {:exit, reason}}] ->
+        Logger.error("Intent task exited: #{inspect(reason)}")
+        {:error, :intent_failed}
 
-      _ ->
-        @error_intent_analysis_failed
+      other ->
+        Logger.error("Unexpected task results: #{inspect(other)}")
+        {:error, :analysis_failed}
     end
   end
 
