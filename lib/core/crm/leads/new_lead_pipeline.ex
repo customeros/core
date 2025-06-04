@@ -17,9 +17,11 @@ defmodule Core.Crm.Leads.NewLeadPipeline do
   """
 
   require Logger
+  require OpenTelemetry.Tracer
   alias Core.Crm.Leads
   alias Core.Researcher.BriefWriter
   alias Core.Researcher.IcpFitEvaluator
+  alias Core.Utils.Tracing
 
   def start(lead_id, tenant_id) do
     Task.Supervisor.start_child(
@@ -59,30 +61,40 @@ defmodule Core.Crm.Leads.NewLeadPipeline do
   end
 
   defp analyze_icp_fit({:ok, domain, %Leads.Lead{} = lead}) do
-    Logger.metadata(module: __MODULE__, function: :analyze_icp_fit_with_retry)
+    OpenTelemetry.Tracer.with_span "new_lead_pipeline.analyze_icp_fit" do
+      OpenTelemetry.Tracer.set_attributes([
+        {"lead.id", lead.id},
+        {"lead.tenant_id", lead.tenant_id},
+        {"domain", domain}
+      ])
 
-    Logger.info("Analyzing ICP fit",
-      lead_id: lead.id,
-      domain: domain,
-      tenant_id: lead.tenant_id
-    )
+      Logger.metadata(module: __MODULE__, function: :analyze_icp_fit_with_retry)
 
-    case IcpFitEvaluator.evaluate(domain, lead) do
-      {:ok, :not_a_fit} ->
-        {:ok, :not_a_fit}
+      Logger.info("Analyzing ICP fit",
+        lead_id: lead.id,
+        domain: domain,
+        tenant_id: lead.tenant_id
+      )
 
-      {:ok, fit} ->
-        {:ok, fit, domain, lead}
+      case IcpFitEvaluator.evaluate(domain, lead) do
+        {:ok, :not_a_fit} ->
+          {:ok, :not_a_fit}
 
-      {:error, reason} ->
-        Logger.error("ICP evaluation failed",
-          tenant_id: lead.tenant_id,
-          lead_id: lead.id,
-          domain: domain,
-          reason: reason
-        )
+        {:ok, fit} ->
+          {:ok, fit, domain, lead}
 
-        {:error, reason}
+        {:error, reason} ->
+          Logger.error("ICP evaluation failed",
+            tenant_id: lead.tenant_id,
+            lead_id: lead.id,
+            domain: domain,
+            reason: reason
+          )
+
+          Tracing.error(reason)
+
+          {:error, reason}
+      end
     end
   end
 

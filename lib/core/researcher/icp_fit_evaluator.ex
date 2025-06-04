@@ -16,6 +16,7 @@ defmodule Core.Researcher.IcpFitEvaluator do
   the entire evaluation process asynchronously.
   """
 
+  require OpenTelemetry.Tracer
   alias Core.Ai
   alias Core.Researcher.IcpFitEvaluator.PromptBuilder
   alias Core.Researcher.IcpFitEvaluator.Validator
@@ -24,6 +25,7 @@ defmodule Core.Researcher.IcpFitEvaluator do
   alias Core.Researcher.Webpages
   alias Core.Utils.PrimaryDomainFinder
   alias Core.Crm.Leads
+  alias Core.Utils.Tracing
 
   # 5 mins
   @crawl_timeout 5 * 60 * 1000
@@ -33,9 +35,15 @@ defmodule Core.Researcher.IcpFitEvaluator do
 
   def evaluate(domain, %Leads.Lead{} = lead)
       when is_binary(domain) and byte_size(domain) > 0 do
-    case PrimaryDomainFinder.get_primary_domain(domain) do
-      {:ok, primary_domain} -> evaluate_icp_fit(primary_domain, lead)
-      {:error, reason} -> {:error, reason}
+    OpenTelemetry.Tracer.with_span "icp_fit_evaluator.evaluate" do
+      case PrimaryDomainFinder.get_primary_domain(domain) do
+        {:ok, primary_domain} ->
+          evaluate_icp_fit(primary_domain, lead)
+
+        {:error, reason} ->
+          Tracing.error(reason)
+          {:error, reason}
+      end
     end
   end
 
