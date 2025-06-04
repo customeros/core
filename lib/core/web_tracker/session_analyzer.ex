@@ -12,6 +12,7 @@ defmodule Core.WebTracker.SessionAnalyzer do
   alias Core.WebTracker.Events
   alias Core.Researcher.Scraper
   alias Core.WebTracker.Sessions
+  alias Core.Auth.Tenants
 
   @analysis_timeout 60 * 1000
 
@@ -45,8 +46,9 @@ defmodule Core.WebTracker.SessionAnalyzer do
     )
 
     with {:ok, session} <- Sessions.get_session_by_id(session_id),
-         {:ok, visited_pages} <- Events.get_visited_pages(session_id) do
-      {:ok, session.tenant_id, visited_pages, session.company_id}
+         {:ok, visited_pages} <- Events.get_visited_pages(session_id),
+         {:ok, tenant} <- Tenants.get_tenant_by_name(session.tenant) do
+      {:ok, tenant.id, visited_pages, session.company_id}
     else
       {:error, :not_found} ->
         Logger.error(
