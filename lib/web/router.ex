@@ -151,6 +151,7 @@ defmodule Web.Router do
     # Read-only endpoints
     get "/organizations/:organization_id/documents", DocumentController, :index
     get "/documents/:id/download", DocumentController, :download
+    get "/documents/:tenant_id/download-all", DocumentController, :download_all
   end
 
   scope "/api/v1", Web do
