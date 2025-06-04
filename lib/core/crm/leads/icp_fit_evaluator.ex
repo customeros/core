@@ -15,9 +15,10 @@ defmodule Core.Crm.Leads.IcpFitEvaluator do
   alias Core.Crm.Leads.Lead
   alias Core.Repo
   alias Core.Utils.Tracing
+  alias Core.Crm.Leads.NewLeadPipeline
 
   # Constants
-  # 2 minutes in milliseconds
+  # 5 minutes in milliseconds
   @default_interval 2 * 60 * 1000
   # Number of leads to process in each batch
   @default_batch_size 5
@@ -85,33 +86,17 @@ defmodule Core.Crm.Leads.IcpFitEvaluator do
 
       case Leads.mark_icp_fit_attempt(lead.id) do
         :ok ->
-          domain =
-            case Core.Crm.Companies.get_by_id(lead.ref_id) do
-              {:ok, company} ->
-                company.primary_domain
+          case NewLeadPipeline.new_lead_pipeline(lead.id, lead.tenant_id) do
+            {:ok, _} ->
+              Tracing.ok()
+              :ok
 
-              {:error, :not_found} ->
-                Logger.error(
-                  "Company not found for lead #{lead.id} (ref_id: #{lead.ref_id})"
-                )
+            {:error, reason} ->
+              Logger.error(
+                "Failed to evaluate lead #{lead.id}: #{inspect(reason)}"
+              )
 
-                Tracing.error(:company_not_found)
-                nil
-            end
-
-          if domain do
-            case Core.Researcher.IcpFitEvaluator.evaluate(domain, lead) do
-              {:ok, _} ->
-                Tracing.ok()
-                :ok
-
-              {:error, reason} ->
-                Logger.error(
-                  "Failed to evaluate lead #{lead.id}: #{inspect(reason)}"
-                )
-
-                Tracing.error(reason)
-            end
+              Tracing.error(reason)
           end
 
         {:error, :update_failed} ->
@@ -137,7 +122,7 @@ defmodule Core.Crm.Leads.IcpFitEvaluator do
 
     Lead
     |> where([l], l.type == :company)
-    |> where([l], l.stage == :pending)
+    |> where([l], is_nil(l.icp_fit) or l.icp_fit == "")
     |> where([l], l.icp_fit_evaluation_attempts < ^max_attempts)
     |> where(
       [l],
