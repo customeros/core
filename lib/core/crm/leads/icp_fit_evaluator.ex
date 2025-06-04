@@ -61,7 +61,10 @@ defmodule Core.Crm.Leads.IcpFitEvaluator do
             evaluate_lead(lead)
 
           {:error, :not_found} ->
-            Logger.error("Lead not found for evaluation: #{lead.id}", reason: :not_found)
+            Logger.error("Lead not found for evaluation: #{lead.id}",
+              reason: :not_found
+            )
+
             Tracing.error(:not_found)
         end
       end)
@@ -92,7 +95,9 @@ defmodule Core.Crm.Leads.IcpFitEvaluator do
           end
 
         {:error, :update_failed} ->
-          Logger.error("Failed to mark ICP fit attempt for lead: #{lead.id}", reason: :update_failed)
+          Logger.error("Failed to mark ICP fit attempt for lead: #{lead.id}",
+            reason: :update_failed
+          )
 
           Tracing.error(:update_failed)
       end
