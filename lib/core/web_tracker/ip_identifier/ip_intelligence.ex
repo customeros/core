@@ -17,7 +17,7 @@ defmodule Core.WebTracker.IpIdentifier.IpIntelligence do
 
   schema "ip_intelligence" do
     field(:ip, :string)
-    field(:domain_source, Ecto.Enum, values: [:snithcer])
+    field(:domain_source, Ecto.Enum, values: [:snitcher])
     field(:domain, :string)
     field(:is_mobile, :boolean)
     field(:city, :string)

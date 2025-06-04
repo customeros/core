@@ -24,40 +24,59 @@ defmodule Core.Crm.Leads.NewLeadPipeline do
   alias Core.Utils.Tracing
 
   def start(lead_id, tenant_id) do
-    Task.Supervisor.start_child(
-      Core.TaskSupervisor,
-      fn ->
-        case new_lead_pipeline(lead_id, tenant_id) do
-          :not_a_company ->
-            Logger.info("Lead_id #{lead_id} is not a company")
+    OpenTelemetry.Tracer.with_span "new_lead_pipeline.start" do
+      OpenTelemetry.Tracer.set_attributes([
+        {"lead.id", lead_id},
+        {"lead.tenant_id", tenant_id}
+      ])
 
-          {:ok, _} ->
-            Logger.info(
-              "Successfully completed new lead pipeline for #{lead_id}"
-            )
+      span_ctx = OpenTelemetry.Ctx.get_current()
 
-          {:error, reason} ->
-            Logger.error("New Lead Pipeline failed for #{lead_id}",
-              tenant_id: tenant_id,
-              lead_id: lead_id,
-              reason: reason
-            )
+      Task.Supervisor.start_child(
+        Core.TaskSupervisor,
+        fn ->
+          OpenTelemetry.Ctx.attach(span_ctx)
+
+          case new_lead_pipeline(lead_id, tenant_id) do
+            :not_a_company ->
+              OpenTelemetry.Tracer.set_attributes([
+                {"result", :not_a_company}
+              ])
+
+              Logger.info("Lead_id #{lead_id} is not a company")
+
+            {:ok, _} ->
+              Logger.info(
+                "Successfully completed new lead pipeline for #{lead_id}"
+              )
+
+            {:error, reason} ->
+              Tracing.error(reason)
+
+              Logger.error("New Lead Pipeline failed for #{lead_id}",
+                tenant_id: tenant_id,
+                lead_id: lead_id,
+                reason: reason
+              )
+          end
         end
-      end
-    )
+      )
+    end
   end
 
   def new_lead_pipeline(lead_id, tenant_id) do
-    Logger.metadata(module: __MODULE__, function: :new_lead_pipeline)
+    OpenTelemetry.Tracer.with_span "new_lead_pipeline.new_lead_pipeline" do
+      Logger.metadata(module: __MODULE__, function: :new_lead_pipeline)
 
-    Logger.info("Starting new lead pipeline",
-      lead_id: lead_id,
-      tenant_id: tenant_id
-    )
+      Logger.info("Starting new lead pipeline",
+        lead_id: lead_id,
+        tenant_id: tenant_id
+      )
 
-    Leads.get_domain_for_lead_company(tenant_id, lead_id)
-    |> analyze_icp_fit()
-    |> brief_writer()
+      Leads.get_domain_for_lead_company(tenant_id, lead_id)
+      |> analyze_icp_fit()
+      |> brief_writer()
+    end
   end
 
   defp analyze_icp_fit({:ok, domain, %Leads.Lead{} = lead}) do
@@ -78,9 +97,17 @@ defmodule Core.Crm.Leads.NewLeadPipeline do
 
       case IcpFitEvaluator.evaluate(domain, lead) do
         {:ok, :not_a_fit} ->
+          OpenTelemetry.Tracer.set_attributes([
+            {"result", :not_a_fit}
+          ])
+
           {:ok, :not_a_fit}
 
         {:ok, fit} ->
+          OpenTelemetry.Tracer.set_attributes([
+            {"result", fit}
+          ])
+
           {:ok, fit, domain, lead}
 
         {:error, reason} ->
@@ -104,28 +131,39 @@ defmodule Core.Crm.Leads.NewLeadPipeline do
     do: {:error, reason}
 
   defp brief_writer({:ok, fit, domain, %Leads.Lead{} = lead}) do
-    Logger.metadata(module: __MODULE__, function: :brief_writer)
+    OpenTelemetry.Tracer.with_span "new_lead_pipeline.brief_writer" do
+      OpenTelemetry.Tracer.set_attributes([
+        {"lead.id", lead.id},
+        {"lead.tenant_id", lead.tenant_id},
+        {"domain", domain},
+        {"icp_fit", fit}
+      ])
 
-    Logger.info("Writing Account Brief",
-      lead_id: lead.id,
-      domain: domain,
-      tenant_id: lead.tenant_id,
-      icp_fit: fit
-    )
+      Logger.metadata(module: __MODULE__, function: :brief_writer)
 
-    case BriefWriter.create_brief(lead.tenant_id, lead.id, domain) do
-      {:ok, _document} ->
-        {:ok, :brief_created}
+      Logger.info("Writing Account Brief",
+        lead_id: lead.id,
+        domain: domain,
+        tenant_id: lead.tenant_id,
+        icp_fit: fit
+      )
 
-      {:error, reason} ->
-        Logger.error("Account brief creation failed",
-          tenant_id: lead.tenant_id,
-          lead_id: lead.id,
-          domain: domain,
-          reason: reason
-        )
+      case BriefWriter.create_brief(lead.tenant_id, lead.id, domain) do
+        {:ok, _document} ->
+          {:ok, :brief_created}
 
-        {:error, reason}
+        {:error, reason} ->
+          Tracing.error(reason)
+
+          Logger.error("Account brief creation failed",
+            tenant_id: lead.tenant_id,
+            lead_id: lead.id,
+            domain: domain,
+            reason: reason
+          )
+
+          {:error, reason}
+      end
     end
   end
 

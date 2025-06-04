@@ -10,7 +10,7 @@ defmodule Core.Researcher.Webpages do
   alias Core.Utils.DomainExtractor
   import Ecto.Query
 
-  ## Create ##
+  ## Insert with ignore on conflict duplicate url ##
   def save_scraped_content(
         url,
         content,
@@ -32,7 +32,18 @@ defmodule Core.Researcher.Webpages do
           %ScrapedWebpage{}
           |> ScrapedWebpage.changeset(attrs)
 
-        Repo.insert(changeset)
+        case Repo.insert(changeset,
+          on_conflict: :nothing,
+          conflict_target: :url
+        ) do
+          {:ok, %ScrapedWebpage{} = webpage} -> {:ok, webpage}
+          {:ok, nil} ->
+            case get_by_url(url) do
+              {:ok, existing} -> {:ok, existing}
+              _ -> {:error, :not_found}
+            end
+          {:error, changeset} -> {:error, changeset}
+        end
 
       {:error, reason} ->
         {:error, reason}
