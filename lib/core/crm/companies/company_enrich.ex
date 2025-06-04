@@ -23,7 +23,7 @@ defmodule Core.Crm.Companies.CompanyEnrich do
   import Ecto.Query
   alias Core.Repo
   alias Core.Crm.Companies.Company
-  alias Core.Crm.Companies.Enrichments
+  alias Core.Crm.Companies.Enrichment
   alias Core.Crm.Industries
   alias Core.Utils.Errors
   alias Core.Utils.Media.Images
@@ -257,7 +257,7 @@ defmodule Core.Crm.Companies.CompanyEnrich do
   end
 
   defp get_industry_from_ai(company) do
-    case Enrichments.Industry.identify(%{
+    case Enrichment.Industry.identify(%{
            domain: company.primary_domain,
            homepage_content: company.homepage_content
          }) do
@@ -372,7 +372,7 @@ defmodule Core.Crm.Companies.CompanyEnrich do
   end
 
   defp get_name_from_ai(company) do
-    case Enrichments.Name.identify(%{
+    case Enrichment.Name.identify(%{
            domain: company.primary_domain,
            homepage_content: company.homepage_content
          }) do
@@ -472,7 +472,7 @@ defmodule Core.Crm.Companies.CompanyEnrich do
   end
 
   defp get_country_from_ai(company) do
-    case Enrichments.Location.identify_country_code_a2(%{
+    case Enrichment.Location.identify_country_code_a2(%{
            domain: company.primary_domain,
            homepage_content: company.homepage_content
          }) do

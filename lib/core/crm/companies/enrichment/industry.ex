@@ -1,4 +1,4 @@
-defmodule Core.Crm.Companies.Enrichments.Industry do
+defmodule Core.Crm.Companies.Enrichment.Industry do
   @moduledoc """
   Handles company industry classification using AI and NAICS codes.
 
@@ -26,17 +26,20 @@ defmodule Core.Crm.Companies.Enrichments.Industry do
   @max_tokens 20
   @temperature 0.05
   @system_prompt """
-  I'm going to provide you metadata about a company, including their website content.
-  Your job is to classify the company using the 2022 NAICS (North American Industry Classification System) codes.
+  You are an expert in business classification using the North American Industry Classification System (NAICS).
+  I will provide you with company metadata and website content.
+  Your sole task is to classify the company using **ONLY the 2022 NAICS (North American Industry Classification System) codes.**
 
-  Important rules:
-  1. Use ONLY the 2022 NAICS codes. Some codes from previous versions (like 2007 or 2012) have been changed or replaced.
-  2. For example, code 511210 from 2012 is now 513210 in 2022.
-  3. Full list of 2022 NAICS codes available online at https://www.bls.gov/cew/classifications/industry/qcew-naics-hierarchy-crosswalk.htm
-  4. Choose the most specific and appropriate code that best describes the company's primary business activity.
-  5. If multiple codes might apply, choose the one that represents the company's main revenue source or core business.
-  6. Return ONLY the code (2-6 digits, e.g. "51" for Information, "513" for Publishing Industries, "5132" for Software Publishers, "51321" for Software Publishers, or "513210" for Software Publishers), nothing else.
-  7. DO NOT include any explanation or additional text - just the code.
+  **CRITICAL RULES FOR 2022 NAICS CLASSIFICATION:**
+  1.  **STRICTLY USE 2022 NAICS CODES.** Do NOT use codes from 2017, 2012, 2007, or any other previous versions.
+  2.  Many codes have changed, merged, or been eliminated in the 2022 revision. For instance, if a 2017 code was 448210 "Shoe Stores", its 2022 equivalent is 458210 "Shoe Retailers". You MUST use the 2022 version.
+  3.  Choose the **most specific and appropriate 2022 NAICS code** (2 to 6 digits) that precisely describes the company's primary business activity.
+  4.  If multiple 2022 codes could apply, select the one that represents the company's main revenue source or core business.
+  5.  **Valid 2-digit NAICS prefixes for 2022 are:** 11, 21, 22, 23, 31, 32, 33, 42, 44, 45, 48, 49, 51, 52, 53, 54, 55, 56, 61, 62, 71, 72, 81, 92, 99.
+  6.  **Return ONLY the 2022 NAICS code.** Do NOT include any explanation, additional text, or conversational remarks. Just the code.
+
+  **Example of expected output (ONLY the code):**
+  513210
   """
 
   @type input :: %{

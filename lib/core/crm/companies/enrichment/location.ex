@@ -1,4 +1,4 @@
-defmodule Core.Crm.Companies.Enrichments.Location do
+defmodule Core.Crm.Companies.Enrichment.Location do
   @moduledoc """
   Module for enriching company location data using AI analysis.
 
