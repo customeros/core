@@ -2,10 +2,11 @@ defmodule Core.Researcher.IcpProfiles do
   @moduledoc """
   Database operations for ICP profiles.
   """
-
+  require OpenTelemetry.Tracer
   alias Core.Icp.Builder.Profile
   alias Core.Repo
   alias Core.Researcher.IcpProfiles.Profile
+  alias Core.Utils.Tracing
   import Ecto.Query
 
   ## Create ##
@@ -47,9 +48,19 @@ defmodule Core.Researcher.IcpProfiles do
   @spec get_by_tenant_id(String.t()) ::
           {:ok, Profile.t()} | {:error, :not_found}
   def get_by_tenant_id(tenant_id) when is_binary(tenant_id) do
-    case Repo.get_by(Profile, tenant_id: tenant_id) do
-      %Profile{} = icp -> {:ok, icp}
-      nil -> {:error, :not_found}
+    OpenTelemetry.Tracer.with_span "icp_profiles.get_by_tenant_id" do
+      OpenTelemetry.Tracer.set_attributes([
+        {"tenant.id", tenant_id}
+      ])
+
+      case Repo.get_by(Profile, tenant_id: tenant_id) do
+        %Profile{} = icp ->
+          {:ok, icp}
+
+        nil ->
+          Tracing.error(:not_found)
+          {:error, :not_found}
+      end
     end
   end
 

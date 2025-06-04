@@ -8,6 +8,7 @@ defmodule Core.Researcher.Webpages do
   alias Core.Researcher.Webpages.Classification
   alias Core.Researcher.Webpages.Intent
   alias Core.Utils.DomainExtractor
+  alias Core.Utils.Tracing
   import Ecto.Query
 
   ## Insert with ignore on conflict duplicate url ##
@@ -33,16 +34,20 @@ defmodule Core.Researcher.Webpages do
           |> ScrapedWebpage.changeset(attrs)
 
         case Repo.insert(changeset,
-          on_conflict: :nothing,
-          conflict_target: :url
-        ) do
-          {:ok, %ScrapedWebpage{} = webpage} -> {:ok, webpage}
+               on_conflict: :nothing,
+               conflict_target: :url
+             ) do
+          {:ok, %ScrapedWebpage{} = webpage} ->
+            {:ok, webpage}
+
           {:ok, nil} ->
             case get_by_url(url) do
               {:ok, existing} -> {:ok, existing}
               _ -> {:error, :not_found}
             end
-          {:error, changeset} -> {:error, changeset}
+
+          {:error, changeset} ->
+            {:error, changeset}
         end
 
       {:error, reason} ->
@@ -166,21 +171,31 @@ defmodule Core.Researcher.Webpages do
           {:ok, [ScrapedWebpage.t()]} | {:error, :not_found}
 
   def get_business_pages_by_domain(domain, opts \\ []) do
-    limit = Keyword.get(opts, :limit)
-
-    content_types =
-      Keyword.get(opts, :content_types, [
-        "product_page",
-        "solution_page",
-        "case_study"
+    OpenTelemetry.Tracer.with_span "scraped_webpages.get_business_pages_by_domain" do
+      OpenTelemetry.Tracer.set_attributes([
+        {"domain", domain}
       ])
 
-    case domain
-         |> business_pages_query(content_types)
-         |> maybe_limit(limit)
-         |> Repo.all() do
-      [] -> {:error, :not_found}
-      pages -> {:ok, pages}
+      limit = Keyword.get(opts, :limit)
+
+      content_types =
+        Keyword.get(opts, :content_types, [
+          "product_page",
+          "solution_page",
+          "case_study"
+        ])
+
+      case domain
+           |> business_pages_query(content_types)
+           |> maybe_limit(limit)
+           |> Repo.all() do
+        [] ->
+          Tracing.error(:not_found)
+          {:error, :not_found}
+
+        pages ->
+          {:ok, pages}
+      end
     end
   end
 
