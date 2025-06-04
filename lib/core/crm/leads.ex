@@ -122,6 +122,17 @@ defmodule Core.Crm.Leads do
     end
   end
 
+  def get_icp_fits_without_stage() do
+    Lead
+    |> where([l], l.icp_fit in [:strong, :moderate])
+    |> where([l], l.stage in [:pending, :target])
+    |> Repo.all()
+    |> then(fn
+      [] -> {:error, :not_found}
+      leads -> {:ok, leads}
+    end)
+  end
+
   @spec get_or_create(tenant :: String.t(), attrs :: map()) ::
           {:ok, Lead.t()} | {:error, :not_found}
   def get_or_create(tenant, attrs) do
