@@ -5,7 +5,7 @@ defmodule Core.Crm.Documents do
   import Ecto.Query, warn: false
   require Logger
   alias Core.Repo
-  alias Core.Crm.Documents.{Document, RefDocument}
+  alias Core.Crm.Documents.{Document, RefDocument, DocumentWithLead}
 
   def create_document(attrs \\ %{}, opts \\ []) do
     attrs
@@ -242,9 +242,27 @@ defmodule Core.Crm.Documents do
     """
   end
 
+  @doc """
+  Gets documents and their associated lead_id for a specific tenant.
+  """
   def list_all_by_tenant(tenant_id) do
-    from(d in Document, where: d.tenant_id == ^tenant_id)
-    |> Repo.all()
+    query =
+      from d in Document,
+        join: rd in RefDocument,
+        on: d.id == rd.document_id,
+        where: d.tenant_id == ^tenant_id,
+        select: %DocumentWithLead{
+          document_id: d.id,
+          document_name: d.name,
+          body: d.body,
+          tenant_id: d.tenant_id,
+          lead_id: rd.ref_id
+        }
+
+    case Repo.all(query) do
+      [] -> {:error, :not_found}
+      documents -> {:ok, documents}
+    end
   end
 
   defp maybe_insert_ref_document(multi, nil), do: multi
