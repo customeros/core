@@ -17,6 +17,8 @@ defmodule Core.WebTracker.SessionAnalyzer do
 
   @analysis_timeout 60 * 1000
 
+  @err_unable_to_get_page_visits {:error, "unable to process page visits"}
+
   def start(session_id) do
     Task.Supervisor.start_child(
       Core.TaskSupervisor,
@@ -44,7 +46,12 @@ defmodule Core.WebTracker.SessionAnalyzer do
     )
 
     with {:ok, session} <- Sessions.get_session_by_id(session_id),
-         {:ok, visited_pages} <- Events.get_visited_pages(session_id),
+         {:ok, all_company_sessions} <-
+           Sessions.get_all_closed_sessions_by_tenant_and_company(
+             session.tenant,
+             session.company_id
+           ),
+         {:ok, visited_pages} <- get_visited_pages(all_company_sessions),
          {:ok, tenant} <- Tenants.get_tenant_by_name(session.tenant) do
       {:ok, tenant.id, visited_pages, session.company_id}
     else
@@ -54,6 +61,27 @@ defmodule Core.WebTracker.SessionAnalyzer do
         )
 
         {:error, :not_found}
+    end
+  end
+
+  defp get_visited_pages(all_sessions) do
+    Logger.info("Getting all page visits")
+
+    try do
+      visited_pages =
+        all_sessions
+        |> Enum.flat_map(fn session ->
+          case Events.get_visited_pages(session.id) do
+            {:ok, visited_pages} -> visited_pages
+            {:error, _} -> []
+          end
+        end)
+
+      {:ok, visited_pages}
+    rescue
+      error ->
+        Logger.error("Error getting visited pages: #{inspect(error)}")
+        @err_unable_to_get_page_visits
     end
   end
 
