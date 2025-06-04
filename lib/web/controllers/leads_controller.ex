@@ -36,22 +36,24 @@ defmodule Web.LeadsController do
       companies
       |> Enum.map(fn company ->
         %{
-          "name" => company.name,
-          "country" => company.country,
-          "country_name" => company.country_name,
-          "domain" => company.domain,
-          "industry" => company.industry,
-          "stage" => company.stage
+          "Name" => company.name,
+          "Country Code" => company.country,
+          "Country Name" => company.country_name,
+          "Domain" => company.domain,
+          "Industry" => company.industry,
+          "Stage" => company.stage,
+          "ICP Fit" => company.icp_fit
         }
       end)
       |> CSV.encode(
         headers: [
-          "name",
-          "country",
-          "country_name",
-          "domain",
-          "industry",
-          "stage"
+          "Name",
+          "Country Code",
+          "Country Name",
+          "Domain",
+          "Industry",
+          "Stage",
+          "ICP Fit"
         ]
       )
       |> Enum.to_list()

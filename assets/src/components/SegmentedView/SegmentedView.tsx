@@ -22,6 +22,7 @@ export const SegmentedView = ({
   isSelected,
   handleClearFilter,
 }: SegmentedViewProps) => {
+  if (count === 0) return null;
   return (
     <div
       className={clsx(

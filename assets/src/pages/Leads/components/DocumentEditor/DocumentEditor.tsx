@@ -14,6 +14,7 @@ import { usePresence } from 'src/providers/PresenceProvider';
 import { usePage } from '@inertiajs/react';
 import { Lead, Tenant, User } from 'src/types';
 import { PageProps } from '@inertiajs/core';
+import { FeaturedIcon } from 'src/components/FeaturedIcon/FeaturedIcon';
 
 export const DocumentEditor = () => {
   const page = usePage<PageProps & { tenant: Tenant; currentUser: User; companies: Lead[] }>();
@@ -58,6 +59,9 @@ export const DocumentEditor = () => {
   };
 
   const closeEditor = () => {
+    const params = new URLSearchParams(window.location.search);
+    params.delete('doc');
+    params.delete('viewMode');
     router.visit('/leads', {
       preserveState: true,
       replace: true,
@@ -122,15 +126,15 @@ export const DocumentEditor = () => {
                 />
               ) : (
                 <div className="flex items-center justify-center flex-col h-full">
-                  <div className="bg-[url('/images/half-circle-pattern.svg')] bg-cover bg-center bg-no-repeat w-[700px] h-[600px] mt-[-100px] flex items-center justify-center z-[0]">
-                    <div className="bg-[url('/images/empty-table.svg')] w-[180px] h-[142px] bg-cover bg-center bg-no-repeat translate-y-[135px]" />
+                  <div className="   flex items-center justify-center">
+                    <FeaturedIcon className="mb-6 mt-[40px]">
+                      <Icon name="clock-fast-forward" />
+                    </FeaturedIcon>
                   </div>
-                  <div className="flex flex-col items-center justify-center mt-[-95px]">
-                    <p className="text-base font-medium text-gray-900 mb-1">
-                      Preparing account brief
-                    </p>
+                  <div className="flex flex-col items-center justify-center ">
+                    <p className="text-base font-medium mb-1">Preparing account brief</p>
                     <div className="max-w-[340px] text-center gap-2 flex flex-col">
-                      <p className="">
+                      <p>
                         We’re now busy analysing and pulling together everything you need to know
                         about this lead.
                       </p>
