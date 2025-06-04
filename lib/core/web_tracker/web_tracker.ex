@@ -303,7 +303,8 @@ defmodule Core.WebTracker do
         {:ok, db_company} ->
           case Core.Crm.Leads.get_or_create(tenant, %{
                  ref_id: db_company.id,
-                 type: :company
+                 type: :company,
+                 domain: domain
                }) do
             {:ok, _lead} -> :ok
             {:error, :not_found} -> {:error, :not_found}
