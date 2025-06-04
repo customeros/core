@@ -1,6 +1,7 @@
 defmodule Web.DocumentController do
   use Web, :controller
   require Logger
+  import Plug.Conn
   alias Core.Crm.Documents
 
   def create(
@@ -89,8 +90,7 @@ defmodule Web.DocumentController do
           "attachment; filename=\"#{zip_filename}\""
         )
         |> send_file(200, zip_path)
-        |> after_send(fn _conn ->
-          # Clean up the temporary zip file
+        |> Plug.Conn.after_send(fn _conn ->
           File.rm(zip_path)
         end)
 
