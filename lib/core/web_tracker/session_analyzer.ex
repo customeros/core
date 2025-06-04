@@ -4,6 +4,7 @@ defmodule Core.WebTracker.SessionAnalyzer do
   """
 
   require Logger
+  alias Core.Utils.UrlFormatter
   alias Core.Researcher.Webpages.Intent
   alias Core.Crm.Leads
   alias Core.Researcher.Webpages.ScrapedWebpage
@@ -57,17 +58,34 @@ defmodule Core.WebTracker.SessionAnalyzer do
   end
 
   defp determine_lead_stage({:ok, tenant_id, visited_pages, visitor_company_id}) do
+    Logger.metadata(module: __MODULE__, function: :determine_lead_stage)
+
+    Logger.info(
+      "Determining lead stage for #{tenant_id} and #{visitor_company_id}"
+    )
+
     page_visits =
-      Enum.map(visited_pages, fn page ->
-        analyze_webpage(page)
-      end)
+      visited_pages
+      |> Enum.map(&analyze_webpage/1)
+      |> Enum.reject(&match?({:error, _}, &1))
 
-    case identify_stage(page_visits) do
-      {:ok, stage} ->
-        update_lead_with_stage(tenant_id, visitor_company_id, stage)
+    case page_visits do
+      [] ->
+        Logger.error("There are no webpages to analyze from websession")
+        {:error, :no_analyzable_pages}
 
-      {:error, reason} ->
-        {:error, reason}
+      successful_visits ->
+        case identify_stage(successful_visits) do
+          {:ok, stage} ->
+            update_lead_with_stage(tenant_id, visitor_company_id, stage)
+
+          {:error, reason} ->
+            Logger.error(
+              "Unable to determine lead stage for #{tenant_id} and #{visitor_company_id}: #{reason}"
+            )
+
+            {:error, reason}
+        end
     end
   end
 
@@ -75,8 +93,12 @@ defmodule Core.WebTracker.SessionAnalyzer do
 
   defp identify_stage(page_visits) do
     case StageIdentifier.identify(page_visits) do
-      {:ok, stage} -> {:ok, stage}
-      {:error, reason} -> {:error, reason}
+      {:ok, stage} ->
+        {:ok, stage}
+
+      {:error, reason} ->
+        Logger.error("Failed to identify stage from page_visits")
+        {:error, reason}
     end
   end
 
@@ -96,15 +118,21 @@ defmodule Core.WebTracker.SessionAnalyzer do
 
   defp analyze_webpage(url) do
     url
+    |> UrlFormatter.get_base_url()
+    |> UrlFormatter.to_https()
     |> get_webpage_content()
     |> process_webpage_content()
     |> save_analysis()
   end
 
-  defp get_webpage_content(url) do
+  defp get_webpage_content({:ok, url}) do
     case Scraper.scrape_webpage(url) do
-      {:ok, _content} -> {:ok, url}
-      {:error, reason} -> {:error, reason}
+      {:ok, _content} ->
+        {:ok, url}
+
+      {:error, reason} ->
+        Logger.error("Failed to get website content for #{url}")
+        {:error, reason}
     end
   end
 
@@ -113,14 +141,19 @@ defmodule Core.WebTracker.SessionAnalyzer do
       {:ok, content_record} ->
         if needs_processing?(content_record) do
           case analyze_content(url, content_record.content) do
-            {:ok, intent} -> {:ok, url, intent}
-            {:error, reason} -> {:error, reason}
+            {:ok, intent} ->
+              {:ok, url, intent}
+
+            {:error, reason} ->
+              Logger.error("Failed to process #{url} for intent: #{reason}")
+              {:error, reason}
           end
         else
           return_existing(url, content_record)
         end
 
       {:error, reason} ->
+        Logger.error("Failed to process #{url} for intent: #{reason}")
         {:error, reason}
     end
   end
