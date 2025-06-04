@@ -1,14 +1,16 @@
 defmodule Core.WebTracker.SessionAnalyzer do
   @moduledoc """
-  Analyzes web sessions to determine lead stage and other attributes.
+  Web session post processing and analysis to determine where the visitor is in their buying journey.
   """
 
   require Logger
+  alias Core.Crm.Leads
+  alias Core.Researcher.Webpages.ScrapedWebpage
+  alias Core.WebTracker.StageIdentifier
   alias Core.Researcher.Webpages
   alias Core.WebTracker.Events
   alias Core.Researcher.Scraper
   alias Core.WebTracker.Sessions
-  alias Core.WebTracker.IpIdentifier.IpIntelligence
 
   @analysis_timeout 60 * 1000
 
@@ -22,6 +24,10 @@ defmodule Core.WebTracker.SessionAnalyzer do
   end
 
   def analyze_session(session_id) do
+    Logger.info("Starting session analysis for #{session_id}",
+      session_id: session_id
+    )
+
     session_id
     |> session_details()
     |> determine_lead_stage()
@@ -30,14 +36,13 @@ defmodule Core.WebTracker.SessionAnalyzer do
   defp session_details(session_id) do
     Logger.metadata(module: __MODULE__, function: :session_details)
 
-    Logger.info("Starting new lead pipeline",
+    Logger.info("Aggregating web session details for #{session_id}",
       session_id: session_id
     )
 
     with {:ok, session} <- Sessions.get_session_by_id(session_id),
-         {:ok, domain} <- IpIntelligence.get_domain_by_ip(session.ip),
          {:ok, visited_pages} <- Events.get_visited_pages(session_id) do
-      {:ok, domain, visited_pages}
+      {:ok, session.tenant_id, visited_pages, session.company_id}
     else
       {:error, :not_found} ->
         Logger.error(
@@ -45,29 +50,45 @@ defmodule Core.WebTracker.SessionAnalyzer do
         )
 
         {:error, :not_found}
-
-      {:error, reason} ->
-        Logger.error("Analyze session error: #{reason}")
-        {:error, reason}
     end
   end
 
-  defp determine_lead_stage({:ok, _visitor_domain, visited_pages}) do
-    analysis_results =
+  defp determine_lead_stage({:ok, tenant_id, visited_pages, visitor_company_id}) do
+    page_visits =
       Enum.map(visited_pages, fn page ->
         analyze_webpage(page)
       end)
 
-    stage = calculate_stage(analysis_results)
-    {:ok, stage}
-  end
+    case identify_stage(page_visits) do
+      {:ok, stage} ->
+        update_lead_with_stage(tenant_id, visitor_company_id, stage)
 
-  defp determine_lead_stage({:error, :not_found}),
-    do: {:error, :session_not_found}
+      {:error, reason} ->
+        {:error, reason}
+    end
+  end
 
   defp determine_lead_stage({:error, reason}), do: {:error, reason}
 
-  defp calculate_stage(_analysis) do
+  defp identify_stage(page_visits) do
+    case StageIdentifier.identify(page_visits) do
+      {:ok, stage} -> {:ok, stage}
+      {:error, reason} -> {:error, reason}
+    end
+  end
+
+  defp update_lead_with_stage(tenant_id, visitor_company_id, stage) do
+    case Leads.get_lead_by_company_ref(tenant_id, visitor_company_id) do
+      {:ok, lead} ->
+        Leads.update_lead(lead, %{stage: stage})
+
+      {:error, :not_found} ->
+        Logger.error(
+          "Failed to update lead with stage: lead not found for #{tenant_id} and #{visitor_company_id}"
+        )
+
+        {:error, :not_found}
+    end
   end
 
   defp analyze_webpage(url) do
@@ -95,22 +116,24 @@ defmodule Core.WebTracker.SessionAnalyzer do
 
     with {:ok, classification} <- classification_result,
          {:ok, intent} <- intent_result do
-      {:ok,
-       %{
-         url: url,
-         classification: classification,
-         intent: intent
-       }}
+      {:ok, url, classification, intent}
     else
       {:error, result} -> {:error, result}
     end
   end
 
-  defp process_webpage_content({:error, :session_not_found}),
-    do: {:error, :session_not_found}
-
   defp process_webpage_content({:error, reason}), do: {:error, reason}
 
-  defp save_analysis(_url) do
+  defp save_analysis({:ok, url, classification, intent}) do
+    case Webpages.update_classification_and_intent(url, classification, intent) do
+      {:ok, %ScrapedWebpage{} = webpage} ->
+        {url, webpage.summary, intent}
+
+      {:error, reason} ->
+        Logger.error("Failed to save webpage analysis for #{url}")
+        {:error, reason}
+    end
   end
+
+  defp save_analysis({:error, reason}), do: {:error, reason}
 end

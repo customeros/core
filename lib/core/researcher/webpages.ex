@@ -45,7 +45,8 @@ defmodule Core.Researcher.Webpages do
       {:error, :not_found} ->
         {:error, :not_found}
 
-      webpage ->
+      # Fixed: was missing {:ok, ...} pattern
+      {:ok, webpage} ->
         attrs = build_classification_attrs(classification)
 
         webpage
@@ -59,9 +60,56 @@ defmodule Core.Researcher.Webpages do
       {:error, :not_found} ->
         {:error, :not_found}
 
-      webpage ->
+      # Fixed: was missing {:ok, ...} pattern
+      {:ok, webpage} ->
         attrs = build_intent_attrs(intent)
 
+        webpage
+        |> ScrapedWebpage.changeset(attrs)
+        |> Repo.update()
+    end
+  end
+
+  @doc """
+  Update both classification and intent fields in a single transaction.
+  Either parameter can be nil to skip that update.
+  """
+  def update_classification_and_intent(
+        url,
+        classification \\ nil,
+        intent \\ nil
+      ) do
+    case get_by_url(url) do
+      {:error, :not_found} ->
+        {:error, :not_found}
+
+      {:ok, webpage} ->
+        attrs =
+          %{}
+          |> maybe_add_classification(classification)
+          |> maybe_add_intent(intent)
+
+        if attrs == %{} do
+          # No updates needed
+          {:ok, webpage}
+        else
+          webpage
+          |> ScrapedWebpage.changeset(attrs)
+          |> Repo.update()
+        end
+    end
+  end
+
+  @doc """
+  Update a webpage with arbitrary attributes.
+  Useful for updating any fields on the schema.
+  """
+  def update_webpage(url, attrs) when is_map(attrs) do
+    case get_by_url(url) do
+      {:error, :not_found} ->
+        {:error, :not_found}
+
+      {:ok, webpage} ->
         webpage
         |> ScrapedWebpage.changeset(attrs)
         |> Repo.update()
@@ -94,9 +142,12 @@ defmodule Core.Researcher.Webpages do
   end
 
   def list_by_domain(domain) do
-    case Repo.all(from s in ScrapedWebpage, where: s.domain == ^domain) do
-      %ScrapedWebpage{} = webpage -> {:ok, webpage}
-      nil -> {:error, :not_found}
+    # Fixed: Repo.all returns a list, not a single record
+    pages = Repo.all(from s in ScrapedWebpage, where: s.domain == ^domain)
+
+    case pages do
+      [] -> {:error, :not_found}
+      pages -> {:ok, pages}
     end
   end
 
@@ -133,25 +184,23 @@ defmodule Core.Researcher.Webpages do
 
   ## Helpers ##
 
-  #  TODO uncomment when we have classification
-  #  defp maybe_add_classification(attrs, nil) do
-  #    attrs
-  #  end
-  #
-  #  defp maybe_add_classification(attrs, %Classification{} = classification) do
-  #    classification_attrs = build_classification_attrs(classification)
-  #    Map.merge(attrs, classification_attrs)
-  #  end
+  defp maybe_add_classification(attrs, nil) do
+    attrs
+  end
 
-  #  TODO uncomment when we have intent
-  #  defp maybe_add_intent(attrs, nil) do
-  #    attrs
-  #  end
-  #
-  #  defp maybe_add_intent(attrs, %Intent{} = intent) do
-  #    intent_attrs = build_intent_attrs(intent)
-  #    Map.merge(attrs, intent_attrs)
-  #  end
+  defp maybe_add_classification(attrs, %Classification{} = classification) do
+    classification_attrs = build_classification_attrs(classification)
+    Map.merge(attrs, classification_attrs)
+  end
+
+  defp maybe_add_intent(attrs, nil) do
+    attrs
+  end
+
+  defp maybe_add_intent(attrs, %Intent{} = intent) do
+    intent_attrs = build_intent_attrs(intent)
+    Map.merge(attrs, intent_attrs)
+  end
 
   defp build_classification_attrs(%Classification{} = classification) do
     content_type_string =
