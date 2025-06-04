@@ -56,29 +56,39 @@ defmodule Core.Researcher.IcpFitEvaluator do
   end
 
   defp evaluate_icp_fit(domain, %Leads.Lead{} = lead) do
-    with {:ok, icp} <- IcpProfiles.get_by_tenant_id(lead.tenant_id),
-         {:ok, pages} <- get_prompt_context(domain),
-         {:ok, fit} <-
-           get_icp_fit_with_retry(domain, pages, icp) do
-      update_lead(lead, fit)
-      {:ok, fit}
-    else
-      {:error, reason} ->
-        {:error, reason}
+    OpenTelemetry.Tracer.with_span "icp_fit_evaluator.evaluate_icp_fit" do
+      with {:ok, icp} <- IcpProfiles.get_by_tenant_id(lead.tenant_id),
+           {:ok, pages} <- get_prompt_context(domain),
+           {:ok, fit} <-
+             get_icp_fit_with_retry(domain, pages, icp) do
+        update_lead(lead, fit)
+        {:ok, fit}
+      else
+        {:error, reason} ->
+          Tracing.error(reason)
+          {:error, reason}
+      end
     end
   end
 
   defp update_lead(%Leads.Lead{} = lead, fit)
        when fit in [:strong, :moderate, :not_a_fit] do
-    case fit do
-      :strong ->
-        Leads.update_lead(lead, %{icp_fit: :strong, stage: :target})
+    OpenTelemetry.Tracer.with_span "icp_fit_evaluator.update_lead" do
+      OpenTelemetry.Tracer.set_attributes([
+        {"lead.id", lead.id},
+        {"icp_fit", fit}
+      ])
 
-      :moderate ->
-        Leads.update_lead(lead, %{icp_fit: :moderate, stage: :target})
+      case fit do
+        :strong ->
+          Leads.update_lead(lead, %{icp_fit: :strong, stage: :target})
 
-      :not_a_fit ->
-        Leads.update_lead(lead, %{stage: :not_a_fit})
+        :moderate ->
+          Leads.update_lead(lead, %{icp_fit: :moderate, stage: :target})
+
+        :not_a_fit ->
+          Leads.update_lead(lead, %{stage: :not_a_fit})
+      end
     end
   end
 
