@@ -114,9 +114,9 @@ export const Leads = memo(({ companies }: LeadsProps) => {
                         maxHeight: '100px',
                         minHeight: '20px',
                       }}
-                      onClick={() => count > 0 && setSelectedStage(stage.value)}
+                      onClick={() => count > 0 && setSelectedStage(prev => prev === stage.value ? '' : stage.value)}
                     >
-                      <div className="flex text-center text-primary-700">
+                      <div className="flex text-center text-primary-700 select-none">
                         <span>
                           {stage.label}
                           <span className="mx-1">•</span>
