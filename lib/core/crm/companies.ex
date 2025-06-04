@@ -16,6 +16,7 @@ defmodule Core.Crm.Companies do
   and proper error handling for all operations.
   """
 
+  require Logger
   require OpenTelemetry.Tracer
   alias Core.Crm.Companies.Company
   alias Core.Crm.Companies.CompanyEnrich

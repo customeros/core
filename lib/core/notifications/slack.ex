@@ -181,7 +181,13 @@ defmodule Core.Notifications.Slack do
   Send a notification about a system crash or error.
   Includes error type, message, module/function context, and timestamp.
   """
-  @spec notify_crash(String.t(), String.t(), String.t() | nil, String.t() | nil) ::
+  @spec notify_crash(
+          String.t(),
+          String.t(),
+          String.t() | nil,
+          String.t() | nil,
+          map() | nil
+        ) ::
           :ok
           | {:error,
              :webhook_not_configured | :slack_api_error | Finch.Error.t()}
@@ -189,7 +195,8 @@ defmodule Core.Notifications.Slack do
         error_type,
         error_message,
         module_function \\ nil,
-        stacktrace \\ nil
+        stacktrace \\ nil,
+        metadata \\ nil
       )
       when is_binary(error_type) and is_binary(error_message) and
              error_type != "" and error_message != "" do
@@ -211,7 +218,8 @@ defmodule Core.Notifications.Slack do
               stacktrace,
               error_type,
               error_message,
-              module_function
+              module_function,
+              metadata
             )
         end
     end
@@ -222,7 +230,13 @@ defmodule Core.Notifications.Slack do
   Includes error type, message, module/function context, and timestamp.
   Uses warning-level styling instead of critical crash styling.
   """
-  @spec notify_error(String.t(), String.t(), String.t() | nil, String.t() | nil) ::
+  @spec notify_error(
+          String.t(),
+          String.t(),
+          String.t() | nil,
+          String.t() | nil,
+          map() | nil
+        ) ::
           :ok
           | {:error,
              :webhook_not_configured | :slack_api_error | Finch.Error.t()}
@@ -230,7 +244,8 @@ defmodule Core.Notifications.Slack do
         error_type,
         error_message,
         module_function \\ nil,
-        stacktrace \\ nil
+        stacktrace \\ nil,
+        metadata \\ nil
       )
       when is_binary(error_type) and is_binary(error_message) and
              error_type != "" and error_message != "" do
@@ -254,7 +269,8 @@ defmodule Core.Notifications.Slack do
               stacktrace,
               error_type,
               error_message,
-              module_function
+              module_function,
+              metadata
             )
         end
     end
@@ -265,8 +281,30 @@ defmodule Core.Notifications.Slack do
          stacktrace,
          error_type,
          error_message,
-         module_function
+         module_function,
+         metadata
        ) do
+    metadata = if is_list(metadata), do: Map.new(metadata), else: metadata
+
+    system_keys = [
+      :module,
+      :function,
+      :line,
+      :file,
+      :pid,
+      :time,
+      :gl,
+      :domain,
+      :application,
+      :mfa,
+      :erl_level
+    ]
+
+    custom_metadata =
+      metadata
+      |> Enum.reject(fn {k, _v} -> k in system_keys end)
+      |> Enum.into(%{})
+
     fields = [
       %{
         type: "mrkdwn",
@@ -287,6 +325,25 @@ defmodule Core.Notifications.Slack do
             %{
               type: "mrkdwn",
               text: "*Location:*\n`#{module_function}`"
+            }
+          ]
+      else
+        fields
+      end
+
+    # Add metadata if present
+    fields =
+      if custom_metadata && map_size(custom_metadata) > 0 do
+        metadata_lines =
+          custom_metadata
+          |> Enum.map(fn {k, v} -> "*#{k}:* #{v}" end)
+          |> Enum.join("\n")
+
+        fields ++
+          [
+            %{
+              type: "mrkdwn",
+              text: "*Metadata:*\n" <> metadata_lines
             }
           ]
       else
@@ -373,8 +430,30 @@ defmodule Core.Notifications.Slack do
          stacktrace,
          error_type,
          error_message,
-         module_function
+         module_function,
+         metadata
        ) do
+    metadata = if is_list(metadata), do: Map.new(metadata), else: metadata
+
+    system_keys = [
+      :module,
+      :function,
+      :line,
+      :file,
+      :pid,
+      :time,
+      :gl,
+      :domain,
+      :application,
+      :mfa,
+      :erl_level
+    ]
+
+    custom_metadata =
+      metadata
+      |> Enum.reject(fn {k, _v} -> k in system_keys end)
+      |> Enum.into(%{})
+
     fields = [
       %{
         type: "mrkdwn",
@@ -395,6 +474,25 @@ defmodule Core.Notifications.Slack do
             %{
               type: "mrkdwn",
               text: "*Location:*\n`#{module_function}`"
+            }
+          ]
+      else
+        fields
+      end
+
+    # Add metadata if present
+    fields =
+      if custom_metadata && map_size(custom_metadata) > 0 do
+        metadata_lines =
+          custom_metadata
+          |> Enum.map(fn {k, v} -> "*#{k}:* #{v}" end)
+          |> Enum.join("\n")
+
+        fields ++
+          [
+            %{
+              type: "mrkdwn",
+              text: "*Metadata:*\n" <> metadata_lines
             }
           ]
       else

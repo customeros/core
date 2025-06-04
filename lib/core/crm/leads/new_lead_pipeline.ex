@@ -38,7 +38,7 @@ defmodule Core.Crm.Leads.NewLeadPipeline do
             Logger.error("New Lead Pipeline failed for #{lead_id}",
               tenant_id: tenant_id,
               lead_id: lead_id,
-              error: reason
+              reason: reason
             )
         end
       end
@@ -79,7 +79,7 @@ defmodule Core.Crm.Leads.NewLeadPipeline do
           tenant_id: lead.tenant_id,
           lead_id: lead.id,
           domain: domain,
-          error: reason
+          reason: reason
         )
 
         {:error, reason}
@@ -110,7 +110,7 @@ defmodule Core.Crm.Leads.NewLeadPipeline do
           tenant_id: lead.tenant_id,
           lead_id: lead.id,
           domain: domain,
-          error: reason
+          reason: reason
         )
 
         {:error, reason}

@@ -153,7 +153,13 @@ defmodule Core.Notifications.CrashMonitor do
       location = extract_location(metadata, msg)
       stacktrace = extract_stacktrace(msg)
 
-      case Slack.notify_error(error_type, error_message, location, stacktrace) do
+      case Slack.notify_error(
+             error_type,
+             error_message,
+             location,
+             stacktrace,
+             metadata
+           ) do
         :ok ->
           :ok
 
