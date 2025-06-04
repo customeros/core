@@ -40,7 +40,6 @@ defmodule Core.Researcher.Scraper do
   @err_unexpected_response {:error, "webscraper returned unexpected response"}
 
   def scrape_webpage(url) when is_binary(url) and byte_size(url) > 0 do
-    dbg(url)
     Logger.metadata(module: __MODULE__, function: :scrape_webpage)
 
     case validate_url(url) do
