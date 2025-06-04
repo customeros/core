@@ -208,6 +208,9 @@ export const Leads = memo(({ companies }: LeadsProps) => {
                                   </span>
                                 ) : (
                                   <></>
+                                  // <span className="w-fit px-2 py-1 rounded-[4px] max-w-[100px] truncate border-[1px] border-gray-300">
+                                  //  Industry not found
+                                  // </span>
                                 )}
                               </p>
 
