@@ -104,7 +104,8 @@ export const Leads = memo(({ companies }: LeadsProps) => {
                     className={cn(
                       'flex-1 flex items-center justify-center rounded-md bg-primary-100 cursor-pointer hover:bg-primary-200 duration-300',
                       index > 0 && 'ml-[-10px]',
-                      selectedStage === stage.value && 'bg-primary-200'
+                      selectedStage === stage.value && 'bg-primary-200',
+                      count === 0 && 'cursor-not-allowed hover:bg-primary-100'
                     )}
                     style={{
                       height: `${count ? count * 5 : 15}px`,
@@ -112,7 +113,7 @@ export const Leads = memo(({ companies }: LeadsProps) => {
                       maxHeight: '100px',
                       minHeight: '20px',
                     }}
-                    onClick={() => setSelectedStage(stage.value)}
+                    onClick={() => count > 0 && setSelectedStage(stage.value)}
                   >
                     <div className="flex text-center text-primary-700">
                       <span>
@@ -125,7 +126,6 @@ export const Leads = memo(({ companies }: LeadsProps) => {
                 );
               })}
             </div>
-
             <div className="flex-1 flex w-full">
               <div className="flex-1 overflow-y-auto text-nowrap">
                 {stages
