@@ -103,7 +103,7 @@ defmodule Core.WebTracker.IpIdentifier do
     OpenTelemetry.Tracer.with_span "ip_identifier.update_ip_intelligence_with_snitcher_response" do
       attrs = %{
         domain: domain,
-        domain_source: :snithcer
+        domain_source: :snitcher
       }
 
       case IpIntelligence.get_by_ip(ip) do

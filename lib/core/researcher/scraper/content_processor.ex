@@ -16,7 +16,9 @@ defmodule Core.Researcher.Scraper.ContentProcessor do
   sanitization and storage of the results.
   """
   require Logger
+  require OpenTelemetry.Tracer
   alias Core.Researcher.Webpages
+  alias Core.Utils.Tracing
 
   # 1 min
   @default_timeout 60 * 1000
@@ -88,23 +90,31 @@ defmodule Core.Researcher.Scraper.ContentProcessor do
   defp summarize_content({:error, reason}, _url), do: {:error, reason}
 
   defp save_to_database({:ok, content, links, summary}, url) do
-    case Webpages.save_scraped_content(
-           url,
-           content,
-           links,
-           summary
-         ) do
-      {:ok, _saved_webpage} ->
-        Logger.info("#{url} saved to database")
-        {:ok, content}
+    OpenTelemetry.Tracer.with_span "content_processor.save_to_database" do
+      OpenTelemetry.Tracer.set_attributes([
+        {"url", url}
+      ])
 
-      {:error, db_error} ->
-        Logger.error("Failed to save webpage to database",
-          reason: "#{inspect(db_error)}",
-          url: url
-        )
+      case Webpages.save_scraped_content(
+             url,
+             content,
+             links,
+             summary
+           ) do
+        {:ok, _saved_webpage} ->
+          Logger.info("#{url} saved to database")
+          {:ok, content}
 
-        {:error, "Database save failed: #{inspect(db_error)}"}
+        {:error, db_error} ->
+          Tracing.error(db_error)
+
+          Logger.error("Failed to save webpage to database",
+            reason: "#{inspect(db_error)}",
+            url: url
+          )
+
+          {:error, "Database save failed: #{inspect(db_error)}"}
+      end
     end
   end
 end
