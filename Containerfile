@@ -147,9 +147,18 @@ RUN if [ "$TARGETPLATFORM" = "linux/arm64" ]; then \
     chmod +x /usr/local/bin/wkhtmltoimage; \
     fi
 
-# Create a non-root user for running the application
-RUN useradd -m -s /bin/bash appuser && \
-    chown -R appuser:appuser /app
+# Set working directory
+WORKDIR "/app"
+
+# Set runner ENV
+ENV MIX_ENV="prod"
+
+# Copy the release from the build stage
+COPY --from=builder --chown=nobody:root /app/_build/${MIX_ENV}/rel/core .
+
+# Copy the entrypoint script
+COPY --chown=nobody:root scripts/build/entrypoint.sh /app/entrypoint.sh
+RUN chmod +x /app/entrypoint.sh
 
 # Set environment variables
 ENV PATH="/usr/local/bin:/usr/bin:${PATH}"
@@ -158,7 +167,7 @@ ENV WKHTMLTOPDF_PATH="/usr/bin/wkhtmltopdf"
 # Verify wkhtmltopdf installation and permissions
 RUN wkhtmltopdf --version && \
     wkhtmltoimage --version && \
-    chown -R appuser:appuser /usr/local/bin/wkhtmltopdf /usr/local/bin/wkhtmltoimage /usr/bin/wkhtmltopdf /usr/bin/wkhtmltoimage
+    chown -R nobody:root /usr/local/bin/wkhtmltopdf /usr/local/bin/wkhtmltoimage /usr/bin/wkhtmltopdf /usr/bin/wkhtmltoimage
 
 # Set the locale
 RUN sed -i '/en_US.UTF-8/s/^# //g' /etc/locale.gen && locale-gen
@@ -166,20 +175,6 @@ RUN sed -i '/en_US.UTF-8/s/^# //g' /etc/locale.gen && locale-gen
 ENV LANG=en_US.UTF-8
 ENV LANGUAGE=en_US:en
 ENV LC_ALL=en_US.UTF-8
-
-# Set working directory
-WORKDIR "/app"
-RUN chown nobody /app
-
-# Set runner ENV
-ENV MIX_ENV="prod"
-
-# Copy the release from the build stage
-COPY --from=builder --chown=nobody:root /app/_build/${MIX_ENV}/rel/core ./
-
-# Copy the entrypoint script
-COPY scripts/build/entrypoint.sh /app/entrypoint.sh
-RUN chmod +x /app/entrypoint.sh
 
 # Switch to non-root user
 USER nobody
