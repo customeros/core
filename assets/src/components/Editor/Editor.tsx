@@ -31,6 +31,7 @@ import { CollaborationPlugin } from '@lexical/react/LexicalCollaborationPlugin';
 import { TabIndentationPlugin } from '@lexical/react/LexicalTabIndentationPlugin';
 import { MarkdownShortcutPlugin } from '@lexical/react/LexicalMarkdownShortcutPlugin';
 import { LexicalComposer, InitialConfigType } from '@lexical/react/LexicalComposer';
+import html2pdf from 'html2pdf.js';
 
 import { LinkPastePlugin } from './plugins/PastePlugin';
 import ToolbarPlugin from './plugins/ToolbarPlugin.tsx';
@@ -145,6 +146,7 @@ interface EditorProps extends VariantProps<typeof contentEditableVariants> {
     undo: () => void;
     redo: () => void;
   } | null>;
+  onDownloadPdf?: () => void;
 }
 
 export const Editor = forwardRef<LexicalEditor | null, EditorProps>(
@@ -177,6 +179,7 @@ export const Editor = forwardRef<LexicalEditor | null, EditorProps>(
       onUndoStateChange,
       undoRef,
       documentId,
+      onDownloadPdf,
     },
     ref
   ) => {
@@ -301,6 +304,26 @@ export const Editor = forwardRef<LexicalEditor | null, EditorProps>(
       };
     }, [undoManager, undoRef]);
 
+    const handleDownloadPdf = useCallback(() => {
+      if (!editor.current) return;
+
+      editor.current.update(() => {
+        const html = $generateHtmlFromNodes(editor.current as LexicalEditor);
+        const element = document.createElement('div');
+        element.innerHTML = html;
+        
+        const opt = {
+          margin: 1,
+          filename: 'document.pdf',
+          image: { type: 'jpeg', quality: 0.98 },
+          html2canvas: { scale: 2 },
+          jsPDF: { unit: 'in', format: 'letter', orientation: 'portrait' }
+        };
+
+        html2pdf().set(opt).from(element).save();
+      });
+    }, []);
+
     if (!socket) {
       return <div>No socket</div>;
     }
@@ -395,7 +418,7 @@ export const Editor = forwardRef<LexicalEditor | null, EditorProps>(
               !showToolbarBottom && 'justify-end'
             )}
           >
-            {showToolbarBottom && <ToolbarPlugin />}
+            {showToolbarBottom && <ToolbarPlugin onDownloadPdf={handleDownloadPdf} />}
             {children}
           </div>
         </LexicalComposer>

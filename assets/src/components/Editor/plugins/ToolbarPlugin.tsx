@@ -26,7 +26,11 @@ const activeStyle = 'bg-gray-100 text-gray-700 hover:bg-gray-100';
 
 const LowPriority = 1;
 
-export default function ToolbarPlugin(): React.ReactNode {
+interface ToolbarPluginProps {
+  onDownloadPdf?: () => void;
+}
+
+export default function ToolbarPlugin({ onDownloadPdf }: ToolbarPluginProps): React.ReactNode {
   const [editor] = useLexicalComposerContext();
   const [isStrikethrough, setIsStrikethrough] = useState(false);
   const [isBlockquote, setIsBlockquote] = useState(false);
@@ -273,6 +277,16 @@ export default function ToolbarPlugin(): React.ReactNode {
           e.preventDefault();
           formatQuote();
         }}
+      />
+
+      <div className="w-px h-4 bg-gray-200 mx-1" />
+
+      <IconButton
+        size="xs"
+        variant="ghost"
+        onClick={onDownloadPdf}
+        icon={<Icon name="download-02" />}
+        aria-label="Download PDF"
       />
     </div>
   );

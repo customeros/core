@@ -1,4 +1,4 @@
-import { useState, useEffect, useMemo } from 'react';
+import { useState, useEffect, useMemo, useRef } from 'react';
 
 import { router } from '@inertiajs/react';
 import { Icon } from 'src/components/Icon';
@@ -14,15 +14,18 @@ import { usePresence } from 'src/providers/PresenceProvider';
 import { usePage } from '@inertiajs/react';
 import { Lead, Tenant, User } from 'src/types';
 import { PageProps } from '@inertiajs/core';
+import html2pdf from 'html2pdf.js';
+import { $generateHtmlFromNodes } from '@lexical/html';
+import type { LexicalEditor } from 'lexical';
 
 export const DocumentEditor = () => {
   const page = usePage<PageProps & { tenant: Tenant; currentUser: User; companies: Lead[] }>();
   const [viewMode, setViewMode] = useState('default');
   const docId = new URLSearchParams(window.location.search).get('doc');
   const urlViewMode = new URLSearchParams(window.location.search).get('viewMode');
+  const editorRef = useRef<LexicalEditor | null>(null);
 
   const { presentUsers, currentUserId } = usePresence();
-  console.log(page);
 
   const currentLead = useMemo(() => {
     return page.props.companies.find(c => c.document_id === docId);
@@ -64,7 +67,27 @@ export const DocumentEditor = () => {
       preserveScroll: true,
     });
   };
-  console.log(currentLead);
+
+  const handleDownloadPdf = () => {
+    if (!editorRef.current) return;
+
+    editorRef.current.update(() => {
+      const html = $generateHtmlFromNodes(editorRef.current as LexicalEditor);
+      const element = document.createElement('div');
+      element.innerHTML = html;
+      
+      const opt = {
+        margin: 1,
+        filename: 'document.pdf',
+        image: { type: 'jpeg', quality: 0.98 },
+        html2canvas: { scale: 2 },
+        jsPDF: { unit: 'in', format: 'letter', orientation: 'portrait' as const }
+      };
+
+      html2pdf().set(opt).from(element).save();
+    });
+  };
+
   return (
     <>
       <ScrollAreaRoot>
@@ -96,6 +119,13 @@ export const DocumentEditor = () => {
                   <IconButton
                     size="xs"
                     variant="ghost"
+                    aria-label="download document"
+                    onClick={handleDownloadPdf}
+                    icon={<Icon name="download-02" />}
+                  />
+                  <IconButton
+                    size="xs"
+                    variant="ghost"
                     aria-label="toggle view mode"
                     className="hidden md:flex"
                     onClick={handleViewModeChange}
@@ -113,12 +143,14 @@ export const DocumentEditor = () => {
 
               {docId ? (
                 <Editor
+                  ref={editorRef}
                   documentId={docId}
                   useYjs={true}
                   namespace="leads"
                   size="sm"
                   user={presenceUser}
                   key={docId}
+                  showToolbarBottom={false}
                 />
               ) : (
                 <div className="flex items-center justify-center flex-col h-full">
@@ -131,7 +163,7 @@ export const DocumentEditor = () => {
                     </p>
                     <div className="max-w-[340px] text-center gap-2 flex flex-col">
                       <p className="">
-                        We’re now busy analysing and pulling together everything you need to know
+                        We're now busy analysing and pulling together everything you need to know
                         about this lead.
                       </p>
                       <p>Hang tight, the brief should be available in a moment.</p>
