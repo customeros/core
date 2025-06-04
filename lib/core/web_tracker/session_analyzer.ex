@@ -46,6 +46,7 @@ defmodule Core.WebTracker.SessionAnalyzer do
     )
 
     with {:ok, session} <- Sessions.get_session_by_id(session_id),
+         {:ok, :proceed} <- ok_to_run?(session.tenant, session.company_id),
          {:ok, all_company_sessions} <-
            Sessions.get_all_closed_sessions_by_tenant_and_company(
              session.tenant,
@@ -55,12 +56,26 @@ defmodule Core.WebTracker.SessionAnalyzer do
          {:ok, tenant} <- Tenants.get_tenant_by_name(session.tenant) do
       {:ok, tenant.id, visited_pages, session.company_id}
     else
-      {:error, :not_found} ->
-        Logger.error(
-          "Analyze session error: #{session_id} does not exist with events"
-        )
+      {:stop, reason} ->
+        {:stop, reason}
 
-        {:error, :not_found}
+      {:error, reason} ->
+        Logger.error("Analyze session error: #{inspect(reason)}")
+
+        {:error, reason}
+    end
+  end
+
+  defp ok_to_run?(tenant, company_id) do
+    with {:ok, tenant} <- Tenants.get_tenant_by_name(tenant),
+         {:ok, lead} <- Leads.get_by_ref_id(tenant.id, company_id) do
+      cond do
+        lead.stage == :ready_to_buy -> {:stop, :already_ready_to_buy}
+        lead.stage == :not_a_fit -> {:stop, :not_icp_fit}
+        true -> {:ok, :proceed}
+      end
+    else
+      {:error, reason} -> {:error, reason}
     end
   end
 
@@ -118,6 +133,7 @@ defmodule Core.WebTracker.SessionAnalyzer do
   end
 
   defp determine_lead_stage({:error, reason}), do: {:error, reason}
+  defp determine_lead_stage({:stop, reason}), do: {:stop, reason}
 
   defp identify_stage(page_visits) do
     case StageIdentifier.identify(page_visits) do

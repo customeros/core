@@ -25,8 +25,8 @@ defmodule Core.Researcher.Crawler do
   defp crawl(domain, opts) when is_binary(domain) do
     case Core.Utils.DomainExtractor.extract_base_domain(domain) do
       {:ok, base_domain} ->
-        # Start crawling with concurrent workers
         home_page_url = Core.Utils.UrlFormatter.to_https(base_domain)
+
         crawl_concurrent(%{
           queue: [{home_page_url, 0}],
           visited: MapSet.new(),

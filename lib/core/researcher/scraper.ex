@@ -19,6 +19,7 @@ defmodule Core.Researcher.Scraper do
 
   require OpenTelemetry.Tracer
   require Logger
+  alias Researcher.Scraper.Filter
   alias Core.Researcher.Webpages
   alias Core.Researcher.Webpages.Classifier
   alias Core.Utils.PrimaryDomainFinder
@@ -70,7 +71,8 @@ defmodule Core.Researcher.Scraper do
   end
 
   defp validate_url(url) do
-    with {:ok, host} <- DomainExtractor.extract_base_domain(url),
+    with {:ok, true} <- Filter.should_scrape?(url),
+         {:ok, host} <- DomainExtractor.extract_base_domain(url),
          {:ok, true} <- PrimaryDomainFinder.primary_domain?(host),
          {:ok, base_url} <- UrlFormatter.get_base_url(url),
          {:ok, clean_url} <- UrlFormatter.to_https(base_url) do
