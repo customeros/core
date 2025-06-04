@@ -4,7 +4,6 @@ defmodule Core.Crm.Leads.IcpFitEvaluator do
 
   This module:
   * Monitors leads that need stage evaluation
-  * Retries evaluation for leads stuck in pending stage
   """
 
   use GenServer
@@ -18,7 +17,7 @@ defmodule Core.Crm.Leads.IcpFitEvaluator do
   alias Core.Crm.Leads.NewLeadPipeline
 
   # Constants
-  # 5 minutes in milliseconds
+  # 2 minutes in milliseconds
   @default_interval 2 * 60 * 1000
   # Number of leads to process in each batch
   @default_batch_size 5
@@ -86,17 +85,10 @@ defmodule Core.Crm.Leads.IcpFitEvaluator do
 
       case Leads.mark_icp_fit_attempt(lead.id) do
         :ok ->
-          case NewLeadPipeline.new_lead_pipeline(lead.id, lead.tenant_id) do
+          case NewLeadPipeline.start(lead.id, lead.tenant_id) do
             {:ok, _} ->
               Tracing.ok()
               :ok
-
-            {:error, reason} ->
-              Logger.error(
-                "Failed to evaluate lead #{lead.id}: #{inspect(reason)}"
-              )
-
-              Tracing.error(reason)
           end
 
         {:error, :update_failed} ->
@@ -122,7 +114,7 @@ defmodule Core.Crm.Leads.IcpFitEvaluator do
 
     Lead
     |> where([l], l.type == :company)
-    |> where([l], is_nil(l.icp_fit) or l.icp_fit == "")
+    |> where([l], is_nil(l.icp_fit))
     |> where([l], l.icp_fit_evaluation_attempts < ^max_attempts)
     |> where(
       [l],
