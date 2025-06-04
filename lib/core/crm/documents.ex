@@ -6,12 +6,116 @@ defmodule Core.Crm.Documents do
   require Logger
   alias Core.Repo
   alias Core.Crm.Documents.{Document, RefDocument, DocumentWithLead}
+  alias Core.Crm.{Leads.Lead, Companies.Company}
+  alias Core.Utils.Media.Images
+
+  @default_company_name "CustomerOS"
+  @default_logo_path Application.app_dir(
+                       :core,
+                       "priv/static/images/customeros.png"
+                     )
+
+  # === Document CRUD Operations ===
 
   def create_document(attrs \\ %{}, opts \\ []) do
     attrs
     |> prepare_payload(opts)
     |> create_document_with_lexical_state()
   end
+
+  def update_document(attrs \\ %{}) do
+    case Repo.get(Document, attrs.id) do
+      %Document{} = document ->
+        document
+        |> Document.update_changeset(attrs)
+        |> Repo.update()
+
+      nil ->
+        Logger.error("Document not found")
+        {:error, :not_found}
+    end
+  end
+
+  def delete_document(id) do
+    case Repo.get(Document, id) do
+      %Document{} = document ->
+        Repo.delete(document)
+
+      nil ->
+        Logger.error("Document not found")
+        {:error, :not_found}
+    end
+  end
+
+  def get_document(id) do
+    case Repo.get(Document, id) do
+      nil -> {:error, :not_found}
+      doc -> {:ok, doc}
+    end
+  end
+
+  # === Document Listing Functions ===
+
+  def list_by_ref(ref_id, tenant_id) do
+    from(d in Document,
+      join: rd in RefDocument,
+      on: d.id == rd.document_id,
+      where: rd.ref_id == ^ref_id and d.tenant_id == ^tenant_id,
+      select: %{
+        id: d.id,
+        name: d.name,
+        icon: d.icon,
+        color: d.color,
+        tenant_id: d.tenant_id,
+        user_id: d.user_id,
+        ref_id: rd.ref_id,
+        inserted_at: d.inserted_at,
+        updated_at: d.updated_at
+      }
+    )
+    |> Repo.all()
+  end
+
+  def list_all_by_tenant(tenant_id) do
+    query =
+      from d in Document,
+        join: rd in RefDocument,
+        on: d.id == rd.document_id,
+        where: d.tenant_id == ^tenant_id,
+        select: %DocumentWithLead{
+          document_id: d.id,
+          document_name: d.name,
+          body: d.body,
+          tenant_id: d.tenant_id,
+          lead_id: rd.ref_id
+        }
+
+    case Repo.all(query) do
+      [] -> {:error, :not_found}
+      documents -> {:ok, documents}
+    end
+  end
+
+  # === PDF Conversion ===
+
+  def convert_to_pdf(%Document{} = document) do
+    with {:ok, content} <- extract_document_content(document),
+         {:ok, html, _} <- Earmark.as_html(content),
+         html_with_style <- add_pdf_styles(html),
+         {:ok, header_path} <- create_header_file(document),
+         {:ok, footer_path} <- create_footer_file(),
+         {:ok, pdf} <- generate_pdf(html_with_style, header_path, footer_path) do
+      cleanup_temp_files([header_path, footer_path])
+      {:ok, pdf}
+    else
+      {:error, reason} ->
+        cleanup_all_temp_files()
+        Logger.error("PDF generation failed: #{inspect(reason)}")
+        {:error, "Could not generate PDF: #{inspect(reason)}"}
+    end
+  end
+
+  # === Private Functions - Document Creation ===
 
   defp prepare_payload(attrs, opts) do
     parse_dto = Keyword.get(opts, :parse_dto, false)
@@ -64,454 +168,6 @@ defmodule Core.Crm.Documents do
 
   defp handle_transaction_result(error, _ref_id), do: {:error, error}
 
-  def update_document(attrs \\ %{}) do
-    case Repo.get(Document, attrs.id) do
-      %Document{} = document ->
-        document
-        |> Document.update_changeset(attrs)
-        |> Repo.update()
-
-      nil ->
-        {:error, :not_found}
-    end
-  end
-
-  def delete_document(id) do
-    case Repo.get(Document, id) do
-      %Document{} = document ->
-        Repo.delete(document)
-
-      nil ->
-        {:error, :not_found}
-    end
-  end
-
-  def list_by_ref(ref_id, tenant_id) do
-    from(d in Document,
-      join: rd in RefDocument,
-      on: d.id == rd.document_id,
-      where: rd.ref_id == ^ref_id and d.tenant_id == ^tenant_id,
-      select: %{
-        id: d.id,
-        name: d.name,
-        icon: d.icon,
-        color: d.color,
-        tenant_id: d.tenant_id,
-        user_id: d.user_id,
-        ref_id: rd.ref_id,
-        inserted_at: d.inserted_at,
-        updated_at: d.updated_at
-      }
-    )
-    |> Repo.all()
-  end
-
-  def get_document(id) do
-    case Repo.get(Document, id) do
-      nil -> {:error, :not_found}
-      doc -> {:ok, doc}
-    end
-  end
-
-  defp initialize_y_writing(doc_id, lexical_state) do
-    script_path =
-      Application.app_dir(:core, "priv/scripts/convert_lexical_to_yjs")
-
-    # Create a temporary file for the lexical state
-    {:ok, temp_path} = Temp.path(%{suffix: ".json"})
-    File.write!(temp_path, lexical_state)
-
-    try do
-      case System.cmd("sh", ["-c", "#{script_path} #{doc_id} @#{temp_path}"],
-             stderr_to_stdout: true
-           ) do
-        {output, 0} ->
-          Core.Crm.Documents.YDoc.insert_update(doc_id, output)
-
-        {error_output, exit_code} ->
-          {:error, "Could not convert lexical state to Yjs document"}
-      end
-    after
-      File.rm(temp_path)
-    end
-  end
-
-  defp convert_md_to_lexical(md_content) do
-    script_path =
-      Application.app_dir(:core, "priv/scripts/convert_md_to_lexical")
-
-    # Create a temporary file for the markdown content
-    {:ok, temp_path} = Temp.path(%{suffix: ".md"})
-    File.write!(temp_path, md_content)
-
-    try do
-      # Pass the file path directly without the @ symbol
-      case System.cmd("sh", ["-c", "#{script_path} #{temp_path}"],
-             stderr_to_stdout: true
-           ) do
-        {output, 0} ->
-          {:ok, output}
-
-        {error_output, exit_code} ->
-          {:error, "Could not convert markdown to lexical state"}
-      end
-    after
-      File.rm(temp_path)
-    end
-  end
-
-  defp generate_header_html(document) do
-    # Get the lead through RefDocument
-    lead =
-      from(l in Core.Crm.Leads.Lead,
-        join: rd in RefDocument,
-        on: rd.ref_id == l.id,
-        where: rd.document_id == ^document.id,
-        select: %{id: l.id, ref_id: l.ref_id}
-      )
-      |> Repo.one()
-
-    # Get company information if lead exists
-    company_info =
-      if lead do
-        from(c in Core.Crm.Companies.Company,
-          where: c.id == ^lead.ref_id,
-          select: %{name: c.name, icon_key: c.icon_key}
-        )
-        |> Repo.one()
-      end
-
-    # Use company info if available, otherwise fallback to default
-    {logo_path, company_name} =
-      if company_info && company_info.name do
-        if company_info.icon_key do
-          case Core.Utils.Media.Images.get_cdn_url(company_info.icon_key) do
-            url when is_binary(url) ->
-              extension = Path.extname(url)
-              {:ok, temp_path} = Temp.path(%{suffix: extension})
-
-              case Core.Utils.Media.Images.download_image(url) do
-                {:ok, image_data} ->
-                  case File.write(temp_path, image_data) do
-                    :ok ->
-                      case File.stat(temp_path) do
-                        {:ok, _stat} ->
-                          {temp_path, company_info.name}
-
-                        _ ->
-                          {Application.app_dir(
-                             :core,
-                             "priv/static/images/customeros.png"
-                           ), company_info.name}
-                      end
-
-                    _ ->
-                      {Application.app_dir(
-                         :core,
-                         "priv/static/images/customeros.png"
-                       ), company_info.name}
-                  end
-
-                _ ->
-                  {Application.app_dir(
-                     :core,
-                     "priv/static/images/customeros.png"
-                   ), company_info.name}
-              end
-
-            _ ->
-              {Application.app_dir(:core, "priv/static/images/customeros.png"),
-               company_info.name}
-          end
-        else
-          {Application.app_dir(:core, "priv/static/images/customeros.png"),
-           company_info.name}
-        end
-      else
-        default_path =
-          Application.app_dir(:core, "priv/static/images/customeros.png")
-
-        {default_path, "CustomerOS"}
-      end
-
-    # Create a temporary directory for the image
-    {:ok, temp_dir} = Temp.mkdir()
-    image_path = Path.join(temp_dir, "logo#{Path.extname(logo_path)}")
-    File.cp!(logo_path, image_path)
-    IO.puts("Image copied to temp: #{image_path}")
-    # Clean up the original temporary file if it was created
-    if String.contains?(logo_path, "/tmp/") do
-      File.rm(logo_path)
-    end
-
-    # Determine mime type based on extension
-    extension =
-      Path.extname(image_path) |> String.trim_leading(".") |> String.downcase()
-
-    mime_type =
-      case extension do
-        "png" -> "image/png"
-        "jpg" -> "image/jpeg"
-        "jpeg" -> "image/jpeg"
-        "gif" -> "image/gif"
-        _ -> "application/octet-stream"
-      end
-
-    # Read image and encode to base64
-    logo_data = File.read!(image_path) |> Base.encode64()
-    IO.puts("Logo data: #{logo_data}")
-    logo_base64 = "data:#{mime_type};base64,#{logo_data}"
-
-    html = """
-    <!DOCTYPE html>
-    <html>
-    <head>
-      <meta charset="utf-8">
-      <meta http-equiv="Content-Type" content="text/html; charset=utf-8">
-      <style>
-        @page {
-          margin: 0;
-          padding: 0;
-        }
-        body {
-          margin: 0;
-          padding: 0;
-          font-family: Arial, sans-serif;
-        }
-        .header {
-          height: 50px;
-          padding: 15px 20px 0 20px;
-          border-bottom: 1px solid #eee;
-          background: white;
-          box-sizing: border-box;
-        }
-        .header img {
-          height: 24px;
-          width: auto;
-          vertical-align: middle;
-          display: inline-block;
-          max-width: 200px;
-        }
-        .header span {
-          font-size: 14px;
-          vertical-align: middle;
-          margin-left: 10px;
-          font-weight: bold;
-          display: inline-block;
-        }
-      </style>
-    </head>
-    <body>
-      <div class="header">
-    <img src="file://#{image_path}" alt="#{company_name} Logo" />
-    <span>#{company_name} Report</span>
-      </div>
-    </body>
-    </html>
-    """
-  end
-
-  defp generate_footer_html() do
-    logo_path = Application.app_dir(:core, "priv/static/images/customeros.png")
-    logo_base64 = File.read!(logo_path) |> Base.encode64()
-
-    """
-    <!DOCTYPE html>
-    <html>
-    <head>
-      <meta charset="utf-8">
-      <style>
-        body {
-          margin: 0;
-          padding: 0;
-        }
-        .footer {
-          height: 50px;
-          padding: 15px 20px 0 20px;
-          border-top: 1px solid #eee;
-          background: white;
-        }
-        .footer img {
-          height: 24px;
-          vertical-align: middle;
-        }
-        .footer span {
-          font-size: 10px;
-          vertical-align: middle;
-          margin-left: 10px;
-        }
-      </style>
-    </head>
-    <body>
-      <div class="footer">
-        <img src="data:image/png;base64,#{logo_base64}" alt="CustomerOS Logo" />
-        <span>CustomerOS</span>
-      </div>
-    </body>
-    </html>
-    """
-  end
-
-  defp add_pdf_styles(html) do
-    """
-    <!DOCTYPE html>
-    <html>
-    <head>
-      <meta charset="utf-8">
-      <style>
-        @page {
-          margin: 20mm;
-          size: A4;
-        }
-        body {
-          font-family: "IBM Plex Sans", sans-serif;
-          line-height: 1.6;
-          color: #333;
-          max-width: 800px;
-          margin: 0 auto;
-          padding: 20px;
-          position: relative;
-          min-height: 100vh;
-        }
-        h1, h2 {
-          font-weight: bold;
-        }
-        .content {
-          margin-bottom: 100px;
-        }
-      </style>
-    </head>
-    <body>
-      <div class="content">
-        #{html}
-      </div>
-    </body>
-    </html>
-    """
-  end
-
-  def convert_to_pdf(%Document{} = document) do
-    content =
-      case document.lexical_state do
-        nil ->
-          document.body
-
-        state ->
-          case Jason.decode(state) do
-            {:ok, %{"root" => %{"children" => children}}} ->
-              markdown =
-                children
-                |> Enum.map(fn
-                  %{
-                    "type" => "heading",
-                    "tag" => tag,
-                    "children" => [%{"text" => text} | _]
-                  } ->
-                    level = String.to_integer(String.replace(tag, "h", ""))
-                    String.duplicate("#", level) <> " " <> text
-
-                  %{
-                    "type" => "paragraph",
-                    "children" => [%{"text" => text} | _]
-                  } ->
-                    text
-
-                  _ ->
-                    ""
-                end)
-                |> Enum.join("\n\n")
-
-              markdown
-
-            _ ->
-              document.body
-          end
-      end
-
-    with {:ok, html, _} <- Earmark.as_html(content),
-         html_with_style <- add_pdf_styles(html),
-         footer_html <- generate_footer_html(),
-         footer_path = "/tmp/pdf_footer.html",
-         :ok <- File.write(footer_path, footer_html),
-         header_html <- generate_header_html(document),
-         dbg(header_html),
-         header_path = "/tmp/pdf_header.html",
-         :ok <- File.write(header_path, header_html),
-         {:ok, pdf} <-
-           PdfGenerator.generate_binary(html_with_style,
-             page_size: "A4",
-             zoom: 1.0,
-             shell_params: [
-               "--encoding",
-               "UTF-8",
-               "--margin-top",
-               "40",
-               "--margin-right",
-               "20",
-               "--margin-bottom",
-               "20",
-               "--margin-left",
-               "20",
-               "--header-html",
-               header_path,
-               "--header-spacing",
-               "0",
-               "--footer-html",
-               footer_path,
-               "--footer-spacing",
-               "0",
-               "--disable-smart-shrinking",
-               "--print-media-type",
-               "--enable-local-file-access",
-               "--no-stop-slow-scripts",
-               "--javascript-delay",
-               "1000",
-               "--load-error-handling",
-               "ignore",
-               "--load-media-error-handling",
-               "ignore"
-             ]
-           ) do
-      # Clean up temporary files
-      File.rm(footer_path)
-      File.rm(header_path)
-
-      if temp_dir = Process.get(:temp_dir) do
-        File.rm_rf!(temp_dir)
-      end
-
-      {:ok, pdf}
-    else
-      {:error, reason} ->
-        # Clean up temporary files even on error
-        if temp_dir = Process.get(:temp_dir) do
-          File.rm_rf!(temp_dir)
-        end
-
-        {:error, "Could not generate PDF"}
-    end
-  end
-
-  def list_all_by_tenant(tenant_id) do
-    query =
-      from d in Document,
-        join: rd in RefDocument,
-        on: d.id == rd.document_id,
-        where: d.tenant_id == ^tenant_id,
-        select: %DocumentWithLead{
-          document_id: d.id,
-          document_name: d.name,
-          body: d.body,
-          tenant_id: d.tenant_id,
-          lead_id: rd.ref_id
-        }
-
-    case Repo.all(query) do
-      [] -> {:error, :not_found}
-      documents -> {:ok, documents}
-    end
-  end
-
   defp maybe_insert_ref_document(multi, nil), do: multi
 
   defp maybe_insert_ref_document(multi, ref_id) do
@@ -532,6 +188,421 @@ defmodule Core.Crm.Documents do
       initialize_y_writing(document.id, lexical_state)
     end)
   end
+
+  # === Private Functions - Content Processing ===
+
+  defp extract_document_content(%Document{lexical_state: nil, body: body}),
+    do: {:ok, body}
+
+  defp extract_document_content(%Document{lexical_state: state, body: body}) do
+    case Jason.decode(state) do
+      {:ok, %{"root" => %{"children" => children}}} ->
+        markdown = convert_lexical_to_markdown(children)
+        {:ok, markdown}
+
+      _ ->
+        {:ok, body}
+    end
+  end
+
+  defp convert_lexical_to_markdown(children) do
+    children
+    |> Enum.map(&convert_lexical_node/1)
+    |> Enum.reject(&(&1 == ""))
+    |> Enum.join("\n\n")
+  end
+
+  defp convert_lexical_node(%{
+         "type" => "heading",
+         "tag" => tag,
+         "children" => [%{"text" => text} | _]
+       }) do
+    level = String.to_integer(String.replace(tag, "h", ""))
+    String.duplicate("#", level) <> " " <> text
+  end
+
+  defp convert_lexical_node(%{
+         "type" => "paragraph",
+         "children" => [%{"text" => text} | _]
+       }) do
+    text
+  end
+
+  defp convert_lexical_node(_), do: ""
+
+  defp convert_md_to_lexical(md_content) do
+    script_path =
+      Application.app_dir(:core, "priv/scripts/convert_md_to_lexical")
+
+    with {:ok, temp_path} <- Temp.path(%{suffix: ".md"}),
+         :ok <- File.write(temp_path, md_content),
+         {output, 0} <-
+           System.cmd("sh", ["-c", "#{script_path} #{temp_path}"],
+             stderr_to_stdout: true
+           ) do
+      File.rm(temp_path)
+      {:ok, output}
+    else
+      {error_output, _exit_code} ->
+        Logger.error(
+          "Error converting markdown to lexical state: #{error_output}"
+        )
+
+        {:error, "Could not convert markdown to lexical state"}
+    end
+  end
+
+  defp initialize_y_writing(doc_id, lexical_state) do
+    script_path =
+      Application.app_dir(:core, "priv/scripts/convert_lexical_to_yjs")
+
+    with {:ok, temp_path} <- Temp.path(%{suffix: ".json"}),
+         :ok <- File.write(temp_path, lexical_state),
+         {output, 0} <-
+           System.cmd("sh", ["-c", "#{script_path} #{doc_id} @#{temp_path}"],
+             stderr_to_stdout: true
+           ) do
+      File.rm(temp_path)
+      Core.Crm.Documents.YDoc.insert_update(doc_id, output)
+    else
+      {error_output, _exit_code} ->
+        Logger.error("Error converting lexical state to Yjs: #{error_output}")
+        {:error, "Could not convert lexical state to Yjs document"}
+    end
+  end
+
+  # === Private Functions - PDF Generation ===
+
+  defp create_header_file(document) do
+    with {:ok, html} <- generate_header_html(document),
+         {:ok, temp_path} <- Temp.path(%{suffix: ".html"}),
+         :ok <- File.write(temp_path, html) do
+      {:ok, temp_path}
+    else
+      error ->
+        Logger.error("Header creation failed: #{inspect(error)}")
+        {:error, "Failed to create header file: #{inspect(error)}"}
+    end
+  end
+
+  defp create_footer_file do
+    with html <- generate_footer_html(),
+         {:ok, temp_path} <- Temp.path(%{suffix: ".html"}),
+         :ok <- File.write(temp_path, html) do
+      {:ok, temp_path}
+    else
+      error ->
+        Logger.error("Footer creation failed: #{inspect(error)}")
+        {:error, "Failed to create footer file: #{inspect(error)}"}
+    end
+  end
+
+  defp generate_pdf(html_content, header_path, footer_path) do
+    PdfGenerator.generate_binary(html_content,
+      page_size: "A4",
+      zoom: 1.0,
+      shell_params: [
+        "--encoding",
+        "UTF-8",
+        "--margin-top",
+        "40",
+        "--margin-right",
+        "20",
+        "--margin-bottom",
+        "20",
+        "--margin-left",
+        "20",
+        "--header-html",
+        header_path,
+        "--header-spacing",
+        "0",
+        "--footer-html",
+        footer_path,
+        "--footer-spacing",
+        "0",
+        "--disable-smart-shrinking",
+        "--print-media-type",
+        "--enable-local-file-access",
+        "--no-stop-slow-scripts",
+        "--javascript-delay",
+        "1000",
+        "--load-error-handling",
+        "ignore",
+        "--load-media-error-handling",
+        "ignore"
+      ]
+    )
+  end
+
+  # === Private Functions - HTML Generation ===
+
+  defp generate_header_html(document) do
+    with {:ok, lead} <- get_lead_for_document(document.id),
+         {:ok, company} <- get_company_for_lead(lead.ref_id),
+         {:ok, logo_info} <- prepare_logo(company) do
+      {:ok, create_header_html_template(logo_info.path, logo_info.company_name)}
+    else
+      _ ->
+        {:ok,
+         create_header_html_template(@default_logo_path, @default_company_name)}
+    end
+  end
+
+  defp get_lead_for_document(document_id) do
+    query =
+      from l in Lead,
+        join: rd in RefDocument,
+        on: rd.ref_id == l.id,
+        where: rd.document_id == ^document_id,
+        select: %{id: l.id, ref_id: l.ref_id}
+
+    case Repo.one(query) do
+      nil -> {:error, :lead_not_found}
+      lead -> {:ok, lead}
+    end
+  end
+
+  defp get_company_for_lead(lead_ref_id) do
+    query =
+      from c in Company,
+        where: c.id == ^lead_ref_id,
+        select: %{name: c.name, icon_key: c.icon_key}
+
+    case Repo.one(query) do
+      nil -> {:error, :company_not_found}
+      company -> {:ok, company}
+    end
+  end
+
+  defp prepare_logo(%{name: name, icon_key: nil}),
+    do: {:ok, %{path: @default_logo_path, company_name: name}}
+
+  defp prepare_logo(%{name: name, icon_key: icon_key})
+       when is_binary(icon_key) do
+    case download_and_prepare_logo(icon_key) do
+      {:ok, logo_path} -> {:ok, %{path: logo_path, company_name: name}}
+      {:error, _} -> {:ok, %{path: @default_logo_path, company_name: name}}
+    end
+  end
+
+  defp prepare_logo(_), do: {:error, :invalid_company}
+
+  defp download_and_prepare_logo(icon_key) do
+    with {:ok, cdn_url} <- get_cdn_url(icon_key),
+         {:ok, image_data} <- Images.download_image(cdn_url),
+         {:ok, temp_path} <- create_temp_file(cdn_url),
+         :ok <- File.write(temp_path, image_data),
+         {:ok, _} <- File.stat(temp_path),
+         {:ok, final_path} <- copy_to_temp_dir(temp_path) do
+      cleanup_temp_file(temp_path)
+      {:ok, final_path}
+    else
+      _ -> {:error, :logo_download_failed}
+    end
+  end
+
+  defp get_cdn_url(icon_key) do
+    case Images.get_cdn_url(icon_key) do
+      url when is_binary(url) -> {:ok, url}
+      _ -> {:error, :invalid_cdn_url}
+    end
+  end
+
+  defp create_temp_file(url) do
+    extension = Path.extname(url)
+
+    case Temp.path(%{suffix: extension}) do
+      {:ok, path} -> {:ok, path}
+      _ -> {:error, :temp_file_creation_failed}
+    end
+  end
+
+  defp copy_to_temp_dir(source_path) do
+    with {:ok, temp_dir} <- Temp.mkdir() do
+      try do
+        extension = Path.extname(source_path)
+        dest_path = Path.join(temp_dir, "logo#{extension}")
+        File.cp!(source_path, dest_path)
+        {:ok, dest_path}
+      rescue
+        _ ->
+          Logger.error("Copy to temp dir failed: #{source_path}")
+          {:error, :copy_failed}
+      end
+    else
+      _ ->
+        Logger.error("Creation of temp dir failed: #{source_path}")
+        {:error, :temp_dir_creation_failed}
+    end
+  end
+
+  defp cleanup_temp_file(path) do
+    if String.contains?(path, "/tmp/") do
+      File.rm(path)
+    end
+  end
+
+  defp create_header_html_template(image_path, company_name) do
+    """
+    <!DOCTYPE html>
+    <html>
+    <head>
+      <meta charset="utf-8">
+      <meta http-equiv="Content-Type" content="text/html; charset=utf-8">
+      #{header_css_styles()}
+    </head>
+    <body>
+      <div class="header">
+        <img src="file://#{image_path}" alt="#{company_name} Logo" />
+        <span>#{company_name} Report</span>
+      </div>
+    </body>
+    </html>
+    """
+  end
+
+  defp generate_footer_html do
+    logo_base64 = File.read!(@default_logo_path) |> Base.encode64()
+
+    """
+    <!DOCTYPE html>
+    <html>
+    <head>
+      <meta charset="utf-8">
+      #{footer_css_styles()}
+    </head>
+    <body>
+      <div class="footer">
+        <img src="data:image/png;base64,#{logo_base64}" alt="CustomerOS Logo" />
+        <span>CustomerOS</span>
+      </div>
+    </body>
+    </html>
+    """
+  end
+
+  defp add_pdf_styles(html) do
+    """
+    <!DOCTYPE html>
+    <html>
+    <head>
+      <meta charset="utf-8">
+      #{pdf_content_css_styles()}
+    </head>
+    <body>
+      <div class="content">
+        #{html}
+      </div>
+    </body>
+    </html>
+    """
+  end
+
+  # === CSS Styles ===
+
+  defp header_css_styles do
+    """
+    <style>
+      @page {
+        margin: 0;
+        padding: 0;
+      }
+      body {
+        margin: 0;
+        padding: 0;
+        font-family: Arial, sans-serif;
+      }
+      .header {
+        height: 50px;
+        padding: 15px 20px 0 20px;
+        border-bottom: 1px solid #eee;
+        background: white;
+        box-sizing: border-box;
+      }
+      .header img {
+        height: 24px;
+        width: auto;
+        vertical-align: middle;
+        display: inline-block;
+        max-width: 200px;
+      }
+      .header span {
+        font-size: 14px;
+        vertical-align: middle;
+        margin-left: 10px;
+        font-weight: bold;
+        display: inline-block;
+      }
+    </style>
+    """
+  end
+
+  defp footer_css_styles do
+    """
+    <style>
+      body {
+        margin: 0;
+        padding: 0;
+      }
+      .footer {
+        height: 50px;
+        padding: 15px 20px 0 20px;
+        border-top: 1px solid #eee;
+        background: white;
+      }
+      .footer img {
+        height: 24px;
+        vertical-align: middle;
+      }
+      .footer span {
+        font-size: 10px;
+        vertical-align: middle;
+        margin-left: 10px;
+      }
+    </style>
+    """
+  end
+
+  defp pdf_content_css_styles do
+    """
+    <style>
+      @page {
+        margin: 20mm;
+        size: A4;
+      }
+      body {
+        font-family: "IBM Plex Sans", sans-serif;
+        line-height: 1.6;
+        color: #333;
+        max-width: 800px;
+        margin: 0 auto;
+        padding: 20px;
+        position: relative;
+        min-height: 100vh;
+      }
+      h1, h2 {
+        font-weight: bold;
+      }
+      .content {
+        margin-bottom: 100px;
+      }
+    </style>
+    """
+  end
+
+  # === Cleanup Functions ===
+
+  defp cleanup_temp_files(paths) do
+    Enum.each(paths, &File.rm/1)
+  end
+
+  defp cleanup_all_temp_files do
+    if temp_dir = Process.get(:temp_dir) do
+      File.rm_rf!(temp_dir)
+    end
+  end
+
+  # === DTO Conversion ===
 
   defp from_dto(dto) do
     %{
