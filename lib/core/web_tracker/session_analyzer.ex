@@ -16,9 +16,6 @@ defmodule Core.WebTracker.SessionAnalyzer do
 
   @analysis_timeout 60 * 1000
 
-  @error_intent_analysis_failed {:error,
-                                 "Both classification and intent analysis failed"}
-
   def start(session_id) do
     Task.Supervisor.start_child(
       Core.TaskSupervisor,
@@ -115,8 +112,8 @@ defmodule Core.WebTracker.SessionAnalyzer do
     case Webpages.get_by_url(url) do
       {:ok, content_record} ->
         if needs_processing?(content_record) do
-          case analyze_content_parallel(url, content_record.content) do
-            {:ok, classification, intent} -> {:ok, url, classification, intent}
+          case analyze_content(url, content_record.content) do
+            {:ok, intent} -> {:ok, url, intent}
             {:error, reason} -> {:error, reason}
           end
         else
@@ -148,38 +145,20 @@ defmodule Core.WebTracker.SessionAnalyzer do
       content_record.purchase_readiness_score == nil
   end
 
-  defp analyze_content_parallel(url, content) do
-    tasks = [
-      Webpages.Classifier.classify_content_supervised(url, content),
-      Webpages.IntentProfiler.profile_intent_supervised(url, content)
-    ]
-
-    results = Task.yield_many(tasks, @analysis_timeout)
-
-    Logger.debug("Task results: #{inspect(results)}")
-
-    Enum.each(tasks, &Task.shutdown(&1, :brutal_kill))
+  defp analyze_content(url, content) do
+    task = Webpages.IntentProfiler.profile_intent_supervised(url, content)
+    results = Task.yield(task, @analysis_timeout)
 
     case results do
-      [{_task1, {:ok, {:ok, classification}}}, {_task2, {:ok, {:ok, intent}}}] ->
-        {:ok, classification, intent}
-
-      [{_task1, {:exit, reason}}, _] ->
-        Logger.error("Classification task exited: #{inspect(reason)}")
-        {:error, :classification_failed}
-
-      [_, {_task2, {:exit, reason}}] ->
-        Logger.error("Intent task exited: #{inspect(reason)}")
-        {:error, :intent_failed}
-
-      other ->
-        Logger.error("Unexpected task results: #{inspect(other)}")
-        {:error, :analysis_failed}
+      {:ok, {:ok, intent}} -> {:ok, intent}
+      {:ok, {:error, reason}} -> {:error, reason}
+      {:exit, reason} -> {:error, reason}
+      nil -> {:error, :timeout}
     end
   end
 
-  defp save_analysis({:ok, url, classification, intent}) do
-    case Webpages.update_classification_and_intent(url, classification, intent) do
+  defp save_analysis({:ok, url, intent}) do
+    case Webpages.update_intent(url, intent) do
       {:ok, %ScrapedWebpage{} = webpage} ->
         {url, webpage.summary, intent}
 
