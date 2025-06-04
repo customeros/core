@@ -126,6 +126,37 @@ defmodule Core.Crm.Documents do
     end
   end
 
+  def save_all_documents_to_zip(tenant_id, target_path) do
+    case convert_all_documents_to_pdf(tenant_id) do
+      {:ok, document_pdf_pairs} ->
+        # Group documents by name to handle duplicates
+        {_, numbered_pairs} =
+          Enum.reduce(document_pdf_pairs, {%{}, []}, fn {doc, pdf},
+                                                        {name_counts, acc} ->
+            count = Map.get(name_counts, doc.name, 0) + 1
+
+            new_name =
+              if count > 1, do: "#{doc.name} (#{count})", else: doc.name
+
+            {Map.put(name_counts, doc.name, count),
+             [{doc, pdf, new_name} | acc]}
+          end)
+
+        # Create zip file with numbered PDFs
+        :zip.create(
+          target_path,
+          Enum.map(numbered_pairs, fn {_doc, pdf, new_name} ->
+            {String.to_charlist("#{new_name}.pdf"), pdf}
+          end)
+        )
+
+        {:ok, target_path}
+
+      error ->
+        error
+    end
+  end
+
   # === PDF Conversion ===
 
   def convert_to_pdf(%Document{} = document) do
