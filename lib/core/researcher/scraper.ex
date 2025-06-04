@@ -69,10 +69,11 @@ defmodule Core.Researcher.Scraper do
   defp validate_url(url) do
     case DomainExtractor.extract_base_domain(url) do
       {:ok, host} ->
-        with {:ok, true} <- PrimaryDomainFinder.primary_domain?(host) do
-          {:ok, url} = UrlFormatter.to_https(url)
-          url
-        else
+        case PrimaryDomainFinder.primary_domain?(host) do
+          {:ok, true} ->
+            {:ok, url} = UrlFormatter.to_https(url)
+            url
+
           {:ok, false} ->
             @err_invalid_url
 

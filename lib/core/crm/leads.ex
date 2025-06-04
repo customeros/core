@@ -201,8 +201,10 @@ defmodule Core.Crm.Leads do
   defp fetch_company({:error, reason}), do: {:error, reason}
   defp fetch_company(:not_a_company), do: :not_a_company
 
-  defp extract_company_domain({:ok, %LeadContext{company: company, lead: lead}}),
-    do: {:ok, company.primary_domain, lead}
+  defp extract_company_domain(
+         {:ok, %LeadContext{company: company, lead: lead}}
+       ),
+       do: {:ok, company.primary_domain, lead}
 
   defp extract_company_domain({:error, reason}), do: {:error, reason}
   defp extract_company_domain(:not_a_company), do: :not_a_company

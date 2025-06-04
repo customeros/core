@@ -303,14 +303,25 @@ defmodule Core.WebTracker do
       case Companies.get_or_create_by_domain(domain) do
         {:ok, db_company} ->
           # Try to update session with company ID, but continue even if it fails
-          _ = case Core.WebTracker.Sessions.set_company_id(session_id, db_company.id) do
-            {:ok, _session} ->
-              Logger.info("Updated session #{session_id} with company ID #{db_company.id}")
-              :ok
-            {:error, reason} ->
-              Logger.warning("Failed to update session with company ID: #{inspect(reason)}")
-              :ok
-          end
+          _ =
+            case Core.WebTracker.Sessions.set_company_id(
+                   session_id,
+                   db_company.id
+                 ) do
+              {:ok, _session} ->
+                Logger.info(
+                  "Updated session #{session_id} with company ID #{db_company.id}"
+                )
+
+                :ok
+
+              {:error, reason} ->
+                Logger.warning(
+                  "Failed to update session with company ID: #{inspect(reason)}"
+                )
+
+                :ok
+            end
 
           case Core.Crm.Leads.get_or_create(tenant, %{
                  ref_id: db_company.id,
@@ -322,6 +333,7 @@ defmodule Core.WebTracker do
 
         {:error, reason} ->
           Tracing.error("lead_creation_failed")
+
           Logger.error(
             "Failed to create lead for company #{company.name}: #{inspect(reason)}"
           )
