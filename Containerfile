@@ -3,9 +3,8 @@ ARG OTP_VERSION=26.2.5.12
 ARG DEBIAN_VERSION=bookworm-20250428-slim
 ARG BUILDER_IMAGE="hexpm/elixir:${ELIXIR_VERSION}-erlang-${OTP_VERSION}-debian-${DEBIAN_VERSION}"
 ARG RUNNER_IMAGE="debian:${DEBIAN_VERSION}"
-ARG TARGETPLATFORM=linux/arm64
 
-FROM ${BUILDER_IMAGE} AS builder
+FROM --platform=linux/arm64 ${BUILDER_IMAGE} AS builder
 
 # Install build dependencies
 RUN apt-get update -y && \
@@ -31,12 +30,10 @@ COPY scripts /app/scripts
 WORKDIR /app/scripts
 RUN bun install
 RUN bun build --compile convert_lexical_to_yjs.ts --output convert_lexical_to_yjs
-RUN bun build --compile convert_md_to_lexical.ts --output convert_md_to_lexical
 
 # Create priv/scripts directory and move compiled script
 RUN mkdir -p /app/priv/scripts
 RUN mv convert_lexical_to_yjs /app/priv/scripts/
-RUN mv convert_md_to_lexical /app/priv/scripts/
 
 # Set working directory to Elixir app directory
 WORKDIR /app
@@ -101,21 +98,12 @@ RUN mix release
 #
 # Runner Stage
 #
-FROM ${RUNNER_IMAGE}
+FROM --platform=linux/arm64 ${RUNNER_IMAGE}
 
 # Install runtime dependencies
 RUN apt-get update -y && \
-    apt-get install -y \
-    libstdc++6 \
-    openssl \
-    libncurses5 \
-    locales \
-    ca-certificates \
-    gnupg2 \
-    curl \
-    && apt-get clean \
-    && rm -rf /var/lib/apt/lists/*
-
+  apt-get install -y libstdc++6 openssl libncurses5 locales ca-certificates \
+  && apt-get clean && rm -f /var/lib/apt/lists/*_*
 
 # Set the locale
 RUN sed -i '/en_US.UTF-8/s/^# //g' /etc/locale.gen && locale-gen
