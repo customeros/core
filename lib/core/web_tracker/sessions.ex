@@ -86,6 +86,22 @@ defmodule Core.WebTracker.Sessions do
   end
 
   @doc """
+  Reterns all closed sessions for a lead
+  """
+  def get_all_closed_sessions_by_tenant_and_company(tenant, company_id) do
+    from(s in Session,
+      where:
+        s.tenant == ^tenant and s.company_id == ^company_id and
+          s.active == false
+    )
+    |> Repo.all()
+    |> then(fn
+      [] -> {:error, :not_found}
+      sessions -> {:ok, sessions}
+    end)
+  end
+
+  @doc """
   Updates the last event information (timestamp and type) for a session.
   """
   def update_last_event(%Session{} = session, event_type) do
