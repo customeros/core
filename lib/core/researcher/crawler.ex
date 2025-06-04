@@ -89,7 +89,11 @@ defmodule Core.Researcher.Crawler do
               {:ok, url, depth, content}
 
             {:error, reason} ->
-              Logger.warning("Failed to scrape #{url}: #{reason}")
+              Logger.warning("Failed to scrape",
+                url: url,
+                reason: reason
+              )
+
               {:error, url, reason}
           end
         end)
