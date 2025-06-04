@@ -93,41 +93,41 @@ export const Leads = memo(({ companies }: LeadsProps) => {
       {companies.length === 0 ? (
         <EmptyState />
       ) : (
-        <div className="flex h-full overflow-hidden relative bg-white p-0 transition-[width] duration-300 ease-in-out w-full 2xl:w-[1440px] 2xl:mx-auto md:mt-2 animate-fadeIn">
-          <div className="w-full">
-            <div className="w-full items-center justify-center mb-2 p-1 hidden md:flex max-w-[800px] mx-auto bg-primary-25 rounded-[8px]  ">
-              {stages.map((stage, index) => {
-                const count = companies.filter(c => c.stage === stage.value).length;
-                return (
-                  <div
-                    key={stage.value}
-                    className={cn(
-                      'flex-1 flex items-center justify-center rounded-md bg-primary-100 cursor-pointer hover:bg-primary-200 duration-300',
-                      index > 0 && 'ml-[-10px]',
-                      selectedStage === stage.value && 'bg-primary-200',
-                      count === 0 && 'cursor-not-allowed hover:bg-primary-100'
-                    )}
-                    style={{
-                      height: `${count ? count * 5 : 15}px`,
-                      zIndex: 10 - index,
-                      maxHeight: '100px',
-                      minHeight: '20px',
-                    }}
-                    onClick={() => count > 0 && setSelectedStage(stage.value)}
-                  >
-                    <div className="flex text-center text-primary-700">
-                      <span>
-                        {stage.label}
-                        <span className="mx-1">•</span>
-                      </span>
-                      <span>{count}</span>
+        <div className="flex h-[calc(100vh-64px)] overflow-hidden relative bg-white p-0 transition-[width] duration-300 ease-in-out w-full 2xl:w-[1440px] 2xl:mx-auto animate-fadeIn">
+          <div className="w-full flex">
+            <div className="flex-1 flex flex-col overflow-hidden">
+              <div className="w-full items-center justify-center mb-2 mt-2 p-1 hidden md:flex max-w-[800px] mx-auto bg-primary-25 rounded-[8px]">
+                {stages.map((stage, index) => {
+                  const count = companies.filter(c => c.stage === stage.value).length;
+                  return (
+                    <div
+                      key={stage.value}
+                      className={cn(
+                        'flex-1 flex items-center justify-center rounded-md bg-primary-100 cursor-pointer hover:bg-primary-200 duration-300',
+                        index > 0 && 'ml-[-10px]',
+                        selectedStage === stage.value && 'bg-primary-200',
+                        count === 0 && 'cursor-not-allowed hover:bg-primary-100'
+                      )}
+                      style={{
+                        height: `${count ? count * 5 : 15}px`,
+                        zIndex: 10 - index,
+                        maxHeight: '100px',
+                        minHeight: '20px',
+                      }}
+                      onClick={() => count > 0 && setSelectedStage(stage.value)}
+                    >
+                      <div className="flex text-center text-primary-700">
+                        <span>
+                          {stage.label}
+                          <span className="mx-1">•</span>
+                        </span>
+                        <span>{count}</span>
+                      </div>
                     </div>
-                  </div>
-                );
-              })}
-            </div>
-            <div className="flex-1 flex w-full">
-              <div className="flex-1 overflow-y-auto text-nowrap">
+                  );
+                })}
+              </div>
+              <div className="flex-1 overflow-y-auto border-t">
                 {stages
                   .filter(stage => !selectedStage || stage.value === selectedStage)
                   .map((stage, index) => (
@@ -207,10 +207,10 @@ export const Leads = memo(({ companies }: LeadsProps) => {
                                     {c.industry}
                                   </span>
                                 ) : (
-                                  // <span className=" w-fit px-2 py-1 rounded-[4px] max-w-[100px] truncate border-[1px] border-gray-300">
-                                  //   Industry not found
-                                  // </span>
                                   <></>
+                                  // <span className="w-fit px-2 py-1 rounded-[4px] max-w-[100px] truncate border-[1px] border-gray-300">
+                                  //  Industry not found
+                                  // </span>
                                 )}
                               </p>
 
@@ -233,17 +233,17 @@ export const Leads = memo(({ companies }: LeadsProps) => {
                     </CollapsibleRoot>
                   ))}
               </div>
-              <div
-                className={cn(
-                  'border-l h-[calc(100vh-100px)] flex-shrink-1 transition-all border-t duration-300 ease-in-out',
-                  hasDocParam
-                    ? 'opacity-100 w-[728px] translate-x-[0px]'
-                    : 'opacity-0 w-[0px] translate-x-[728px]',
-                  viewMode === 'focus' && 'w-full border-transparent'
-                )}
-              >
-                <DocumentEditor />
-              </div>
+            </div>
+            <div
+              className={cn(
+                'border-l h-full flex-shrink-0 transition-all duration-300 ease-in-out overflow-y-auto',
+                hasDocParam
+                  ? 'opacity-100 w-[728px] translate-x-[0px]'
+                  : 'opacity-0 w-[0px] translate-x-[728px]',
+                viewMode === 'focus' && 'w-full border-transparent'
+              )}
+            >
+              <DocumentEditor />
             </div>
           </div>
         </div>
