@@ -1,4 +1,4 @@
-defmodule Core.Crm.Companies.Enrichments.Name do
+defmodule Core.Crm.Companies.Enrichment.Name do
   @moduledoc """
   Module for enriching company names using AI analysis.
 
@@ -127,10 +127,6 @@ defmodule Core.Crm.Companies.Enrichments.Name do
       String.length(name) > 100 ->
         {:error, :name_too_long}
 
-      # Check for common invalid patterns
-      String.match?(name, ~r/^(?:the|a|an)\s/i) ->
-        {:error, :invalid_name_prefix}
-
       # Check for names that are just numbers or special characters
       String.match?(name, ~r/^[\d\s\-&.,'()]+$/) ->
         {:error, :invalid_name_format}
@@ -141,10 +137,6 @@ defmodule Core.Crm.Companies.Enrichments.Name do
         ~r/^(?:company|business|enterprise|organization|corporation)$/i
       ) ->
         {:error, :too_generic}
-
-      # Check for names that are just the domain
-      String.match?(name, ~r/^[a-z0-9\-]+\.(?:com|org|net|io|co|ai)$/i) ->
-        {:error, :name_as_domain}
 
       # Name looks valid
       true ->
