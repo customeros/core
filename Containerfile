@@ -113,23 +113,52 @@ RUN apt-get update -y && \
     ca-certificates \
     gnupg2 \
     curl \
+    fontconfig \
+    libxrender1 \
+    libx11-6 \
+    libxext6 \
+    libjpeg62-turbo \
+    libfreetype6 \
+    xfonts-base \
+    xfonts-75dpi \
     && apt-get clean \
     && rm -rf /var/lib/apt/lists/*
 
 # Install wkhtmltopdf based on platform
 RUN if [ "$TARGETPLATFORM" = "linux/arm64" ]; then \
     curl -fsSL https://github.com/wkhtmltopdf/packaging/releases/download/0.12.6-1/wkhtmltox_0.12.6-1.bookworm_arm64.deb -o wkhtmltox.deb && \
-    dpkg -i wkhtmltox.deb || true && \
+    dpkg -i wkhtmltox.deb && \
     apt-get update && \
     apt-get install -f -y && \
-    rm wkhtmltox.deb; \
+    rm wkhtmltox.deb && \
+    ln -sf /usr/local/bin/wkhtmltopdf /usr/bin/wkhtmltopdf && \
+    ln -sf /usr/local/bin/wkhtmltoimage /usr/bin/wkhtmltoimage && \
+    chmod +x /usr/local/bin/wkhtmltopdf && \
+    chmod +x /usr/local/bin/wkhtmltoimage; \
     elif [ "$TARGETPLATFORM" = "linux/amd64" ]; then \
     curl -fsSL https://github.com/wkhtmltopdf/packaging/releases/download/0.12.6-1/wkhtmltox_0.12.6-1.bookworm_amd64.deb -o wkhtmltox.deb && \
-    dpkg -i wkhtmltox.deb || true && \
+    dpkg -i wkhtmltox.deb && \
     apt-get update && \
     apt-get install -f -y && \
-    rm wkhtmltox.deb; \
+    rm wkhtmltox.deb && \
+    ln -sf /usr/local/bin/wkhtmltopdf /usr/bin/wkhtmltopdf && \
+    ln -sf /usr/local/bin/wkhtmltoimage /usr/bin/wkhtmltoimage && \
+    chmod +x /usr/local/bin/wkhtmltopdf && \
+    chmod +x /usr/local/bin/wkhtmltoimage; \
     fi
+
+# Create a non-root user for running the application
+RUN useradd -m -s /bin/bash appuser && \
+    chown -R appuser:appuser /app
+
+# Set environment variables
+ENV PATH="/usr/local/bin:/usr/bin:${PATH}"
+ENV WKHTMLTOPDF_PATH="/usr/bin/wkhtmltopdf"
+
+# Verify wkhtmltopdf installation and permissions
+RUN wkhtmltopdf --version && \
+    wkhtmltoimage --version && \
+    chown -R appuser:appuser /usr/local/bin/wkhtmltopdf /usr/local/bin/wkhtmltoimage /usr/bin/wkhtmltopdf /usr/bin/wkhtmltoimage
 
 # Set the locale
 RUN sed -i '/en_US.UTF-8/s/^# //g' /etc/locale.gen && locale-gen
