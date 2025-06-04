@@ -3,30 +3,29 @@ defmodule Core.WebTracker.StageIdentifier do
 
   def identify(page_visits)
       when is_list(page_visits) and length(page_visits) > 0 do
-    if Enum.all?(page_visits, &match?(%SessionContext{}, &1)) do
-      page_visits
-      |> calculate_session_stage_scores()
-      |> determine_primary_stage()
-    else
-      {:error, :invalid_struct_type}
-    end
+    session_contexts =
+      Enum.map(page_visits, fn {url, summary, intent} ->
+        %SessionContext{url: url, summary: summary, intent: intent}
+      end)
+
+    session_contexts
+    |> calculate_session_stage_scores()
+    |> determine_primary_stage()
   end
 
   def identify(_), do: {:error, :invalid_input}
 
-  defp calculate_session_stage_scores(page_visits) do
+  defp calculate_session_stage_scores(session_contexts) do
     totals =
       Enum.reduce(
-        page_visits,
+        session_contexts,
         %{
           total_problem_recognition: 0,
           total_solution_research: 0,
           total_evaluation: 0,
           total_purchase_readiness: 0
         },
-        fn page, acc ->
-          intent = elem(page, 2)
-
+        fn %SessionContext{intent: intent}, acc ->
           %{
             total_problem_recognition:
               acc.total_problem_recognition + intent.problem_recognition,
@@ -43,7 +42,6 @@ defmodule Core.WebTracker.StageIdentifier do
   end
 
   defp determine_primary_stage({:ok, totals}) do
-    # Order matters - later stages win ties (more advanced in buyer journey)
     stage_scores = [
       {:education, totals.total_problem_recognition},
       {:solution, totals.total_solution_research},
@@ -53,7 +51,6 @@ defmodule Core.WebTracker.StageIdentifier do
 
     {primary_stage, _max_score} =
       stage_scores
-      # Reverse so later stages win ties
       |> Enum.reverse()
       |> Enum.max_by(fn {_stage, score} -> score end)
 
