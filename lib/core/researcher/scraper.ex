@@ -99,7 +99,7 @@ defmodule Core.Researcher.Scraper do
         {:ok, content}
 
       {:error, reason} ->
-        Logger.error("Failed processing scraped content for #{url}")
+        Logger.error("Failed processing scraped content for #{url} | reason: #{inspect(reason)}")
         {:error, reason}
     end
   end
