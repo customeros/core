@@ -10,7 +10,8 @@ defmodule Core.Utils.Errors do
     :unable_to_normalize_domain,
     :no_primary_domain,
     :too_many_redirects,
-    :circular_domain_reference
+    :circular_domain_reference,
+    :suspicious_domain
   ]
   @dns_errors [
     :dns_lookup_failed,
@@ -33,6 +34,7 @@ defmodule Core.Utils.Errors do
           | :no_primary_domain
           | :too_many_redirects
           | :circular_domain_reference
+          | :suspicious_domain
   @type dns_error ::
           :dns_lookup_failed
           | :no_records_found
