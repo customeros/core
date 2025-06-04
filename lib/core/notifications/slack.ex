@@ -303,6 +303,7 @@ defmodule Core.Notifications.Slack do
     custom_metadata =
       metadata
       |> Enum.reject(fn {k, _v} -> k in system_keys end)
+      |> Enum.reject(fn {k, _v} -> k in [:otel_span_id, :otel_trace_flags, :otel_trace_id] end)
       |> Enum.into(%{})
 
     fields = [
@@ -452,6 +453,7 @@ defmodule Core.Notifications.Slack do
     custom_metadata =
       metadata
       |> Enum.reject(fn {k, _v} -> k in system_keys end)
+      |> Enum.reject(fn {k, _v} -> k in [:otel_span_id, :otel_trace_flags, :otel_trace_id] end)
       |> Enum.into(%{})
 
     fields = [
