@@ -38,7 +38,9 @@ defmodule Core.WebTracker.Sessions do
   Sets the company_id for a session by its ID.
   Returns {:ok, session} if updated successfully, {:error, reason} otherwise.
   """
-  @spec set_company_id(String.t(), String.t() | nil) :: {:ok, Session.t()} | {:error, :not_found | :invalid_input | Ecto.Changeset.t()}
+  @spec set_company_id(String.t(), String.t() | nil) ::
+          {:ok, Session.t()}
+          | {:error, :not_found | :invalid_input | Ecto.Changeset.t()}
   def set_company_id(session_id, company_id) when is_binary(session_id) do
     case get_session_by_id(session_id) do
       {:ok, session} ->

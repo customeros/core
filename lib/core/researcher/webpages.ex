@@ -133,23 +133,25 @@ defmodule Core.Researcher.Webpages do
 
   ## Helpers ##
 
-  defp maybe_add_classification(attrs, nil) do
-    attrs
-  end
+  #  TODO uncomment when we have classification
+  #  defp maybe_add_classification(attrs, nil) do
+  #    attrs
+  #  end
+  #
+  #  defp maybe_add_classification(attrs, %Classification{} = classification) do
+  #    classification_attrs = build_classification_attrs(classification)
+  #    Map.merge(attrs, classification_attrs)
+  #  end
 
-  defp maybe_add_classification(attrs, %Classification{} = classification) do
-    classification_attrs = build_classification_attrs(classification)
-    Map.merge(attrs, classification_attrs)
-  end
-
-  defp maybe_add_intent(attrs, nil) do
-    attrs
-  end
-
-  defp maybe_add_intent(attrs, %Intent{} = intent) do
-    intent_attrs = build_intent_attrs(intent)
-    Map.merge(attrs, intent_attrs)
-  end
+  #  TODO uncomment when we have intent
+  #  defp maybe_add_intent(attrs, nil) do
+  #    attrs
+  #  end
+  #
+  #  defp maybe_add_intent(attrs, %Intent{} = intent) do
+  #    intent_attrs = build_intent_attrs(intent)
+  #    Map.merge(attrs, intent_attrs)
+  #  end
 
   defp build_classification_attrs(%Classification{} = classification) do
     content_type_string =

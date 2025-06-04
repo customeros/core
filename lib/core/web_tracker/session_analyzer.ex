@@ -1,7 +1,8 @@
 defmodule Core.WebTracker.SessionAnalyzer do
   @moduledoc """
-
+  Analyzes web sessions to determine lead stage and other attributes.
   """
+
   require Logger
   alias Core.Researcher.Webpages
   alias Core.WebTracker.Events
@@ -51,7 +52,7 @@ defmodule Core.WebTracker.SessionAnalyzer do
     end
   end
 
-  defp determine_lead_stage({:ok, visitor_domain, visited_pages}) do
+  defp determine_lead_stage({:ok, _visitor_domain, visited_pages}) do
     analysis_results =
       Enum.map(visited_pages, fn page ->
         analyze_webpage(page)
@@ -61,13 +62,13 @@ defmodule Core.WebTracker.SessionAnalyzer do
     {:ok, stage}
   end
 
-  defp calculate_stage(analysis) do
-  end
-
   defp determine_lead_stage({:error, :not_found}),
     do: {:error, :session_not_found}
 
   defp determine_lead_stage({:error, reason}), do: {:error, reason}
+
+  defp calculate_stage(_analysis) do
+  end
 
   defp analyze_webpage(url) do
     url
@@ -110,6 +111,6 @@ defmodule Core.WebTracker.SessionAnalyzer do
 
   defp process_webpage_content({:error, reason}), do: {:error, reason}
 
-  defp save_analysis(url) do
+  defp save_analysis(_url) do
   end
 end
