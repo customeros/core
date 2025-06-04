@@ -4,6 +4,7 @@ defmodule Core.WebTracker.SessionAnalyzer do
   """
 
   require Logger
+  alias Core.Researcher.Webpages.Intent
   alias Core.Crm.Leads
   alias Core.Researcher.Webpages.ScrapedWebpage
   alias Core.WebTracker.StageIdentifier
@@ -13,6 +14,9 @@ defmodule Core.WebTracker.SessionAnalyzer do
   alias Core.WebTracker.Sessions
 
   @analysis_timeout 60 * 1000
+
+  @error_intent_analysis_failed {:error,
+                                 "Both classification and intent analysis failed"}
 
   def start(session_id) do
     Task.Supervisor.start_child(
@@ -100,29 +104,72 @@ defmodule Core.WebTracker.SessionAnalyzer do
 
   defp get_webpage_content(url) do
     case Scraper.scrape_webpage(url) do
-      {:ok, content} -> {:ok, url, content}
+      {:ok, _content} -> {:ok, url}
       {:error, reason} -> {:error, reason}
     end
   end
 
-  defp process_webpage_content({:ok, url, content}) do
-    tasks = [
-      Webpages.Classifier.classify_content_supervised(url, content),
-      Webpages.IntentProfiler.profile_intent_supervised(url, content)
-    ]
+  defp process_webpage_content({:ok, url}) do
+    case Webpages.get_by_url(url) do
+      {:ok, content_record} ->
+        if needs_processing?(content_record) do
+          case analyze_content_parallel(url, content_record.content) do
+            {:ok, classification, intent} -> {:ok, url, classification, intent}
+            {:error, reason} -> {:error, reason}
+          end
+        else
+          return_existing(url, content_record)
+        end
 
-    [classification_result, intent_result] =
-      Task.await_many(tasks, @analysis_timeout)
-
-    with {:ok, classification} <- classification_result,
-         {:ok, intent} <- intent_result do
-      {:ok, url, classification, intent}
-    else
-      {:error, result} -> {:error, result}
+      {:error, reason} ->
+        {:error, reason}
     end
   end
 
   defp process_webpage_content({:error, reason}), do: {:error, reason}
+
+  defp return_existing(url, content_record) do
+    intent = %Intent{
+      problem_recognition: content_record.problem_recognition_score,
+      solution_research: content_record.solution_research_score,
+      evaluation: content_record.evaluation_score,
+      purchase_readiness: content_record.purchase_readiness_score
+    }
+
+    {:already_processed, url, content_record.summary, intent}
+  end
+
+  defp needs_processing?(content_record) do
+    content_record.problem_recognition_score == nil ||
+      content_record.solution_research_score == nil ||
+      content_record.evaluation_score == nil ||
+      content_record.purchase_readiness_score == nil
+  end
+
+  defp analyze_content_parallel(url, content) do
+    tasks = [
+      Task.async(fn ->
+        Webpages.Classifier.classify_content_supervised(url, content)
+      end),
+      Task.async(fn ->
+        Webpages.IntentProfiler.profile_intent_supervised(url, content)
+      end)
+    ]
+
+    case Task.await_many(tasks, @analysis_timeout) do
+      [{:ok, classification}, {:ok, intent}] ->
+        {:ok, classification, intent}
+
+      [{:error, reason}, _] ->
+        {:error, reason}
+
+      [_, {:error, reason}] ->
+        {:error, reason}
+
+      _ ->
+        @error_intent_analysis_failed
+    end
+  end
 
   defp save_analysis({:ok, url, classification, intent}) do
     case Webpages.update_classification_and_intent(url, classification, intent) do
@@ -134,6 +181,9 @@ defmodule Core.WebTracker.SessionAnalyzer do
         {:error, reason}
     end
   end
+
+  defp save_analysis({:already_processed, url, summary, intent}),
+    do: {url, summary, intent}
 
   defp save_analysis({:error, reason}), do: {:error, reason}
 end
