@@ -67,6 +67,43 @@ defmodule Web.DocumentController do
     end
   end
 
+  def download_all(conn, %{"tenant_id" => tenant_id}) do
+    case Documents.convert_all_documents_to_pdf(tenant_id) do
+      {:ok, document_pdf_pairs} ->
+        # Create a zip file containing all PDFs
+        zip_filename = "documents_#{tenant_id}.zip"
+        zip_path = Path.join(System.tmp_dir!(), zip_filename)
+
+        :zip.create(
+          zip_path,
+          Enum.map(document_pdf_pairs, fn {doc, pdf} ->
+            {String.to_charlist("#{doc.name}.pdf"), pdf}
+          end)
+        )
+
+        # Send the zip file
+        conn
+        |> put_resp_content_type("application/zip")
+        |> put_resp_header(
+          "content-disposition",
+          "attachment; filename=\"#{zip_filename}\""
+        )
+        |> send_file(200, zip_path)
+        |> after_send(fn _conn ->
+          # Clean up the temporary zip file
+          File.rm(zip_path)
+        end)
+
+      {:error, reason} ->
+        conn
+        |> put_resp_content_type("application/json")
+        |> send_resp(
+          400,
+          Jason.encode!(%{error: "Could not generate PDFs: #{reason}"})
+        )
+    end
+  end
+
   defp handle_create(conn, params) do
     case Documents.create_document(params, parse_dto: true) do
       {:ok, %{document: document}} ->

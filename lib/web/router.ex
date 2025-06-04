@@ -141,6 +141,7 @@ defmodule Web.Router do
          :create
 
     get "/organizations/:organization_id/documents", DocumentController, :index
+    get "/documents/:tenant_id/download-all", DocumentController, :download_all
   end
 
   # Bearer token authenticated API routes

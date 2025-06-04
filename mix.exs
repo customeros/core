@@ -109,7 +109,8 @@ defmodule Core.MixProject do
       {:ex_aws_s3, "~> 2.5"},
       {:sweet_xml, "~> 0.7"},
       {:countriex, "~> 0.4.1"},
-      {:pdf_generator, "~> 0.6.2"}
+      {:pdf_generator, "~> 0.6.2"},
+      {:mogrify, "~> 0.9.3"}
     ]
   end
 
@@ -120,7 +121,12 @@ defmodule Core.MixProject do
       "ecto.setup": ["ecto.create", "ecto.migrate"],
       "ecto.seed": ["run priv/repo/seeds.exs"],
       proto: ["proto.fetch", "proto.gen"],
-      setup: ["deps.get", "wkhtmltopdf.install", "ecto.setup"],
+      setup: [
+        "deps.get",
+        "wkhtmltopdf.install",
+        "ecto.setup",
+        "mogrify.install"
+      ],
       check: ["compile", "format", "credo", "dialyzer"],
       tidy: ["deps.get"],
       "assets.setup": [
