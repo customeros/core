@@ -84,11 +84,6 @@ defmodule Core.Crm.Companies.Enrichment.Location do
           Logger.error("Failed to identify country: #{inspect(reason)}")
           {:error, reason}
 
-        {:error, reason} ->
-          Tracing.error(reason)
-          Logger.error("Failed to identify country: #{inspect(reason)}")
-          {:error, reason}
-
         nil ->
           Task.shutdown(task)
           Tracing.error(:ai_timeout)

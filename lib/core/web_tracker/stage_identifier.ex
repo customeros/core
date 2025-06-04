@@ -1,9 +1,14 @@
 defmodule Core.WebTracker.StageIdentifier do
+  @moduledoc """
+  Provides functions to identify the primary stage of a web session based on page visits and intent analysis.
+
+  This module analyzes a list of page visits, each with associated intent, to determine the user's current stage in the buying or research process. It prioritizes high-purchase-readiness and evaluation stages, and otherwise calculates scores to select the most likely stage.
+  """
+
   alias Core.WebTracker.StageIdentifier.SessionContext
 
   def identify(page_visits)
       when is_list(page_visits) and length(page_visits) > 0 do
-
     session_contexts =
       Enum.map(page_visits, fn {url, summary, intent} ->
         %SessionContext{url: url, summary: summary, intent: intent}
