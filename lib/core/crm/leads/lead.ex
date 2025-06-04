@@ -31,6 +31,7 @@ defmodule Core.Crm.Leads.Lead do
           type: lead_type,
           stage: lead_stage,
           icp_fit: icp_fit,
+          domain: String.t(),
           error_message: String.t(),
           icp_fit_evaluation_attempt_at: DateTime.t(),
           icp_fit_evaluation_attempts: integer(),
@@ -44,6 +45,7 @@ defmodule Core.Crm.Leads.Lead do
     field(:ref_id, :string)
     field(:type, Ecto.Enum, values: [:contact, :company])
     field(:icp_fit, Ecto.Enum, values: [:strong, :moderate])
+    field(:domain, :string)
 
     field(:stage, Ecto.Enum,
       values: [
@@ -76,6 +78,7 @@ defmodule Core.Crm.Leads.Lead do
     :id,
     :stage,
     :icp_fit,
+    :domain,
     :error_message,
     :icp_fit_evaluation_attempt_at,
     :icp_fit_evaluation_attempts

@@ -39,7 +39,7 @@ defmodule Core.Crm.Leads do
     |> fetch_lead()
     |> validate_company_type()
     |> fetch_company()
-    |> extract_domain()
+    |> extract_company_domain()
   end
 
   @spec list_by_tenant_id(tenant_id :: String.t()) ::
@@ -129,6 +129,7 @@ defmodule Core.Crm.Leads do
               tenant_id: tenant.id,
               ref_id: attrs.ref_id,
               type: attrs.type,
+              domain: attrs.domain,
               stage: Map.get(attrs, :stage, :pending)
             })
             |> Repo.insert()
@@ -201,9 +202,9 @@ defmodule Core.Crm.Leads do
   defp fetch_company({:error, reason}), do: {:error, reason}
   defp fetch_company(:not_a_company), do: :not_a_company
 
-  defp extract_domain({:ok, %LeadContext{company: company, lead: lead}}),
+  defp extract_company_domain({:ok, %LeadContext{company: company, lead: lead}}),
     do: {:ok, company.primary_domain, lead}
 
-  defp extract_domain({:error, reason}), do: {:error, reason}
-  defp extract_domain(:not_a_company), do: :not_a_company
+  defp extract_company_domain({:error, reason}), do: {:error, reason}
+  defp extract_company_domain(:not_a_company), do: :not_a_company
 end
