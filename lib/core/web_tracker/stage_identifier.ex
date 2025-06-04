@@ -3,7 +3,6 @@ defmodule Core.WebTracker.StageIdentifier do
 
   def identify(page_visits)
       when is_list(page_visits) and length(page_visits) > 0 do
-    dbg(page_visits)
 
     session_contexts =
       Enum.map(page_visits, fn {url, summary, intent} ->
