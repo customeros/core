@@ -104,11 +104,6 @@ defmodule Core.Crm.Companies.Enrichment.Name do
           Logger.error("Failed to identify name: #{inspect(reason)}")
           {:error, reason}
 
-        {:error, reason} ->
-          Tracing.error(reason)
-          Logger.error("Failed to identify name: #{inspect(reason)}")
-          {:error, reason}
-
         nil ->
           Task.shutdown(task)
           {:error, :ai_timeout}
