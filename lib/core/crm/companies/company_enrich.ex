@@ -399,7 +399,7 @@ defmodule Core.Crm.Companies.CompanyEnrich do
             Tracing.error(reason)
 
             Logger.error(
-              "Rejected name from ai for company",
+              "Rejected company name from AI",
               company_id: company.id,
               company_domain: company.primary_domain,
               reason: reason,

@@ -278,8 +278,8 @@ defmodule Core.WebTracker do
             process_company_info(domain, company, tenant, session_id)
 
           {:error, reason} ->
-            Tracing.error("company_info_fetch_failed")
-            Logger.error("Failed to get company info: #{inspect(reason)}")
+            Tracing.error(reason)
+            Logger.error("Failed to get company info", reason: reason)
         end
       end
     end)
@@ -289,16 +289,18 @@ defmodule Core.WebTracker do
     Logger.warning("Company not found for domain: #{domain}")
   end
 
-  defp process_company_info(domain, company, tenant, session_id) do
+  defp process_company_info(domain, company_ip_intelligence, tenant, session_id) do
     OpenTelemetry.Tracer.with_span "web_tracker.process_company_info" do
       OpenTelemetry.Tracer.set_attributes([
         {"company.domain", domain},
-        {"company.name", company.name},
+        {"company.name", company_ip_intelligence.name},
         {"tenant", tenant},
         {"session.id", session_id}
       ])
 
-      Logger.info("Found company for domain #{domain}: #{company.name}")
+      Logger.info(
+        "Found company for domain #{domain}: #{company_ip_intelligence.name}"
+      )
 
       case Companies.get_or_create_by_domain(domain) do
         {:ok, db_company} ->
@@ -332,12 +334,12 @@ defmodule Core.WebTracker do
           end
 
         {:error, reason} ->
-          Tracing.error("lead_creation_failed")
+          Tracing.error(reason)
 
           Logger.error(
-            "Failed to create lead for company",
+            "Company not created from web-tracker",
             reason: reason,
-            company: company.name,
+            company: company_ip_intelligence.name,
             company_domain: domain
           )
       end
