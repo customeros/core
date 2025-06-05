@@ -8,7 +8,6 @@ defmodule Core.Researcher.Webpages do
   alias Core.Researcher.Webpages.Classification
   alias Core.Researcher.Webpages.Intent
   alias Core.Utils.DomainExtractor
-  alias Core.Utils.Tracing
   import Ecto.Query
 
   ## Insert with ignore on conflict duplicate url ##
