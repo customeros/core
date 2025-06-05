@@ -9,6 +9,7 @@ defmodule Core.WebTracker.IpIdentifier.IpIntelligence do
   import Ecto.Changeset
   import Ecto.Query
 
+  alias Core.Utils.IdGenerator
   alias Core.Repo
 
   @primary_key {:id, :string, autogenerate: false}
@@ -141,4 +142,57 @@ defmodule Core.WebTracker.IpIdentifier.IpIntelligence do
   end
 
   def get_domain_by_ip(_, _), do: {:error, :invalid_arguments}
+
+  @doc """
+  Creates a new IP intelligence record if one doesn't already exist for the given IP.
+
+  ## Parameters
+    - attrs: Map of attributes for the IP intelligence record
+
+  ## Returns
+    - {:ok, record} if the record was created successfully
+    - {:ok, existing_record} if a record already exists for the IP
+    - {:error, changeset} if validation fails
+    - {:error, reason} if there's a database error
+  """
+  @spec create_if_not_exists(map()) ::
+          {:ok, t()} | {:error, Ecto.Changeset.t() | term()}
+  def create_if_not_exists(attrs) when is_map(attrs) do
+    ip = Map.get(attrs, :ip) || Map.get(attrs, "ip")
+
+    case ip do
+      nil ->
+        {:error, :missing_ip}
+
+      ip_address when is_binary(ip_address) ->
+        case get_by_ip(ip_address) do
+          {:ok, nil} ->
+            id = IdGenerator.generate_id_21("ip")
+            attrs_with_id = Map.put(attrs, :id, id)
+
+            %__MODULE__{}
+            |> changeset(attrs_with_id)
+            |> Repo.insert()
+
+          {:ok, existing_record} ->
+            {:ok, existing_record}
+
+          {:error, reason} ->
+            {:error, reason}
+        end
+
+      _ ->
+        {:error, :invalid_ip}
+    end
+  rescue
+    e in Ecto.InvalidChangesetError ->
+      Logger.error("Invalid changeset in create_if_not_exists: #{inspect(e)}")
+      {:error, :invalid_changeset}
+
+    e in Postgrex.Error ->
+      Logger.error("Database error in create_if_not_exists: #{inspect(e)}")
+      {:error, :database_error}
+  end
+
+  def create_if_not_exists(_), do: {:error, :invalid_arguments}
 end
