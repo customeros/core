@@ -42,49 +42,6 @@ defmodule Web.DocumentController do
     |> send_resp(200, json_response)
   end
 
-  # def download(conn, %{"id" => id}) do
-  #   case Documents.get_document(id) do
-  #     {:ok, doc} ->
-  #       case Documents.convert_to_pdf(doc) do
-  #         {:ok, pdf} ->
-  #           conn
-  #           |> put_resp_content_type("application/pdf")
-  #           |> put_resp_header(
-  #             "content-disposition",
-  #             "attachment; filename=\"#{doc.name}.pdf\""
-  #           )
-  #           |> send_resp(200, pdf)
-
-  #         {:error, _} ->
-  #           conn
-  #           |> put_resp_content_type("application/json")
-  #           |> send_resp(400, Jason.encode!(%{error: "Could not generate PDF"}))
-  #       end
-
-  #     {:error, _} ->
-  #       conn
-  #       |> put_resp_content_type("application/json")
-  #       |> send_resp(404, Jason.encode!(%{error: "Document not found"}))
-  #   end
-  # end
-
-  # def save_all_documents_to_zip(tenant_id, target_path) do
-  #   case Documents.convert_all_documents_to_pdf(tenant_id) do
-  #     {:ok, document_pdf_pairs} ->
-  #       :zip.create(
-  #         target_path,
-  #         Enum.map(document_pdf_pairs, fn {doc, pdf} ->
-  #           {String.to_charlist("#{doc.name}.pdf"), pdf}
-  #         end)
-  #       )
-
-  #       {:ok, target_path}
-
-  #     error ->
-  #       error
-  #   end
-  # end
-
   defp handle_create(conn, params) do
     case Documents.create_document(params, parse_dto: true) do
       {:ok, %{document: document}} ->
