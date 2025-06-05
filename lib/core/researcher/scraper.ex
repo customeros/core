@@ -332,7 +332,7 @@ defmodule Core.Researcher.Scraper do
       {:error, :too_many_redirects}
     else
       case Finch.build(:get, url) |> Finch.request(Core.Finch) do
-        {:ok, %Finch.Response{headers: headers, status: status, body: body}} ->
+        {:ok, %Finch.Response{headers: headers, status: status, body: _body}} ->
           content_type =
             Enum.find_value(headers, fn
               {"content-type", ct} -> ct
