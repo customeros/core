@@ -86,7 +86,7 @@ defmodule Core.Crm.Companies.CompanyEnrich do
            :ok <- validate_scrape_eligibility(company),
            :ok <- mark_scrape_attempt(company_id),
            {:ok, content} <- scrape_company_homepage(company),
-           :ok <- update_homepage_content(company_id, content) do
+           :ok <- set_homepage_scraped(company_id, content) do
         trigger_enrichment_tasks(company_id)
         :ok
       else
@@ -161,10 +161,10 @@ defmodule Core.Crm.Companies.CompanyEnrich do
     end
   end
 
-  defp update_homepage_content(company_id, content) do
+  defp set_homepage_scraped(company_id, content) do
     case Repo.update_all(
            from(c in Company, where: c.id == ^company_id),
-           set: [homepage_content: content]
+           set: [homepage_content: content, homepage_scraped: true]
          ) do
       {0, _} ->
         Logger.error("Failed to update homepage for company #{company_id}")
@@ -262,31 +262,37 @@ defmodule Core.Crm.Companies.CompanyEnrich do
   end
 
   defp get_industry_from_ai(company) do
-    case Enrichment.Industry.identify(%{
-           domain: company.primary_domain,
-           homepage_content: company.homepage_content
-         }) do
-      {:ok, industry_code} ->
-        OpenTelemetry.Tracer.set_attributes([
-          {"ai.industry.code", industry_code}
-        ])
+    case get_homepage_content(company.primary_domain) do
+      {:ok, homepage_content} ->
+        case Enrichment.Industry.identify(%{
+               domain: company.primary_domain,
+               homepage_content: homepage_content
+             }) do
+          {:ok, industry_code} ->
+            OpenTelemetry.Tracer.set_attributes([
+              {"ai.industry.code", industry_code}
+            ])
 
-        {:ok, industry_code}
+            {:ok, industry_code}
 
-      {:error, {:invalid_request, reason}} ->
-        Logger.error(
-          "Invalid request for industry enrichment for company #{company.id}: #{inspect(reason)}"
-        )
+          {:error, {:invalid_request, reason}} ->
+            Logger.error(
+              "Invalid request for industry enrichment for company #{company.id}: #{inspect(reason)}"
+            )
 
-        Tracing.error(:invalid_request)
-        {:error, :invalid_request}
+            Tracing.error(:invalid_request)
+            {:error, :invalid_request}
+
+          {:error, reason} ->
+            Logger.error(
+              "Failed to get industry code from AI for company #{company.id}: #{inspect(reason)}"
+            )
+
+            Tracing.error(reason)
+            {:error, reason}
+        end
 
       {:error, reason} ->
-        Logger.error(
-          "Failed to get industry code from AI for company #{company.id}: #{inspect(reason)}"
-        )
-
-        Tracing.error(reason)
         {:error, reason}
     end
   end
@@ -379,30 +385,40 @@ defmodule Core.Crm.Companies.CompanyEnrich do
   end
 
   defp get_name_from_ai(company) do
-    case Enrichment.Name.identify(%{
-           domain: company.primary_domain,
-           homepage_content: company.homepage_content
-         }) do
-      {:ok, name} ->
-        OpenTelemetry.Tracer.set_attributes([{"ai.name", name}])
-        {:ok, name}
+    case get_homepage_content(company.primary_domain) do
+      {:ok, homepage_content} ->
+        case Enrichment.Name.identify(%{
+               domain: company.primary_domain,
+               homepage_content: homepage_content
+             }) do
+          {:ok, name} ->
+            OpenTelemetry.Tracer.set_attributes([{"ai.name", name}])
+            {:ok, name}
 
-      {:error, reason, name} ->
-        Tracing.error(reason)
+          {:error, reason, name} ->
+            Tracing.error(reason)
 
-        Logger.error(
-          "Rejected name #{name} for company #{company.id}, (domain: #{company.primary_domain}): #{inspect(reason)}"
-        )
+            Logger.error(
+              "Rejected name from ai for company",
+              company_id: company.id,
+              domain: company.primary_domain,
+              reason: reason,
+              name: name
+            )
 
-        {:error, reason}
+            {:error, reason}
+
+          {:error, reason} ->
+            Tracing.error(reason)
+
+            Logger.error(
+              "Failed to get name from AI for company #{company.id}, (domain: #{company.primary_domain}): #{inspect(reason)}"
+            )
+
+            {:error, reason}
+        end
 
       {:error, reason} ->
-        Tracing.error(reason)
-
-        Logger.error(
-          "Failed to get name from AI for company #{company.id}, (domain: #{company.primary_domain}): #{inspect(reason)}"
-        )
-
         {:error, reason}
     end
   end
@@ -479,27 +495,33 @@ defmodule Core.Crm.Companies.CompanyEnrich do
   end
 
   defp get_country_from_ai(company) do
-    case Enrichment.Location.identify_country_code_a2(%{
-           domain: company.primary_domain,
-           homepage_content: company.homepage_content
-         }) do
-      {:ok, "XX"} ->
-        OpenTelemetry.Tracer.set_attributes([{"ai.country_code_a2", "XX"}])
-        {:ok, :skip_update}
+    case get_homepage_content(company.primary_domain) do
+      {:ok, homepage_content} ->
+        case Enrichment.Location.identify_country_code_a2(%{
+               domain: company.primary_domain,
+               homepage_content: homepage_content
+             }) do
+          {:ok, "XX"} ->
+            OpenTelemetry.Tracer.set_attributes([{"ai.country_code_a2", "XX"}])
+            {:ok, :skip_update}
 
-      {:ok, country_code_a2} ->
-        OpenTelemetry.Tracer.set_attributes([
-          {"ai.country_code_a2", country_code_a2}
-        ])
+          {:ok, country_code_a2} ->
+            OpenTelemetry.Tracer.set_attributes([
+              {"ai.country_code_a2", country_code_a2}
+            ])
 
-        {:ok, String.upcase(country_code_a2)}
+            {:ok, String.upcase(country_code_a2)}
+
+          {:error, reason} ->
+            Logger.error(
+              "Failed to get country code from AI for company #{company.id}: #{inspect(reason)}"
+            )
+
+            Tracing.error(reason)
+            {:error, reason}
+        end
 
       {:error, reason} ->
-        Logger.error(
-          "Failed to get country code from AI for company #{company.id}: #{inspect(reason)}"
-        )
-
-        Tracing.error(reason)
         {:error, reason}
     end
   end
@@ -792,6 +814,9 @@ defmodule Core.Crm.Companies.CompanyEnrich do
       ])
 
       cond do
+        company.homepage_scraped == true ->
+          false
+
         is_binary(company.homepage_content) and
             String.length(company.homepage_content) > 0 ->
           false
@@ -806,4 +831,17 @@ defmodule Core.Crm.Companies.CompanyEnrich do
   end
 
   defp should_scrape_homepage?(_), do: false
+
+  defp get_homepage_content(domain) do
+    {:ok, url} = Core.Utils.UrlFormatter.to_https(domain)
+
+    case Core.Researcher.Webpages.get_by_url(url) do
+      {:ok, webpage} ->
+        {:ok, webpage.content}
+
+      {:error, :not_found} ->
+        Logger.error("No homepage content found for company", domain: domain)
+        {:error, :not_found}
+    end
+  end
 end

@@ -92,7 +92,7 @@ defmodule Core.Researcher.Scraper do
          {:ok, base_url} <- UrlFormatter.get_base_url(url),
          {:ok, clean_url} <- UrlFormatter.to_https(base_url),
          {:ok, content_type} <- fetch_content_type(clean_url),
-         {:ok, true} <- is_webpage_content_type(content_type) do
+         {:ok, true} <- webpage_content_type?(content_type) do
       clean_url
     else
       {:ok, false} ->
@@ -373,7 +373,7 @@ defmodule Core.Researcher.Scraper do
     end
   end
 
-  defp is_webpage_content_type(content_type) do
+  defp webpage_content_type?(content_type) do
     # Allow only HTML and similar web content
     if String.starts_with?(content_type, "text/html") do
       {:ok, true}

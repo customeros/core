@@ -49,6 +49,7 @@ defmodule Core.Crm.Companies.Company do
     # Scraped content
     # home page
     field(:homepage_content, :string)
+    field(:homepage_scraped, :boolean, default: false)
 
     timestamps(type: :utc_datetime)
   end
@@ -78,6 +79,7 @@ defmodule Core.Crm.Companies.Company do
           linkedin_alias: String.t() | nil,
           # Scraped content
           homepage_content: String.t() | nil,
+          homepage_scraped: boolean(),
           inserted_at: DateTime.t(),
           updated_at: DateTime.t()
         }
@@ -106,7 +108,8 @@ defmodule Core.Crm.Companies.Company do
       :icon_enrichment_attempts,
       :linkedin_id,
       :linkedin_alias,
-      :homepage_content
+      :homepage_content,
+      :homepage_scraped
     ])
     |> validate_required([:id, :primary_domain])
     |> validate_format(:id, @id_regex)

@@ -36,6 +36,7 @@ config :logger, :console,
     :url,
     :session_id,
     :message,
+    :name,
     :company,
     :company_id
   ]

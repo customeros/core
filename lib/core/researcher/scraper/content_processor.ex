@@ -91,7 +91,12 @@ defmodule Core.Researcher.Scraper.ContentProcessor do
 
         {:exit, reason} ->
           Tracing.error(reason)
-          Logger.error("Webpage summarization crashed", url: url, reason: reason)
+
+          Logger.error("Webpage summarization crashed",
+            url: url,
+            reason: reason
+          )
+
           @err_summary_crashed
 
         nil ->
