@@ -85,7 +85,6 @@ defmodule Core.Researcher.Scraper do
     end
   end
 
-
   def validate_url(url) do
     with {:ok, true} <- Filter.should_scrape?(url),
          {:ok, host} <- DomainExtractor.extract_base_domain(url),
@@ -298,32 +297,27 @@ defmodule Core.Researcher.Scraper do
      }}
   end
 
-  defp validate_content(content) do
+  @unprocessable_indicators [
+    "403",
+    "Forbidden",
+    "Robot Challenge",
+    "Attention Required! | Cloudflare",
+    "Why have I been blocked?",
+    "Privacy error",
+    "SSL error"
+  ]
+
+  @no_content_indicators [
+    "no content"
+  ]
+
+  defp validate_content(""), do: @err_no_content
+
+  defp validate_content(content) when is_binary(content) do
     cond do
-      content == "" ->
-        @err_no_content
-
-      String.contains?(content, "403") and
-          String.contains?(content, "Forbidden") ->
-        @err_unprocessable
-
-      String.contains?(content, "Robot Challenge") ->
-        @err_unprocessable
-
-      String.contains?(content, "no content") ->
-        @err_no_content
-
-      String.contains?(content, "Attention Required! | Cloudflare") ->
-        @err_unprocessable
-
-      String.contains?(content, "Why have I been blocked?") ->
-        @err_unprocessable
-
-      String.contains?(content, "Privacy error") ->
-        @err_unprocessable
-
-      true ->
-        {:ok, content}
+      contains_any?(content, @no_content_indicators) -> @err_no_content
+      contains_any?(content, @unprocessable_indicators) -> @err_unprocessable
+      true -> {:ok, content}
     end
   end
 
@@ -362,8 +356,8 @@ defmodule Core.Researcher.Scraper do
               {:error, :no_content_type}
 
             String.contains?(content_type, "text/html") and
-            not is_nil(disposition) and
-            Regex.match?(~r/attachment/i, disposition) ->
+              not is_nil(disposition) and
+                Regex.match?(~r/attachment/i, disposition) ->
               {:error, :html_download_redirect}
 
             true ->
@@ -386,5 +380,9 @@ defmodule Core.Researcher.Scraper do
     else
       {:ok, false}
     end
+  end
+
+  defp contains_any?(content, indicators) do
+    Enum.any?(indicators, &String.contains?(content, &1))
   end
 end
