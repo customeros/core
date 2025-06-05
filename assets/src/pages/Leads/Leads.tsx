@@ -114,9 +114,10 @@ export const Leads = memo(({ companies }: LeadsProps) => {
                         maxHeight: '100px',
                         minHeight: '20px',
                       }}
-                      onClick={(e) => {
+                      onClick={e => {
                         e.stopPropagation();
-                        count > 0 && setSelectedStage(prev => prev === stage.value ? '' : stage.value);
+                        count > 0 &&
+                          setSelectedStage(prev => (prev === stage.value ? '' : stage.value));
                       }}
                     >
                       <div className="flex text-center text-primary-700 select-none">
@@ -241,7 +242,7 @@ export const Leads = memo(({ companies }: LeadsProps) => {
               className={cn(
                 'border-l h-full flex-shrink-0 transition-all duration-300 ease-in-out overflow-y-auto',
                 hasDocParam
-                  ? 'opacity-100 w-[728px] translate-x-[0px]'
+                  ? 'opacity-100 w-full md:w-[728px] translate-x-[0px]'
                   : 'opacity-0 w-[0px] translate-x-[728px]',
                 viewMode === 'focus' && 'w-full border-transparent'
               )}

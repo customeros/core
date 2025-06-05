@@ -235,7 +235,7 @@ export default function ToolbarPlugin(): React.ReactNode {
         size="xs"
         variant="ghost"
         aria-label="Format text as an bullet list"
-        icon={<Icon name="list-bulleted" className="text-inherit" />}
+        icon={<Icon name="list-bulleted" />}
         className={clsx('rounded-sm', {
           [activeStyle]: isUnorderedList,
         })}
