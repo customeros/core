@@ -311,13 +311,50 @@ defmodule Core.Researcher.Scraper do
     "no content"
   ]
 
-  defp validate_content(""), do: @err_no_content
+  def validate_content(""), do: @err_no_content
 
-  defp validate_content(content) when is_binary(content) do
-    cond do
-      contains_any?(content, @no_content_indicators) -> @err_no_content
-      contains_any?(content, @unprocessable_indicators) -> @err_unprocessable
-      true -> {:ok, content}
+  def validate_content(content) when is_binary(content) do
+    OpenTelemetry.Tracer.with_span "scraper.validate_content" do
+      cond do
+        contains_any?(content, @no_content_indicators) ->
+          @err_no_content
+
+        contains_any?(content, @unprocessable_indicators) ->
+          indicator =
+            Enum.find(@unprocessable_indicators, &String.contains?(content, &1))
+
+          indicator_pos =
+            String.length(content) -
+              String.length(
+                String.replace(content, indicator, "", global: false)
+              )
+
+          start_pos = max(0, indicator_pos - 50)
+
+          end_pos =
+            min(
+              String.length(content),
+              indicator_pos + String.length(indicator) + 50
+            )
+
+          context = String.slice(content, start_pos, end_pos - start_pos)
+          context = if start_pos > 0, do: "..." <> context, else: context
+
+          context =
+            if end_pos < String.length(content),
+              do: context <> "...",
+              else: context
+
+          OpenTelemetry.Tracer.set_attributes([
+            {"content.context", context},
+            {"content.indicator", indicator}
+          ])
+
+          @err_unprocessable
+
+        true ->
+          {:ok, content}
+      end
     end
   end
 
