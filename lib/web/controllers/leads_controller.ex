@@ -31,6 +31,8 @@ defmodule Web.LeadsController do
     %{tenant_id: tenant_id} = conn.assigns.current_user
     companies = Leads.list_view_by_tenant_id(tenant_id)
 
+    base_url = "#{conn.scheme}://#{get_req_header(conn, "host")}"
+
     # Generate CSV content
     csv_content =
       companies
@@ -42,7 +44,12 @@ defmodule Web.LeadsController do
           "Domain" => company.domain,
           "Industry" => company.industry,
           "Stage" => company.stage,
-          "ICP Fit" => company.icp_fit
+          "ICP Fit" => company.icp_fit,
+          "Company Report" =>
+            case company.document_id do
+              nil -> nil
+              _ -> "#{base_url}/documents/#{company.document_id}"
+            end
         }
       end)
       |> CSV.encode(
@@ -53,7 +60,8 @@ defmodule Web.LeadsController do
           "Domain",
           "Industry",
           "Stage",
-          "ICP Fit"
+          "ICP Fit",
+          "Company Report"
         ]
       )
       |> Enum.to_list()
