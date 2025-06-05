@@ -73,22 +73,22 @@ export const DocumentEditor = () => {
     <>
       <ScrollAreaRoot>
         <ScrollAreaViewport>
-          <div className="relative w-full h-full bg-white px-6">
+          <div className="relative w-full h-full bg-white px-4 md:px-6">
             <div className="relative bg-white h-full mx-auto pt-[2px] w-full md:min-w-[680px] max-w-[680px]">
-              <div className="flex items-center justify-between mt-[1px]">
+              <div className="flex items-center justify-between  sticky top-0 bg-white z-10 py-2">
                 {currentLead && (
-                  <div className="flex items-center w-full justify-start  mb-3 gap-2">
+                  <div className="flex items-center w-full justify-start gap-2 min-w-0">
                     <img
                       className="size-6 object-contain border border-gray-200 rounded flex-shrink-0"
                       loading="lazy"
                       src={currentLead?.icon}
                       alt="Lead icon"
                     />
-                    <p className="text-sm font-medium text-gray-900">
+                    <p className="text-sm font-medium text-gray-900 truncate">
                       {currentLead?.name} Account Brief
                     </p>
                     {currentLead?.icp_fit === 'strong' && (
-                      <div className="bg-error-100 w-fit px-2 py-1 rounded-[4px] max-w-[100px] truncate flex items-center gap-1">
+                      <div className="bg-error-100 w-fit px-2 py-1 rounded-[4px] max-w-[100px] truncate flex items-center gap-1 flex-shrink-0">
                         <Icon name="flame" className="w-[14px] h-[14px] text-error-500" />
                         <span className="text-error-700 text-xs">Strong fit</span>
                       </div>

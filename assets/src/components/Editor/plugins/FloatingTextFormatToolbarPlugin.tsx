@@ -62,17 +62,18 @@ export function FloatingMenu({ editor }: FloatingMenuComponentProps) {
       if ($isRangeSelection(selection)) {
         if (isLink) {
           $toggleLink(null);
-          setIsLink(false);
         } else {
           $toggleLink('https://');
-          // Force a re-render to ensure the link editor is shown
-          editor.dispatchCommand(SELECTION_CHANGE_COMMAND, undefined);
-          // Set isLink to true to trigger the link editor
-          setIsLink(true);
+          setTimeout(() => {
+            const input = document.querySelector('#container-link-input input');
+            if (input) {
+              (input as HTMLInputElement).focus();
+            }
+          }, 100);
         }
       }
     });
-  }, [editor, isLink]);
+  }, [editor]);
 
   const toggleBlockquote = useCallback(() => {
     editor.update(() => {
@@ -237,7 +238,15 @@ export function FloatingMenu({ editor }: FloatingMenuComponentProps) {
             active={isOrderedList}
             onClick={toggleOrderedList}
             aria-label="Format text as an ordered list"
-            icon={<Icon name="list-numbered" className="text-gray-100" />}
+            icon={
+              <Icon
+                name="list-numbered"
+                className="text-gray-100"
+                fillRule="evenodd"
+                clipRule="evenodd"
+                strokeWidth={1.5}
+              />
+            }
           />
         </div>
         {/*<div>*/}

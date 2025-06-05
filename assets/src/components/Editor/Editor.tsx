@@ -47,6 +47,7 @@ import { YjsUndoPlugin } from './plugins/YjsUndoPlugin';
 import FloatingLinkEditorPlugin from './plugins/FloatingLinkEditorPlugin';
 import { FloatingMenuPlugin } from './plugins/FloatingTextFormatToolbarPlugin';
 import clsx from 'clsx';
+import { LinkPastePlugin } from './plugins/PastePlugin.tsx';
 
 const theme: EditorThemeClasses = {
   paragraph: 'my-3',
@@ -325,7 +326,7 @@ export const Editor = forwardRef<LexicalEditor | null, EditorProps>(
           )}
           <TabIndentationPlugin />
 
-          <CopyPastePlugin />
+          <LinkPastePlugin />
 
           {variableOptions?.length > 0 && <VariablePlugin options={variableOptions} />}
 
