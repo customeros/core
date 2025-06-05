@@ -66,15 +66,17 @@ defmodule Web.Router do
     plug :authenticate_user_flexible
   end
 
-  pipeline :graphql do
-    plug Web.Plugs.ValidateHeaders
-  end
-
   # Health check endpoint
   scope "/", Web do
     pipe_through :public_api
 
     get "/health", HealthController, :index
+  end
+
+  scope "/", Web do
+    pipe_through :browser
+
+    get "/documents/:id", DocumentController, :index
   end
 
   # Signin routes (unprotected)

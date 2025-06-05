@@ -30,10 +30,12 @@ COPY scripts /app/scripts
 WORKDIR /app/scripts
 RUN bun install
 RUN bun build --compile convert_lexical_to_yjs.ts --output convert_lexical_to_yjs
+RUN bun build --compile convert_markdown_to_lexical.ts --output convert_markdown_to_lexical
 
 # Create priv/scripts directory and move compiled script
 RUN mkdir -p /app/priv/scripts
 RUN mv convert_lexical_to_yjs /app/priv/scripts/
+RUN mv convert_markdown_to_lexical /app/priv/scripts/
 
 # Set working directory to Elixir app directory
 WORKDIR /app

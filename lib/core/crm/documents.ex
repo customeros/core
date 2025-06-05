@@ -68,6 +68,14 @@ defmodule Core.Crm.Documents do
     |> Repo.all()
   end
 
+  def get_ref_by_document_id(document_id) do
+    from(rd in RefDocument,
+      where: rd.document_id == ^document_id,
+      select: rd
+    )
+    |> Repo.one()
+  end
+
   def list_all_by_tenant(tenant_id) do
     query =
       from d in Document,

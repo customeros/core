@@ -25,6 +25,14 @@ defmodule Core.Crm.Leads do
     end
   end
 
+  @spec get_by_id(String.t()) :: {:ok, Lead.t()} | {:error, :not_found}
+  def get_by_id(id) do
+    case Repo.get_by(Lead, id: id) do
+      nil -> {:error, :not_found}
+      %Lead{} = lead -> {:ok, lead}
+    end
+  end
+
   @spec get_by_id(String.t(), String.t()) ::
           {:ok, Lead.t()} | {:error, :not_found}
   def get_by_id(tenant_id, lead_id) do
@@ -60,6 +68,39 @@ defmodule Core.Crm.Leads do
     end
   end
 
+  @spec query_leads_view(Ecto.Query.dynamic()) :: Ecto.Query.t()
+  defp query_leads_view(where_clause) do
+    latest_doc =
+      from rd in "refs_documents",
+        group_by: rd.ref_id,
+        select: %{
+          ref_id: rd.ref_id,
+          document_id: max(rd.document_id)
+        }
+
+    from(l in Lead,
+      where: ^where_clause,
+      join: c in Company,
+      on: c.id == l.ref_id,
+      left_join: rd in subquery(latest_doc),
+      on: rd.ref_id == l.id,
+      order_by: [desc: l.inserted_at],
+      select: %{
+        id: l.id,
+        ref_id: l.ref_id,
+        icp_fit: l.icp_fit,
+        type: l.type,
+        stage: l.stage,
+        name: c.name,
+        industry: c.industry,
+        domain: c.primary_domain,
+        country: c.country_a2,
+        icon_key: c.icon_key,
+        document_id: rd.document_id
+      }
+    )
+  end
+
   @spec list_view_by_tenant_id(tenant_id :: String.t()) :: [LeadView.t()]
   def list_view_by_tenant_id(tenant_id) do
     OpenTelemetry.Tracer.with_span "core.crm.leads:list_view_by_tenant_id" do
@@ -67,39 +108,11 @@ defmodule Core.Crm.Leads do
         {"tenant.id", tenant_id}
       ])
 
-      # Subquery to get the most recent document for each ref_id
-      latest_doc =
-        from rd in "refs_documents",
-          group_by: rd.ref_id,
-          select: %{
-            ref_id: rd.ref_id,
-            document_id: max(rd.document_id)
-          }
-
-      from(l in Lead,
-        where: l.tenant_id == ^tenant_id and l.type == :company,
-        join: c in Company,
-        on: c.id == l.ref_id,
-        left_join: rd in subquery(latest_doc),
-        on: rd.ref_id == l.id,
-        order_by: [desc: l.inserted_at],
-        select: %{
-          id: l.id,
-          ref_id: l.ref_id,
-          icp_fit: l.icp_fit,
-          type: l.type,
-          stage: l.stage,
-          name: c.name,
-          industry: c.industry,
-          domain: c.primary_domain,
-          country: c.country_a2,
-          icon_key: c.icon_key,
-          document_id: rd.document_id
-        }
+      query_leads_view(
+        dynamic([l], l.tenant_id == ^tenant_id and l.type == :company)
       )
       |> Repo.all()
       |> Enum.map(fn lead_data ->
-        # Generate CDN URL for icon if icon_key exists
         icon = Images.get_cdn_url(lead_data.icon_key)
 
         country_name =
@@ -119,6 +132,35 @@ defmodule Core.Crm.Leads do
           |> Map.put(:country_name, country_name)
         )
       end)
+    end
+  end
+
+  @spec get_view_by_id(String.t()) :: {:ok, LeadView.t()} | {:error, :not_found}
+  def get_view_by_id(id) do
+    query_leads_view(dynamic([l], l.id == ^id))
+    |> Repo.one()
+    |> case do
+      nil ->
+        {:error, :not_found}
+
+      lead_data ->
+        icon = Images.get_cdn_url(lead_data.icon_key)
+
+        country_name =
+          if lead_data.country do
+            case Countriex.get_by(:alpha2, lead_data.country) do
+              %{name: name} -> name
+              _ -> nil
+            end
+          else
+            nil
+          end
+
+        {:ok,
+         LeadView
+         |> struct(lead_data)
+         |> Map.put(:icon, icon)
+         |> Map.put(:country_name, country_name)}
     end
   end
 

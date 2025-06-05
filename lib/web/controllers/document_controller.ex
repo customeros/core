@@ -25,21 +25,29 @@ defmodule Web.DocumentController do
     |> send_resp(400, Jason.encode!(%{error: "Invalid request body"}))
   end
 
-  def index(conn, %{"refId" => ref_id}) do
-    tenant_id = get_req_header(conn, "x-tenant") |> List.first()
-    documents = Documents.list_by_ref(ref_id, tenant_id)
+  def index(conn, %{"id" => id}) do
+    case Documents.get_document(id) do
+      {:ok, document} ->
+        ref_id = Documents.get_ref_by_document_id(id) |> Map.get(:ref_id)
 
-    json_response =
-      documents
-      |> Enum.map(fn doc ->
-        if is_struct(doc), do: Map.from_struct(doc), else: doc
-      end)
-      |> Enum.map(&Core.Utils.MapUtils.to_camel_case_map/1)
-      |> Jason.encode!()
+        case Core.Crm.Leads.get_view_by_id(ref_id) do
+          {:ok, lead} ->
+            conn
+            |> assign_prop(:document, document)
+            |> assign_prop(:lead, lead)
+            |> render_inertia("Document")
 
-    conn
-    |> put_resp_content_type("application/json")
-    |> send_resp(200, json_response)
+          {:error, :not_found} ->
+            conn
+            |> put_resp_content_type("application/json")
+            |> send_resp(404, Jason.encode!(%{error: "Lead not found"}))
+        end
+
+      {:error, _} ->
+        conn
+        |> put_resp_content_type("application/json")
+        |> send_resp(404, Jason.encode!(%{error: "Document not found"}))
+    end
   end
 
   defp handle_create(conn, params) do
