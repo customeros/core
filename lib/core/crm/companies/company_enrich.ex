@@ -137,17 +137,27 @@ defmodule Core.Crm.Companies.CompanyEnrich do
   end
 
   defp scrape_company_homepage(company) do
-    case Scraper.scrape_webpage(company.primary_domain) do
-      {:ok, result} ->
-        {:ok, result.content}
+    OpenTelemetry.Tracer.with_span "company_enrich.scrape_company_homepage" do
+      OpenTelemetry.Tracer.set_attributes([
+        {"company.id", company.id},
+        {"company.domain", company.primary_domain}
+      ])
 
-      {:error, reason} ->
-        Logger.error(
-          "Failed to scrape homepage for company #{company.id} (domain: #{company.primary_domain}): #{inspect(reason)}"
-        )
+      case Scraper.scrape_webpage(company.primary_domain) do
+        {:ok, result} ->
+          {:ok, result.content}
 
-        Tracing.error(reason)
-        {:error, reason}
+        {:error, reason} ->
+          Logger.error(
+            "Failed to scrape homepage for company #{company.id}",
+            company_id: company.id,
+            domain: company.primary_domain,
+            reason: reason
+          )
+
+          Tracing.error(reason)
+          {:error, reason}
+      end
     end
   end
 
