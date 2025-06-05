@@ -51,7 +51,7 @@ defmodule Core.Researcher.Crawler do
           Tracing.error(reason)
 
           Logger.error("Failed to extract base domain",
-            domain: domain,
+            url: domain,
             reason: reason
           )
 

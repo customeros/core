@@ -338,7 +338,7 @@ defmodule Core.WebTracker do
             "Failed to create lead for company",
             reason: reason,
             company: company.name,
-            domain: domain
+            company_domain: domain
           )
       end
     end

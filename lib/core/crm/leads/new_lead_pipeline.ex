@@ -96,7 +96,7 @@ defmodule Core.Crm.Leads.NewLeadPipeline do
 
       Logger.info("Analyzing ICP fit",
         lead_id: lead.id,
-        domain: domain,
+        url: domain,
         tenant_id: lead.tenant_id
       )
 
@@ -119,7 +119,7 @@ defmodule Core.Crm.Leads.NewLeadPipeline do
           Logger.error("ICP evaluation failed",
             tenant_id: lead.tenant_id,
             lead_id: lead.id,
-            domain: domain,
+            url: domain,
             reason: reason
           )
 
@@ -148,7 +148,7 @@ defmodule Core.Crm.Leads.NewLeadPipeline do
 
       Logger.info("Writing Account Brief",
         lead_id: lead.id,
-        domain: domain,
+        url: domain,
         tenant_id: lead.tenant_id,
         icp_fit: fit
       )
@@ -163,7 +163,7 @@ defmodule Core.Crm.Leads.NewLeadPipeline do
           Logger.error("Account brief creation failed",
             tenant_id: lead.tenant_id,
             lead_id: lead.id,
-            domain: domain,
+            url: domain,
             reason: reason
           )
 
