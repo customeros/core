@@ -168,8 +168,7 @@ defmodule Core.Researcher.Webpages do
   end
 
   @spec get_business_pages_by_domain(String.t(), keyword()) ::
-          {:ok, [ScrapedWebpage.t()]} | {:error, :not_found}
-
+          {:ok, [ScrapedWebpage.t()]} | {:error, :no_business_pages_found}
   def get_business_pages_by_domain(domain, opts \\ []) do
     OpenTelemetry.Tracer.with_span "scraped_webpages.get_business_pages_by_domain" do
       OpenTelemetry.Tracer.set_attributes([
@@ -190,10 +189,18 @@ defmodule Core.Researcher.Webpages do
            |> maybe_limit(limit)
            |> Repo.all() do
         [] ->
-          Tracing.error(:not_found)
-          {:error, :not_found}
+          OpenTelemetry.Tracer.set_attributes([
+            {"result", "not_found"}
+          ])
+
+          {:error, :no_business_pages_found}
 
         pages ->
+          OpenTelemetry.Tracer.set_attributes([
+            {"result", "found"},
+            {"result.pages.found", length(pages)}
+          ])
+
           {:ok, pages}
       end
     end

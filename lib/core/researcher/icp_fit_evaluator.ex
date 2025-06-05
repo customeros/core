@@ -70,6 +70,10 @@ defmodule Core.Researcher.IcpFitEvaluator do
         update_lead(lead, fit)
         {:ok, fit}
       else
+        {:error, :no_business_pages_found} ->
+          update_lead(lead, :not_a_fit)
+          {:ok, :not_a_fit}
+
         {:error, reason} ->
           Tracing.error(reason)
           {:error, reason}
@@ -121,6 +125,9 @@ defmodule Core.Researcher.IcpFitEvaluator do
              Webpages.get_business_pages_by_domain(domain, limit: 8) do
         {:ok, pages}
       else
+        {:error, :no_business_pages_found} ->
+          {:error, :no_business_pages_found}
+
         {:error, reason} ->
           Tracing.error(reason)
           {:error, reason}
