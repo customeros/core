@@ -27,7 +27,7 @@ defmodule Core.Crm.Leads.NewLeadPipeline do
     OpenTelemetry.Tracer.with_span "new_lead_pipeline.start" do
       OpenTelemetry.Tracer.set_attributes([
         {"lead.id", lead_id},
-        {"lead.tenant_id", tenant_id}
+        {"tenant.id", tenant_id}
       ])
 
       span_ctx = OpenTelemetry.Ctx.get_current()
@@ -66,6 +66,11 @@ defmodule Core.Crm.Leads.NewLeadPipeline do
 
   def new_lead_pipeline(lead_id, tenant_id) do
     OpenTelemetry.Tracer.with_span "new_lead_pipeline.new_lead_pipeline" do
+      OpenTelemetry.Tracer.set_attributes([
+        {"lead.id", lead_id},
+        {"tenant.id", tenant_id}
+      ])
+
       Logger.metadata(module: __MODULE__, function: :new_lead_pipeline)
 
       Logger.info("Starting new lead pipeline",
@@ -83,7 +88,7 @@ defmodule Core.Crm.Leads.NewLeadPipeline do
     OpenTelemetry.Tracer.with_span "new_lead_pipeline.analyze_icp_fit" do
       OpenTelemetry.Tracer.set_attributes([
         {"lead.id", lead.id},
-        {"lead.tenant_id", lead.tenant_id},
+        {"tenant.id", lead.tenant_id},
         {"domain", domain}
       ])
 
@@ -134,7 +139,7 @@ defmodule Core.Crm.Leads.NewLeadPipeline do
     OpenTelemetry.Tracer.with_span "new_lead_pipeline.brief_writer" do
       OpenTelemetry.Tracer.set_attributes([
         {"lead.id", lead.id},
-        {"lead.tenant_id", lead.tenant_id},
+        {"tenant.id", lead.tenant_id},
         {"domain", domain},
         {"icp_fit", fit}
       ])
