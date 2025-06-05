@@ -80,13 +80,12 @@ defmodule Core.Crm.Companies.Enrichment.Name do
             |> String.replace(~r/\s+/, " ")
             |> String.trim()
 
-          case validate_name(name) do
+          case validate_company_name(name) do
             {:ok, name} ->
               OpenTelemetry.Tracer.set_attributes([
-                {"ai.name", name}
+                {"result.name", name}
               ])
 
-              Tracing.ok()
               {:ok, name}
 
             {:error, reason} ->
@@ -111,9 +110,12 @@ defmodule Core.Crm.Companies.Enrichment.Name do
     end
   end
 
-  # Validates a company name according to business rules
-  defp validate_name(name) do
+  defp validate_company_name(name) do
     cond do
+      # Check for empty or whitespace-only names
+      String.trim(name) == "" ->
+        {:error, :name_empty}
+
       # Check minimum length (at least 2 characters)
       String.length(name) < 2 ->
         {:error, :name_too_short}
