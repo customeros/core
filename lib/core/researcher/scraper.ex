@@ -364,9 +364,6 @@ defmodule Core.Researcher.Scraper do
               {:ok, content_type}
           end
 
-        {:ok, %Finch.Response{status: status}} ->
-          {:error, {:bad_status, status}}
-
         {:error, reason} ->
           {:error, reason}
       end

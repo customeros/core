@@ -159,3 +159,7 @@ config :core, :slack,
   new_user_webhook_url: get_env.("SLACK_NEW_USER_WEBHOOK_URL", nil),
   crash_webhook_url: get_env.("SLACK_CRASH_WEBHOOK_URL", nil),
   error_webhook_url: get_env.("SLACK_CRASH_WEBHOOK_URL", nil)
+
+config :core, :mailsherpa,
+  mailsherpa_api_url: get_env.("MAILSHERPA_API_URL", nil),
+  mailsherpa_api_key: get_env.("MAILSHERPA_API_KEY", nil)

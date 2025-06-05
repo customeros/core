@@ -65,4 +65,4 @@ defmodule WebEventImporter do
   defp parse_boolean(_), do: false
 end
 
-WebEventImporter.run("../infinity_web_events.csv", "infinityco", 10)
+WebEventImporter.run("../infinity_web_events.csv", "infinityco")
