@@ -32,7 +32,6 @@ import { TabIndentationPlugin } from '@lexical/react/LexicalTabIndentationPlugin
 import { MarkdownShortcutPlugin } from '@lexical/react/LexicalMarkdownShortcutPlugin';
 import { LexicalComposer, InitialConfigType } from '@lexical/react/LexicalComposer';
 
-import { CopyPastePlugin } from './plugins/CopyPastePlugin';
 import ToolbarPlugin from './plugins/ToolbarPlugin.tsx';
 import TextNodeTransformer from './nodes/TextTransformar.ts';
 import { PhoenixSocketContext } from '../../providers/SocketProvider.tsx';
@@ -267,7 +266,9 @@ export const Editor = forwardRef<LexicalEditor | null, EditorProps>(
           return doc;
         })();
 
-        const provider = new PhoenixChannelProvider(socket!, `documents:${id}`, doc);
+        const provider = new PhoenixChannelProvider(socket!, `documents:${id}`, doc, {
+          disableBc: true,
+        });
 
         provider.on('status', e => {
           setConnectionStatus(e.status);
@@ -305,6 +306,7 @@ export const Editor = forwardRef<LexicalEditor | null, EditorProps>(
     if (!socket) {
       return <div>No socket</div>;
     }
+
     return (
       <div
         ref={containerRef}
@@ -404,3 +406,5 @@ export const Editor = forwardRef<LexicalEditor | null, EditorProps>(
     );
   }
 );
+
+export default Editor;

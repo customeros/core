@@ -194,6 +194,13 @@ export default function Leads({ companies }: LeadsProps) {
                                 ) : (
                                   <div className="size-6 flex items-center justify-center border border-gray-200 rounded flex-shrink-0">
                                     <Icon name="building-06" />
+                                    {c?.icp_fit === 'strong' && (
+                                      <Icon
+                                        name="flame"
+                                        className="absolute bottom-[5px] left-[35px] w-[14px] h-[14px] z-20 text-error-500 ring-offset-1
+                                      rounded-full  ring-[1px] bg-error-100 ring-white"
+                                      />
+                                    )}
                                   </div>
                                 )}
                                 <p
