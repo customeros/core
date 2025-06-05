@@ -23,9 +23,11 @@ const channelPromise = (
     channel
       ?.join()
       .receive('ok', () => {
+        console.log('joined channel', channelName);
         resolve(channel);
       })
       .receive('error', () => {
+        console.log('failed to join channel', channelName);
         reject(new Error('Failed to join channel'));
       });
   });
@@ -63,9 +65,15 @@ const PhoenixSocketProvider = ({ children }: { children: React.ReactNode }) => {
     try {
       const socket = new Socket(socketPath);
 
+      console.log('connecting to socket', socketPath);
+
       socket.connect();
+
+      console.log('connected to socket', socket);
+
       setSocket(socket);
     } catch (e) {
+      console.log('error connecting to socket', e);
       // TODO: log error
     }
   }, [socketPath]);

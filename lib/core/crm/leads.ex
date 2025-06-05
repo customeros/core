@@ -109,7 +109,11 @@ defmodule Core.Crm.Leads do
       ])
 
       query_leads_view(
-        dynamic([l], l.tenant_id == ^tenant_id and l.type == :company)
+        dynamic(
+          [l],
+          l.tenant_id == ^tenant_id and l.type == :company and
+            l.stage not in [:not_a_fit, :pending]
+        )
       )
       |> Repo.all()
       |> Enum.map(fn lead_data ->
