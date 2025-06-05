@@ -61,29 +61,43 @@ defmodule Core.Researcher.Scraper.ContentProcessor do
   defp extract_links({:error, reason}), do: {:error, reason}
 
   defp summarize_content({:ok, content, links}, url) do
-    Logger.metadata(module: __MODULE__, function: :summarize_content)
+    OpenTelemetry.Tracer.with_span "content_processor.summarize_content" do
+      Logger.metadata(module: __MODULE__, function: :summarize_content)
 
-    Logger.info("Starting webpage summarization",
-      url: url
-    )
+      Logger.info("Starting webpage summarization",
+        url: url
+      )
 
-    task = Webpages.Summarizer.summarize_webpage_supervised(url, content)
+      task = Webpages.Summarizer.summarize_webpage_supervised(url, content)
 
-    case Task.yield(task, @default_timeout) do
-      {:ok, {:ok, summary}} ->
-        {:ok, content, links, summary}
+      case Task.yield(task, @default_timeout) do
+        {:ok, {:ok, summary}} ->
+          {:ok, content, links, summary}
 
-      {:ok, {:error, reason}} ->
-        Logger.error("Webpage summary failed for #{url}: #{reason}")
-        {:error, reason}
+        {:ok, {:error, reason}} ->
+          Tracing.error(reason)
 
-      {:exit, reason} ->
-        Logger.error("Webpage summarization crashed for #{url}: #{reason}")
-        @err_summary_crashed
+          Logger.error("Webpage summary failed",
+            url: url,
+            reason: reason
+          )
 
-      nil ->
-        Logger.warning("Webpage summary timed out for #{url}")
-        @err_summary_timeout
+          {:ok, content, links, ""}
+
+        {:ok, _unexpected} ->
+          Tracing.error(:unexpected_summary_response)
+          Logger.error("Unexpected summary response", url: url)
+          {:error, :unexpected_summary_response}
+
+        {:exit, reason} ->
+          Tracing.error(reason)
+          Logger.error("Webpage summarization crashed", url: url, reason: reason)
+          @err_summary_crashed
+
+        nil ->
+          Logger.warning("Webpage summary timed out for #{url}")
+          @err_summary_timeout
+      end
     end
   end
 
@@ -117,4 +131,6 @@ defmodule Core.Researcher.Scraper.ContentProcessor do
       end
     end
   end
+
+  defp save_to_database({:error, reason}, _url), do: {:error, reason}
 end
