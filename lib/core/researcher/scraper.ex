@@ -25,6 +25,7 @@ defmodule Core.Researcher.Scraper do
   alias Core.Utils.PrimaryDomainFinder
   alias Core.Utils.DomainExtractor
   alias Core.Utils.UrlFormatter
+  alias Core.Utils.Tracing
   alias Core.Researcher.Scraper.ContentProcessor
   alias Core.Researcher.Scraper.Jina
   alias Core.Researcher.Scraper.Puremd

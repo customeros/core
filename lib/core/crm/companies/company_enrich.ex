@@ -297,7 +297,7 @@ defmodule Core.Crm.Companies.CompanyEnrich do
         Tracing.error(:industry_not_found)
 
         Logger.error(
-          "Industry code #{industry_code} not found in db for company #{company.id}, domain: #{company.primary_domain}"
+          "Industry code #{industry_code} not available in db", domain: company.primary_domain, company_id: company.id
         )
 
         {:error, :industry_not_found}
