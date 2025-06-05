@@ -85,12 +85,15 @@ defmodule Core.Researcher.Scraper do
     end
   end
 
-  defp validate_url(url) do
+
+  def validate_url(url) do
     with {:ok, true} <- Filter.should_scrape?(url),
          {:ok, host} <- DomainExtractor.extract_base_domain(url),
          {:ok, true} <- PrimaryDomainFinder.primary_domain?(host),
          {:ok, base_url} <- UrlFormatter.get_base_url(url),
-         {:ok, clean_url} <- UrlFormatter.to_https(base_url) do
+         {:ok, clean_url} <- UrlFormatter.to_https(base_url),
+         {:ok, content_type} <- fetch_content_type(clean_url),
+         {:ok, true} <- is_webpage_content_type(content_type) do
       clean_url
     else
       {:ok, false} ->
@@ -321,6 +324,67 @@ defmodule Core.Researcher.Scraper do
 
       true ->
         {:ok, content}
+    end
+  end
+
+  defp fetch_content_type(url, depth \\ 0) do
+    if depth > 5 do
+      {:error, :too_many_redirects}
+    else
+      case Finch.build(:get, url) |> Finch.request(Core.Finch) do
+        {:ok, %Finch.Response{headers: headers, status: status, body: body}} ->
+          content_type =
+            Enum.find_value(headers, fn
+              {"content-type", ct} -> ct
+              {"Content-Type", ct} -> ct
+              _ -> nil
+            end)
+
+          disposition =
+            Enum.find_value(headers, fn
+              {"content-disposition", disp} -> disp
+              {"Content-Disposition", disp} -> disp
+              _ -> nil
+            end)
+
+          location =
+            Enum.find_value(headers, fn
+              {"location", loc} -> loc
+              {"Location", loc} -> loc
+              _ -> nil
+            end)
+
+          cond do
+            status in 300..399 and location ->
+              fetch_content_type(location, depth + 1)
+
+            is_nil(content_type) ->
+              {:error, :no_content_type}
+
+            String.contains?(content_type, "text/html") and
+            not is_nil(disposition) and
+            Regex.match?(~r/attachment/i, disposition) ->
+              {:error, :html_download_redirect}
+
+            true ->
+              {:ok, content_type}
+          end
+
+        {:ok, %Finch.Response{status: status}} ->
+          {:error, {:bad_status, status}}
+
+        {:error, reason} ->
+          {:error, reason}
+      end
+    end
+  end
+
+  defp is_webpage_content_type(content_type) do
+    # Allow only HTML and similar web content
+    if String.starts_with?(content_type, "text/html") do
+      {:ok, true}
+    else
+      {:ok, false}
     end
   end
 end

@@ -57,6 +57,7 @@ defmodule Core.Researcher.Webpages.LinkExtractor do
       String.starts_with?(url, "http") && url != "" && url != "#"
     end)
     |> Stream.reject(&should_skip_url?/1)
+    |> Stream.reject(&is_file_attachment?/1)
     |> Enum.uniq()
   end
 
@@ -119,5 +120,17 @@ defmodule Core.Researcher.Webpages.LinkExtractor do
     Enum.any?(skip_keywords, fn keyword ->
       String.contains?(lowercase_url, keyword)
     end)
+  end
+
+  defp is_file_attachment?(url) do
+    file_extensions = [
+      ".jpg", ".jpeg", ".png", ".gif", ".bmp", ".svg", ".webp",
+      ".pdf", ".doc", ".docx", ".xls", ".xlsx", ".ppt", ".pptx",
+      ".zip", ".rar", ".tar", ".gz", ".7z", ".mp3", ".wav", ".ogg",
+      ".mp4", ".mov", ".avi", ".wmv", ".mkv", ".csv", ".txt"
+    ]
+
+    lowercase_url = String.downcase(url)
+    Enum.any?(file_extensions, fn ext -> String.ends_with?(lowercase_url, ext) end)
   end
 end
