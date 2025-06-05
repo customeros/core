@@ -18,6 +18,9 @@ import {
 import { ModalContent } from 'src/components/Modal/Modal';
 import { Modal } from 'src/components/Modal';
 import { cn } from 'src/utils/cn';
+import { Avatar } from 'src/components/Avatar';
+import { Tooltip } from 'src/components/Tooltip';
+import { toastSuccess } from 'src/components/Toast';
 
 const defaultIconSet = [
   'https://images.cust.cx/_companies/img_6qggfu0eyp2ixcillgd5t.jpg',
@@ -32,6 +35,7 @@ export const Header = () => {
   >();
   const [isOpen, setIsOpen] = useState(false);
   const [displayProfile, setDisplayProfile] = useState(false);
+  const [inviteTeam, setInviteTeam] = useState(false);
 
   const worksspaceLogo = page.props.tenant?.workspace_icon_key;
   const workspaceName = page.props.tenant?.workspace_name;
@@ -60,7 +64,7 @@ export const Header = () => {
   const leadsMessage = leadCount > 1 ? 'leads' : 'lead';
   return (
     <>
-      <div className="flex w-full z-[99999] bg-white sticky top-0">
+      <div className="flex w-full z-20 bg-white sticky top-0 group">
         <div className="h-[1px] mb-[-0px] bg-gradient-to-l from-gray-200 to-transparent self-end 2xl:w-[calc((100%-1440px)/2)]" />
 
         <div className="flex justify-between items-center border-b border-gray-200 w-full 2xl:w-[1440px] 2xl:mx-auto py-2 px-4">
@@ -77,7 +81,17 @@ export const Header = () => {
             )}
             <h1 className="text-sm font-medium">{workspaceName || 'CustomerOS'}</h1>
           </div>
-          <div className="flex gap-2">
+          <div className="flex items-center gap-2">
+            <Tooltip label="Invite team">
+              <div onClick={() => setInviteTeam(true)}>
+                <Avatar
+                  icon={<Icon name="user-plus-01" className="text-gray-700 size-5 p-0.5" />}
+                  size="xs"
+                  variant="circle"
+                  className="border border-dashed group-hover:opacity-100 opacity-0 transition-opacity duration-300 size-7 cursor-pointer"
+                />
+              </div>
+            </Tooltip>
             <UserPresence />
 
             {/* <Button
@@ -205,6 +219,50 @@ export const Header = () => {
                   Cancel
                 </Button>
               </ModalCloseButton>
+            </ModalFooter>
+          </ModalContent>
+        </ModalPortal>
+      </Modal>
+
+      <Modal open={inviteTeam} onOpenChange={setInviteTeam}>
+        <ModalPortal>
+          <ModalOverlay />
+          <ModalContent placement="top" aria-describedby="profile-modal">
+            <ModalHeader className="font-semibold text-base">
+              Unlimited seats, unlimited collaboration
+            </ModalHeader>
+            <ModalCloseButton className="absolute top-4 right-4" asChild>
+              <Button
+                colorScheme="gray"
+                size="xs"
+                leftIcon={<Icon name="x-close" />}
+                variant="ghost"
+              />
+            </ModalCloseButton>
+            <ModalBody className="flex flex-col gap-2">
+              <p>SaaS is a team sport, but most tools still keep us stuck in silos.</p>
+              <p>
+                CustomerOS gives every workspace{' '}
+                <span className="font-semibold">unlimited seats</span>, so your whole team can work
+                together without barriers
+              </p>
+              <p>
+                To invite your team, just share the app with anyone using a {workspaceName} email.
+              </p>
+            </ModalBody>
+            <ModalFooter className="flex justify-between gap-2">
+              <Button
+                colorScheme="gray"
+                size="sm"
+                className="w-full"
+                onClick={() => {
+                  navigator.clipboard.writeText(window.location.href);
+                  toastSuccess('App link copied, now share it with your team', 'app-link-copied');
+                  setInviteTeam(false);
+                }}
+              >
+                Copy app link
+              </Button>
             </ModalFooter>
           </ModalContent>
         </ModalPortal>
