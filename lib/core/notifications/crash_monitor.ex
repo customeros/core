@@ -84,6 +84,7 @@ defmodule Core.Notifications.CrashMonitor do
 
   defp slack_notification_error?(msg) do
     msg_str = to_string(msg)
+
     String.contains?(msg_str, [
       "Finch",
       "Slack",

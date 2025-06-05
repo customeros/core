@@ -335,7 +335,10 @@ defmodule Core.WebTracker do
           Tracing.error("lead_creation_failed")
 
           Logger.error(
-            "Failed to create lead for company", reason: reason, company: company.name, domain: domain
+            "Failed to create lead for company",
+            reason: reason,
+            company: company.name,
+            domain: domain
           )
       end
     end
