@@ -93,7 +93,7 @@ export const Leads = memo(({ companies }: LeadsProps) => {
       {companies.length === 0 ? (
         <EmptyState />
       ) : (
-        <div className="flex h-[calc(100vh-3rem)] overflow-hidden relative bg-white p-0 transition-[width] duration-300 ease-in-out w-full 2xl:w-[1440px] 2xl:mx-auto animate-fadeIn">
+        <div className=" h-[calc(100vh-3rem)] overflow-x-hidden relative bg-white p-0 transition-[width] duration-300 ease-in-out w-full 2xl:w-[1440px] 2xl:mx-auto animate-fadeIn">
           <div className="w-full flex">
             <div className="flex-1 flex flex-col overflow-hidden">
               <div className="w-full items-center justify-center mb-2 mt-2 p-1 hidden md:flex max-w-[800px] mx-auto bg-primary-25 rounded-[8px]">
