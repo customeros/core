@@ -709,13 +709,7 @@ defmodule Core.Crm.Companies.CompanyEnrich do
         {"company.domain", company.primary_domain}
       ])
 
-      if not company.homepage_scraped do
-        OpenTelemetry.Tracer.set_attributes([
-          {"result", "false"}
-        ])
-
-        false
-      else
+      if company.homepage_scraped do
         result = is_nil(company.industry_code) or company.industry_code == ""
 
         OpenTelemetry.Tracer.set_attributes([
@@ -723,6 +717,12 @@ defmodule Core.Crm.Companies.CompanyEnrich do
         ])
 
         result
+      else
+        OpenTelemetry.Tracer.set_attributes([
+          {"result", "false"}
+        ])
+
+        false
       end
     end
   end
@@ -737,13 +737,7 @@ defmodule Core.Crm.Companies.CompanyEnrich do
         {"company.domain", company.primary_domain}
       ])
 
-      if not company.homepage_scraped do
-        OpenTelemetry.Tracer.set_attributes([
-          {"result", "false"}
-        ])
-
-        false
-      else
+      if company.homepage_scraped do
         result = is_nil(company.name) or company.name == ""
 
         OpenTelemetry.Tracer.set_attributes([
@@ -751,6 +745,12 @@ defmodule Core.Crm.Companies.CompanyEnrich do
         ])
 
         result
+      else
+        OpenTelemetry.Tracer.set_attributes([
+          {"result", "false"}
+        ])
+
+        false
       end
     end
   end
@@ -765,13 +765,7 @@ defmodule Core.Crm.Companies.CompanyEnrich do
         {"company.domain", company.primary_domain}
       ])
 
-      if not company.homepage_scraped do
-        OpenTelemetry.Tracer.set_attributes([
-          {"result", "false"}
-        ])
-
-        false
-      else
+      if company.homepage_scraped do
         result = is_nil(company.country_a2) or company.country_a2 == ""
 
         OpenTelemetry.Tracer.set_attributes([
@@ -779,6 +773,12 @@ defmodule Core.Crm.Companies.CompanyEnrich do
         ])
 
         result
+      else
+        OpenTelemetry.Tracer.set_attributes([
+          {"result", "false"}
+        ])
+
+        false
       end
     end
   end
@@ -836,7 +836,10 @@ defmodule Core.Crm.Companies.CompanyEnrich do
         {:ok, webpage.content}
 
       {:error, :not_found} ->
-        Logger.error("No homepage content found for company", domain: domain)
+        Logger.error("No homepage content found for company",
+          company_domain: domain
+        )
+
         {:error, :not_found}
     end
   end
