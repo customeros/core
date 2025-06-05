@@ -15,14 +15,10 @@ interface DocumentProps {
 }
 
 export default function Document({ document, lead }: DocumentProps) {
-  const doc = document;
-
-  console.log(lead);
-
-  const docId = doc.id;
-  const name = lead.name;
+  const docId = document.id;
+  const name = `${lead.name} Account Brief`;
   const icon = lead.icon;
-  const stringFit = lead.icp_fit === 'strong';
+  const strongFit = lead.icp_fit === 'strong';
 
   return (
     <RootLayout>
@@ -39,7 +35,7 @@ export default function Document({ document, lead }: DocumentProps) {
                     alt="Lead icon"
                   />
                   <p className="text-sm font-medium text-gray-900">{name}</p>
-                  {stringFit && (
+                  {strongFit && (
                     <div className="bg-error-100 w-fit px-2 py-1 rounded-[4px] max-w-[100px] truncate flex items-center gap-1">
                       <Icon name="flame" className="w-[14px] h-[14px] text-error-500" />
                       <span className="text-error-700 text-xs">Strong fit</span>
@@ -49,6 +45,7 @@ export default function Document({ document, lead }: DocumentProps) {
               </div>
               <Editor
                 documentId={docId}
+                isReadOnly
                 useYjs={true}
                 namespace="documents"
                 size="sm"
