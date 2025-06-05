@@ -103,18 +103,21 @@ defmodule Core.Researcher.IcpFitEvaluator do
   end
 
   defp crawl_website_with_retry(domain, attempts \\ 0) do
-    task = Crawler.crawl_supervised(domain)
+    OpenTelemetry.Tracer.with_span "icp_fit_evaluator.crawl_website_with_retry" do
+      task = Crawler.crawl_supervised(domain)
 
-    case await_task(task, @crawl_timeout) do
-      {:ok, _response} ->
-        :ok
+      case await_task(task, @crawl_timeout) do
+        {:ok, _response} ->
+          :ok
 
-      {:error, _reason} when attempts < @max_retries ->
-        :timer.sleep(:timer.seconds(attempts + 1))
-        crawl_website_with_retry(domain, attempts + 1)
+        {:error, _reason} when attempts < @max_retries ->
+          :timer.sleep(:timer.seconds(attempts + 1))
+          crawl_website_with_retry(domain, attempts + 1)
 
-      {:error, reason} ->
-        {:error, reason}
+        {:error, reason} ->
+          Tracing.error(reason)
+          {:error, reason}
+      end
     end
   end
 

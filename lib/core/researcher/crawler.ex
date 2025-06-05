@@ -3,6 +3,8 @@ defmodule Core.Researcher.Crawler do
   Crawl a website and scrape it's content starting from root domain.
   """
   require Logger
+  require OpenTelemetry.Tracer
+  alias Core.Utils.Tracing
 
   @default_opts [
     max_depth: 2,
@@ -22,51 +24,67 @@ defmodule Core.Researcher.Crawler do
     end)
   end
 
-  defp crawl(domain, opts) when is_binary(domain) do
-    case Core.Utils.DomainExtractor.extract_base_domain(domain) do
-      {:ok, base_domain} ->
-        home_page_url = Core.Utils.UrlFormatter.to_https(base_domain)
+  def crawl(domain, opts) when is_binary(domain) do
+    OpenTelemetry.Tracer.with_span "crawler.crawl" do
+      OpenTelemetry.Tracer.set_attributes([
+        {"domain", domain}
+      ])
 
-        crawl_concurrent(%{
-          queue: [{home_page_url, 0}],
-          visited: MapSet.new(),
-          results: %{},
-          base_domain: base_domain,
-          max_depth: opts[:max_depth],
-          max_pages: opts[:max_pages],
-          delay: opts[:delay],
-          concurrency: opts[:concurrency],
-          active_tasks: 0,
-          task_refs: MapSet.new()
-        })
+      case Core.Utils.DomainExtractor.extract_base_domain(domain) do
+        {:ok, base_domain} ->
+          {:ok, home_page_url} = Core.Utils.UrlFormatter.to_https(base_domain)
 
-      {:error, reason} ->
-        {:error, "Invalid domain: #{reason}"}
+          crawl_concurrent(%{
+            queue: [{home_page_url, 0}],
+            visited: MapSet.new(),
+            results: %{},
+            base_domain: base_domain,
+            max_depth: opts[:max_depth],
+            max_pages: opts[:max_pages],
+            delay: opts[:delay],
+            concurrency: opts[:concurrency],
+            active_tasks: 0,
+            task_refs: MapSet.new()
+          })
+
+        {:error, reason} ->
+          Tracing.error(reason)
+
+          Logger.error("Failed to extract base domain",
+            domain: domain,
+            reason: reason
+          )
+
+          {:error, "Invalid domain: #{reason}"}
+      end
     end
   end
 
   defp crawl_concurrent(state) do
-    cond do
-      # No more work and no active tasks - we're done
-      Enum.empty?(state.queue) and state.active_tasks == 0 ->
-        Logger.info(
-          "Crawling completed. Processed #{MapSet.size(state.visited)} pages."
-        )
+    OpenTelemetry.Tracer.with_span "crawler.crawl_concurrent" do
+      cond do
+        # No more work and no active tasks - we're done
+        Enum.empty?(state.queue) and state.active_tasks == 0 ->
+          Logger.info(
+            "Crawling completed. Processed #{MapSet.size(state.visited)} pages."
+          )
 
-        {:ok, state.results}
+          {:ok, state.results}
 
-      # We've hit max pages - wait for active tasks to finish
-      MapSet.size(state.visited) >= state.max_pages and state.active_tasks == 0 ->
-        Logger.info("Max pages reached. Crawling completed.")
-        {:ok, state.results}
+        # We've hit max pages - wait for active tasks to finish
+        MapSet.size(state.visited) >= state.max_pages and
+            state.active_tasks == 0 ->
+          Logger.info("Max pages reached. Crawling completed.")
+          {:ok, state.results}
 
-      # Start more tasks if we have queue items and available slots
-      length(state.queue) > 0 and state.active_tasks < state.concurrency and
-          MapSet.size(state.visited) < state.max_pages ->
-        start_next_task_async(state)
+        # Start more tasks if we have queue items and available slots
+        length(state.queue) > 0 and state.active_tasks < state.concurrency and
+            MapSet.size(state.visited) < state.max_pages ->
+          start_next_task_async(state)
 
-      true ->
-        wait_for_task_completion(state)
+        true ->
+          wait_for_task_completion(state)
+      end
     end
   end
 
