@@ -68,7 +68,6 @@ defmodule Core.Crm.Leads do
     end
   end
 
-  @spec query_leads_view(Ecto.Query.dynamic()) :: Ecto.Query.t()
   defp query_leads_view(where_clause) do
     latest_doc =
       from rd in "refs_documents",
