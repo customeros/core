@@ -149,9 +149,9 @@ defmodule Core.Crm.Companies.CompanyEnrich do
 
         {:error, reason} ->
           Logger.error(
-            "Failed to scrape homepage for company #{company.id}",
+            "Failed to scrape homepage for company",
             company_id: company.id,
-            domain: company.primary_domain,
+            url: company.primary_domain,
             reason: reason
           )
 
@@ -304,7 +304,7 @@ defmodule Core.Crm.Companies.CompanyEnrich do
 
         Logger.error(
           "Industry code #{industry_code} not available in db",
-          domain: company.primary_domain,
+          company_domain: company.primary_domain,
           company_id: company.id
         )
 
@@ -401,7 +401,7 @@ defmodule Core.Crm.Companies.CompanyEnrich do
             Logger.error(
               "Rejected name from ai for company",
               company_id: company.id,
-              domain: company.primary_domain,
+              company_domain: company.primary_domain,
               reason: reason,
               name: name
             )
@@ -709,7 +709,7 @@ defmodule Core.Crm.Companies.CompanyEnrich do
         {"company.domain", company.primary_domain}
       ])
 
-      if is_nil(company.homepage_content) or company.homepage_content == "" do
+      if not company.homepage_scraped do
         OpenTelemetry.Tracer.set_attributes([
           {"result", "false"}
         ])
@@ -737,7 +737,7 @@ defmodule Core.Crm.Companies.CompanyEnrich do
         {"company.domain", company.primary_domain}
       ])
 
-      if is_nil(company.homepage_content) or company.homepage_content == "" do
+      if not company.homepage_scraped do
         OpenTelemetry.Tracer.set_attributes([
           {"result", "false"}
         ])
@@ -765,7 +765,7 @@ defmodule Core.Crm.Companies.CompanyEnrich do
         {"company.domain", company.primary_domain}
       ])
 
-      if is_nil(company.homepage_content) or company.homepage_content == "" do
+      if not company.homepage_scraped do
         OpenTelemetry.Tracer.set_attributes([
           {"result", "false"}
         ])
@@ -815,10 +815,6 @@ defmodule Core.Crm.Companies.CompanyEnrich do
 
       cond do
         company.homepage_scraped == true ->
-          false
-
-        is_binary(company.homepage_content) and
-            String.length(company.homepage_content) > 0 ->
           false
 
         is_nil(company.primary_domain) or company.primary_domain == "" ->

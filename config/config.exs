@@ -27,7 +27,6 @@ config :logger, :console,
     :request_id,
     :tenant_id,
     :lead_id,
-    :domain,
     :error,
     :reason,
     :module,
@@ -38,7 +37,8 @@ config :logger, :console,
     :message,
     :name,
     :company,
-    :company_id
+    :company_id,
+    :company_domain
   ]
 
 # Phoenix
