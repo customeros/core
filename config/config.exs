@@ -42,6 +42,7 @@ config :logger, :console,
     :session_id,
     :status,
     :tenant_id,
+    :trace_id,
     :url
   ]
 

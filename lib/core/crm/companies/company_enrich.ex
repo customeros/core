@@ -152,7 +152,11 @@ defmodule Core.Crm.Companies.CompanyEnrich do
             "Failed to scrape homepage for company",
             company_id: company.id,
             url: company.primary_domain,
-            reason: reason
+            reason: reason,
+            trace_id:
+              :otel_span.trace_id(OpenTelemetry.Tracer.current_span_ctx())
+              |> Integer.to_string(16)
+              |> String.downcase()
           )
 
           Tracing.error(reason)
@@ -285,7 +289,10 @@ defmodule Core.Crm.Companies.CompanyEnrich do
 
           {:error, reason} ->
             Logger.error(
-              "Failed to get industry code from AI for company #{company.id}: #{inspect(reason)}"
+              "Failed to get industry code from AI",
+              company_id: company.id,
+              company_domain: company.primary_domain,
+              reason: reason
             )
 
             Tracing.error(reason)
