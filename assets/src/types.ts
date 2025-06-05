@@ -30,3 +30,16 @@ export type User = {
   inserted_at: string;
   confirmed_at: string;
 };
+
+export type Document = {
+  id: string;
+  name: string;
+  icon: string;
+  body: string;
+  color: string;
+  ref_id: string;
+  tenant_id: string;
+  updated_at: string;
+  inserted_at: string;
+  lexical_state: string;
+};
