@@ -6,7 +6,7 @@ import { Dot } from 'src/components/Dot';
 import { FeaturedIcon } from 'src/components/FeaturedIcon/FeaturedIcon';
 import { Icon, IconName } from 'src/components/Icon';
 
-export const Welcome = () => {
+export default function Welcome() {
   const [currentSlide, setCurrentSlide] = useState(1);
 
   const slides = [
@@ -141,4 +141,4 @@ export const Welcome = () => {
       </div>
     </div>
   );
-};
+}

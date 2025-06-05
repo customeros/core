@@ -46,10 +46,10 @@ export default function Document({ document, lead }: DocumentProps) {
               <Editor
                 documentId={docId}
                 isReadOnly
-                useYjs={true}
                 namespace="documents"
                 size="sm"
                 key={docId}
+                useYjs
               />
 
               <div className="h-20 w-full"></div>

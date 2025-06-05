@@ -10,6 +10,7 @@ import {
   ScrollAreaViewport,
   ScrollAreaScrollbar,
 } from 'src/components/ScrollArea';
+import { toastSuccess } from 'src/components/Toast/success';
 import { usePresence } from 'src/providers/PresenceProvider';
 import { usePage } from '@inertiajs/react';
 import { Lead, Tenant, User } from 'src/types';
@@ -23,7 +24,6 @@ export const DocumentEditor = () => {
   const urlViewMode = new URLSearchParams(window.location.search).get('viewMode');
 
   const { presentUsers, currentUserId } = usePresence();
-  console.log(page);
 
   const currentLead = useMemo(() => {
     return page.props.companies.find(c => c.document_id === docId);
@@ -68,14 +68,20 @@ export const DocumentEditor = () => {
       preserveScroll: true,
     });
   };
-  console.log(currentLead);
+
+  const copyDocumentLink = () => {
+    const url = window.location.host;
+    navigator.clipboard.writeText(`${url}/documents/${docId}`);
+    toastSuccess('Document link copied', 'document-link-copied');
+  };
+
   return (
     <>
       <ScrollAreaRoot>
         <ScrollAreaViewport>
           <div className="relative w-full h-full bg-white px-4 md:px-6">
             <div className="relative bg-white h-full mx-auto pt-[2px] w-full md:min-w-[680px] max-w-[680px]">
-              <div className="flex items-center justify-between  sticky top-0 bg-white z-10 py-2">
+              <div className="flex items-center justify-between sticky top-0 bg-white z-10 py-2">
                 {currentLead && (
                   <div className="flex items-center w-full justify-start gap-2 min-w-0">
                     <img
@@ -109,14 +115,24 @@ export const DocumentEditor = () => {
                     icon={<Icon name="download-02" />}
                   /> */}
                   {docId && (
-                    <IconButton
-                      size="xs"
-                      variant="ghost"
-                      aria-label="toggle view mode"
-                      className="hidden md:flex"
-                      onClick={handleViewModeChange}
-                      icon={<Icon name={viewMode === 'default' ? 'expand-01' : 'collapse-01'} />}
-                    />
+                    <>
+                      <IconButton
+                        size="xs"
+                        variant="ghost"
+                        aria-label="toggle view mode"
+                        className="hidden md:flex"
+                        onClick={handleViewModeChange}
+                        icon={<Icon name={viewMode === 'default' ? 'expand-01' : 'collapse-01'} />}
+                      />
+                      <IconButton
+                        size="xs"
+                        variant="ghost"
+                        aria-label="copy link"
+                        className="hidden md:flex"
+                        onClick={copyDocumentLink}
+                        icon={<Icon name="link-01" />}
+                      />
+                    </>
                   )}
                   <IconButton
                     size="xs"

@@ -12,9 +12,10 @@ export const toastError = (text: string, id: string) => {
       <IconButton
         variant="ghost"
         aria-label="Close"
+        className="ml-auto"
         onClick={closeToast}
         colorScheme="error"
-        icon={<Icon name="x-close" />}
+        icon={<Icon name="x-close" className="size-4" />}
       />
     ),
   });
