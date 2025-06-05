@@ -32,7 +32,7 @@ import { TabIndentationPlugin } from '@lexical/react/LexicalTabIndentationPlugin
 import { MarkdownShortcutPlugin } from '@lexical/react/LexicalMarkdownShortcutPlugin';
 import { LexicalComposer, InitialConfigType } from '@lexical/react/LexicalComposer';
 
-import { LinkPastePlugin } from './plugins/PastePlugin';
+import { CopyPastePlugin } from './plugins/CopyPastePlugin';
 import ToolbarPlugin from './plugins/ToolbarPlugin.tsx';
 import TextNodeTransformer from './nodes/TextTransformar.ts';
 import { PhoenixSocketContext } from '../../providers/SocketProvider.tsx';
@@ -75,7 +75,7 @@ const theme: EditorThemeClasses = {
     listitemChecked: 'editor__listItemChecked',
     listitemUnchecked: 'editor__listItemUnchecked',
   },
-  link: 'editor-link',
+  link: 'text-primary-700 hover:text-primary-600',
   text: {
     bold: 'editor-textBold',
     code: 'editor-textCode',
@@ -325,7 +325,7 @@ export const Editor = forwardRef<LexicalEditor | null, EditorProps>(
           )}
           <TabIndentationPlugin />
 
-          <LinkPastePlugin />
+          <CopyPastePlugin />
 
           {variableOptions?.length > 0 && <VariablePlugin options={variableOptions} />}
 
