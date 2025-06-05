@@ -64,10 +64,16 @@ defmodule Core.Researcher.Scraper do
   def scrape_webpage(_), do: @err_invalid_url
 
   defp fetch_and_process_webpage(url) do
-    url
-    |> fetch_webpage()
-    |> process_content(url)
-    |> classify_content(url)
+    OpenTelemetry.Tracer.with_span "scraper.fetch_and_process_webpage" do
+      OpenTelemetry.Tracer.set_attributes([
+        {"url", url}
+      ])
+
+      url
+      |> fetch_webpage()
+      |> process_content(url)
+      |> classify_content(url)
+    end
   end
 
   defp validate_url(url) do
@@ -88,52 +94,67 @@ defmodule Core.Researcher.Scraper do
   end
 
   defp process_content({:ok, content}, url) do
-    Logger.metadata(module: __MODULE__, function: :process_content)
+    OpenTelemetry.Tracer.with_span "scraper.process_content" do
+      Logger.metadata(module: __MODULE__, function: :process_content)
 
-    case ContentProcessor.process_scraped_content(url, content) do
-      {:ok, content} ->
-        {:ok, content}
+      case ContentProcessor.process_scraped_content(url, content) do
+        {:ok, content} ->
+          {:ok, content}
 
-      {:error, reason} ->
-        Logger.error(
-          "Failed processing scraped content",
-          url: url,
-          reason: reason
-        )
+        {:error, reason} ->
+          Logger.error(
+            "Failed processing scraped content",
+            url: url,
+            reason: reason
+          )
 
-        {:error, reason}
+          Tracing.error(reason)
+
+          {:error, reason}
+      end
     end
   end
 
   defp process_content({:error, reason}, _url), do: {:error, reason}
 
   defp fetch_webpage(url) do
-    with {:error, _jina_reason} <- try_jina(url),
-         {:error, _puremd_reason} <- try_puremd(url),
-         {:error, firecrawl_reason} <- try_firecrawl(url) do
-      handle_fetch_error(firecrawl_reason, url)
-    else
-      {:ok, content} -> {:ok, content}
+    OpenTelemetry.Tracer.with_span "scraper.fetch_webpage" do
+      OpenTelemetry.Tracer.set_attributes([
+        {"url", url}
+      ])
+
+      with {:error, _jina_reason} <- try_jina(url),
+           {:error, _puremd_reason} <- try_puremd(url),
+           {:error, firecrawl_reason} <- try_firecrawl(url) do
+        handle_fetch_error(firecrawl_reason, url)
+      else
+        {:ok, content} -> {:ok, content}
+      end
     end
   end
 
   defp classify_content({:ok, content}, url) do
-    task = Classifier.classify_content_supervised(url, content)
-    results = Task.yield(task, @scraper_timeout)
+    OpenTelemetry.Tracer.with_span "scraper.classify_content" do
+      task = Classifier.classify_content_supervised(url, content)
+      results = Task.yield(task, @scraper_timeout)
 
-    case results do
-      {:ok, {:ok, classification}} ->
-        Webpages.update_classification(url, classification)
-        {:ok, content}
+      case results do
+        {:ok, {:ok, classification}} ->
+          Webpages.update_classification(url, classification)
+          {:ok, content}
 
-      {:ok, {:error, reason}} ->
-        {:error, reason}
+        {:ok, {:error, reason}} ->
+          Tracing.error(reason)
+          {:error, reason}
 
-      {:exit, reason} ->
-        {:error, reason}
+        {:exit, reason} ->
+          Tracing.error(reason)
+          {:error, reason}
 
-      nil ->
-        {:error, :timeout}
+        nil ->
+          Tracing.error(:timeout)
+          {:error, :timeout}
+      end
     end
   end
 
@@ -147,11 +168,13 @@ defmodule Core.Researcher.Scraper do
     )
 
     err = "http error => message: #{message}"
+    Tracing.error(err)
     {:error, err}
   end
 
   defp handle_fetch_error(reason, url) when is_binary(reason) do
     Logger.error("Failed to scrape #{url}", url: url, reason: reason)
+    Tracing.error(reason)
     {:error, reason}
   end
 
@@ -161,53 +184,72 @@ defmodule Core.Researcher.Scraper do
       reason: "#{inspect(reason)}"
     )
 
+    Tracing.error(reason)
     err = "Error: #{inspect(reason)}"
     {:error, err}
   end
 
   defp try_jina(url) do
-    Logger.metadata(module: __MODULE__, function: :try_jina)
+    OpenTelemetry.Tracer.with_span "scraper.try_jina" do
+      OpenTelemetry.Tracer.set_attributes([
+        {"url", url}
+      ])
 
-    Logger.info("Starting to scrape #{url} with Jina",
-      url: url
-    )
+      Logger.metadata(module: __MODULE__, function: :try_jina)
 
-    task =
-      Task.Supervisor.async(Core.TaskSupervisor, fn ->
-        Jina.fetch_page(url)
-      end)
+      Logger.info("Starting to scrape #{url} with Jina",
+        url: url
+      )
 
-    await_scraped_webpage(url, task, @scraper_timeout, "Jina webscraper")
+      task =
+        Task.Supervisor.async(Core.TaskSupervisor, fn ->
+          Jina.fetch_page(url)
+        end)
+
+      await_scraped_webpage(url, task, @scraper_timeout, "Jina webscraper")
+    end
   end
 
   defp try_firecrawl(url) do
-    Logger.metadata(module: __MODULE__, function: :try_firecrawl)
+    OpenTelemetry.Tracer.with_span "scraper.try_firecrawl" do
+      OpenTelemetry.Tracer.set_attributes([
+        {"url", url}
+      ])
 
-    Logger.info("Starting to scrape #{url} with Firecrawl",
-      url: url
-    )
+      Logger.metadata(module: __MODULE__, function: :try_firecrawl)
 
-    task =
-      Task.Supervisor.async(Core.TaskSupervisor, fn ->
-        Firecrawl.fetch_page(url)
-      end)
+      Logger.info("Starting to scrape #{url} with Firecrawl",
+        url: url
+      )
 
-    await_scraped_webpage(url, task, @scraper_timeout, "Firecrawl webscraper")
+      task =
+        Task.Supervisor.async(Core.TaskSupervisor, fn ->
+          Firecrawl.fetch_page(url)
+        end)
+
+      await_scraped_webpage(url, task, @scraper_timeout, "Firecrawl webscraper")
+    end
   end
 
   defp try_puremd(url) do
-    Logger.metadata(module: __MODULE__, function: :try_puremd)
+    OpenTelemetry.Tracer.with_span "scraper.try_puremd" do
+      OpenTelemetry.Tracer.set_attributes([
+        {"url", url}
+      ])
 
-    Logger.info("Starting to scrape #{url} with PureMD",
-      url: url
-    )
+      Logger.metadata(module: __MODULE__, function: :try_puremd)
 
-    task =
-      Task.Supervisor.async(Core.TaskSupervisor, fn ->
-        Puremd.fetch_page(url)
-      end)
+      Logger.info("Starting to scrape #{url} with PureMD",
+        url: url
+      )
 
-    await_scraped_webpage(url, task, @scraper_timeout, "PureMD webscraper")
+      task =
+        Task.Supervisor.async(Core.TaskSupervisor, fn ->
+          Puremd.fetch_page(url)
+        end)
+
+      await_scraped_webpage(url, task, @scraper_timeout, "PureMD webscraper")
+    end
   end
 
   defp await_scraped_webpage(url, task, timeout, task_name) do
