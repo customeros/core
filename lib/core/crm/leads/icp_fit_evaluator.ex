@@ -79,7 +79,7 @@ defmodule Core.Crm.Leads.IcpFitEvaluator do
     OpenTelemetry.Tracer.with_span "icp_fit_evaluator.evaluate_lead" do
       OpenTelemetry.Tracer.set_attributes([
         {"lead.id", lead.id},
-        {"lead.tenant_id", lead.tenant_id}
+        {"tenant.id", lead.tenant_id}
       ])
 
       Logger.info(
