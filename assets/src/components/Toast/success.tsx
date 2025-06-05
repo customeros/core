@@ -11,10 +11,12 @@ export const toastSuccess = (text: string, id: string) => {
     closeButton: ({ closeToast }) => (
       <IconButton
         variant="ghost"
+        size="xs"
         aria-label="Close"
         colorScheme="success"
+        className="ml-auto"
         onClick={closeToast}
-        icon={<Icon name="x-close" className="size-5" />}
+        icon={<Icon name="x-close" />}
       />
     ),
   });

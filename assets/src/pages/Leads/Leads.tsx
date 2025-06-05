@@ -1,4 +1,4 @@
-import { useState, lazy, memo, useCallback, useMemo } from 'react';
+import { useState, lazy, useCallback, useMemo } from 'react';
 
 import { router } from '@inertiajs/react';
 
@@ -50,7 +50,7 @@ const DocumentEditor = lazy(() =>
   }))
 );
 
-export const Leads = memo(({ companies }: LeadsProps) => {
+export default function Leads({ companies }: LeadsProps) {
   const [selectedStage, setSelectedStage] = useState<string>('');
   const [selectedAccordion, setSelectedAccordion] = useState<string>('');
   const hasDocParam = new URLSearchParams(window.location.search).has('doc');
@@ -88,7 +88,7 @@ export const Leads = memo(({ companies }: LeadsProps) => {
 
   return (
     <RootLayout>
-      <Plm />
+      <EventSubscriber />
       <Header />
       {companies.length === 0 ? (
         <EmptyState />
@@ -242,7 +242,7 @@ export const Leads = memo(({ companies }: LeadsProps) => {
               className={cn(
                 'border-l h-full flex-shrink-0 transition-all duration-300 ease-in-out overflow-y-auto',
                 hasDocParam
-                  ? 'opacity-100 w-full md:w-[728px] translate-x-[0px]'
+                  ? 'opacity-100 w-[728px] translate-x-[0px]'
                   : 'opacity-0 w-[0px] translate-x-[728px]',
                 viewMode === 'focus' && 'w-full border-transparent'
               )}
@@ -254,9 +254,9 @@ export const Leads = memo(({ companies }: LeadsProps) => {
       )}
     </RootLayout>
   );
-});
+}
 
-const Plm = () => {
+const EventSubscriber = () => {
   useEventsChannel<LeadUpdatedEvent>(event => {
     if (event.type === 'lead_updated') {
       router.reload({ only: ['companies'] });

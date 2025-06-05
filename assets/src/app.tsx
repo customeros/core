@@ -6,11 +6,10 @@ import { createRoot } from 'react-dom/client';
 
 import axios from 'axios';
 
-import { Leads } from './pages/Leads/Leads';
-import { Signin } from './pages/Signin';
-import { Welcome } from './pages/Welcome';
-
-const LazyDocument = lazy(() => import('./pages/Document/Document'));
+const Signin = lazy(() => import('./pages/Signin'));
+const Welcome = lazy(() => import('./pages/Welcome'));
+const Leads = lazy(() => import('./pages/Leads/Leads'));
+const Document = lazy(() => import('./pages/Document'));
 
 axios.defaults.xsrfHeaderName = 'x-csrf-token';
 
@@ -18,7 +17,7 @@ const pages = {
   Leads,
   Signin,
   Welcome,
-  Document: LazyDocument,
+  Document,
 };
 createInertiaApp({
   resolve: async name => {

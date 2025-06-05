@@ -588,7 +588,7 @@
   border: 1px solid #75e0a7 !important;
 
   & .Toastify__toast-icon {
-    width: 36px !important;
+    width: 24px !important;
   }
 
   & .Toastify__close-button {
@@ -615,7 +615,7 @@
   border: 1px solid #fda29b !important;
 
   & .Toastify__toast-icon {
-    width: 36px !important;
+    width: 24px !important;
   }
 
   & .Toastify__close-button {
