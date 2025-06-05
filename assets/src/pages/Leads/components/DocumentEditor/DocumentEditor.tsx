@@ -108,14 +108,16 @@ export const DocumentEditor = () => {
                     aria-label="download document"
                     icon={<Icon name="download-02" />}
                   /> */}
-                  <IconButton
-                    size="xs"
-                    variant="ghost"
-                    aria-label="toggle view mode"
-                    className="hidden md:flex"
-                    onClick={handleViewModeChange}
-                    icon={<Icon name={viewMode === 'default' ? 'expand-01' : 'collapse-01'} />}
-                  />
+                  {docId && (
+                    <IconButton
+                      size="xs"
+                      variant="ghost"
+                      aria-label="toggle view mode"
+                      className="hidden md:flex"
+                      onClick={handleViewModeChange}
+                      icon={<Icon name={viewMode === 'default' ? 'expand-01' : 'collapse-01'} />}
+                    />
+                  )}
                   <IconButton
                     size="xs"
                     variant="ghost"

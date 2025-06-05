@@ -69,6 +69,25 @@ export function FloatingLinkEditor({
     });
   }, [editor, isLink]);
 
+  useEffect(() => {
+    if (isLink) {
+      const timer = setTimeout(() => {
+        if (inputRef.current) {
+          inputRef.current.focus();
+          const length = inputRef.current.value.length;
+          inputRef.current.setSelectionRange(length, length);
+        }
+      }, 100);
+      return () => clearTimeout(timer);
+    }
+  }, [isLink, linkUrl]);
+
+  useEffect(() => {
+    if (!isLink) {
+      setLinkUrl('');
+    }
+  }, [isLink]);
+
   const handleLinkSubmission = useCallback(() => {
     editor.update(() => {
       const selection = $getSelection();
@@ -98,7 +117,6 @@ export function FloatingLinkEditor({
           }
 
           const spaceNode = $createTextNode('');
-
           linkNode.insertAfter(spaceNode);
           spaceNode.select(0, 0);
         }
@@ -106,8 +124,6 @@ export function FloatingLinkEditor({
         setIsLink(false);
       }
     });
-
-    setIsLink(false);
   }, [editor, linkUrl, setIsLink]);
 
   const handleDeleteLink = useCallback(() => {
@@ -123,13 +139,17 @@ export function FloatingLinkEditor({
 
   useEffect(() => {
     function handleClickOutside(event: MouseEvent) {
-      if (editorRef.current && !editorRef.current?.contains(event.target as Node)) {
-        // todo - this condition could be more sofisticated
-        if (linkUrl.trim().length || linkUrl !== 'https://') {
-          handleLinkSubmission();
-        } else {
-          handleDeleteLink();
-        }
+      if (
+        editorRef.current?.contains(event.target as Node) ||
+        inputRef.current?.contains(event.target as Node)
+      ) {
+        return;
+      }
+
+      if (linkUrl.trim() && linkUrl !== 'https://') {
+        handleLinkSubmission();
+      } else {
+        handleDeleteLink();
       }
     }
 
@@ -138,7 +158,7 @@ export function FloatingLinkEditor({
     return () => {
       document.removeEventListener('mousedown', handleClickOutside);
     };
-  }, [isLink, handleLinkSubmission]);
+  }, [isLink, handleLinkSubmission, handleDeleteLink, linkUrl]);
 
   const monitorInputInteraction = (event: KeyboardEvent<HTMLInputElement>) => {
     if (event.key === 'Enter') {
@@ -178,7 +198,7 @@ export function FloatingLinkEditor({
 
       <div className="w-[1px] h-3 border-b-0 border-l-[1px] border-gray-500 mx-2" />
 
-      {!!linkUrl.trim().length && linkUrl.trim() !== 'https://' && (
+      {linkUrl.trim() && linkUrl !== 'https://' && linkUrl !== 'Enter a URL' && (
         <FloatingToolbarButton
           aria-label="Open link"
           icon={<Icon name="link-external-02" className="text-gray-100" />}
@@ -188,7 +208,6 @@ export function FloatingLinkEditor({
           }}
           onClick={() => {
             const link = getExternalUrl(sanitizeUrl(linkUrl));
-
             window.open(link, '_blank', 'noopener,noreferrer');
           }}
         />
@@ -238,7 +257,7 @@ export function FloatingLinkEditorPlugin({
 
     if (editor.getRootElement() !== document.activeElement || !isPointerReleased) {
       setMenuPosition(null);
-
+      setIsLink(false);
       return false;
     }
 
@@ -251,7 +270,6 @@ export function FloatingLinkEditorPlugin({
 
       if (linkNode) {
         setIsLink(true);
-
         const element = editor.getElementByKey(linkNode.getKey()) as HTMLElement;
 
         if (element) {
@@ -270,7 +288,7 @@ export function FloatingLinkEditorPlugin({
     }
 
     return true;
-  }, [editor, updateMenuPosition]);
+  }, [editor, updateMenuPosition, isPointerReleased]);
 
   useEffect(() => {
     return mergeRegister(

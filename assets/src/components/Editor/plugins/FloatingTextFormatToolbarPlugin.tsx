@@ -19,6 +19,7 @@ import {
   COMMAND_PRIORITY_NORMAL,
   COMMAND_PRIORITY_NORMAL as NORMAL_PRIORITY,
   SELECTION_CHANGE_COMMAND as ON_SELECTION_CHANGE,
+  SELECTION_CHANGE_COMMAND,
 } from 'lexical';
 
 import { Tooltip } from 'src/components/Tooltip';
@@ -61,8 +62,13 @@ export function FloatingMenu({ editor }: FloatingMenuComponentProps) {
       if ($isRangeSelection(selection)) {
         if (isLink) {
           $toggleLink(null);
+          setIsLink(false);
         } else {
           $toggleLink('https://');
+          // Force a re-render to ensure the link editor is shown
+          editor.dispatchCommand(SELECTION_CHANGE_COMMAND, undefined);
+          // Set isLink to true to trigger the link editor
+          setIsLink(true);
         }
       }
     });
