@@ -67,7 +67,7 @@ defmodule Core.Researcher.ScraperTest do
         result = Scraper.scrape_webpage(url)
 
         case result do
-          {:ok, content} when is_binary(content) ->
+          {:ok, %{content: content}} when is_binary(content) ->
             assert String.length(content) > 0
 
           {:error, %{type: error_type}} when is_atom(error_type) ->

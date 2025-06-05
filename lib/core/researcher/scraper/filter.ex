@@ -1,4 +1,8 @@
 defmodule Researcher.Scraper.Filter do
+  @moduledoc """
+  Filters out non-scrapeable URLs based on path and file extension.
+  """
+
   @doc """
   Determines if a webpage should be scraped based on its URL.
   Returns true if the page likely contains marketing/content, false for admin/app pages.

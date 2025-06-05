@@ -144,8 +144,8 @@ defmodule Core.Crm.Companies.CompanyEnrich do
       ])
 
       case Scraper.scrape_webpage(company.primary_domain) do
-        {:ok, result} ->
-          {:ok, result.content}
+        {:ok, %{content: content}} when is_binary(content) ->
+          {:ok, content}
 
         {:error, reason} ->
           Logger.error(
@@ -297,7 +297,9 @@ defmodule Core.Crm.Companies.CompanyEnrich do
         Tracing.error(:industry_not_found)
 
         Logger.error(
-          "Industry code #{industry_code} not available in db", domain: company.primary_domain, company_id: company.id
+          "Industry code #{industry_code} not available in db",
+          domain: company.primary_domain,
+          company_id: company.id
         )
 
         {:error, :industry_not_found}

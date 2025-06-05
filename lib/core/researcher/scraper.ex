@@ -41,6 +41,14 @@ defmodule Core.Researcher.Scraper do
   @err_webscraper_timed_out {:error, "webscraper timed out"}
   @err_unexpected_response {:error, "webscraper returned unexpected response"}
 
+  @type scrape_result :: %{
+          content: String.t(),
+          summary: String.t() | nil,
+          links: [String.t()] | nil
+        }
+
+  @spec scrape_webpage(String.t()) ::
+          {:ok, String.t() | scrape_result()} | {:error, any()}
   def scrape_webpage(url) when is_binary(url) and byte_size(url) > 0 do
     Logger.metadata(module: __MODULE__, function: :scrape_webpage)
 
@@ -142,7 +150,11 @@ defmodule Core.Researcher.Scraper do
       case results do
         {:ok, {:ok, classification}} ->
           Webpages.update_classification(url, classification)
-          {:ok, content}
+
+          {:ok,
+           %{
+             content: content
+           }}
 
         {:ok, {:error, reason}} ->
           Tracing.error(reason)

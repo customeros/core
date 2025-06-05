@@ -171,7 +171,7 @@ defmodule Core.WebTracker.SessionAnalyzer do
 
   defp get_webpage_content({:ok, url}) do
     case Scraper.scrape_webpage(url) do
-      {:ok, _content} ->
+      {:ok, _} ->
         {:ok, url}
 
       {:error, reason} ->
