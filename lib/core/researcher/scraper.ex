@@ -299,9 +299,10 @@ defmodule Core.Researcher.Scraper do
 
   @unprocessable_indicators [
     "403 Forbidden",
-    "403",
+    "403:",
     "Forbidden",
     "Robot Challenge",
+    "error 404",
     "Attention Required! | Cloudflare",
     "Why have I been blocked?",
     "Privacy error",
