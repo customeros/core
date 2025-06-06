@@ -3,6 +3,7 @@ defmodule Core.Utils.Tracing do
   Utility functions for tracing.
   """
 
+  require Logger
   require OpenTelemetry.Tracer
 
   @doc """
@@ -35,6 +36,11 @@ defmodule Core.Utils.Tracing do
     end
   end
 
+  @doc """
+  Sets the status of the current span to error with the given reason.
+  Does nothing if no active span context is present.
+  Logs the warning message if provided.
+  """
   @spec warning(term()) :: :ok
   @spec warning(term(), String.t() | nil) :: :ok
   @spec warning(term(), String.t() | nil, keyword()) :: :ok
