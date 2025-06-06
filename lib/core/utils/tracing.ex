@@ -58,10 +58,8 @@ defmodule Core.Utils.Tracing do
         :ok
 
       _ctx ->
-        OpenTelemetry.Tracer.set_status(:error, reason_str)
-
         OpenTelemetry.Tracer.set_attributes([
-          {"error.reason", reason_str}
+          {"warning.reason", reason_str}
         ])
     end
   end
