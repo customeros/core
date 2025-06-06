@@ -344,8 +344,14 @@ defmodule Core.WebTracker do
 
             {:error, :not_found} ->
               Tracing.error(:not_found)
-
               {:error, :not_found}
+
+            {:error, :domain_matches_tenant} ->
+              OpenTelemetry.Tracer.set_attributes([
+                {"result.lead_creation_result", :domain_matches_tenant}
+              ])
+
+              {:error, :domain_matches_tenant}
           end
 
         {:error, reason} ->

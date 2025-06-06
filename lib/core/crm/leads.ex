@@ -42,6 +42,8 @@ defmodule Core.Crm.Leads do
     end
   end
 
+  @spec get_domain_for_lead_company(String.t(), String.t()) ::
+          {:ok, String.t(), Lead.t()} | :not_a_company | {:error, :not_found}
   def get_domain_for_lead_company(tenant_id, lead_id) do
     %LeadContext{lead_id: lead_id, tenant_id: tenant_id}
     |> fetch_lead()
@@ -50,6 +52,8 @@ defmodule Core.Crm.Leads do
     |> extract_company_domain()
   end
 
+  @spec get_lead_by_company_ref(String.t(), String.t()) ::
+          {:ok, Lead.t()} | {:error, :not_found}
   def get_lead_by_company_ref(tenant_id, ref_id) do
     case Repo.get_by(Lead, tenant_id: tenant_id, ref_id: ref_id, type: :company) do
       %Lead{} = lead -> {:ok, lead}
@@ -179,28 +183,41 @@ defmodule Core.Crm.Leads do
   end
 
   @spec get_or_create(tenant :: String.t(), attrs :: map()) ::
-          {:ok, Lead.t()} | {:error, :not_found}
+          {:ok, Lead.t()} | {:error, :not_found | :domain_matches_tenant}
   def get_or_create(tenant, attrs) do
-    case Tenants.get_tenant_by_name(tenant) do
-      {:error, :not_found} ->
-        {:error, :not_found}
+    OpenTelemetry.Tracer.with_span "leads.get_or_create" do
+      OpenTelemetry.Tracer.set_attributes([
+        {"tenant", tenant}
+      ])
 
-      {:ok, tenant} ->
-        case get_by_ref_id(tenant.id, attrs.ref_id) do
-          {:error, :not_found} ->
-            %Lead{}
-            |> Lead.changeset(%{
-              tenant_id: tenant.id,
-              ref_id: attrs.ref_id,
-              type: attrs.type,
-              stage: Map.get(attrs, :stage, :pending)
-            })
-            |> Repo.insert()
-            |> tap(fn {:ok, result} -> after_insert_start(result) end)
+      case Tenants.get_tenant_by_name(tenant) do
+        {:error, :not_found} ->
+          Tracing.error(:not_found)
+          {:error, :not_found}
 
-          lead ->
-            {:ok, lead}
-        end
+        {:ok, tenant} ->
+          case get_by_ref_id(tenant.id, attrs.ref_id) do
+            {:error, :not_found} ->
+              with {:ok, company} <- Companies.get_by_id(attrs.ref_id),
+                   false <- company.primary_domain == tenant.domain do
+                %Lead{}
+                |> Lead.changeset(%{
+                  tenant_id: tenant.id,
+                  ref_id: attrs.ref_id,
+                  type: attrs.type,
+                  stage: Map.get(attrs, :stage, :pending)
+                })
+                |> Repo.insert()
+                |> tap(fn {:ok, result} -> after_insert_start(result) end)
+              else
+                {:error, :not_found} -> {:error, :not_found}
+                true -> {:error, :domain_matches_tenant}
+              end
+
+            lead ->
+              {:ok, lead}
+          end
+      end
     end
   end
 

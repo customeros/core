@@ -173,5 +173,10 @@ defmodule Core.WebTracker.Sessions do
       ended_at: session.last_event_at
     })
     |> Repo.update()
+    |> tap(fn {:ok, result} -> after_session_closed(result) end)
+  end
+
+  defp after_session_closed(%Session{} = session) do
+    Core.WebTracker.SessionAnalyzer.start(session.id)
   end
 end
