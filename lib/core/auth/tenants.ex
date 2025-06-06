@@ -128,19 +128,19 @@ defmodule Core.Auth.Tenants do
   end
 
   defp notify_slack_new_tenant_start(tenant) do
-    span_ctx = OpenTelemetry.Tracer.current_span_ctx()
+    span_ctx = OpenTelemetry.Ctx.get_current()
 
     Task.Supervisor.start_child(Core.TaskSupervisor, fn ->
-      OpenTelemetry.Tracer.set_current_span(span_ctx)
+      OpenTelemetry.Ctx.attach(span_ctx)
       notify_slack_new_tenant(tenant)
     end)
   end
 
   defp process_company_for_tenant_start(tenant) do
-    span_ctx = OpenTelemetry.Tracer.current_span_ctx()
+    span_ctx = OpenTelemetry.Ctx.get_current()
 
     Task.Supervisor.start_child(Core.TaskSupervisor, fn ->
-      OpenTelemetry.Tracer.set_current_span(span_ctx)
+      OpenTelemetry.Ctx.attach(span_ctx)
       process_company_for_tenant(tenant)
     end)
   end
