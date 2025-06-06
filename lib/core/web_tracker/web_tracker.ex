@@ -49,8 +49,7 @@ defmodule Core.WebTracker do
           result
 
         {:error, :bad_request, reason} = result ->
-          Tracing.error(reason)
-          Logger.error("Error in web tracker event params: #{reason}")
+          Tracing.error(reason, "Failed to validate event params")
           result
       end
     end
@@ -158,8 +157,7 @@ defmodule Core.WebTracker do
           end
 
         {:error, reason} ->
-          Logger.error("Failed to get IP data: #{inspect(reason)}")
-          Tracing.error("ip_data_fetch_failed")
+          Tracing.error(reason, "Failed to get IP data")
           {:error, :internal_server_error, "failed to process request"}
       end
     end
@@ -284,10 +282,7 @@ defmodule Core.WebTracker do
             process_company_info(domain, company, tenant, session_id)
 
           {:error, reason} ->
-            Tracing.error(reason)
-
-            Logger.error("Failed to get company info",
-              reason: reason,
+            Tracing.error(reason, "Failed to get company info",
               session_id: session_id
             )
         end
@@ -296,7 +291,7 @@ defmodule Core.WebTracker do
   end
 
   defp process_company_info(domain, nil, _tenant, _session_id) do
-    Logger.warning("Company not found for domain: #{domain}")
+    Logger.warning("Company not found for domain", company_domain: domain)
   end
 
   defp process_company_info(domain, company_ip_intelligence, tenant, session_id) do
@@ -329,7 +324,8 @@ defmodule Core.WebTracker do
 
               {:error, reason} ->
                 Logger.warning(
-                  "Failed to update session with company ID: #{inspect(reason)}"
+                  "Failed to update session with company ID",
+                  reason: reason
                 )
 
                 :ok
@@ -355,11 +351,7 @@ defmodule Core.WebTracker do
           end
 
         {:error, reason} ->
-          Tracing.error(reason)
-
-          Logger.error(
-            "Company not created from web-tracker",
-            reason: reason,
+          Tracing.error(reason, "Company not created from webTracker",
             company: company_ip_intelligence.name,
             company_domain: domain,
             trace_id:
