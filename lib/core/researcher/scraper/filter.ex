@@ -155,10 +155,7 @@ defmodule Researcher.Scraper.Filter do
 
     Enum.any?(path_segments, fn segment ->
       segment_lower = String.downcase(segment)
-
-      Enum.any?(excluded_segments, fn excluded ->
-        String.contains?(segment_lower, excluded)
-      end)
+      Enum.any?(excluded_segments, fn excluded -> segment_lower == excluded end)
     end)
   end
 
