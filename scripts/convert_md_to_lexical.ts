@@ -10,18 +10,27 @@ console.info = () => {};
 console.error = () => {};
 console.warn = () => {};
 
-// Create a JSDOM instance with minimal configuration
-const dom = new JSDOM("<!DOCTYPE html><html><body></body></html>", {
-  runScripts: "outside-only",
-  resources: "usable",
-  pretendToBeVisual: true,
-  url: "http://localhost",
-});
+// Mock the XHR worker module that JSDOM is looking for
+const xhrWorkerMock = {
+  XHRWorker: class {
+    postMessage() {}
+    terminate() {}
+  },
+  createWorker: () => new xhrWorkerMock.XHRWorker(),
+};
 
-// Set up global objects
+// Mock the module resolution
+(global as any).require = (path: string) => {
+  if (path.includes("xhr-sync-worker.js")) {
+    return xhrWorkerMock;
+  }
+  throw new Error(`Cannot find module '${path}'`);
+};
+
+// Create a JSDOM instance
+const dom = new JSDOM("<!DOCTYPE html><html><body></body></html>");
 global.document = dom.window.document;
 (global as any).window = dom.window;
-(global as any).DOMParser = dom.window.DOMParser;
 
 /**
  * Converts a Markdown string to Lexical editor state JSON.
