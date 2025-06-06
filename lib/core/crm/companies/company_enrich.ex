@@ -99,8 +99,7 @@ defmodule Core.Crm.Companies.CompanyEnrich do
   defp fetch_company(company_id) do
     case Repo.get(Company, company_id) do
       nil ->
-        Logger.error("Company #{company_id} not found")
-        Tracing.error(:not_found)
+        Tracing.error(:not_found, "Company not found", company_id: company_id)
         Errors.error(:not_found)
 
       company ->
@@ -125,11 +124,12 @@ defmodule Core.Crm.Companies.CompanyEnrich do
            inc: [domain_scrape_attempts: 1]
          ) do
       {0, _} ->
-        Logger.error(
-          "Failed to mark scraping homepage attempt for company #{company_id}"
+        Tracing.error(
+          :update_failed,
+          "Failed to mark scrape attempt for company",
+          company_id: company_id
         )
 
-        Tracing.error(:update_failed)
         Errors.error(:update_failed)
 
       {_count, _} ->
@@ -149,14 +149,11 @@ defmodule Core.Crm.Companies.CompanyEnrich do
           {:ok, content}
 
         {:error, reason} ->
-          Logger.error(
-            "Failed to scrape homepage for company",
+          Tracing.error(reason, "Failed to scrape homepage for company",
             company_id: company.id,
-            url: company.primary_domain,
-            reason: reason
+            company_domain: company.primary_domain
           )
 
-          Tracing.error(reason)
           {:error, reason}
       end
     end
@@ -168,8 +165,10 @@ defmodule Core.Crm.Companies.CompanyEnrich do
            set: [homepage_content: content, homepage_scraped: true]
          ) do
       {0, _} ->
-        Logger.error("Failed to update homepage for company #{company_id}")
-        Tracing.error(:update_failed)
+        Tracing.error(:update_failed, "Failed to update homepage for company",
+          company_id: company_id
+        )
+
         Errors.error(:update_failed)
 
       {_count, _} ->
@@ -250,11 +249,12 @@ defmodule Core.Crm.Companies.CompanyEnrich do
            inc: [industry_enrichment_attempts: 1]
          ) do
       {0, _} ->
-        Logger.error(
-          "Failed to mark industry enrichment attempt for company #{company_id}"
+        Tracing.error(
+          :update_failed,
+          "Failed to mark industry enrichment attempt for company",
+          company_id: company_id
         )
 
-        Tracing.error(:update_failed)
         Errors.error(:update_failed)
 
       {_count, _} ->
@@ -277,27 +277,27 @@ defmodule Core.Crm.Companies.CompanyEnrich do
             {:ok, industry_code}
 
           {:error, {:invalid_request, reason}} ->
-            Logger.error("Invalid ai request for industry enrichment",
-              company_id: company.id,
-              reason: reason
+            Tracing.error(
+              :invalid_request,
+              "Invalid ai request for industry enrichment",
+              company_id: company.id
             )
 
-            Tracing.error(:invalid_request)
             {:error, :invalid_request}
 
           {:error, :empty_ai_response} ->
-            Logger.warning("No industry code from AI", company_id: company.id)
+            Tracing.warning(:empty_ai_response, "No industry code from AI",
+              company_id: company.id
+            )
+
             {:error, :empty_ai_response}
 
           {:error, reason} ->
-            Logger.error(
-              "Failed to get industry code from AI",
+            Tracing.error(reason, "Failed to get industry code from AI",
               company_id: company.id,
-              company_domain: company.primary_domain,
-              reason: reason
+              company_domain: company.primary_domain
             )
 
-            Tracing.error(reason)
             {:error, reason}
         end
 
@@ -310,9 +310,8 @@ defmodule Core.Crm.Companies.CompanyEnrich do
   defp lookup_industry(industry_code, company) do
     case Industries.get_by_code(industry_code) do
       nil ->
-        Tracing.error(:industry_not_found)
-
-        Logger.error(
+        Tracing.error(
+          :industry_not_found,
           "Industry code #{industry_code} not available in db",
           company_domain: company.primary_domain,
           company_id: company.id

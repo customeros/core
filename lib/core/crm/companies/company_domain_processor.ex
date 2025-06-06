@@ -116,10 +116,8 @@ defmodule Core.Crm.Companies.CompanyDomainProcessor do
           end
 
         {:error, reason} ->
-          Tracing.error(reason)
-
-          Logger.error(
-            "Failed to extract base domain from #{queue_item.domain}: #{inspect(reason)}"
+          Tracing.error(reason, "Failed to extract base domain",
+            company_domain: queue_item.domain
           )
 
           mark_as_processed(queue_item.id)
