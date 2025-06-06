@@ -50,21 +50,28 @@ defmodule Core.Researcher.Scraper do
   @spec scrape_webpage(String.t()) ::
           {:ok, String.t() | scrape_result()} | {:error, any()}
   def scrape_webpage(url) when is_binary(url) and byte_size(url) > 0 do
-    Logger.metadata(module: __MODULE__, function: :scrape_webpage)
+    OpenTelemetry.Tracer.with_span "scraper.scrape_webpage" do
+      OpenTelemetry.Tracer.set_attributes([
+        {"url", url}
+      ])
 
-    case validate_url(url) do
-      {:error, reason} ->
-        {:error, reason}
+      Logger.metadata(module: __MODULE__, function: :scrape_webpage)
 
-      url ->
-        Logger.info("Starting to scrape #{url}",
-          url: url
-        )
+      case validate_url(url) do
+        {:error, reason} ->
+          Tracing.error(reason, "Invalid URL for scraping", url: url)
+          {:error, reason}
 
-        case Core.Researcher.Webpages.get_by_url(url) do
-          {:ok, existing_record} -> use_cached_content(existing_record)
-          {:error, :not_found} -> fetch_and_process_webpage(url)
-        end
+        url ->
+          Logger.info("Starting to scrape #{url}",
+            url: url
+          )
+
+          case Core.Researcher.Webpages.get_by_url(url) do
+            {:ok, existing_record} -> use_cached_content(existing_record)
+            {:error, :not_found} -> fetch_and_process_webpage(url)
+          end
+      end
     end
   end
 
@@ -86,21 +93,31 @@ defmodule Core.Researcher.Scraper do
   end
 
   def validate_url(url) do
-    with {:ok, true} <- Filter.should_scrape?(url),
-         {:ok, host} <- DomainExtractor.extract_base_domain(url),
-         {:ok, true} <- PrimaryDomainFinder.primary_domain?(host),
-         {:ok, base_url} <- UrlFormatter.get_base_url(url),
-         {:ok, clean_url} <- UrlFormatter.to_https(base_url),
-         {:ok, content_type} <- fetch_content_type(clean_url),
-         {:ok, true} <- webpage_content_type?(content_type) do
-      clean_url
-    else
-      {:ok, false} ->
-        @err_invalid_url
+    OpenTelemetry.Tracer.with_span "scraper.validate_url" do
+      OpenTelemetry.Tracer.set_attributes([
+        {"url", url}
+      ])
 
-      {:error, reason} ->
-        Logger.info("#{url} is invalid, stopping scraper")
-        {:error, reason}
+      with {:ok, true} <- Filter.should_scrape?(url),
+           {:ok, host} <- DomainExtractor.extract_base_domain(url),
+           {:ok, true} <- PrimaryDomainFinder.primary_domain?(host),
+           {:ok, base_url} <- UrlFormatter.get_base_url(url),
+           {:ok, clean_url} <- UrlFormatter.to_https(base_url),
+           {:ok, content_type} <- fetch_content_type(clean_url),
+           {:ok, true} <- webpage_content_type?(content_type) do
+        OpenTelemetry.Tracer.set_attributes([
+          {"result.url", url}
+        ])
+
+        clean_url
+      else
+        {:ok, false} ->
+          @err_invalid_url
+
+        {:error, reason} ->
+          Logger.info("#{url} is invalid, stopping scraper")
+          {:error, reason}
+      end
     end
   end
 
@@ -361,50 +378,65 @@ defmodule Core.Researcher.Scraper do
   end
 
   defp fetch_content_type(url, depth \\ 0) do
-    if depth > 5 do
-      {:error, :too_many_redirects}
-    else
-      case Finch.build(:get, url) |> Finch.request(Core.Finch) do
-        {:ok, %Finch.Response{headers: headers, status: status, body: _body}} ->
-          content_type =
-            Enum.find_value(headers, fn
-              {"content-type", ct} -> ct
-              {"Content-Type", ct} -> ct
-              _ -> nil
-            end)
+    OpenTelemetry.Tracer.with_span "scraper.fetch_content_type" do
+      OpenTelemetry.Tracer.set_attributes([
+        {"url", url},
+        {"depth", depth}
+      ])
 
-          disposition =
-            Enum.find_value(headers, fn
-              {"content-disposition", disp} -> disp
-              {"Content-Disposition", disp} -> disp
-              _ -> nil
-            end)
+      if depth > 5 do
+        {:error, :too_many_redirects}
+      else
+        case Finch.build(:get, url) |> Finch.request(Core.Finch) do
+          {:ok, %Finch.Response{headers: headers, status: status, body: _body}} ->
+            content_type =
+              Enum.find_value(headers, fn
+                {"content-type", ct} -> ct
+                {"Content-Type", ct} -> ct
+                _ -> nil
+              end)
 
-          location =
-            Enum.find_value(headers, fn
-              {"location", loc} -> loc
-              {"Location", loc} -> loc
-              _ -> nil
-            end)
+            disposition =
+              Enum.find_value(headers, fn
+                {"content-disposition", disp} -> disp
+                {"Content-Disposition", disp} -> disp
+                _ -> nil
+              end)
 
-          cond do
-            status in 300..399 and location ->
-              fetch_content_type(location, depth + 1)
+            location =
+              Enum.find_value(headers, fn
+                {"location", loc} -> loc
+                {"Location", loc} -> loc
+                _ -> nil
+              end)
 
-            is_nil(content_type) ->
-              {:error, :no_content_type}
+            cond do
+              status in 300..399 and location ->
+                next_url =
+                  if String.starts_with?(location, "/") do
+                    URI.merge(URI.parse(url), location) |> URI.to_string()
+                  else
+                    location
+                  end
 
-            String.contains?(content_type, "text/html") and
-              not is_nil(disposition) and
-                Regex.match?(~r/attachment/i, disposition) ->
-              {:error, :html_download_redirect}
+                fetch_content_type(next_url, depth + 1)
 
-            true ->
-              {:ok, content_type}
-          end
+              is_nil(content_type) ->
+                dbg(headers)
+                {:error, :no_content_type}
 
-        {:error, reason} ->
-          {:error, reason}
+              String.contains?(content_type, "text/html") and
+                not is_nil(disposition) and
+                  Regex.match?(~r/attachment/i, disposition) ->
+                {:error, :html_download_redirect}
+
+              true ->
+                {:ok, content_type}
+            end
+
+          {:error, reason} ->
+            {:error, reason}
+        end
       end
     end
   end
