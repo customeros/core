@@ -8,7 +8,6 @@
   },
   "devDependencies": {
     "@types/bun": "latest",
-    "@types/jsdom": "^21.1.7",
     "@types/marked": "^6.0.0"
   },
   "peerDependencies": {
@@ -21,10 +20,10 @@
     "@lexical/react": "^0.27.1",
     "@lexical/rich-text": "^0.27.1",
     "@lexical/yjs": "^0.27.1",
+    "happy-dom": "^17.6.3",
     "lexical": "^0.27.1",
+    "marked": "^15.0.12",
     "y-protocols": "^1.0.6",
-    "yjs": "^13.6.24",
-    "jsdom": "^22.1.0",
-    "marked": "^15.0.12"
+    "yjs": "^13.6.24"
   }
 }

@@ -25,8 +25,6 @@ defmodule Mix.Tasks.Compile.Script do
       Mix.shell().info("Skipping TypeScript compilation in ElixirLS")
     end
 
-    Mix.shell().info("Compiling TypeScript scripts with Bun...")
-
     # Define script and output paths
     script_dir = Path.expand("scripts")
     output_dir = Path.expand("priv/scripts")
@@ -54,16 +52,13 @@ defmodule Mix.Tasks.Compile.Script do
       {output, exit_code} =
         System.cmd("sh", ["-c", command], stderr_to_stdout: true)
 
-      # Print output for debugging
-      Mix.shell().info(output)
-
       if exit_code == 0 do
         Mix.shell().info(
-          "✅ Successfully compiled #{script_name} to #{output_path}"
+          "Successfully compiled #{script_name} to #{output_path}"
         )
       else
         Mix.raise(
-          "❌ Failed to compile #{script_name}.\n\nError output:\n#{output}"
+          "Failed to compile #{script_name}.\n\nError output:\n#{output}"
         )
       end
     end)
