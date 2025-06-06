@@ -152,11 +152,7 @@ defmodule Core.Crm.Companies.CompanyEnrich do
             "Failed to scrape homepage for company",
             company_id: company.id,
             url: company.primary_domain,
-            reason: reason,
-            trace_id:
-              :otel_span.trace_id(OpenTelemetry.Tracer.current_span_ctx())
-              |> Integer.to_string(16)
-              |> String.downcase()
+            reason: reason
           )
 
           Tracing.error(reason)

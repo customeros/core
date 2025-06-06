@@ -111,18 +111,25 @@ defmodule Core.Utils.DomainValidator do
   def valid_domain?(_), do: false
 
   defp idna_valid?(domain) when is_binary(domain) do
-    try do
-      case :idna.encode(to_charlist(domain),
-             uts46: true,
-             std3_rules: true,
-             transitional: false
-           ) do
-        encoded when is_list(encoded) -> true
+    # Pre-validate to catch invalid characters before IDNA validation
+    if String.contains?(domain, ["/", "\\", ":", "*", "?", "\"", "<", ">", "|", " "]) do
+      false
+    else
+      try do
+        case :idna.encode(to_charlist(domain),
+               uts46: true,
+               std3_rules: true,
+               transitional: false
+             ) do
+          encoded when is_list(encoded) -> true
+        end
+      rescue
+        _ -> false
       end
-    rescue
-      _ -> false
     end
   end
+
+  defp idna_valid?(_), do: false
 
   @doc """
   Parses a domain into root domain and subdomain components.

@@ -20,7 +20,7 @@ defmodule Core.Crm.Companies.Enrichment.Name do
   I'm going to provide you metadata about a company, including their website content.
   Your job is to identify the commonly recognized brand name of the company.
 
-  Important rules:
+  <INSTRUCTIONS>
   1. Return ONLY the commonly recognized brand name, nothing else.
   2. If the company is more commonly known by a brand name (e.g., "Apple" instead of "Apple Inc."), use that simpler name.
   3. Remove all suffixes like Inc, Ltd, LLC, Corp, etc.
@@ -29,6 +29,7 @@ defmodule Core.Crm.Companies.Enrichment.Name do
      - The brand officially starts with lowercase (e.g., "eBay", "iPhone")
   5. Focus on the most recognizable, consumer-facing name.
   6. Do not include reasoning in your response.
+  </INSTRUCTIONS>
   """
 
   @type input :: %{
