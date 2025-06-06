@@ -279,7 +279,7 @@ defmodule Core.Crm.Companies.CompanyEnrich do
           {:error, {:invalid_request, reason}} ->
             Tracing.error(
               :invalid_request,
-              "Invalid ai request for industry enrichment",
+              "Invalid ai request for industry enrichment: #{inspect(reason)}",
               company_id: company.id
             )
 

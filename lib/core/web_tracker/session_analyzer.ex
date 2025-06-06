@@ -46,7 +46,7 @@ defmodule Core.WebTracker.SessionAnalyzer do
     )
 
     with {:ok, session} <- Sessions.get_session_by_id(session_id),
-         {:ok, :proceed} <- ok_to_run?(session.tenant, session.company_id),
+         {:ok, :proceed} <- ok_to_run(session.tenant, session.company_id),
          {:ok, all_company_sessions} <-
            Sessions.get_all_closed_sessions_by_tenant_and_company(
              session.tenant,
@@ -66,15 +66,18 @@ defmodule Core.WebTracker.SessionAnalyzer do
     end
   end
 
-  defp ok_to_run?(tenant, company_id) do
+  defp ok_to_run(_tenant, nil), do: {:stop, :no_company_id}
+
+  defp ok_to_run(tenant, company_id) when not is_nil(company_id) do
     with {:ok, tenant} <- Tenants.get_tenant_by_name(tenant),
-         {:ok, lead} <- Leads.get_by_ref_id(tenant.id, company_id) do
+         {:ok, lead} when not is_nil(company_id) <- Leads.get_by_ref_id(tenant.id, company_id) do
       cond do
         lead.stage == :ready_to_buy -> {:stop, :already_ready_to_buy}
         lead.stage == :not_a_fit -> {:stop, :not_icp_fit}
         true -> {:ok, :proceed}
       end
     else
+      {:ok, nil} -> {:stop, :no_company_id}
       {:error, reason} -> {:error, reason}
     end
   end
