@@ -63,9 +63,7 @@ defmodule Core.Researcher.Scraper do
           {:error, reason}
 
         url ->
-          Logger.info("Starting to scrape #{url}",
-            url: url
-          )
+          Logger.info("Starting to scrape #{url}", url: url)
 
           case Core.Researcher.Webpages.get_by_url(url) do
             {:ok, existing_record} -> use_cached_content(existing_record)
@@ -92,32 +90,49 @@ defmodule Core.Researcher.Scraper do
     end
   end
 
+  @spec validate_url(String.t()) :: {String.t()} | {:error, any()}
   def validate_url(url) do
     OpenTelemetry.Tracer.with_span "scraper.validate_url" do
       OpenTelemetry.Tracer.set_attributes([
         {"url", url}
       ])
 
-      with {:ok, true} <- Filter.should_scrape?(url),
+      with {:ok, true} <- should_scrape(url),
            {:ok, host} <- DomainExtractor.extract_base_domain(url),
-           {:ok, true} <- PrimaryDomainFinder.primary_domain?(host),
+           {:ok, true} <- validate_is_primary_domain(host),
            {:ok, base_url} <- UrlFormatter.get_base_url(url),
            {:ok, clean_url} <- UrlFormatter.to_https(base_url),
            {:ok, content_type} <- fetch_content_type(clean_url),
-           {:ok, true} <- webpage_content_type?(content_type) do
+           {:ok, true} <- webpage_content_type_allow_scrape(content_type) do
         OpenTelemetry.Tracer.set_attributes([
-          {"result.url", url}
+          {"result", "valid"}
         ])
 
         clean_url
       else
-        {:ok, false} ->
-          @err_invalid_url
-
         {:error, reason} ->
+          OpenTelemetry.Tracer.set_attributes([
+            {"result", reason}
+          ])
+
           Logger.info("#{url} is invalid, stopping scraper")
           {:error, reason}
       end
+    end
+  end
+
+  defp should_scrape(url) do
+    case Filter.should_scrape?(url) do
+      {:ok, true} -> {:ok, true}
+      {:ok, false} -> {:error, :should_not_scrape}
+    end
+  end
+
+  defp validate_is_primary_domain(url) do
+    case PrimaryDomainFinder.primary_domain?(url) do
+      {:ok, true} -> {:ok, true}
+      {:ok, false} -> {:error, :not_primary_domain}
+      {:error, reason} -> {:error, reason}
     end
   end
 
@@ -441,12 +456,12 @@ defmodule Core.Researcher.Scraper do
     end
   end
 
-  defp webpage_content_type?(content_type) do
+  defp webpage_content_type_allow_scrape(content_type) do
     # Allow only HTML and similar web content
     if String.starts_with?(content_type, "text/html") do
       {:ok, true}
     else
-      {:ok, false}
+      {:error, :webpage_content_type_not_text_html}
     end
   end
 
