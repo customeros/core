@@ -29,6 +29,7 @@ mix deps.get --only $MIX_ENV
 mkdir -p config
 
 mix deps.compile
+mix clean
 mix compile
 
 echo "==> Building release..."
