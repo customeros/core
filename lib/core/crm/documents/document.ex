@@ -63,7 +63,7 @@ defmodule Core.Crm.Documents.Document do
 
   def update_changeset(document, attrs) do
     document
-    |> cast(attrs, [:id, :name, :icon, :color])
+    |> cast(attrs, [:id, :name, :icon, :color, :lexical_state])
     |> validate_required([:id, :name, :icon, :color])
   end
 
