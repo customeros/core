@@ -419,6 +419,7 @@ defmodule Core.Notifications.Slack do
 
     custom_metadata =
       metadata
+      |> Enum.sort_by(fn {k, _v} -> k end)
       |> Enum.reject(fn {k, _v} -> k in system_keys end)
       |> Enum.into(%{})
 

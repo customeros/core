@@ -265,12 +265,18 @@ defmodule Core.WebTracker do
   end
 
   defp fetch_and_process_company_data(ip, tenant, session_id) do
-    span_ctx = OpenTelemetry.Tracer.current_span_ctx()
+    OpenTelemetry.Tracer.with_span "web_tracker.fetch_and_process_company_data" do
+      OpenTelemetry.Tracer.set_attributes([
+        {"ip", ip},
+        {"tenant", tenant},
+        {"session.id", session_id}
+      ])
 
-    Task.start(fn ->
-      OpenTelemetry.Tracer.set_current_span(span_ctx)
+      span_ctx = OpenTelemetry.Ctx.get_current()
 
-      OpenTelemetry.Tracer.with_span "web_tracker.fetch_and_process_company_data" do
+      Task.start(fn ->
+        OpenTelemetry.Ctx.attach(span_ctx)
+
         ip_intelligence_mod = get_ip_intelligence_module()
 
         case ip_intelligence_mod.get_company_info(ip) do
@@ -279,10 +285,10 @@ defmodule Core.WebTracker do
 
           {:error, reason} ->
             Tracing.error(reason)
-            Logger.error("Failed to get company info", reason: reason)
+            Logger.error("Failed to get company info", reason: reason, session_id: session_id)
         end
-      end
-    end)
+      end)
+    end
   end
 
   defp process_company_info(domain, nil, _tenant, _session_id) do
@@ -329,8 +335,13 @@ defmodule Core.WebTracker do
                  ref_id: db_company.id,
                  type: :company
                }) do
-            {:ok, _lead} -> :ok
-            {:error, :not_found} -> {:error, :not_found}
+            {:ok, _lead} ->
+              :ok
+
+            {:error, :not_found} ->
+              Tracing.error(:not_found)
+
+              {:error, :not_found}
           end
 
         {:error, reason} ->
@@ -340,7 +351,11 @@ defmodule Core.WebTracker do
             "Company not created from web-tracker",
             reason: reason,
             company: company_ip_intelligence.name,
-            company_domain: domain
+            company_domain: domain,
+            trace_id:
+              :otel_span.trace_id(OpenTelemetry.Tracer.current_span_ctx())
+              |> Integer.to_string(16)
+              |> String.downcase()
           )
       end
     end
