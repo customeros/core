@@ -4,7 +4,7 @@
   "type": "module",
   "private": true,
   "scripts": {
-    "compile": "bun build --compile ./convert_lexical_to_yjs.ts --output ../priv/scripts/convert_lexical_to_yjs && bun build --compile ./convet_md_to_lexical.ts --output ../priv/scripts/convert_md_to_lexical"
+    "compile": "bun build --compile ./convert_lexical_to_yjs.ts --output ../priv/scripts/convert_lexical_to_yjs && bun build --compile ./convert_md_to_lexical.ts --output ../priv/scripts/convert_md_to_lexical --bundle"
   },
   "devDependencies": {
     "@types/bun": "latest",
