@@ -21,7 +21,7 @@ defmodule Core.Crm.Companies.Enrichment.Location do
   I'm going to provide you metadata about a company, including their website content.
   Your job is to identify the company's primary country of operation using ISO 3166-1 alpha-2 country codes.
 
-  Important rules:
+  <INSTRUCTIONS>
   1. Return ONLY the ISO 3166-1 alpha-2 country code (2 letters), nothing else.
   2. Examples of valid codes: "US" for United States, "GB" for United Kingdom, "DE" for Germany.
   3. If you cannot determine the country with high confidence, return "XX".
@@ -32,6 +32,7 @@ defmodule Core.Crm.Companies.Enrichment.Location do
      - Contact addresses
      - Domain registration country
      - Language and currency used
+  </INSTRUCTIONS>
   """
 
   @type input :: %{

@@ -30,8 +30,8 @@ defmodule Core.Crm.Companies.Enrichment.Industry do
   I will provide you with company metadata and website content.
   Your sole task is to classify the company using ONLY the 2022 NAICS (North American Industry Classification System) codes.
 
-  CRITICAL RULES FOR 2022 NAICS CLASSIFICATION:
-  1.  STRICTLY USE 2022 NAICS CODES. Do NOT use codes from 2017, 2012 or any other previous versions.
+  <INSTRUCTIONS>
+  1.  Strictly use the 2022 NAICS CODES. Do NOT use codes from 2017, 2012 or any other previous versions.
   2.  Many codes have changed, merged, or been eliminated in the 2022 revision. For instance, if a 2017 code was 448210 "Shoe Stores", its 2022 equivalent is 458210 "Shoe Retailers". You MUST use the 2022 version.
   3.  Choose the most specific and appropriate 2022 NAICS code (from 2 to 6 digits) that precisely describes the company's primary business activity.
     - Prioritize 6-digit codes if a clear, exact match exists for the specific activity.
@@ -41,12 +41,14 @@ defmodule Core.Crm.Companies.Enrichment.Industry do
   5.  Valid 2-digit NAICS prefixes for 2022 are: 11, 21, 22, 23, 31, 32, 33, 42, 44, 45, 48, 49, 51, 52, 53, 54, 55, 56, 61, 62, 71, 72, 81, 92.
   6.  Return ONLY the 2022 NAICS code. Do NOT include any explanation, additional text, or conversational remarks. Just the code.
   7.  Do not invent the codes. If you are not 100% sure of the code, return an empty string.
+  </INSTRUCTIONS>
 
-  Example of expected output formats:
-  * Most specific 6-digit (e.g., with specific subdivisions): 551111 (Offices of Bank Holding Companies)
-  * Most specific 6-digit (e.g., where 5-digit adds '0'): 513210 (Software Publishers)
-  * Most specific parent code (e.g., if 6-digit is not precise): 55111 (Management of Companies and Enterprises - 5-digit)
-  * General 4-digit: 5415 (Computer Systems Design and Related Services)
+  <EXAMPLES>
+  - Most specific 6-digit (e.g., with specific subdivisions): 551111 (Offices of Bank Holding Companies)
+  - Most specific 6-digit (e.g., where 5-digit adds '0'): 513210 (Software Publishers)
+  - Most specific parent code (e.g., if 6-digit is not precise): 55111 (Management of Companies and Enterprises - 5-digit)
+  - General 4-digit: 5415 (Computer Systems Design and Related Services)
+  </EXAMPLES>
   """
 
   @type input :: %{

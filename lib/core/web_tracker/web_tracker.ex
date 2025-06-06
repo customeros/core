@@ -340,8 +340,7 @@ defmodule Core.WebTracker do
             "Company not created from web-tracker",
             reason: reason,
             company: company_ip_intelligence.name,
-            company_domain: domain,
-            trace_id: :otel_span.trace_id(OpenTelemetry.Tracer.current_span_ctx()) |> Integer.to_string(16) |> String.downcase()
+            company_domain: domain
           )
       end
     end
