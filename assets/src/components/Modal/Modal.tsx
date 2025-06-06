@@ -65,8 +65,14 @@ export const ModalClose = (props: DialogCloseProps) => {
   return <Dialog.Close {...props} />;
 };
 
-export const ModalCloseButton = (props: DialogCloseProps) => {
-  return <Dialog.Close asChild {...props}></Dialog.Close>;
+export const ModalCloseButton = (props: DialogCloseProps & { className?: string }) => {
+  return (
+    <Dialog.Close asChild {...props}>
+      <div className={twMerge('absolute top-[22px] right-4', props.className)}>
+        {props.children}
+      </div>
+    </Dialog.Close>
+  );
 };
 
 const modalContentVariant = cva(
