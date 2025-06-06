@@ -414,8 +414,7 @@ defmodule Core.Notifications.Slack do
       :mfa,
       :erl_level,
       :otel_span_id,
-      :otel_trace_flags,
-      :otel_trace_id
+      :otel_trace_flags
     ]
 
     custom_metadata =
