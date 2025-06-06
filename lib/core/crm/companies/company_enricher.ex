@@ -138,7 +138,7 @@ defmodule Core.Crm.Companies.CompanyEnricher do
         c.icon_enrich_attempt_at < ^hours_ago_24
     )
     |> where([c], c.inserted_at < ^minutes_ago_10)
-    |> order_by([c], asc: c.icon_enrich_attempt_at)
+    |> order_by([c], asc_nulls_first: c.icon_enrich_attempt_at)
     |> limit(^batch_size)
     |> Repo.all()
   end
@@ -202,7 +202,7 @@ defmodule Core.Crm.Companies.CompanyEnricher do
         c.industry_enrich_attempt_at < ^hours_ago_24
     )
     |> where([c], c.inserted_at < ^minutes_ago_10)
-    |> order_by([c], asc: c.industry_enrich_attempt_at)
+    |> order_by([c], asc_nulls_first: c.industry_enrich_attempt_at)
     |> limit(^batch_size)
     |> Repo.all()
   end
@@ -259,7 +259,7 @@ defmodule Core.Crm.Companies.CompanyEnricher do
         c.name_enrich_attempt_at < ^hours_ago_24
     )
     |> where([c], c.inserted_at < ^minutes_ago_10)
-    |> order_by([c], asc: c.name_enrich_attempt_at)
+    |> order_by([c], asc_nulls_first: c.name_enrich_attempt_at)
     |> limit(^batch_size)
     |> Repo.all()
   end
@@ -316,7 +316,7 @@ defmodule Core.Crm.Companies.CompanyEnricher do
         c.country_enrich_attempt_at < ^hours_ago_24
     )
     |> where([c], c.inserted_at < ^minutes_ago_10)
-    |> order_by([c], asc: c.country_enrich_attempt_at)
+    |> order_by([c], asc_nulls_first: c.country_enrich_attempt_at)
     |> limit(^batch_size)
     |> Repo.all()
   end
@@ -340,7 +340,7 @@ defmodule Core.Crm.Companies.CompanyEnricher do
     end
   end
 
-  defp enrich_company_homepage_scrape(company) do
+  def enrich_company_homepage_scrape(company) do
     OpenTelemetry.Tracer.with_span "company_enricher.enrich_company_homepage_scrape" do
       OpenTelemetry.Tracer.set_attributes([
         {"company.id", company.id},
@@ -366,7 +366,6 @@ defmodule Core.Crm.Companies.CompanyEnricher do
     max_attempts = 5
 
     Company
-    |> where([c], is_nil(c.homepage_content) or c.homepage_content == "")
     |> where([c], c.homepage_scraped == false)
     |> where([c], c.domain_scrape_attempts < ^max_attempts)
     |> where(
@@ -375,7 +374,7 @@ defmodule Core.Crm.Companies.CompanyEnricher do
         c.domain_scrape_attempt_at < ^hours_ago_24
     )
     |> where([c], c.inserted_at < ^minutes_ago_30)
-    |> order_by([c], asc: c.domain_scrape_attempt_at)
+    |> order_by([c], asc_nulls_first: c.domain_scrape_attempt_at)
     |> limit(^batch_size)
     |> Repo.all()
   end

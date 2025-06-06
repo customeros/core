@@ -330,8 +330,10 @@ defmodule Core.Crm.Companies.CompanyEnrich do
            set: [industry_code: industry.code, industry: industry.name]
          ) do
       {0, _} ->
-        Logger.error("Failed to update industry for company #{company_id}")
-        Tracing.error(:update_failed)
+        Tracing.error(:update_failed, "Failed to update industry for company",
+          company_id: company_id
+        )
+
         Errors.error(:update_failed)
 
       {_count, _} ->
@@ -381,11 +383,12 @@ defmodule Core.Crm.Companies.CompanyEnrich do
            inc: [name_enrichment_attempts: 1]
          ) do
       {0, _} ->
-        Logger.error(
-          "Failed to mark name enrichment attempt for company #{company_id}"
+        Tracing.error(
+          :update_failed,
+          "Failed to mark name enrichment attempt for company",
+          company_id: company_id
         )
 
-        Tracing.error(:update_failed)
         Errors.error(:update_failed)
 
       {_count, _} ->
@@ -405,23 +408,18 @@ defmodule Core.Crm.Companies.CompanyEnrich do
             {:ok, name}
 
           {:error, reason, name} ->
-            Tracing.error(reason)
-
-            Logger.error(
-              "Rejected company name from AI",
+            Tracing.error(reason, "Rejected company name from AI",
               company_id: company.id,
               company_domain: company.primary_domain,
-              reason: reason,
               name: name
             )
 
             {:error, reason}
 
           {:error, reason} ->
-            Tracing.error(reason)
-
-            Logger.error(
-              "Failed to get name from AI for company #{company.id}, (domain: #{company.primary_domain}): #{inspect(reason)}"
+            Tracing.error(reason, "Failed to get name from AI for company",
+              company_id: company.id,
+              company_domain: company.primary_domain
             )
 
             {:error, reason}
@@ -438,8 +436,10 @@ defmodule Core.Crm.Companies.CompanyEnrich do
            set: [name: name]
          ) do
       {0, _} ->
-        Logger.error("Failed to update name for company #{company_id}")
-        Tracing.error(:update_failed)
+        Tracing.error(:update_failed, "Failed to update name for company",
+          company_id: company_id
+        )
+
         Errors.error(:update_failed)
 
       {_count, _} ->
