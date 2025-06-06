@@ -1,36 +1,14 @@
 import { marked } from "marked";
 import { createHeadlessEditor } from "@lexical/headless";
 import { nodes } from "./nodes";
-import { JSDOM } from "jsdom";
+import { Window } from "happy-dom";
 import { $generateNodesFromDOM } from "@lexical/html";
 import { $getRoot, $insertNodes } from "lexical";
 
-console.log = () => {};
-console.info = () => {};
-console.error = () => {};
-console.warn = () => {};
-
-// Mock the XHR worker module that JSDOM is looking for
-const xhrWorkerMock = {
-  XHRWorker: class {
-    postMessage() {}
-    terminate() {}
-  },
-  createWorker: () => new xhrWorkerMock.XHRWorker(),
-};
-
-// Mock the module resolution
-(global as any).require = (path: string) => {
-  if (path.includes("xhr-sync-worker.js")) {
-    return xhrWorkerMock;
-  }
-  throw new Error(`Cannot find module '${path}'`);
-};
-
-// Create a JSDOM instance
-const dom = new JSDOM("<!DOCTYPE html><html><body></body></html>");
-global.document = dom.window.document;
-(global as any).window = dom.window;
+// console.log = () => {};
+// console.info = () => {};
+// console.error = () => {};
+// console.warn = () => {};
 
 /**
  * Converts a Markdown string to Lexical editor state JSON.
@@ -56,10 +34,17 @@ export async function convertMarkdownToLexical(
   let lexicalState = "";
   editor.update(
     () => {
-      const parser = new dom.window.DOMParser();
-      const doc = parser.parseFromString(html, "text/html");
+      // Create a window with happy-dom
+      const window = new Window();
+      const document = window.document;
 
-      const nodes = $generateNodesFromDOM(editor, doc);
+      // Set the HTML content
+      document.body.innerHTML = html;
+
+      const nodes = $generateNodesFromDOM(
+        editor,
+        document as unknown as Document
+      );
 
       $getRoot().select();
       $insertNodes(nodes);
