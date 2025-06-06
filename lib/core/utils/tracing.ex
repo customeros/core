@@ -8,14 +8,50 @@ defmodule Core.Utils.Tracing do
   @doc """
   Sets the status of the current span to error with the given reason.
   Does nothing if no active span context is present.
+  Logs the error message if provided.
   """
-  def error(reason) do
+  @spec error(term()) :: :ok
+  @spec error(term(), String.t() | nil) :: :ok
+  @spec error(term(), String.t() | nil, keyword()) :: :ok
+  def error(reason, message \\ nil, metadata \\ [])
+
+  def error(reason, message, metadata) do
+    reason_str = to_reason_string(reason)
+
+    if message && String.trim(message) != "" do
+      Logger.error(message, Keyword.put_new(metadata, :reason, reason_str))
+    end
+
     case OpenTelemetry.Tracer.current_span_ctx() do
       :undefined ->
         :ok
 
       _ctx ->
-        reason_str = to_reason_string(reason)
+        OpenTelemetry.Tracer.set_status(:error, reason_str)
+
+        OpenTelemetry.Tracer.set_attributes([
+          {"error.reason", reason_str}
+        ])
+    end
+  end
+
+  @spec warning(term()) :: :ok
+  @spec warning(term(), String.t() | nil) :: :ok
+  @spec warning(term(), String.t() | nil, keyword()) :: :ok
+  def warning(reason, message \\ nil, metadata \\ [])
+
+  def warning(reason, message, metadata) do
+    reason_str = to_reason_string(reason)
+
+    if message && String.trim(message) != "" do
+      Logger.warning(message, Keyword.put_new(metadata, :reason, reason_str))
+    end
+
+    case OpenTelemetry.Tracer.current_span_ctx() do
+      :undefined ->
+        :ok
+
+      _ctx ->
         OpenTelemetry.Tracer.set_status(:error, reason_str)
 
         OpenTelemetry.Tracer.set_attributes([
@@ -34,7 +70,9 @@ defmodule Core.Utils.Tracing do
     end
   end
 
-  def to_reason_string(reason) do
+  # Private functions
+
+  defp to_reason_string(reason) do
     try do
       to_string(reason)
     rescue
