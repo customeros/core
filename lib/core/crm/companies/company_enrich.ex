@@ -45,6 +45,7 @@ defmodule Core.Crm.Companies.CompanyEnrich do
           | :invalid_request
           | :ai_timeout
           | :invalid_ai_response
+          | :empty_ai_response
   @type enrich_country_error ::
           :not_found
           | :update_failed
@@ -276,12 +277,17 @@ defmodule Core.Crm.Companies.CompanyEnrich do
             {:ok, industry_code}
 
           {:error, {:invalid_request, reason}} ->
-            Logger.error(
-              "Invalid request for industry enrichment for company #{company.id}: #{inspect(reason)}"
+            Logger.error("Invalid ai request for industry enrichment",
+              company_id: company.id,
+              reason: reason
             )
 
             Tracing.error(:invalid_request)
             {:error, :invalid_request}
+
+          {:error, :empty_ai_response} ->
+            Logger.warning("No industry code from AI", company_id: company.id)
+            {:error, reason}
 
           {:error, reason} ->
             Logger.error(
@@ -296,6 +302,7 @@ defmodule Core.Crm.Companies.CompanyEnrich do
         end
 
       {:error, reason} ->
+        Tracing.error(reason)
         {:error, reason}
     end
   end

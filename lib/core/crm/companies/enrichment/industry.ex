@@ -77,7 +77,7 @@ defmodule Core.Crm.Companies.Enrichment.Industry do
       case Task.await(task, @timeout) do
         {:ok, {:ok, response}} ->
           OpenTelemetry.Tracer.set_attributes([
-            {"ai.raw.response", response}
+            {"ai.response", response}
           ])
 
           Tracing.ok()
@@ -134,8 +134,7 @@ defmodule Core.Crm.Companies.Enrichment.Industry do
       Tracing.ok()
       {:ok, code}
     else
-      Tracing.error(:invalid_ai_response)
-      {:error, :invalid_ai_response}
+      {:error, :empty_ai_response}
     end
   end
 
