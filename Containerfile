@@ -29,8 +29,8 @@ COPY scripts /app/scripts
 # Build JS utilities with Bun
 WORKDIR /app/scripts
 RUN bun install
-RUN bun build --compile convert_lexical_to_yjs.ts --output convert_lexical_to_yjs
-RUN bun build --compile convert_md_to_lexical.ts --output convert_md_to_lexical
+RUN bun build --compile convert_lexical_to_yjs.ts --output convert_lexical_to_yjs --bundle
+RUN bun build --compile convert_md_to_lexical.ts --output convert_md_to_lexical --bundle
 
 # Create priv/scripts directory and move compiled script
 RUN mkdir -p /app/priv/scripts

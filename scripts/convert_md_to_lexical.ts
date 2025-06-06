@@ -10,10 +10,18 @@ console.info = () => {};
 console.error = () => {};
 console.warn = () => {};
 
-// Create a JSDOM instance
-const dom = new JSDOM("<!DOCTYPE html><html><body></body></html>");
+// Create a JSDOM instance with minimal configuration
+const dom = new JSDOM("<!DOCTYPE html><html><body></body></html>", {
+  runScripts: "outside-only",
+  resources: "usable",
+  pretendToBeVisual: true,
+  url: "http://localhost",
+});
+
+// Set up global objects
 global.document = dom.window.document;
 (global as any).window = dom.window;
+(global as any).DOMParser = dom.window.DOMParser;
 
 /**
  * Converts a Markdown string to Lexical editor state JSON.
