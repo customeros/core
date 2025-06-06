@@ -437,7 +437,6 @@ defmodule Core.Researcher.Scraper do
                 fetch_content_type(next_url, depth + 1)
 
               is_nil(content_type) ->
-                dbg(headers)
                 {:error, :no_content_type}
 
               String.contains?(content_type, "text/html") and
