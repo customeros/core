@@ -39,7 +39,8 @@ export type IconName =
   | 'briefcase-02'
   | 'clock-fast-forward'
   | 'flame'
-  | 'user-plus-01';
+  | 'user-plus-01'
+  | 'check-circle';
 
 export const Icon = ({
   name,

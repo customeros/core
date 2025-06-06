@@ -79,17 +79,23 @@ export const DocumentEditor = () => {
     <>
       <ScrollAreaRoot>
         <ScrollAreaViewport>
-          <div className="relative w-full h-full bg-white px-4 md:px-6">
-            <div className="relative bg-white h-full mx-auto pt-[2px] w-full md:min-w-[680px] max-w-[680px]">
-              <div className="flex items-center justify-between sticky top-0 bg-white z-10 py-2">
+          <div className="relative w-full h-[calc(100vh-53px)] bg-white px-4 md:px-6">
+            <div className="relative bg-white h-full mx-auto  w-full md:min-w-[680px] max-w-[680px]">
+              <div className="flex items-center justify-between sticky top-0 bg-white z-10 py-2.5">
                 {currentLead && (
                   <div className="flex items-center w-full justify-start gap-2 min-w-0">
-                    <img
-                      className="size-6 object-contain border border-gray-200 rounded flex-shrink-0"
-                      loading="lazy"
-                      src={currentLead?.icon}
-                      alt="Lead icon"
-                    />
+                    {currentLead?.icon ? (
+                      <img
+                        className="size-6 object-contain border border-gray-200 rounded flex-shrink-0"
+                        loading="lazy"
+                        src={currentLead?.icon}
+                        alt="Lead icon"
+                      />
+                    ) : (
+                      <div className="size-6 flex items-center justify-center border border-gray-200 rounded flex-shrink-0">
+                        <Icon name="building-06" />
+                      </div>
+                    )}
                     <p className="text-sm font-medium text-gray-900 truncate">
                       {currentLead?.name} Account Brief
                     </p>
@@ -154,7 +160,7 @@ export const DocumentEditor = () => {
                   key={docId}
                 />
               ) : (
-                <div className="flex items-center justify-center flex-col h-full">
+                <div className="flex items-center justify-start flex-col h-full">
                   <div className="   flex items-center justify-center">
                     <FeaturedIcon className="mb-6 mt-[40px]">
                       <Icon name="clock-fast-forward" />

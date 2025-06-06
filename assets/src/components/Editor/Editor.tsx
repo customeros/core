@@ -308,7 +308,7 @@ export const Editor = forwardRef<LexicalEditor | null, EditorProps>(
     return (
       <div
         ref={containerRef}
-        className="relative w-full h-full lexical-editor cursor-text animate-fadeIn"
+        className="relative w-full h-fit lexical-editor cursor-text animate-fadeIn"
       >
         <LexicalComposer initialConfig={initialConfig}>
           <EditorRefPlugin editorRef={editor} />

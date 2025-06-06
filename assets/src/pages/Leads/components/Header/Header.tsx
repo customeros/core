@@ -21,6 +21,7 @@ import { cn } from 'src/utils/cn';
 import { Avatar } from 'src/components/Avatar';
 import { Tooltip } from 'src/components/Tooltip';
 import { toastSuccess } from 'src/components/Toast';
+import { IconButton } from 'src/components/IconButton';
 
 const defaultIconSet = [
   'https://images.cust.cx/_companies/img_6qggfu0eyp2ixcillgd5t.jpg',
@@ -36,9 +37,10 @@ export const Header = () => {
   const [isOpen, setIsOpen] = useState(false);
   const [displayProfile, setDisplayProfile] = useState(false);
   const [inviteTeam, setInviteTeam] = useState(false);
-
+  console.log(page.props);
   const worksspaceLogo = page.props.tenant?.workspace_icon_key;
   const workspaceName = page.props.tenant?.workspace_name;
+  const domain = page.props.tenant?.domain;
 
   useEventsChannel<LeadCreatedEvent>(event => {
     if (event.type === 'lead_created') {
@@ -157,12 +159,14 @@ export const Header = () => {
           <ModalOverlay />
           <ModalContent placement="top">
             <ModalHeader className="font-semibold text-base">See who's ready to buy</ModalHeader>
-            <ModalCloseButton className="absolute top-4 right-4" asChild>
-              <Button
+            <ModalCloseButton asChild>
+              <IconButton
                 colorScheme="gray"
                 size="xs"
-                leftIcon={<Icon name="x-close" />}
+                aria-label="Close"
+                icon={<Icon name="x-close" />}
                 variant="ghost"
+                onClick={() => setIsOpen(false)}
               />
             </ModalCloseButton>
             <ModalBody className="flex flex-col gap-2">
@@ -203,11 +207,13 @@ export const Header = () => {
           <ModalContent placement="center" aria-describedby="profile-modal">
             <ModalHeader className="font-semibold text-base">See who's ready to buy</ModalHeader>
             <ModalCloseButton className="absolute top-4 right-4" asChild>
-              <Button
+              <IconButton
                 colorScheme="gray"
                 size="xs"
-                leftIcon={<Icon name="x-close" />}
+                aria-label="Close"
+                icon={<Icon name="x-close" />}
                 variant="ghost"
+                onClick={() => setDisplayProfile(false)}
               />
             </ModalCloseButton>
             <ModalBody className="flex flex-col gap-2">
@@ -231,12 +237,14 @@ export const Header = () => {
             <ModalHeader className="font-semibold text-base">
               Unlimited seats, unlimited collaboration
             </ModalHeader>
-            <ModalCloseButton className="absolute top-4 right-4" asChild>
-              <Button
+            <ModalCloseButton asChild>
+              <IconButton
                 colorScheme="gray"
                 size="xs"
-                leftIcon={<Icon name="x-close" />}
+                aria-label="Close"
+                icon={<Icon name="x-close" className="size-4" />}
                 variant="ghost"
+                onClick={() => setInviteTeam(false)}
               />
             </ModalCloseButton>
             <ModalBody className="flex flex-col gap-2">
@@ -244,10 +252,12 @@ export const Header = () => {
               <p>
                 CustomerOS gives every workspace{' '}
                 <span className="font-semibold">unlimited seats</span>, so your whole team can work
-                together without barriers
+                together without barriers.
               </p>
               <p>
-                To invite your team, just share the app with anyone using a {workspaceName} email.
+                To invite your team, just share the app with anyone using a{' '}
+                <span className="font-medium">{domain} </span>
+                email.
               </p>
             </ModalBody>
             <ModalFooter className="flex justify-between gap-2">
