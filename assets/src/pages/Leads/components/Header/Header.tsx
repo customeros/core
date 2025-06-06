@@ -8,15 +8,16 @@ import { UserPresence } from '../UserPresence/UserPresence';
 import { Lead, Tenant, User } from 'src/types';
 import { PageProps } from '@inertiajs/core';
 import {
+  Modal,
   ModalBody,
   ModalCloseButton,
   ModalFooter,
   ModalHeader,
   ModalOverlay,
   ModalPortal,
+  ModalContent,
+  ModalClose,
 } from 'src/components/Modal/Modal';
-import { ModalContent } from 'src/components/Modal/Modal';
-import { Modal } from 'src/components/Modal';
 import { cn } from 'src/utils/cn';
 import { Avatar } from 'src/components/Avatar';
 import { Tooltip } from 'src/components/Tooltip';
@@ -159,16 +160,7 @@ export const Header = () => {
           <ModalOverlay />
           <ModalContent placement="top">
             <ModalHeader className="font-semibold text-base">See who's ready to buy</ModalHeader>
-            <ModalCloseButton asChild>
-              <IconButton
-                colorScheme="gray"
-                size="xs"
-                aria-label="Close"
-                icon={<Icon name="x-close" />}
-                variant="ghost"
-                onClick={() => setIsOpen(false)}
-              />
-            </ModalCloseButton>
+            <ModalClose />
             <ModalBody className="flex flex-col gap-2">
               <p>
                 To know where your leads are in their journey and who's ready to buy, let's help you
@@ -180,11 +172,11 @@ export const Header = () => {
               </p>
             </ModalBody>
             <ModalFooter className="flex justify-between gap-2">
-              <ModalCloseButton asChild>
+              <ModalClose asChild>
                 <Button colorScheme="gray" size="sm" className="w-full">
                   Cancel
                 </Button>
-              </ModalCloseButton>
+              </ModalClose>
               <Button
                 colorScheme="primary"
                 size="sm"
@@ -204,27 +196,18 @@ export const Header = () => {
       <Modal open={displayProfile} onOpenChange={setDisplayProfile}>
         <ModalPortal>
           <ModalOverlay />
-          <ModalContent placement="center" aria-describedby="profile-modal">
+          <ModalContent placement="top" aria-describedby="profile-modal">
             <ModalHeader className="font-semibold text-base">See who's ready to buy</ModalHeader>
-            <ModalCloseButton className="absolute top-4 right-4" asChild>
-              <IconButton
-                colorScheme="gray"
-                size="xs"
-                aria-label="Close"
-                icon={<Icon name="x-close" />}
-                variant="ghost"
-                onClick={() => setDisplayProfile(false)}
-              />
-            </ModalCloseButton>
+            <ModalCloseButton />
             <ModalBody className="flex flex-col gap-2">
               <p>{page.props?.profile}</p>
             </ModalBody>
-            <ModalFooter className="flex justify-between gap-2">
-              <ModalCloseButton asChild>
+            <ModalFooter>
+              <ModalClose asChild>
                 <Button colorScheme="gray" size="sm" className="w-full">
                   Cancel
                 </Button>
-              </ModalCloseButton>
+              </ModalClose>
             </ModalFooter>
           </ModalContent>
         </ModalPortal>
@@ -237,16 +220,7 @@ export const Header = () => {
             <ModalHeader className="font-semibold text-base">
               Unlimited seats, unlimited collaboration
             </ModalHeader>
-            <ModalCloseButton asChild>
-              <IconButton
-                colorScheme="gray"
-                size="xs"
-                aria-label="Close"
-                icon={<Icon name="x-close" className="size-4" />}
-                variant="ghost"
-                onClick={() => setInviteTeam(false)}
-              />
-            </ModalCloseButton>
+            <ModalCloseButton />
             <ModalBody className="flex flex-col gap-2">
               <p>SaaS is a team sport, but most tools still keep us stuck in silos.</p>
               <p>

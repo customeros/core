@@ -22,7 +22,10 @@ import {
   ScrollAreaScrollbar,
   type ScrollAreaViewportProps,
 } from 'src/components/ScrollArea';
+
 import { cn } from 'src/utils/cn';
+import { Icon } from 'src/components/Icon';
+import { IconButton } from 'src/components/IconButton';
 
 export const Modal = (props: DialogProps) => {
   return <Dialog.Root {...props} />;
@@ -67,10 +70,15 @@ export const ModalClose = (props: DialogCloseProps) => {
 
 export const ModalCloseButton = (props: DialogCloseProps & { className?: string }) => {
   return (
-    <Dialog.Close asChild {...props}>
-      <div className={twMerge('absolute top-[22px] right-4', props.className)}>
-        {props.children}
-      </div>
+    <Dialog.Close className={twMerge('absolute top-3 right-3', props.className)} asChild {...props}>
+      <IconButton
+        colorScheme="gray"
+        size="xs"
+        aria-label="Close"
+        icon={<Icon name="x-close" />}
+        variant="ghost"
+        className="focus:bg-transparent focus:ring-2 focus:ring-primary-200 hover:ring-2 hover:ring-primary-200 hover:bg-transparent"
+      />
     </Dialog.Close>
   );
 };
