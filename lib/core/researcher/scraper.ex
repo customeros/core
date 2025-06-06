@@ -298,6 +298,7 @@ defmodule Core.Researcher.Scraper do
   end
 
   @unprocessable_indicators [
+    "403 Forbidden",
     "403",
     "Forbidden",
     "Robot Challenge",
