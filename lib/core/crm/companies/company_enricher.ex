@@ -113,10 +113,9 @@ defmodule Core.Crm.Companies.CompanyEnricher do
           {:error, :image_not_found}
 
         {:error, reason} ->
-          Tracing.error(reason)
-
-          Logger.error(
-            "Error enriching icon for company #{company.id} (domain: #{company.primary_domain}): #{inspect(reason)}"
+          Tracing.error(reason, "Error enriching icon for company",
+            company_id: company.id,
+            company_domain: company.primary_domain
           )
 
           {:error, reason}
