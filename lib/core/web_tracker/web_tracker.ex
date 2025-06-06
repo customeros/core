@@ -285,7 +285,11 @@ defmodule Core.WebTracker do
 
           {:error, reason} ->
             Tracing.error(reason)
-            Logger.error("Failed to get company info", reason: reason, session_id: session_id)
+
+            Logger.error("Failed to get company info",
+              reason: reason,
+              session_id: session_id
+            )
         end
       end)
     end

@@ -112,7 +112,18 @@ defmodule Core.Utils.DomainValidator do
 
   defp idna_valid?(domain) when is_binary(domain) do
     # Pre-validate to catch invalid characters before IDNA validation
-    if String.contains?(domain, ["/", "\\", ":", "*", "?", "\"", "<", ">", "|", " "]) do
+    if String.contains?(domain, [
+         "/",
+         "\\",
+         ":",
+         "*",
+         "?",
+         "\"",
+         "<",
+         ">",
+         "|",
+         " "
+       ]) do
       false
     else
       try do
