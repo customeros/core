@@ -287,7 +287,7 @@ defmodule Core.Crm.Companies.CompanyEnrich do
 
           {:error, :empty_ai_response} ->
             Logger.warning("No industry code from AI", company_id: company.id)
-            {:error, reason}
+            {:error, :empty_ai_response}
 
           {:error, reason} ->
             Logger.error(
