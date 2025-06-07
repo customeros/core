@@ -491,11 +491,12 @@ defmodule Core.Crm.Companies.CompanyEnrich do
            inc: [country_enrichment_attempts: 1]
          ) do
       {0, _} ->
-        Logger.error(
-          "Failed to mark country enrichment attempt for company #{company_id}"
+        Tracing.error(
+          :update_failed,
+          "Failed to mark country enrichment attempt for company",
+          company_id: company_id
         )
 
-        Tracing.error(:update_failed)
         {:error, :update_failed}
 
       {_count, _} ->
@@ -522,11 +523,12 @@ defmodule Core.Crm.Companies.CompanyEnrich do
             {:ok, String.upcase(country_code_a2)}
 
           {:error, reason} ->
-            Logger.error(
-              "Failed to get country code from AI for company #{company.id}: #{inspect(reason)}"
+            Tracing.error(
+              reason,
+              "Failed to get country code from AI for company",
+              company_id: company.id
             )
 
-            Tracing.error(reason)
             {:error, reason}
         end
 
@@ -543,8 +545,12 @@ defmodule Core.Crm.Companies.CompanyEnrich do
            set: [country_a2: country_code]
          ) do
       {0, _} ->
-        Logger.error("Failed to update country code for company #{company_id}")
-        Tracing.error(:update_failed)
+        Tracing.error(
+          :update_failed,
+          "Failed to update country code for company",
+          company_id: company_id
+        )
+
         Errors.error(:update_failed)
 
       {_count, _} ->
@@ -595,11 +601,12 @@ defmodule Core.Crm.Companies.CompanyEnrich do
            inc: [icon_enrichment_attempts: 1]
          ) do
       {0, _} ->
-        Logger.error(
-          "Failed to mark icon enrichment attempt for company #{company_id}"
+        Tracing.error(
+          :update_failed,
+          "Failed to mark icon enrichment attempt for company",
+          company_id: company_id
         )
 
-        Tracing.error(:update_failed)
         Errors.error(:update_failed)
 
       {_count, _} ->
@@ -632,11 +639,10 @@ defmodule Core.Crm.Companies.CompanyEnrich do
         {:error, :image_not_found}
 
       {:error, reason} ->
-        Logger.error(
-          "Failed to download icon for company #{company.id}: #{inspect(reason)}"
+        Tracing.error(reason, "Failed to download icon for company",
+          company_id: company.id
         )
 
-        Tracing.error(reason)
         {:error, reason}
     end
   end
@@ -652,11 +658,10 @@ defmodule Core.Crm.Companies.CompanyEnrich do
         {:ok, storage_key}
 
       {:error, reason} ->
-        Logger.error(
-          "Failed to store icon for company #{company_id}: #{inspect(reason)}"
+        Tracing.error(reason, "Failed to store icon for company",
+          company_id: company_id
         )
 
-        Tracing.error(reason)
         {:error, reason}
     end
   end
@@ -667,8 +672,10 @@ defmodule Core.Crm.Companies.CompanyEnrich do
            set: [icon_key: storage_key]
          ) do
       {0, _} ->
-        Logger.error("Failed to update icon key for company #{company_id}")
-        Tracing.error(:update_failed)
+        Tracing.error(:update_failed, "Failed to update icon key for company",
+          company_id: company_id
+        )
+
         Errors.error(:update_failed)
 
       {_count, _} ->
@@ -681,11 +688,12 @@ defmodule Core.Crm.Companies.CompanyEnrich do
   defp fetch_company_for_enrichment(company_id, enrichment_type) do
     case Repo.get(Company, company_id) do
       nil ->
-        Logger.error(
-          "Company #{company_id} not found for #{enrichment_type} enrichment"
+        Tracing.error(
+          :not_found,
+          "Company not found for enrichment #{enrichment_type}",
+          company_id: company_id
         )
 
-        Tracing.error(:not_found)
         Errors.error(:not_found)
 
       company ->
@@ -845,7 +853,7 @@ defmodule Core.Crm.Companies.CompanyEnrich do
         {:ok, webpage.content}
 
       {:error, :not_found} ->
-        Logger.error("No homepage content found for company",
+        Tracing.error(:not_found, "No homepage content found for company",
           company_domain: domain
         )
 
