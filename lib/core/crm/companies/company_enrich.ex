@@ -225,7 +225,7 @@ defmodule Core.Crm.Companies.CompanyEnrich do
              fetch_company_for_enrichment(company_id, "industry"),
            :ok <- validate_industry_eligibility(company),
            :ok <- mark_industry_attempt(company_id),
-           {:ok, industry_code} <- get_industry_from_ai(company),
+           {:ok, industry_code} <- get_industry_code_from_ai(company),
            {:ok, industry} <- lookup_industry(industry_code, company),
            :ok <- update_company_industry(company_id, industry) do
         :ok
@@ -262,7 +262,7 @@ defmodule Core.Crm.Companies.CompanyEnrich do
     end
   end
 
-  defp get_industry_from_ai(company) do
+  defp get_industry_code_from_ai(company) do
     case get_homepage_content(company.primary_domain) do
       {:ok, homepage_content} ->
         case Enrichment.Industry.identify(%{
