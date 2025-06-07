@@ -16,7 +16,7 @@ defmodule Core.Utils.CronLocks do
   @doc """
   Registers a cron job in the locking system if it doesn't exist.
 
-  This function is idempotentm it will not fail if the cron job is already registered.
+  This function is idempotent; it will not fail if the cron job is already registered.
   It should be called during application startup to ensure all cron jobs are registered.
   """
   @spec register_cron(CronLock.cron_name()) ::
