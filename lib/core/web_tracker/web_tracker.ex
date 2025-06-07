@@ -279,7 +279,7 @@ defmodule Core.WebTracker do
 
         case ip_intelligence_mod.get_company_info(ip) do
           {:ok, %{domain: domain, company: company}} ->
-            process_company_info(domain, company, tenant, session_id)
+            process_company_data(domain, company, tenant, session_id)
 
           {:error, reason} ->
             Tracing.error(reason, "Failed to get company info",
@@ -290,12 +290,12 @@ defmodule Core.WebTracker do
     end
   end
 
-  defp process_company_info(domain, nil, _tenant, _session_id) do
+  defp process_company_data(domain, nil, _tenant, _session_id) do
     Logger.warning("Company not found for domain", company_domain: domain)
   end
 
-  defp process_company_info(domain, company_ip_intelligence, tenant, session_id) do
-    OpenTelemetry.Tracer.with_span "web_tracker.process_company_info" do
+  defp process_company_data(domain, company_ip_intelligence, tenant, session_id) do
+    OpenTelemetry.Tracer.with_span "web_tracker.process_company_data" do
       OpenTelemetry.Tracer.set_attributes([
         {"company.domain", domain},
         {"company.name", company_ip_intelligence.name},
@@ -353,11 +353,7 @@ defmodule Core.WebTracker do
         {:error, reason} ->
           Tracing.error(reason, "Company not created from webTracker",
             company: company_ip_intelligence.name,
-            company_domain: domain,
-            trace_id:
-              :otel_span.trace_id(OpenTelemetry.Tracer.current_span_ctx())
-              |> Integer.to_string(16)
-              |> String.downcase()
+            company_domain: domain
           )
       end
     end
