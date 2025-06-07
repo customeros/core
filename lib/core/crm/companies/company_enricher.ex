@@ -17,12 +17,16 @@ defmodule Core.Crm.Companies.CompanyEnricher do
   alias Core.Crm.Companies.Company
   alias Core.Crm.Companies.CompanyEnrich
   alias Core.Utils.Tracing
+  alias Core.Utils.CronLocks
+  alias Core.Utils.Cron.CronLock
 
   # 2 minutes
   @default_interval_ms 2 * 60 * 1000
   # 15 minutes
   @long_interval_ms 15 * 60 * 1000
   @default_batch_size 5
+  # Duration in minutes after which a lock is considered stuck
+  @stuck_lock_duration_minutes 30
 
   def start_link(opts \\ []) do
     crons_enabled = Application.get_env(:core, :crons)[:enabled] || false
@@ -37,6 +41,8 @@ defmodule Core.Crm.Companies.CompanyEnricher do
 
   @impl true
   def init(_opts) do
+    CronLocks.register_cron(:cron_company_enricher)
+
     # Schedule the first check
     schedule_check(@default_interval_ms)
 
@@ -46,27 +52,47 @@ defmodule Core.Crm.Companies.CompanyEnricher do
   @impl true
   def handle_info(:enrich_companies, state) do
     OpenTelemetry.Tracer.with_span "company_enricher.enrich_companies" do
-      {_, num_companies_for_icon_enrichment} = enrich_companies_icon()
-      {_, num_companies_for_industry_enrichment} = enrich_companies_industry()
-      {_, num_companies_for_name_enrichment} = enrich_companies_name()
-      {_, num_companies_for_country_enrichment} = enrich_companies_country()
+      lock_uuid = Ecto.UUID.generate()
 
-      {_, num_companies_for_homepage_scrape} =
-        enrich_companies_homepage_scrape()
+      case CronLocks.acquire_lock(:cron_company_enricher, lock_uuid) do
+        %CronLock{} ->
+          # Lock acquired, proceed with enrichment
+          {_, num_companies_for_icon_enrichment} = enrich_companies_icon()
+          {_, num_companies_for_industry_enrichment} = enrich_companies_industry()
+          {_, num_companies_for_name_enrichment} = enrich_companies_name()
+          {_, num_companies_for_country_enrichment} = enrich_companies_country()
+          {_, num_companies_for_homepage_scrape} = enrich_companies_homepage_scrape()
 
-      # Schedule the next check - use default interval if either enrichment hit the batch size
-      next_interval_ms =
-        if num_companies_for_icon_enrichment == @default_batch_size or
-             num_companies_for_name_enrichment == @default_batch_size or
-             num_companies_for_country_enrichment == @default_batch_size or
-             num_companies_for_industry_enrichment == @default_batch_size or
-             num_companies_for_homepage_scrape == @default_batch_size do
-          @default_interval_ms
-        else
-          @long_interval_ms
-        end
+          # Release the lock after processing
+          CronLocks.release_lock(:cron_company_enricher, lock_uuid)
 
-      schedule_check(next_interval_ms)
+          # Schedule the next check - use default interval if either enrichment hit the batch size
+          next_interval_ms =
+            if num_companies_for_icon_enrichment == @default_batch_size or
+                 num_companies_for_name_enrichment == @default_batch_size or
+                 num_companies_for_country_enrichment == @default_batch_size or
+                 num_companies_for_industry_enrichment == @default_batch_size or
+                 num_companies_for_homepage_scrape == @default_batch_size do
+              @default_interval_ms
+            else
+              @long_interval_ms
+            end
+
+          schedule_check(next_interval_ms)
+
+        nil ->
+          # Lock not acquired, try to force release if stuck
+          Logger.info("Company enricher lock not acquired, attempting to release any stuck locks")
+
+          case CronLocks.force_release_stuck_lock(:cron_company_enricher, @stuck_lock_duration_minutes) do
+            :ok ->
+              Logger.info("Successfully released stuck lock, will retry acquisition on next run")
+            :error ->
+              Logger.info("No stuck lock found or could not release it")
+          end
+
+          schedule_check(@default_interval_ms)
+      end
 
       {:noreply, state}
     end

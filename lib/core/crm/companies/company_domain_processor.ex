@@ -15,6 +15,8 @@ defmodule Core.Crm.Companies.CompanyDomainProcessor do
   alias Core.Repo
   alias Core.Utils.DomainExtractor
   alias Core.Utils.Tracing
+  alias Core.Utils.CronLocks
+  alias Core.Utils.Cron.CronLock
   import Ecto.Query
 
   # 1 minute
@@ -22,6 +24,8 @@ defmodule Core.Crm.Companies.CompanyDomainProcessor do
   # 15 minutes
   @long_interval_ms 15 * 60 * 1000
   @default_batch_size 5
+  # Duration in minutes after which a lock is considered stuck
+  @stuck_lock_duration_minutes 30
 
   def start_link(opts \\ []) do
     crons_enabled = Application.get_env(:core, :crons)[:enabled] || false
@@ -36,6 +40,7 @@ defmodule Core.Crm.Companies.CompanyDomainProcessor do
 
   @impl true
   def init(_opts) do
+    CronLocks.register_cron(:cron_company_domain_processor)
     # Schedule the first check
     schedule_check(@default_interval_ms)
 
@@ -45,22 +50,44 @@ defmodule Core.Crm.Companies.CompanyDomainProcessor do
   @impl true
   def handle_info(:process_domains, state) do
     OpenTelemetry.Tracer.with_span "company_domain_processor.process_domains" do
-      domains = fetch_unprocessed_domains(@default_batch_size)
-      domain_count = length(domains)
+      lock_uuid = Ecto.UUID.generate()
 
-      OpenTelemetry.Tracer.set_attributes([
-        {"domains.found", domain_count},
-        {"batch.size", @default_batch_size}
-      ])
+      case CronLocks.acquire_lock(:cron_company_domain_processor, lock_uuid) do
+        %CronLock{} ->
+          # Lock acquired, proceed with processing
+          domains = fetch_unprocessed_domains(@default_batch_size)
+          domain_count = length(domains)
 
-      # Process each domain
-      Enum.each(domains, &process_domain/1)
+          OpenTelemetry.Tracer.set_attributes([
+            {"domains.found", domain_count},
+            {"batch.size", @default_batch_size}
+          ])
 
-      # Choose interval based on whether we found any domains
-      next_interval_ms =
-        if domain_count > 0, do: @default_interval_ms, else: @long_interval_ms
+          # Process each domain
+          Enum.each(domains, &process_domain/1)
 
-      schedule_check(next_interval_ms)
+          # Release the lock after processing
+          CronLocks.release_lock(:cron_company_domain_processor, lock_uuid)
+
+          # Choose interval based on whether we found any domains
+          next_interval_ms =
+            if domain_count > 0, do: @default_interval_ms, else: @long_interval_ms
+
+          schedule_check(next_interval_ms)
+
+        nil ->
+          # Lock not acquired, try to force release if stuck
+          Logger.info("Company domain processor lock not acquired, attempting to release any stuck locks")
+
+          case CronLocks.force_release_stuck_lock(:cron_company_domain_processor, @stuck_lock_duration_minutes) do
+            :ok ->
+              Logger.info("Successfully released stuck lock, will retry acquisition on next run")
+            :error ->
+              Logger.info("No stuck lock found or could not release it")
+          end
+
+          schedule_check(@default_interval_ms)
+      end
 
       {:noreply, state}
     end
