@@ -19,9 +19,11 @@ echo "==> Installing JS dependencies and building Bun scripts..."
 cd scripts
 bun install
 bun build --compile convert_lexical_to_yjs.ts --output convert_lexical_to_yjs
+bun build --compile convert_md_to_lexical.ts --output convert_md_to_lexical
 
 mkdir -p ../priv/scripts
 mv convert_lexical_to_yjs ../priv/scripts/
+mv convert_md_to_lexical ../priv/scripts/
 cd ..
 
 echo "==> Compiling..."
