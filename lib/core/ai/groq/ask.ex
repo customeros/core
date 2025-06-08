@@ -5,7 +5,7 @@ defmodule Core.Ai.Groq.Ask do
   This module handles:
   - Groq API request construction and execution
   - Response parsing and validation
-  - Error handling and retry logic
+  - Error handling
   - Request configuration management
   - System and user prompt handling
   - Response format standardization
