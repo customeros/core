@@ -77,7 +77,9 @@ config :core, :ai,
   anthropic_api_key: get_env.("ANTHROPIC_API_KEY", nil),
   gemini_api_path:
     "https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent",
-  gemini_api_key: get_env.("GEMINI_API_KEY", nil)
+  gemini_api_key: get_env.("GEMINI_API_KEY", nil),
+  groq_api_path: "https://api.groq.com/openai/v1/chat/completions",
+  groq_api_key: get_env.("GROQ_API_KEY", nil)
 
 # Production environment specific configuration
 if config_env() == :prod do
