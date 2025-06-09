@@ -46,6 +46,16 @@ defmodule Core.Crm.Documents do
     end
   end
 
+  def get_documents_by_ref_id(ref_id) do
+    from(d in Document,
+      join: rd in RefDocument,
+      on: d.id == rd.document_id,
+      where: rd.ref_id == ^ref_id,
+      select: d
+    )
+    |> Repo.all()
+  end
+
   # === Document Listing Functions ===
 
   def list_by_ref(ref_id, tenant_id) do

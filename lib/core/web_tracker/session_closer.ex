@@ -24,7 +24,7 @@ defmodule Core.WebTracker.SessionCloser do
     if enabled do
       GenServer.start_link(__MODULE__, opts, name: __MODULE__)
     else
-      Logger.info("Web session closer is disabled")
+      Logger.info("Web session closer is disabled (crons disabled)")
       :ignore
     end
   end
