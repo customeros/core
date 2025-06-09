@@ -50,6 +50,14 @@ import { LinkPastePlugin } from './plugins/PastePlugin.tsx';
 
 const theme: EditorThemeClasses = {
   paragraph: 'my-3',
+  heading: {
+    h1: 'text-4xl font-bold my-4',
+    h2: 'text-3xl font-bold my-3',
+    h3: 'text-2xl font-bold my-2',
+    h4: 'text-xl font-bold my-2',
+    h5: 'text-lg font-bold my-2',
+    h6: 'text-base font-bold my-2',
+  },
   list: {
     ulDepth: [
       'p-0 m-0 list-outside list-disc',
