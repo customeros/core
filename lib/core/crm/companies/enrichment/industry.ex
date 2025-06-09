@@ -20,9 +20,12 @@ defmodule Core.Crm.Companies.Enrichment.Industry do
   require OpenTelemetry.Tracer
   alias Core.Ai
   alias Core.Utils.Tracing
+  alias Core.Crm.Industries
+
+  @max_retries 5
 
   @timeout 30 * 1000
-  @model :llama3_70b
+  @model :gemini_flash
   @max_tokens 20
   @temperature 0.05
   @system_prompt """
@@ -36,21 +39,21 @@ defmodule Core.Crm.Companies.Enrichment.Industry do
     1. Use strictly the 2022 NAICS codes. Never use codes from older versions like 2012 or 2017.
     2. Many older codes have been deleted or replaced. For example:
       - ❌ Do NOT use `532220` (Formal Wear and Costume Rental) — this code was eliminated in the 2022 update.
-    3. Select the **most specific and appropriate** NAICS code that reflects the company’s **main revenue-generating activity**.
+    3. Select the **most specific and appropriate** NAICS code that reflects the company's **main revenue-generating activity**.
       - Use a 6-digit code if available.
       - If no precise 6-digit match exists, return the nearest valid 5-digit or 4-digit parent code.
     4. Do NOT guess. If the primary activity is unclear or ambiguous, return an empty string.
     5. Return ONLY the valid 2022 NAICS code — no explanation, no commentary, no punctuation.
     6. If unsure or content is ambiguous, return an empty string.
     7. Do NOT return invented or invalid codes like 532290. All returned codes must be listed in the official 2022 NAICS classification. If unsure, return an empty string.
-    8. Just because a code “looks” valid (e.g., 532290) does not mean it is. Cross-check with 2022 codes only.
+    8. Just because a code "looks" valid (e.g., 532290) does not mean it is. Cross-check with 2022 codes only.
     </INSTRUCTIONS>
 
     <EXAMPLES>
       - Valid: 532210
       - Valid: 458110
       - Invalid: 532290 (not a valid 2022 NAICS code)
-      - Invalid: “The code is 5415.” (no text allowed)
+      - Invalid: "The code is 5415." (no text allowed)
       - Invalid: 532220 (deprecated)
     </EXAMPLES>
   """
@@ -62,11 +65,25 @@ defmodule Core.Crm.Companies.Enrichment.Industry do
 
   @spec identify(input() | nil | map()) :: {:ok, String.t()} | {:error, term()}
   def identify(nil), do: {:error, {:invalid_request, "Input cannot be nil"}}
+  def identify(input) when is_map(input), do: identify(input, [], @max_retries)
+  def identify(_), do: {:error, {:invalid_request, "Invalid input format"}}
 
-  def identify(%{domain: domain, homepage_content: content})
-      when is_binary(domain) and is_binary(content) do
-    OpenTelemetry.Tracer.with_span "industry.identify" do
-      prompt = build_prompt(domain, content)
+  @spec identify(input(), [String.t()], non_neg_integer()) :: {:ok, String.t()} | {:error, term()}
+  defp identify(_input, _blacklist, 0) do
+    Tracing.error(:max_attempts_exceeded, "Maximum retry attempts exceeded for industry identification")
+    {:error, :max_attempts_exceeded}
+  end
+
+  defp identify(%{domain: domain, homepage_content: content} = input, blacklist, retries_left)
+       when is_binary(domain) and is_binary(content) do
+    OpenTelemetry.Tracer.with_span "industry.identify.retry" do
+      OpenTelemetry.Tracer.set_attributes([
+        {"retry.attempt", @max_retries - retries_left + 1},
+        {"retry.blacklist", Enum.join(blacklist, ", ")},
+        {"retry.remaining", retries_left}
+      ])
+
+      prompt = build_prompt(domain, content, blacklist)
 
       request =
         Ai.Request.new(prompt,
@@ -84,18 +101,50 @@ defmodule Core.Crm.Companies.Enrichment.Industry do
             {"ai.response", response}
           ])
 
-          Tracing.ok()
+          code = extract_code(response)
 
-          process_response(response)
+          cond do
+            code == "" ->
+              Logger.info("Empty code received from AI")
+              {:error, :empty_ai_response}
+
+            map_size(@valid_codes) == 0 ->
+              Logger.info("NAICS cache is empty, accepting AI code without validation")
+              {:ok, code}
+
+            not Industries.valid_code?(code) ->
+              Logger.info("Invalid code received: #{code}, adding to blacklist and retrying...")
+              identify(input, [code | blacklist], retries_left - 1)
+
+            true ->
+              Tracing.ok()
+              {:ok, code}
+          end
 
         {:ok, response} when is_binary(response) ->
           OpenTelemetry.Tracer.set_attributes([
             {"ai.raw.response", response}
           ])
 
-          Tracing.ok()
+          code = extract_code(response)
 
-          process_response(response)
+          cond do
+            code == "" ->
+              Logger.info("Empty code received from AI")
+              {:error, :empty_ai_response}
+
+            map_size(@valid_codes) == 0 ->
+              Logger.info("NAICS cache is empty, accepting AI code without validation")
+              {:ok, code}
+
+            not Industries.valid_code?(code) ->
+              Logger.info("Invalid code received: #{code}, adding to blacklist and retrying...")
+              identify(input, [code | blacklist], retries_left - 1)
+
+            true ->
+              Tracing.ok()
+              {:ok, code}
+          end
 
         {:ok, {:error, {:http_error, reason}}} ->
           Tracing.error(reason)
@@ -121,30 +170,35 @@ defmodule Core.Crm.Companies.Enrichment.Industry do
     end
   end
 
-  def identify(_), do: {:error, {:invalid_request, "Invalid input format"}}
-
-  defp process_response(response) do
-    code =
-      response
-      |> String.trim()
-      |> String.split("\n")
-      |> List.first()
-      |> String.replace(~r/[^0-9]/, "")
-
-    if String.length(code) > 0 do
-      Tracing.ok()
-      {:ok, code}
-    else
-      {:error, :empty_ai_response}
-    end
+  @doc """
+  Extracts and cleans the NAICS code from the AI response.
+  """
+  @spec extract_code(String.t()) :: String.t()
+  defp extract_code(response) do
+    response
+    |> String.trim()
+    |> String.split("\n")
+    |> List.first()
+    |> String.replace(~r/[^0-9]/, "")
   end
 
-  defp build_prompt(domain, content) do
+  defp build_prompt(domain, content, []), do: build_prompt(domain, content, nil)
+
+  defp build_prompt(domain, content, blacklist) do
+    blacklist_block =
+      if is_list(blacklist) and blacklist != [] do
+        "\nDo NOT return any of the following invalid codes: " <> Enum.join(Enum.uniq(blacklist), ", ") <> "."
+      else
+        ""
+      end
+
     """
     Website: #{domain}
 
     ---Homepage content---
     #{content}
+    ---End of homepage content---
+    #{blacklist_block}
     """
   end
 end
