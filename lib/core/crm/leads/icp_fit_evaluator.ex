@@ -15,12 +15,16 @@ defmodule Core.Crm.Leads.IcpFitEvaluator do
   alias Core.Repo
   alias Core.Utils.Tracing
   alias Core.Crm.Leads.NewLeadPipeline
+  alias Core.Utils.CronLocks
+  alias Core.Utils.Cron.CronLock
 
   # Constants
   # 2 minutes in milliseconds
   @default_interval 2 * 60 * 1000
   # Number of leads to process in each batch
   @default_batch_size 5
+  # Duration in minutes after which a lock is considered stuck
+  @stuck_lock_duration_minutes 30
 
   @doc """
   Starts the stage evaluator process.
@@ -40,34 +44,54 @@ defmodule Core.Crm.Leads.IcpFitEvaluator do
 
   @impl true
   def init(_) do
+    CronLocks.register_cron(:cron_icp_fit_evaluator)
     schedule_initial_check()
-
     {:ok, %{}}
   end
 
   @impl true
   def handle_info(:check_pending_leads, state) do
     OpenTelemetry.Tracer.with_span "icp_fit_evaluator.check_pending_leads" do
-      leads = fetch_leads_for_icp_fit_evaluation()
+      lock_uuid = Ecto.UUID.generate()
 
-      OpenTelemetry.Tracer.set_attributes([
-        {"batch_size", @default_batch_size},
-        {"leads.count", length(leads)}
-      ])
+      case CronLocks.acquire_lock(:cron_icp_fit_evaluator, lock_uuid) do
+        %CronLock{} ->
+          # Lock acquired, proceed with evaluation
+          leads = fetch_leads_for_icp_fit_evaluation()
 
-      Enum.each(leads, fn lead ->
-        case Leads.get_by_id(lead.tenant_id, lead.id) do
-          {:ok, lead} ->
-            evaluate_lead(lead)
+          OpenTelemetry.Tracer.set_attributes([
+            {"batch_size", @default_batch_size},
+            {"leads.count", length(leads)}
+          ])
 
-          {:error, :not_found} ->
-            Logger.error("Lead not found for evaluation: #{lead.id}",
-              reason: :not_found
-            )
+          Enum.each(leads, fn lead ->
+            case Leads.get_by_id(lead.tenant_id, lead.id) do
+              {:ok, lead} ->
+                evaluate_lead(lead)
 
-            Tracing.error(:not_found)
-        end
-      end)
+              {:error, :not_found} ->
+                Logger.error("Lead not found for evaluation: #{lead.id}",
+                  reason: :not_found
+                )
+
+                Tracing.error(:not_found)
+            end
+          end)
+
+          # Release the lock after processing
+          CronLocks.release_lock(:cron_icp_fit_evaluator, lock_uuid)
+
+        nil ->
+          # Lock not acquired, try to force release if stuck
+          Logger.info("ICP fit evaluator lock not acquired, attempting to release any stuck locks")
+
+          case CronLocks.force_release_stuck_lock(:cron_icp_fit_evaluator, @stuck_lock_duration_minutes) do
+            :ok ->
+              Logger.info("Successfully released stuck lock, will retry acquisition on next run")
+            :error ->
+              Logger.info("No stuck lock found or could not release it")
+          end
+      end
 
       schedule_next_check()
       {:noreply, state}
