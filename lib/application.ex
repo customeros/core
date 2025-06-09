@@ -17,6 +17,7 @@ defmodule Core.Application do
       Core.Crm.Companies.CompanyDomainProcessor,
       Core.Crm.Leads.IcpFitEvaluator,
       Core.WebTracker.SessionCloser,
+      Core.Crm.Industries,
       Web.Endpoint,
       Web.Presence,
       Web.Telemetry,
