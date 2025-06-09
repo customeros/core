@@ -289,4 +289,21 @@ defmodule Core.Crm.Leads do
 
   defp extract_company_domain({:error, reason}), do: {:error, reason}
   defp extract_company_domain(:not_a_company), do: :not_a_company
+
+  def get_icp_fits_without_brief_docs(limit \\ 10) do
+    thirty_minutes_ago = DateTime.add(DateTime.utc_now(), -30 * 60)
+
+    Lead
+    |> where([l], l.inserted_at < ^thirty_minutes_ago)
+    |> where([l], l.stage not in [:pending, :not_a_fit])
+    |> where([l], l.icp_fit in [:strong, :moderate])
+    |> join(:left, [l], rd in "refs_documents", on: rd.ref_id == l.id)
+    |> where([l, rd], is_nil(rd.ref_id))
+    |> limit(^limit)
+    |> Repo.all()
+    |> then(fn
+      [] -> {:error, :not_found}
+      leads -> {:ok, leads}
+    end)
+  end
 end

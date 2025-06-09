@@ -116,14 +116,13 @@ defmodule Core.Crm.Leads.NewLeadPipeline do
           {:ok, fit, domain, lead}
 
         {:error, reason} ->
-          Logger.error("ICP evaluation failed",
-            tenant_id: lead.tenant_id,
+          Tracing.error(
+            reason,
+            "ICP evaluation failed",
             lead_id: lead.id,
-            url: domain,
-            reason: reason
+            tenant_id: lead.tenant_id,
+            url: domain
           )
-
-          Tracing.error(reason)
 
           {:error, reason}
       end
@@ -158,13 +157,10 @@ defmodule Core.Crm.Leads.NewLeadPipeline do
           {:ok, :brief_created}
 
         {:error, reason} ->
-          Tracing.error(reason)
-
-          Logger.error("Account brief creation failed",
-            tenant_id: lead.tenant_id,
+          Tracing.error(reason, "Account brief creation failed",
             lead_id: lead.id,
             url: domain,
-            reason: reason
+            tenant_id: lead.tenant_id
           )
 
           {:error, reason}
