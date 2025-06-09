@@ -6,9 +6,53 @@ defmodule Core.Crm.Industries do
   Industries are used to categorize and organize CRM entities.
   """
 
+  @valid_codes load_codes()
+
   alias Core.Crm.Industries.IndustryMapping
   alias Core.Repo
   alias Core.Crm.Industries.Industry
+
+  @doc """
+  Loads industry codes from the database at compile time.
+  Returns a map of code -> name for quick lookups.
+  """
+  defp load_codes do
+    # Ensure the application and its dependencies are started
+    Application.ensure_all_started(:core)
+    Application.ensure_all_started(:ecto_sql)
+    Application.ensure_all_started(:postgrex)
+
+    # Start the repo if it's not already started
+    {:ok, _} = Application.ensure_all_started(:core)
+    {:ok, _} = Repo.__adapter__.ensure_all_started(Repo, :temporary)
+
+    # Query all industry codes from the database
+    case Repo.all(from i in Industry, select: {i.code, i.name}) do
+      codes when is_list(codes) ->
+        Map.new(codes)
+
+      _ ->
+        require Logger
+        Logger.error("Failed to load industry codes from database")
+        %{}
+    end
+  end
+
+  @doc """
+  Returns true if the given code is a valid NAICS code.
+  """
+  @spec valid_code?(String.t()) :: boolean()
+  def valid_code?(code) when is_binary(code) do
+    Map.has_key?(@valid_codes, code)
+  end
+
+  @doc """
+  Returns the name for a given NAICS code, or nil if not found.
+  """
+  @spec get_name(String.t()) :: String.t() | nil
+  def get_name(code) when is_binary(code) do
+    Map.get(@valid_codes, code)
+  end
 
   @spec get_by_code(String.t()) :: Industry.t() | nil
   def get_by_code(code) when is_binary(code) do
