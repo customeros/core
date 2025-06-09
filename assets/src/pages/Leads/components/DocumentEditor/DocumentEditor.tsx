@@ -17,7 +17,11 @@ import { Lead, Tenant, User } from 'src/types';
 import { PageProps } from '@inertiajs/core';
 import { FeaturedIcon } from 'src/components/FeaturedIcon/FeaturedIcon';
 
-export const DocumentEditor = () => {
+interface DocumentEditorProps {
+  selectedLead: string | null;
+}
+
+export const DocumentEditor = ({ selectedLead }: DocumentEditorProps) => {
   const page = usePage<PageProps & { tenant: Tenant; currentUser: User; companies: Lead[] }>();
   const [viewMode, setViewMode] = useState('default');
   const docId = new URLSearchParams(window.location.search).get('doc');
@@ -26,8 +30,8 @@ export const DocumentEditor = () => {
   const { presentUsers, currentUserId } = usePresence();
 
   const currentLead = useMemo(() => {
-    return page.props.companies.find(c => c.document_id === docId);
-  }, [page.props.companies, docId]);
+    return page.props.companies.find(c => c.id === selectedLead);
+  }, [page.props.companies, selectedLead]);
 
   const presenceUser = useMemo(() => {
     const found = presentUsers.find(u => u.user_id === currentUserId);
@@ -161,7 +165,7 @@ export const DocumentEditor = () => {
                 />
               ) : (
                 <div className="flex items-center justify-start flex-col h-full">
-                  <div className="   flex items-center justify-center">
+                  <div className="flex items-center justify-center">
                     <FeaturedIcon className="mb-6 mt-[40px]">
                       <Icon name="clock-fast-forward" />
                     </FeaturedIcon>

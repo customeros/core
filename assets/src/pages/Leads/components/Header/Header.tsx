@@ -38,7 +38,6 @@ export const Header = () => {
   const [isOpen, setIsOpen] = useState(false);
   const [displayProfile, setDisplayProfile] = useState(false);
   const [inviteTeam, setInviteTeam] = useState(false);
-  console.log(page.props);
   const worksspaceLogo = page.props.tenant?.workspace_icon_key;
   const workspaceName = page.props.tenant?.workspace_name;
   const domain = page.props.tenant?.domain;
