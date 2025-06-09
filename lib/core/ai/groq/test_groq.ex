@@ -61,7 +61,7 @@ defmodule Core.Ai.Groq.TestGroq do
       prompt: prompt,
       system_prompt: "You are a helpful AI assistant that provides concise, accurate responses.",
       max_output_tokens: 256,
-      model_temperature: 0.7
+      model_temperature: 0.5
     }
 
     config = Config.from_application_env()
