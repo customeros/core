@@ -47,6 +47,7 @@ const DocumentEditor = lazy(() =>
 
 export default function Leads({ companies }: LeadsProps) {
   const [selectedStage, setSelectedStage] = useState<string>('');
+  const [selectedLead, setSelectedLead] = useState<string | null>(null);
   const hasDocParam = new URLSearchParams(window.location.search).has('doc');
   const viewMode = new URLSearchParams(window.location.search).get('viewMode');
   const params = new URLSearchParams(window.location.search);
@@ -75,7 +76,7 @@ export default function Leads({ companies }: LeadsProps) {
       preserveScroll: true,
     });
   }, []);
-
+  console.log(selectedLead);
   return (
     <RootLayout>
       <EventSubscriber />
@@ -155,6 +156,8 @@ export default function Leads({ companies }: LeadsProps) {
                                 <div
                                   className="cursor-pointer"
                                   onClick={() => {
+                                    console.log(c.id);
+                                    setSelectedLead(c.id);
                                     handleOpenDocument(c);
                                   }}
                                 >
@@ -188,6 +191,8 @@ export default function Leads({ companies }: LeadsProps) {
                               <p
                                 className="py-2 px-2 cursor-pointer font-medium truncate"
                                 onClick={() => {
+                                  setSelectedLead(c.id);
+
                                   handleOpenDocument(c);
                                 }}
                               >
@@ -235,7 +240,7 @@ export default function Leads({ companies }: LeadsProps) {
                 viewMode === 'focus' && 'w-full border-transparent'
               )}
             >
-              <DocumentEditor />
+              <DocumentEditor selectedLead={selectedLead} />
             </div>
           </div>
         </div>
