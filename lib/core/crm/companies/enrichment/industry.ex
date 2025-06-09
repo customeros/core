@@ -108,10 +108,6 @@ defmodule Core.Crm.Companies.Enrichment.Industry do
               Logger.info("Empty code received from AI")
               {:error, :empty_ai_response}
 
-            map_size(@valid_codes) == 0 ->
-              Logger.info("NAICS cache is empty, accepting AI code without validation")
-              {:ok, code}
-
             not Industries.valid_code?(code) ->
               Logger.info("Invalid code received: #{code}, adding to blacklist and retrying...")
               identify(input, [code | blacklist], retries_left - 1)
@@ -132,10 +128,6 @@ defmodule Core.Crm.Companies.Enrichment.Industry do
             code == "" ->
               Logger.info("Empty code received from AI")
               {:error, :empty_ai_response}
-
-            map_size(@valid_codes) == 0 ->
-              Logger.info("NAICS cache is empty, accepting AI code without validation")
-              {:ok, code}
 
             not Industries.valid_code?(code) ->
               Logger.info("Invalid code received: #{code}, adding to blacklist and retrying...")
@@ -170,10 +162,6 @@ defmodule Core.Crm.Companies.Enrichment.Industry do
     end
   end
 
-  @doc """
-  Extracts and cleans the NAICS code from the AI response.
-  """
-  @spec extract_code(String.t()) :: String.t()
   defp extract_code(response) do
     response
     |> String.trim()
