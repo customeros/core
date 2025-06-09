@@ -3,7 +3,7 @@ defmodule Core.Ai do
   Provides a unified interface for AI model interactions across multiple providers.
 
   This module handles:
-  - Multi-model AI request routing (Anthropic Claude and Google Gemini)
+  - Multi-model AI request routing (Anthropic Claude, Google Gemini, and Groq)
   - Supervised and unsupervised AI requests
   - Request validation and model selection
   - Response handling and error management
@@ -13,6 +13,7 @@ defmodule Core.Ai do
   The module supports multiple AI models:
   - Anthropic: Claude Haiku and Claude Sonnet
   - Google: Gemini Pro and Gemini Flash
+  - Groq: LLaMA3 70B and other Groq models
 
   It implements proper AI integration practices including:
   - Request validation
@@ -26,11 +27,13 @@ defmodule Core.Ai do
   require OpenTelemetry.Tracer
   alias Core.Ai.Anthropic
   alias Core.Ai.Gemini
+  alias Core.Ai.Groq
   alias Core.Ai.Request
 
   @anthropic_models [:claude_haiku, :claude_sonnet]
   @gemini_models [:gemini_pro, :gemini_flash]
-  @supported_models @anthropic_models ++ @gemini_models
+  @groq_models [:llama3_70b, :llama3_8b, :llama33_70b, :llama31_8b, :gemma2_9b]
+  @supported_models @anthropic_models ++ @gemini_models ++ @groq_models
 
   @doc """
   Supervised async AI request
@@ -49,7 +52,7 @@ defmodule Core.Ai do
 
   # Private functions
 
-  defp ask(request) when request.model in @anthropic_models do
+  defp ask(%Request{} = request) when request.model in @anthropic_models do
     OpenTelemetry.Tracer.with_span "ai.ask_anthropic" do
       OpenTelemetry.Tracer.set_attributes([
         {"ai.model", request.model},
@@ -73,7 +76,7 @@ defmodule Core.Ai do
     end
   end
 
-  defp ask(request) when request.model in @gemini_models do
+  defp ask(%Request{} = request) when request.model in @gemini_models do
     OpenTelemetry.Tracer.with_span "ai.ask_gemini" do
       OpenTelemetry.Tracer.set_attributes([
         {"ai.model", request.model},
@@ -92,6 +95,27 @@ defmodule Core.Ai do
       }
 
       Gemini.Ask.ask(gemini_request, Gemini.Config.from_application_env())
+    end
+  end
+
+  defp ask(%Request{} = request) when request.model in @groq_models do
+    OpenTelemetry.Tracer.with_span "ai.ask_groq" do
+      OpenTelemetry.Tracer.set_attributes([
+        {"ai.model", request.model},
+        {"ai.max_tokens", request.max_output_tokens},
+        {"ai.temperature", request.model_temperature},
+        {"ai.has_system_prompt", not is_nil(request.system_prompt)}
+      ])
+
+      groq_request = %Groq.Request{
+        model: request.model,
+        prompt: request.prompt,
+        system_prompt: request.system_prompt,
+        max_output_tokens: request.max_output_tokens,
+        model_temperature: request.model_temperature
+      }
+
+      Groq.Ask.ask(groq_request, Groq.Config.from_application_env())
     end
   end
 

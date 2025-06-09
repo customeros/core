@@ -22,33 +22,37 @@ defmodule Core.Crm.Companies.Enrichment.Industry do
   alias Core.Utils.Tracing
 
   @timeout 30 * 1000
-  @model :gemini_flash
+  @model :llama3_70b
   @max_tokens 20
   @temperature 0.05
   @system_prompt """
-  You are an expert in business classification using the North American Industry Classification System (NAICS).
-  I will provide you with company metadata and website content.
-  Your sole task is to classify the company using ONLY the 2022 NAICS (North American Industry Classification System) codes.
+    You are an expert in business classification using the North American Industry Classification System (NAICS).
 
-  <INSTRUCTIONS>
-  1.  Strictly use the 2022 NAICS CODES. Do NOT use codes from 2017, 2012 or any other previous versions.
-  2.  Many codes have changed, merged, or been eliminated in the 2022 revision. For instance, if a 2017 code was 448210 "Shoe Stores", its 2022 equivalent is 458210 "Shoe Retailers". You MUST use the 2022 version.
-  3.  Choose the most specific and appropriate 2022 NAICS code (from 2 to 6 digits) that precisely describes the company's primary business activity.
-    - Prioritize 6-digit codes if a clear, exact match exists for the specific activity.
-    - If a precise 6-digit code does not exist or cannot be confidently determined for the company's specific activity, return the most specific applicable parent code (e.g., a 5-digit, 4-digit, 3-digit, or 2-digit code).
-    - A 6-digit code that ends in '0' (like 513210) is valid only if it is the direct 6-digit U.S. industry code for a 5-digit industry that has no further subdivisions. Do not invent a '0' ending 6-digit code for a 5-digit industry that has actual 6-digit subdivisions (e.g., for 55111, the 6-digit codes are 551111, 551112, 551114, not 551110).
-  4.  If multiple 2022 codes could apply, select the one that represents the company's main revenue source or core business.
-  5.  Valid 2-digit NAICS prefixes for 2022 are: 11, 21, 22, 23, 31, 32, 33, 42, 44, 45, 48, 49, 51, 52, 53, 54, 55, 56, 61, 62, 71, 72, 81, 92.
-  6.  Return ONLY the 2022 NAICS code. Do NOT include any explanation, additional text, or conversational remarks. Just the code.
-  7.  Do not invent the codes. If you are not 100% sure of the code, return an empty string.
-  </INSTRUCTIONS>
+    You will receive a company website URL and scraped content from that site.
 
-  <EXAMPLES>
-  - Most specific 6-digit (e.g., with specific subdivisions): 551111 (Offices of Bank Holding Companies)
-  - Most specific 6-digit (e.g., where 5-digit adds '0'): 513210 (Software Publishers)
-  - Most specific parent code (e.g., if 6-digit is not precise): 55111 (Management of Companies and Enterprises - 5-digit)
-  - General 4-digit: 5415 (Computer Systems Design and Related Services)
-  </EXAMPLES>
+    Your task is to classify the company's **primary business activity** using the **2022 NAICS codes only**.
+
+    <INSTRUCTIONS>
+    1. Use strictly the 2022 NAICS codes. Never use codes from older versions like 2012 or 2017.
+    2. Many older codes have been deleted or replaced. For example:
+      - ❌ Do NOT use `532220` (Formal Wear and Costume Rental) — this code was eliminated in the 2022 update.
+    3. Select the **most specific and appropriate** NAICS code that reflects the company’s **main revenue-generating activity**.
+      - Use a 6-digit code if available.
+      - If no precise 6-digit match exists, return the nearest valid 5-digit or 4-digit parent code.
+    4. Do NOT guess. If the primary activity is unclear or ambiguous, return an empty string.
+    5. Return ONLY the valid 2022 NAICS code — no explanation, no commentary, no punctuation.
+    6. If unsure or content is ambiguous, return an empty string.
+    7. Do NOT return invented or invalid codes like 532290. All returned codes must be listed in the official 2022 NAICS classification. If unsure, return an empty string.
+    8. Just because a code “looks” valid (e.g., 532290) does not mean it is. Cross-check with 2022 codes only.
+    </INSTRUCTIONS>
+
+    <EXAMPLES>
+      - Valid: 532210
+      - Valid: 458110
+      - Invalid: 532290 (not a valid 2022 NAICS code)
+      - Invalid: “The code is 5415.” (no text allowed)
+      - Invalid: 532220 (deprecated)
+    </EXAMPLES>
   """
 
   @type input :: %{
