@@ -124,7 +124,7 @@ export const Header = () => {
         {createdLeadIcons.length > 0 && (
           <div
             onClick={handleClick}
-            className="absolute top-[120px] left-1/2 transform -translate-x-1/2 z-[10000] px-4 py-3 rounded-full bg-white shadow-lg cursor-pointer"
+            className="fixed top-[20px] left-1/2 transform -translate-x-1/2 z-[10000] px-4 py-3 rounded-full bg-white shadow-lg cursor-pointer"
           >
             <div className="flex items-center gap-2">
               {headIcons.map((icon, index) =>
