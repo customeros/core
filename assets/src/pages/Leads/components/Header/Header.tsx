@@ -22,6 +22,8 @@ import { cn } from 'src/utils/cn';
 import { Avatar } from 'src/components/Avatar';
 import { Tooltip } from 'src/components/Tooltip';
 import { toastSuccess } from 'src/components/Toast';
+import { TenantSwitcher } from '../TenantSwitcher';
+import { IconButton } from 'src/components/IconButton';
 
 export const Header = () => {
   const [createdLeadIcons, setCreatedLeadIcons] = useState<string[]>([]);
@@ -63,19 +65,37 @@ export const Header = () => {
         <div className="h-[1px] mb-[-0px] bg-gradient-to-l from-gray-200 to-transparent self-end 2xl:w-[calc((100%-1440px)/2)]" />
 
         <div className="flex justify-between items-center border-b border-gray-200 w-full 2xl:w-[1440px] 2xl:mx-auto py-2 px-4">
-          <div
-            className={cn('flex items-center gap-2 cursor-default', {
-              'cursor-pointer': page.props.profile,
-            })}
-            onClick={() => page.props.profile && setDisplayProfile(true)}
-          >
-            {worksspaceLogo ? (
-              <img src={worksspaceLogo} alt="Workspace logo" className="size-6 rounded-full" />
-            ) : (
-              <div className="size-6 rounded-full bg-[url('/images/customeros.png')] bg-cover bg-center" />
-            )}
-            <h1 className="text-[16px] font-medium">{workspaceName || 'CustomerOS'}</h1>
+          <div className="flex items-center gap-2">
+            <TenantSwitcher
+              currentTenant={page.props.tenant.id}
+              isAdmin={page.props.currentUser.admin}
+            >
+              <div
+                className={cn(
+                  'flex items-center gap-2 cursor-pointer',
+                  !page.props.currentUser.admin && 'cursor-default'
+                )}
+              >
+                {worksspaceLogo ? (
+                  <img src={worksspaceLogo} alt="Workspace logo" className="size-6 rounded-full" />
+                ) : (
+                  <div className="size-6 rounded-full bg-[url('/images/customeros.png')] bg-cover bg-center" />
+                )}
+                <h1 className="text-sm font-medium">{workspaceName || 'CustomerOS'}</h1>
+              </div>
+            </TenantSwitcher>
+            <IconButton
+              aria-label="icp"
+              onClick={e => {
+                page.props.profile && setDisplayProfile(true);
+                e.stopPropagation();
+              }}
+              icon={<Icon name="building-03" />}
+              size="xs"
+              variant="ghost"
+            />
           </div>
+
           <div className="flex items-center gap-2">
             <Tooltip label="Invite team">
               <div onClick={() => setInviteTeam(true)}>

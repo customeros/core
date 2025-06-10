@@ -111,7 +111,8 @@ defmodule Web.Router do
     get "/icons.svg", IconsController, :index
     get "/favicon/*path", FaviconController, :serve
     get "/welcome", WelcomeController, :index
-
+    get "/tenants", TenantController, :index
+    post "/tenants/switch", TenantController, :switch
     # Catch-all route for undefined paths
     # get "/*path", LandingController, :redirect
   end

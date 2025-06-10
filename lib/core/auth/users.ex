@@ -308,4 +308,13 @@ defmodule Core.Auth.Users do
   defp parse_changeset_errors(%Ecto.Changeset{errors: errors}) do
     Enum.map(errors, fn {key, {message, _}} -> {key, message} end)
   end
+
+  @doc """
+  Updates a user's tenant ID.
+  """
+  def update_user_tenant_id(%User{} = user, new_tenant_id) do
+    user
+    |> Ecto.Changeset.change(%{tenant_id: new_tenant_id})
+    |> Repo.update()
+  end
 end

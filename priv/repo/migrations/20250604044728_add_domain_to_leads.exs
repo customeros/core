@@ -3,17 +3,17 @@ defmodule Core.Repo.Migrations.AddDomainToLeads do
 
   def up do
     alter table(:leads) do
-      add :domain, :string
+      add(:domain, :string)
     end
 
-    create index(:leads, [:domain])
+    create(index(:leads, [:domain]))
   end
 
   def down do
-    drop index(:leads, [:domain])
+    drop(index(:leads, [:domain]))
 
     alter table(:leads) do
-      remove :domain
+      remove(:domain)
     end
   end
 end

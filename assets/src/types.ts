@@ -29,6 +29,7 @@ export type User = {
   updated_at: string;
   inserted_at: string;
   confirmed_at: string;
+  admin: boolean;
 };
 
 export type Document = {
