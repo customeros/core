@@ -32,7 +32,7 @@ defmodule Core.Crm.Leads.DailyLeadSummarySender do
   # Duration in minutes after which a lock is considered stuck
   @stuck_lock_duration_minutes 30
   # Check every 5 minutes
-  @check_interval_ms 5 * 2 * 1000
+  @check_interval_ms 5 * 60 * 1000
   # Minimum time between executions (23 hours and 30 minutes in seconds)
   @min_execution_interval_seconds 23 * 3600 + 30 * 60
   # Email sender details
