@@ -2,21 +2,7 @@ defmodule Core.Crm.Leads.LeadView do
   @moduledoc """
   Struct representing a lead view entry with associated company info.
   """
-  @derive {Jason.Encoder,
-           only: [
-             :id,
-             :ref_id,
-             :type,
-             :stage,
-             :name,
-             :icp_fit,
-             :industry,
-             :domain,
-             :icon,
-             :country,
-             :country_name,
-             :document_id
-           ]}
+
   defstruct [
     :id,
     :ref_id,
@@ -46,4 +32,25 @@ defmodule Core.Crm.Leads.LeadView do
           country_name: String.t() | nil,
           document_id: String.t() | nil
         }
+
+  defimpl Jason.Encoder, for: __MODULE__ do
+    def encode(lead_view, opts) do
+      lead_view
+      |> Map.take([
+        :id,
+        :ref_id,
+        :type,
+        :stage,
+        :name,
+        :icp_fit,
+        :industry,
+        :domain,
+        :icon,
+        :country,
+        :country_name,
+        :document_id
+      ])
+      |> Jason.Encode.map(opts)
+    end
+  end
 end

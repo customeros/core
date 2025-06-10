@@ -70,14 +70,14 @@ defmodule Core.WebTracker.SessionAnalyzer do
 
   defp ok_to_run(tenant, company_id) when not is_nil(company_id) do
     with {:ok, tenant} <- Tenants.get_tenant_by_name(tenant),
-         {:ok, lead} when not is_nil(company_id) <- Leads.get_by_ref_id(tenant.id, company_id) do
+         {:ok, lead} when not is_nil(company_id) <-
+           Leads.get_by_ref_id(tenant.id, company_id) do
       cond do
         lead.stage == :ready_to_buy -> {:stop, :already_ready_to_buy}
         lead.stage == :not_a_fit -> {:stop, :not_icp_fit}
         true -> {:ok, :proceed}
       end
     else
-      {:ok, nil} -> {:stop, :no_company_id}
       {:error, reason} -> {:error, reason}
     end
   end
