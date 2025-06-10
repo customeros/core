@@ -1,9 +1,9 @@
-import { useState, lazy, useCallback, useMemo, useEffect, startTransition } from 'react';
 import { router } from '@inertiajs/react';
+import { lazy, useMemo, useState, useEffect, useCallback, startTransition } from 'react';
 
 import { cn } from 'src/utils/cn';
 import { RootLayout } from 'src/layouts/Root';
-import { Lead, Tenant, User } from 'src/types';
+import { Lead, User, Tenant } from 'src/types';
 import { Tooltip } from 'src/components/Tooltip';
 import { Icon, IconName } from 'src/components/Icon';
 import { SegmentedView } from 'src/components/SegmentedView';
@@ -17,9 +17,9 @@ import {
 
 import { Header, EmptyState } from './components';
 interface LeadsProps {
+  tenant: Tenant;
   companies: Lead[];
   currentUser: User;
-  tenant: Tenant;
 }
 
 const stages = [
@@ -34,6 +34,7 @@ const countryCodeToEmoji = (code: string) => {
   if (!code || code.toLowerCase() === 'xx') {
     return '🌐';
   }
+
   try {
     return code
       .toUpperCase()
@@ -59,9 +60,11 @@ export default function Leads({ companies }: LeadsProps) {
 
   const stageCounts = useMemo(() => {
     const counts = new Map<string, number>();
+
     stages.forEach(stage => {
       counts.set(stage.value, companies.filter(c => c.stage === stage.value).length);
     });
+
     return counts;
   }, [companies]);
 
@@ -82,6 +85,7 @@ export default function Leads({ companies }: LeadsProps) {
     if (currentLeadId === lead.id || params.size === 1) {
       params.delete('lead');
     }
+
     if (params.size === 0) {
       params.set('lead', lead.id ?? '');
     }
@@ -128,15 +132,6 @@ export default function Leads({ companies }: LeadsProps) {
                   return (
                     <div
                       key={stage.value}
-                      className={cn(
-                        'flex-1 flex items-center justify-center bg-primary-100 cursor-pointer hover:bg-primary-200 duration-300',
-                        scrollProgress < 0.2 && count > nextCount && 'rounded-r-md',
-                        scrollProgress < 0.2 && count > prevCount && 'rounded-l-md',
-                        scrollProgress > 0.2 && index === 0 && 'rounded-l-md',
-                        scrollProgress > 0.2 && index === stages.length - 1 && 'rounded-r-md',
-                        selectedStage === stage.value && 'bg-primary-200',
-                        count === 0 && 'cursor-not-allowed hover:bg-primary-100'
-                      )}
                       style={{
                         height: heightCalc(count),
                         zIndex: 10 - index,
@@ -148,6 +143,15 @@ export default function Leads({ companies }: LeadsProps) {
                         count > 0 &&
                           setSelectedStage(prev => (prev === stage.value ? '' : stage.value));
                       }}
+                      className={cn(
+                        'flex-1 flex items-center justify-center bg-primary-100 cursor-pointer hover:bg-primary-200 duration-300',
+                        scrollProgress < 0.2 && count > nextCount && 'rounded-r-md',
+                        scrollProgress < 0.2 && count > prevCount && 'rounded-l-md',
+                        scrollProgress > 0.2 && index === 0 && 'rounded-l-md',
+                        scrollProgress > 0.2 && index === stages.length - 1 && 'rounded-r-md',
+                        selectedStage === stage.value && 'bg-primary-200',
+                        count === 0 && 'cursor-not-allowed hover:bg-primary-100'
+                      )}
                     >
                       <div className="flex text-center text-primary-700 select-none">
                         <span>
@@ -169,6 +173,7 @@ export default function Leads({ companies }: LeadsProps) {
                         const scrollTop = e.target.scrollTop;
                         const maxScroll = 200;
                         const progress = Math.min(scrollTop / maxScroll, 1);
+
                         setScrollProgress(progress);
                       }
                     });
@@ -181,20 +186,20 @@ export default function Leads({ companies }: LeadsProps) {
                         <div key={stage.value} className="flex flex-col w-full">
                           <SegmentedView
                             label={stage.label}
+                            isSelected={isSelected(stage.value)}
+                            count={stageCounts.get(stage.value) || 0}
+                            icon={<Icon className="text-gray-500" name={stage.icon as IconName} />}
+                            onClick={() => {
+                              setSelectedStage(stage.value);
+                            }}
+                            handleClearFilter={() => {
+                              setSelectedStage('');
+                            }}
                             className={cn(
                               'sticky top-0 z-30',
                               index === 0 ? 'mt-0' : '',
                               params.size !== 0 && 'md:rounded-r-none'
                             )}
-                            isSelected={isSelected(stage.value)}
-                            count={stageCounts.get(stage.value) || 0}
-                            icon={<Icon name={stage.icon as IconName} className="text-gray-500" />}
-                            handleClearFilter={() => {
-                              setSelectedStage('');
-                            }}
-                            onClick={() => {
-                              setSelectedStage(stage.value);
-                            }}
                           />
 
                           {filteredCompanies
@@ -216,8 +221,8 @@ export default function Leads({ companies }: LeadsProps) {
                                         key={c.icon}
                                         src={c.icon}
                                         alt={c.name}
-                                        className="size-6 object-contain border border-gray-200 rounded flex-shrink-0 relative "
                                         loading="lazy"
+                                        className="size-6 object-contain border border-gray-200 rounded flex-shrink-0 relative "
                                       />
                                       {c?.icp_fit === 'strong' && (
                                         <Icon
@@ -260,10 +265,10 @@ export default function Leads({ companies }: LeadsProps) {
                                 </p>
 
                                 <p
-                                  className="text-right cursor-pointer hover:underline min-w-0 flex-1 md:flex-none md:flex-shrink-0 bg-white px-2 py-1 group-hover:bg-gray-50"
                                   onClick={() => {
                                     window.open(`https://${c.domain}`, '_blank');
                                   }}
+                                  className="text-right cursor-pointer hover:underline min-w-0 flex-1 md:flex-none md:flex-shrink-0 bg-white px-2 py-1 group-hover:bg-gray-50"
                                 >
                                   {c.domain}
                                 </p>
@@ -278,10 +283,10 @@ export default function Leads({ companies }: LeadsProps) {
                       ))}
                   </div>
                 </ScrollAreaViewport>
-                <ScrollAreaScrollbar orientation="horizontal" className="z-40">
+                <ScrollAreaScrollbar className="z-40" orientation="horizontal">
                   <ScrollAreaThumb />
                 </ScrollAreaScrollbar>
-                <ScrollAreaScrollbar orientation="vertical" className="z-40">
+                <ScrollAreaScrollbar className="z-40" orientation="vertical">
                   <ScrollAreaThumb />
                 </ScrollAreaScrollbar>
               </ScrollAreaRoot>

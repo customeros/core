@@ -1,5 +1,18 @@
 import type { EditorThemeClasses } from 'lexical';
 
+import { ListPlugin } from '@lexical/react/LexicalListPlugin';
+import { HistoryPlugin } from '@lexical/react/LexicalHistoryPlugin';
+import { RichTextPlugin } from '@lexical/react/LexicalRichTextPlugin';
+import { PlainTextPlugin } from '@lexical/react/LexicalPlainTextPlugin';
+import { CheckListPlugin } from '@lexical/react/LexicalCheckListPlugin';
+import { EditorRefPlugin } from '@lexical/react/LexicalEditorRefPlugin';
+import { AutoFocusPlugin } from '@lexical/react/LexicalAutoFocusPlugin';
+import { ContentEditable } from '@lexical/react/LexicalContentEditable';
+import { LexicalErrorBoundary } from '@lexical/react/LexicalErrorBoundary';
+import { CollaborationPlugin } from '@lexical/react/LexicalCollaborationPlugin';
+import { TabIndentationPlugin } from '@lexical/react/LexicalTabIndentationPlugin';
+import { LexicalComposer, InitialConfigType } from '@lexical/react/LexicalComposer';
+import { MarkdownShortcutPlugin } from '@lexical/react/LexicalMarkdownShortcutPlugin';
 import React, {
   useRef,
   useState,
@@ -10,31 +23,14 @@ import React, {
   useImperativeHandle,
 } from 'react';
 
+import clsx from 'clsx';
 import * as Y from 'yjs';
 import { UndoManager } from 'yjs';
 import { twMerge } from 'tailwind-merge';
 import { TRANSFORMERS } from '@lexical/markdown';
 import { cva, VariantProps } from 'class-variance-authority';
-import { ListPlugin } from '@lexical/react/LexicalListPlugin';
-import { PhoenixChannelProvider } from './utils/y-phoenix-channel';
-import { HistoryPlugin } from '@lexical/react/LexicalHistoryPlugin';
 import { $insertNodes, $nodesOfType, LexicalEditor } from 'lexical';
-import { RichTextPlugin } from '@lexical/react/LexicalRichTextPlugin';
-import { PlainTextPlugin } from '@lexical/react/LexicalPlainTextPlugin';
-import { CheckListPlugin } from '@lexical/react/LexicalCheckListPlugin';
-import { EditorRefPlugin } from '@lexical/react/LexicalEditorRefPlugin';
-import { AutoFocusPlugin } from '@lexical/react/LexicalAutoFocusPlugin';
-import { ContentEditable } from '@lexical/react/LexicalContentEditable';
-import { LexicalErrorBoundary } from '@lexical/react/LexicalErrorBoundary';
 import { $generateNodesFromDOM, $generateHtmlFromNodes } from '@lexical/html';
-import { CollaborationPlugin } from '@lexical/react/LexicalCollaborationPlugin';
-import { TabIndentationPlugin } from '@lexical/react/LexicalTabIndentationPlugin';
-import { MarkdownShortcutPlugin } from '@lexical/react/LexicalMarkdownShortcutPlugin';
-import { LexicalComposer, InitialConfigType } from '@lexical/react/LexicalComposer';
-
-import ToolbarPlugin from './plugins/ToolbarPlugin.tsx';
-import TextNodeTransformer from './nodes/TextTransformar.ts';
-import { PhoenixSocketContext } from '../../providers/SocketProvider.tsx';
 
 import { nodes } from './nodes/nodes';
 import { HashtagNode } from './nodes/HashtagNode';
@@ -42,11 +38,14 @@ import MentionsPlugin from './plugins/MentionsPlugin';
 import AutoLinkPlugin from './plugins/AutoLinkPlugin';
 import HashtagsPlugin from './plugins/HashtagsPlugin';
 import VariablePlugin from './plugins/VariablesPlugin';
+import ToolbarPlugin from './plugins/ToolbarPlugin.tsx';
 import { YjsUndoPlugin } from './plugins/YjsUndoPlugin';
+import { LinkPastePlugin } from './plugins/PastePlugin.tsx';
+import TextNodeTransformer from './nodes/TextTransformar.ts';
+import { PhoenixChannelProvider } from './utils/y-phoenix-channel';
+import { PhoenixSocketContext } from '../../providers/SocketProvider.tsx';
 import FloatingLinkEditorPlugin from './plugins/FloatingLinkEditorPlugin';
 import { FloatingMenuPlugin } from './plugins/FloatingTextFormatToolbarPlugin';
-import clsx from 'clsx';
-import { LinkPastePlugin } from './plugins/PastePlugin.tsx';
 
 const theme: EditorThemeClasses = {
   paragraph: 'mb-2',

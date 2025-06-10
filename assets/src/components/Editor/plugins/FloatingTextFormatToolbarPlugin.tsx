@@ -1,12 +1,16 @@
 import { createPortal } from 'react-dom';
 import { useRef, useState, useEffect, useCallback, KeyboardEvent } from 'react';
+import { useLexicalComposerContext } from '@lexical/react/LexicalComposerContext';
 
+import { Icon } from 'src/components/Icon';
+import { Tooltip } from 'src/components/Tooltip';
 import { $setBlocksType } from '@lexical/selection';
 import { $isLinkNode, $toggleLink } from '@lexical/link';
 import { shift, offset, computePosition } from '@floating-ui/dom';
 import { $isQuoteNode, $createQuoteNode } from '@lexical/rich-text';
+import { FloatingToolbarButton } from 'src/components/Editor/components';
 import { $isListNode, $createListNode, $isListItemNode } from '@lexical/list';
-import { useLexicalComposerContext } from '@lexical/react/LexicalComposerContext';
+import { getSelectedNode } from 'src/components/Editor/utils/getSelectedNode';
 import {
   LexicalNode,
   $getSelection,
@@ -19,15 +23,9 @@ import {
   COMMAND_PRIORITY_NORMAL,
   COMMAND_PRIORITY_NORMAL as NORMAL_PRIORITY,
   SELECTION_CHANGE_COMMAND as ON_SELECTION_CHANGE,
-  SELECTION_CHANGE_COMMAND,
 } from 'lexical';
 
-import { Tooltip } from 'src/components/Tooltip';
-import { FloatingToolbarButton } from 'src/components/Editor/components';
-import { getSelectedNode } from 'src/components/Editor/utils/getSelectedNode';
-
 import { usePointerInteractions } from './../utils/usePointerInteractions';
-import { Icon } from 'src/components/Icon';
 
 const DEFAULT_DOM_ELEMENT = document.body;
 
@@ -66,6 +64,7 @@ export function FloatingMenu({ editor }: FloatingMenuComponentProps) {
           $toggleLink('https://');
           setTimeout(() => {
             const input = document.querySelector('#container-link-input input');
+
             if (input) {
               (input as HTMLInputElement).focus();
             }
@@ -240,11 +239,11 @@ export function FloatingMenu({ editor }: FloatingMenuComponentProps) {
             aria-label="Format text as an ordered list"
             icon={
               <Icon
-                name="list-numbered"
-                className="text-gray-100"
+                strokeWidth={1.5}
                 fillRule="evenodd"
                 clipRule="evenodd"
-                strokeWidth={1.5}
+                name="list-numbered"
+                className="text-gray-100"
               />
             }
           />

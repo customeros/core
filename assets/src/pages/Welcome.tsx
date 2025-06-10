@@ -1,10 +1,10 @@
 import { useState } from 'react';
 import { router } from '@inertiajs/react';
 
-import { Button } from 'src/components/Button';
 import { Dot } from 'src/components/Dot';
-import { FeaturedIcon } from 'src/components/FeaturedIcon/FeaturedIcon';
+import { Button } from 'src/components/Button';
 import { Icon, IconName } from 'src/components/Icon';
+import { FeaturedIcon } from 'src/components/FeaturedIcon/FeaturedIcon';
 
 export default function Welcome() {
   const [currentSlide, setCurrentSlide] = useState(1);
@@ -34,8 +34,10 @@ export default function Welcome() {
 
   const getRelativeIndex = (index: number) => {
     const diff = index - currentSlide;
+
     if (diff > slideCount / 2) return diff - slideCount;
     if (diff < -slideCount / 2) return diff + slideCount;
+
     return diff;
   };
 
@@ -70,14 +72,15 @@ export default function Welcome() {
 
                 {slides.map((slide, index) => {
                   const rel = getRelativeIndex(index);
+
                   if (Math.abs(rel) > 1) return null;
 
                   return (
                     <div
                       key={index}
-                      className="absolute transition-all duration-500 ease-in-out w-[380px] cursor-pointer"
                       style={getTransformStyle(rel)}
                       onClick={() => setCurrentSlide(index)}
+                      className="absolute transition-all duration-500 ease-in-out w-[380px] cursor-pointer"
                       onTouchStart={e => {
                         const touch = e.touches[0];
                         const startX = touch.clientX;
@@ -101,7 +104,7 @@ export default function Welcome() {
                       }}
                     >
                       <div className="bg-white rounded-xl shadow-lg p-6 text-center border border-gray-200 flex flex-col items-center gap-4">
-                        <FeaturedIcon colorScheme="primary" size="md">
+                        <FeaturedIcon size="md" colorScheme="primary">
                           <Icon name={slide.icon as IconName} />
                         </FeaturedIcon>
                         <h2 className="text-base font-semibold text-primary-600 mb-2">
@@ -120,17 +123,17 @@ export default function Welcome() {
                 <Dot
                   key={index}
                   onClick={() => setCurrentSlide(index)}
-                  className={`w-2.5 h-2.5 rounded-full transition-colors duration-300 cursor-pointer`}
-                  colorScheme={currentSlide === index ? 'primary' : 'gray'}
                   aria-label={`Go to slide ${index + 1}`}
+                  colorScheme={currentSlide === index ? 'primary' : 'gray'}
+                  className={`w-2.5 h-2.5 rounded-full transition-colors duration-300 cursor-pointer`}
                 />
               ))}
             </div>
           </div>
 
           <Button
-            className="mt-4 font-medium"
             variant="ghost"
+            className="mt-4 font-medium"
             onClick={() => {
               router.visit('/leads');
             }}

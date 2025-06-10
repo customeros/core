@@ -1,10 +1,11 @@
 import { useState } from 'react';
 import { useForm } from '@inertiajs/react';
 
-import { RootLayout } from '../layouts/Root';
-import { Input } from '../components/Input';
-import { Button } from '../components/Button';
 import { cn } from 'src/utils/cn';
+
+import { Input } from '../components/Input';
+import { RootLayout } from '../layouts/Root';
+import { Button } from '../components/Button';
 
 export default function Signin() {
   const [emailSent, setEmailSent] = useState(false);
@@ -62,12 +63,12 @@ export default function Signin() {
                         <p className="text-base mt-3">Sign in to your account</p>
                         <div className="w-full flex flex-col items-start">
                           <Input
-                            placeholder="Enter your email"
                             variant="outline"
                             value={data.email}
                             className="rounded-lg"
-                            onChange={e => setData('email', e.target.value)}
                             invalid={!!errors.email}
+                            placeholder="Enter your email"
+                            onChange={e => setData('email', e.target.value)}
                           />
                           <p
                             className={cn(
@@ -79,10 +80,10 @@ export default function Signin() {
                           </p>
                         </div>
                         <Button
+                          type="submit"
                           className="w-full"
                           colorScheme="primary"
                           isDisabled={processing}
-                          type="submit"
                         >
                           Sign in
                         </Button>

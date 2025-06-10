@@ -1,8 +1,8 @@
 import { cloneElement } from 'react';
-
-import { twMerge } from 'tailwind-merge';
 import * as RadixAvatar from '@radix-ui/react-avatar';
 import { AvatarImageProps } from '@radix-ui/react-avatar';
+
+import { twMerge } from 'tailwind-merge';
 import { cva, VariantProps } from 'class-variance-authority';
 
 const avatarBadgeSize = cva([], {
@@ -162,11 +162,8 @@ export const Avatar = ({
   name,
   src,
   size,
-  textSize = 'md',
   variant,
-  badgeSize,
   className,
-  color,
   badge,
   ...props
 }: AvatarProps) => {

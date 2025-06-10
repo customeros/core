@@ -38,49 +38,45 @@ export const UndoRedoButtons: React.FC<UndoRedoButtonsProps> = ({
   return (
     <div className={`flex gap-2 ${className}`}>
       <button
-        title='Undo'
+        title="Undo"
         disabled={!canUndo}
         onClick={handleUndo}
-        className={`${undoButtonClassName} ${
-          !canUndo ? disabledClassName : ''
-        }`}
+        className={`${undoButtonClassName} ${!canUndo ? disabledClassName : ''}`}
       >
         <svg
-          width='16'
-          height='16'
-          fill='none'
-          strokeWidth='2'
-          viewBox='0 0 24 24'
-          stroke='currentColor'
-          strokeLinecap='round'
-          strokeLinejoin='round'
-          xmlns='http://www.w3.org/2000/svg'
+          width="16"
+          height="16"
+          fill="none"
+          strokeWidth="2"
+          viewBox="0 0 24 24"
+          stroke="currentColor"
+          strokeLinecap="round"
+          strokeLinejoin="round"
+          xmlns="http://www.w3.org/2000/svg"
         >
-          <path d='M3 7v6h6'></path>
-          <path d='M21 17a9 9 0 0 0-9-9 9 9 0 0 0-6 2.3L3 13'></path>
+          <path d="M3 7v6h6"></path>
+          <path d="M21 17a9 9 0 0 0-9-9 9 9 0 0 0-6 2.3L3 13"></path>
         </svg>
       </button>
       <button
-        title='Redo'
+        title="Redo"
         disabled={!canRedo}
         onClick={handleRedo}
-        className={`${redoButtonClassName} ${
-          !canRedo ? disabledClassName : ''
-        }`}
+        className={`${redoButtonClassName} ${!canRedo ? disabledClassName : ''}`}
       >
         <svg
-          width='16'
-          height='16'
-          fill='none'
-          strokeWidth='2'
-          viewBox='0 0 24 24'
-          stroke='currentColor'
-          strokeLinecap='round'
-          strokeLinejoin='round'
-          xmlns='http://www.w3.org/2000/svg'
+          width="16"
+          height="16"
+          fill="none"
+          strokeWidth="2"
+          viewBox="0 0 24 24"
+          stroke="currentColor"
+          strokeLinecap="round"
+          strokeLinejoin="round"
+          xmlns="http://www.w3.org/2000/svg"
         >
-          <path d='M21 7v6h-6'></path>
-          <path d='M3 17a9 9 0 0 1 9-9 9 9 0 0 1 6 2.3L21 13'></path>
+          <path d="M21 7v6h-6"></path>
+          <path d="M3 17a9 9 0 0 1 9-9 9 9 0 0 1 6 2.3L21 13"></path>
         </svg>
       </button>
     </div>

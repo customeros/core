@@ -13,20 +13,12 @@ export const YjsUndoPlugin = ({
     if (!undoManager) return;
 
     const handleKeyDown = (event: KeyboardEvent) => {
-      if (
-        (event.ctrlKey || event.metaKey) &&
-        event.key === 'z' &&
-        !event.shiftKey
-      ) {
+      if ((event.ctrlKey || event.metaKey) && event.key === 'z' && !event.shiftKey) {
         event.preventDefault();
         undoManager.undo();
       }
 
-      if (
-        (event.ctrlKey || event.metaKey) &&
-        event.key === 'z' &&
-        event.shiftKey
-      ) {
+      if ((event.ctrlKey || event.metaKey) && event.key === 'z' && event.shiftKey) {
         event.preventDefault();
         undoManager.redo();
       }

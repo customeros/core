@@ -1,7 +1,5 @@
 import * as ReactDOM from 'react-dom';
 import { useMemo, useCallback } from 'react';
-
-import { TextNode } from 'lexical';
 import { useLexicalComposerContext } from '@lexical/react/LexicalComposerContext';
 import {
   MenuOption,
@@ -11,6 +9,7 @@ import {
 } from '@lexical/react/LexicalTypeaheadMenuPlugin';
 
 import { clsx } from 'clsx';
+import { TextNode } from 'lexical';
 
 import { $createHashtagNode } from '../nodes/HashtagNode';
 

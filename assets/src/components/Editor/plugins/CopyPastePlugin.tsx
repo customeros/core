@@ -1,22 +1,28 @@
 import { useEffect, ClipboardEvent } from 'react';
+import { useLexicalComposerContext } from '@lexical/react/LexicalComposerContext';
 
 import { $createLinkNode } from '@lexical/link';
 import { $generateNodesFromDOM } from '@lexical/html';
-import { useLexicalComposerContext } from '@lexical/react/LexicalComposerContext';
-import { $getSelection, PASTE_COMMAND, COPY_COMMAND, CUT_COMMAND, $createTextNode, $isRangeSelection } from 'lexical';
-
 import { convertPlainTextToHtml } from 'src/components/Editor/utils/convertPlainTextToHtml';
+import {
+  CUT_COMMAND,
+  COPY_COMMAND,
+  $getSelection,
+  PASTE_COMMAND,
+  $createTextNode,
+  $isRangeSelection,
+} from 'lexical';
 
 /**
  * PastePlugin handles copy, cut, and paste operations in the Lexical editor.
- * 
+ *
  * Features:
  * - Copy/Cut: Preserves plain text content
  * - Paste:
  *   1. URL + Selected Text: Creates a clickable link
  *   2. HTML Content: Preserves formatting
  *   3. Plain Text: Converts to formatted HTML
- * 
+ *
  * Note: Currently, copy/cut operations only preserve plain text.
  * HTML formatting preservation during copy/cut is planned for future implementation.
  */
@@ -28,6 +34,7 @@ export function CopyPastePlugin() {
     try {
       // Only accept absolute URLs
       const parsedUrl = new URL(url);
+
       return parsedUrl.protocol.startsWith('http');
     } catch {
       return false;
@@ -39,6 +46,7 @@ export function CopyPastePlugin() {
     editor.update(() => {
       const linkNode = $createLinkNode(url);
       const textNode = $createTextNode(selectedText || url);
+
       linkNode.append(textNode);
       $getSelection()?.insertNodes([linkNode]);
     });
@@ -54,6 +62,7 @@ export function CopyPastePlugin() {
       doc.querySelectorAll('pre')?.forEach(preEl => {
         if (!preEl.querySelector('code')) {
           const div = doc.createElement('div');
+
           while (preEl.firstChild) {
             div.appendChild(preEl.firstChild);
           }
@@ -62,6 +71,7 @@ export function CopyPastePlugin() {
       });
 
       const nodes = $generateNodesFromDOM(editor, doc);
+
       $getSelection()?.insertNodes(nodes);
     });
   };
@@ -73,6 +83,7 @@ export function CopyPastePlugin() {
       const parser = new DOMParser();
       const doc = parser.parseFromString(htmlContent, 'text/html');
       const nodes = $generateNodesFromDOM(editor, doc);
+
       $getSelection()?.insertNodes(nodes);
     });
   };
@@ -81,6 +92,7 @@ export function CopyPastePlugin() {
     // Handle paste operations
     const handlePaste = (event: ClipboardEvent) => {
       const selection = $getSelection();
+
       if (!$isRangeSelection(selection)) return;
 
       const clipboardData = event.clipboardData;
@@ -93,12 +105,14 @@ export function CopyPastePlugin() {
       // Case 1: Selected text + URL = Create link
       if (selectedText.length && isValidUrl(pastedText)) {
         createLinkFromSelection(pastedText, selectedText);
+
         return;
       }
 
       // Case 2: HTML content = Preserve formatting
       if (pastedHtml) {
         handleHtmlPaste(pastedHtml);
+
         return;
       }
 
@@ -109,10 +123,11 @@ export function CopyPastePlugin() {
     // Handle copy operations
     const handleCopy = (event: ClipboardEvent) => {
       const selection = $getSelection();
+
       if (!$isRangeSelection(selection)) return;
 
       const selectedText = selection.getTextContent();
-      
+
       // For now, we'll just copy the plain text
       // TODO: Implement proper HTML serialization when needed
       if (event.clipboardData) {
@@ -125,6 +140,7 @@ export function CopyPastePlugin() {
       PASTE_COMMAND,
       (event: ClipboardEvent) => {
         handlePaste(event);
+
         return true;
       },
       1
@@ -134,6 +150,7 @@ export function CopyPastePlugin() {
       COPY_COMMAND,
       (event: ClipboardEvent) => {
         handleCopy(event);
+
         return true;
       },
       1
@@ -143,6 +160,7 @@ export function CopyPastePlugin() {
       CUT_COMMAND,
       (event: ClipboardEvent) => {
         handleCopy(event);
+
         // The default cut behavior will handle removing the selected content
         return false;
       },

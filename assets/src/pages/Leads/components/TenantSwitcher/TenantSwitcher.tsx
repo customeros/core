@@ -1,25 +1,22 @@
-import { useEffect, useState } from 'react';
-import { Icon } from 'src/components/Icon/Icon';
-import { IconButton } from 'src/components/IconButton';
+import { useState, useEffect } from 'react';
+
 import { Input } from 'src/components/Input';
-import { Popover, PopoverContent, PopoverTrigger } from 'src/components/Popover';
-import { usePage } from '@inertiajs/react';
-import { Tenant, User, Lead } from 'src/types';
-import { PageProps } from '@inertiajs/core';
 import axios, { AxiosResponse } from 'axios';
+import { Icon } from 'src/components/Icon/Icon';
+import { Popover, PopoverContent, PopoverTrigger } from 'src/components/Popover';
 
 export const TenantSwitcher = ({
   children,
   currentTenant,
   isAdmin,
 }: {
-  children: React.ReactNode;
-  currentTenant: string;
   isAdmin: boolean;
+  currentTenant: string;
+  children: React.ReactNode;
 }) => {
   const [search, setSearch] = useState('');
   const [tenants, setTenants] = useState<
-    { id: string; workspace_name: string; workspace_icon_key: string; name: string }[]
+    { id: string; name: string; workspace_name: string; workspace_icon_key: string }[]
   >([]);
 
   useEffect(() => {
@@ -28,7 +25,7 @@ export const TenantSwitcher = ({
       .then(
         (
           res: AxiosResponse<
-            { id: string; workspace_name: string; workspace_icon_key: string; name: string }[]
+            { id: string; name: string; workspace_name: string; workspace_icon_key: string }[]
           >
         ) => {
           setTenants(res.data);
@@ -51,18 +48,18 @@ export const TenantSwitcher = ({
       <PopoverTrigger asChild>{children}</PopoverTrigger>
       <PopoverContent
         align="start"
-        className="max-w-[260px] py-1 right-[19px] top-[10px] max-h-[300px] overflow-y-auto"
-        onClick={e => e.stopPropagation()}
         alignOffset={10}
+        onClick={e => e.stopPropagation()}
+        className="max-w-[260px] py-1 right-[19px] top-[10px] max-h-[300px] overflow-y-auto"
       >
         <div className="flex gap-2 items-center border-b border-gray-100 pb-0.5 pl-[9px]">
           <Icon name="search-sm" />
           <Input
-            placeholder="Search"
-            className="w-full"
             size="sm"
-            variant="unstyled"
             value={search}
+            className="w-full"
+            variant="unstyled"
+            placeholder="Search"
             onChange={e => setSearch(e.target.value)}
           />
         </div>
@@ -72,15 +69,15 @@ export const TenantSwitcher = ({
             .map(option => (
               <div
                 key={option.id}
-                className="flex items-center gap-2 py-1 justify-between hover:bg-gray-100 px-2 rounded-sm"
                 onClick={() => handleSwitch(option.id)}
+                className="flex items-center gap-2 py-1 justify-between hover:bg-gray-100 px-2 rounded-sm"
               >
                 <div className="flex items-center gap-2">
                   {option.workspace_icon_key ? (
                     <img
+                      className="w-4 h-4"
                       src={option.workspace_icon_key}
                       alt={option.workspace_name || option.name}
-                      className="w-4 h-4"
                     />
                   ) : (
                     <Icon name="building-03" />

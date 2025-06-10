@@ -1,9 +1,8 @@
 import { forwardRef } from 'react';
-
-import { twMerge } from 'tailwind-merge';
 import * as RadixScrollArea from '@radix-ui/react-scroll-area';
 
 import { clsx } from 'clsx';
+import { twMerge } from 'tailwind-merge';
 
 export type ScrollAreaRootProps = RadixScrollArea.ScrollAreaProps;
 export const ScrollAreaRoot = forwardRef<HTMLDivElement, ScrollAreaRootProps>(

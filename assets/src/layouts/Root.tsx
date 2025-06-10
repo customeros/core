@@ -1,9 +1,10 @@
 import { useEffect } from 'react';
-import { useForm, usePage } from '@inertiajs/react';
+import { usePage } from '@inertiajs/react';
 import { cssTransition, ToastContainer } from 'react-toastify';
-import { toastSuccess, toastError } from '../components/Toast';
-import { PhoenixSocketProvider } from '../providers/SocketProvider';
+
+import { toastSuccess } from '../components/Toast';
 import { PresenceProvider } from '../providers/PresenceProvider';
+import { PhoenixSocketProvider } from '../providers/SocketProvider';
 
 type FlashType = 'error' | 'success';
 
@@ -17,6 +18,7 @@ export const RootLayout = ({ children }: { children: React.ReactNode }) => {
   useEffect(() => {
     if ('flash' in props) {
       const { flash } = props;
+
       if ('success' in (flash as Flash)) {
         toastSuccess((flash as Flash).success, 'flash-success');
       }

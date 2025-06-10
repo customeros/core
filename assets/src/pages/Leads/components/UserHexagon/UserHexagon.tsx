@@ -1,8 +1,6 @@
-import { usePage } from 'node_modules/@inertiajs/react/types';
-import { Tooltip } from 'src/components/Tooltip/Tooltip';
-import { User } from 'src/types';
-
 import { cn } from 'src/utils/cn';
+import { Tooltip } from 'src/components/Tooltip/Tooltip';
+
 interface UserHexagonProps {
   id: string;
   name: string;
@@ -35,7 +33,7 @@ export const UserHexagon = ({ name, isCurrent, color, id }: UserHexagonProps) =>
   );
 };
 
-const ClippedImage = ({
+const _ClippedImage = ({
   name,
   color,
   url,

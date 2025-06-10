@@ -18,11 +18,13 @@ const files = globSync('**/codegen-variants.ts', {
 files.forEach((file: string) => {
   exec(`npx tsx ${file}`, (err: unknown, stdout: unknown, stderr: unknown) => {
     if (err) {
+      // eslint-disable-next-line no-console
       console.error(err);
 
       return;
     }
 
+    // eslint-disable-next-line no-console
     console.info(stdout, stderr);
   });
 });

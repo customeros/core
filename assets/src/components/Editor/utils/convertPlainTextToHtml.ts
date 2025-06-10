@@ -10,7 +10,7 @@ export function convertPlainTextToHtml(plainText: string): string {
   // ensure variables are properly converted to nodes
   const textWithVariables = escapedText.replace(
     /\{\{([^}]+)\}\}/g,
-    '<span data-lexical-variable>{{$1}}</span>',
+    '<span data-lexical-variable>{{$1}}</span>'
   );
 
   // Replace newline characters with <br> tags
