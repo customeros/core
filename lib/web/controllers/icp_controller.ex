@@ -2,6 +2,9 @@ defmodule Web.IcpController do
   use Web, :controller
   require OpenTelemetry.Tracer
 
+  alias Core.Researcher.IcpProfiles
+  alias Core.Researcher.IcpBuilder
+
   @rate_limit_table :icp_rate_limit
   @max_requests 3
   # 1 minute
@@ -49,11 +52,17 @@ defmodule Web.IcpController do
   end
 
   defp handle_icp_request(conn, %{"domain" => domain}) do
-    case Core.Researcher.IcpBuilder.build_icp_fast(domain) do
-      {:ok, icp} ->
+    case IcpBuilder.build_icp_fast(domain) do
+      {:ok, %IcpProfiles.Profile{} = profile} ->
+        response_data = %{
+          domain: profile.domain,
+          profile: profile.profile,
+          qualifying_attributes: profile.qualifying_attributes
+        }
+
         conn
         |> put_status(:ok)
-        |> json(icp)
+        |> json(response_data)
 
       {:error, _reason} ->
         conn
