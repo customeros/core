@@ -1,4 +1,5 @@
 import { createPortal } from 'react-dom';
+import { useLexicalComposerContext } from '@lexical/react/LexicalComposerContext';
 import {
   useRef,
   useState,
@@ -10,9 +11,11 @@ import {
   SetStateAction,
 } from 'react';
 
+import { Icon } from 'src/components/Icon/Icon';
+import { Input } from 'src/components/Input/Input';
 import { shift, offset, computePosition } from '@floating-ui/dom';
 import { mergeRegister, $findMatchingParent } from '@lexical/utils';
-import { useLexicalComposerContext } from '@lexical/react/LexicalComposerContext';
+import { FloatingToolbarButton } from 'src/components/Editor/components';
 import { $isLinkNode, $toggleLink, $createLinkNode, $isAutoLinkNode } from '@lexical/link';
 import {
   $getSelection,
@@ -25,15 +28,10 @@ import {
   SELECTION_CHANGE_COMMAND,
 } from 'lexical';
 
-import { Input } from 'src/components/Input/Input';
-
-import { FloatingToolbarButton } from 'src/components/Editor/components';
-
 import { sanitizeUrl } from '../utils/url';
+import { getExternalUrl } from '../utils/getExternalLink';
 import { getSelectedNode } from '../utils/getSelectedNode';
 import { usePointerInteractions } from '../utils/usePointerInteractions';
-import { Icon } from 'src/components/Icon/Icon';
-import { getExternalUrl } from '../utils/getExternalLink';
 
 const DEFAULT_DOM_ELEMENT = document.body;
 
@@ -189,6 +187,7 @@ export function FloatingLinkEditor({
           }}
           onClick={() => {
             const link = getExternalUrl(sanitizeUrl(linkUrl));
+
             window.open(link, '_blank', 'noopener,noreferrer');
           }}
         />

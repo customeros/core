@@ -1,3 +1,5 @@
+import { forwardRef } from 'react';
+import * as Dialog from '@radix-ui/react-dialog';
 import type {
   DialogProps,
   DialogTitleProps,
@@ -8,12 +10,11 @@ import type {
   DialogDescriptionProps,
 } from '@radix-ui/react-dialog';
 
-import { forwardRef } from 'react';
-
+import { cn } from 'src/utils/cn';
 import { twMerge } from 'tailwind-merge';
+import { Icon } from 'src/components/Icon';
 import { cva } from 'class-variance-authority';
-import * as Dialog from '@radix-ui/react-dialog';
-
+import { IconButton } from 'src/components/IconButton';
 import { FeaturedIcon, FeaturedIconStyleProps } from 'src/components/FeaturedIcon/FeaturedIcon';
 import {
   ScrollAreaRoot,
@@ -22,10 +23,6 @@ import {
   ScrollAreaScrollbar,
   type ScrollAreaViewportProps,
 } from 'src/components/ScrollArea';
-
-import { cn } from 'src/utils/cn';
-import { Icon } from 'src/components/Icon';
-import { IconButton } from 'src/components/IconButton';
 
 export const Modal = (props: DialogProps) => {
   return <Dialog.Root {...props} />;
@@ -70,13 +67,13 @@ export const ModalClose = (props: DialogCloseProps) => {
 
 export const ModalCloseButton = (props: DialogCloseProps & { className?: string }) => {
   return (
-    <Dialog.Close className={twMerge('absolute top-3 right-3', props.className)} asChild {...props}>
+    <Dialog.Close asChild className={twMerge('absolute top-3 right-3', props.className)} {...props}>
       <IconButton
-        colorScheme="gray"
         size="xs"
+        variant="ghost"
+        colorScheme="gray"
         aria-label="Close"
         icon={<Icon name="x-close" />}
-        variant="ghost"
         className="focus:bg-transparent focus:ring-2 focus:ring-primary-200 hover:ring-2 hover:ring-primary-200 hover:bg-transparent"
       />
     </Dialog.Close>
@@ -105,8 +102,8 @@ export const ModalContent = forwardRef<
   return (
     <Dialog.Content
       ref={ref}
-      className={twMerge(modalContentVariant({ placement, className }))}
       aria-describedby={undefined}
+      className={twMerge(modalContentVariant({ placement, className }))}
       {...props}
     >
       {children}

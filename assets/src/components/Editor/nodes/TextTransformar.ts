@@ -1,7 +1,7 @@
 import { useEffect } from 'react';
+import { useLexicalComposerContext } from '@lexical/react/LexicalComposerContext';
 
 import { TextNode } from 'lexical';
-import { useLexicalComposerContext } from '@lexical/react/LexicalComposerContext';
 
 export const setInlineStyle = (node: TextNode) => {
   const oldAttr = node.getStyle();
@@ -56,7 +56,7 @@ const TextNodeTransformer = () => {
   const [editor] = useLexicalComposerContext();
 
   useEffect(() => {
-    editor.registerNodeTransform(TextNode, (node) => {
+    editor.registerNodeTransform(TextNode, node => {
       setInlineStyle(node);
     });
   }, [editor]);

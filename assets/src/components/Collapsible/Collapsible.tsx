@@ -1,8 +1,8 @@
 import React from 'react';
-
-import { twMerge } from 'tailwind-merge';
 import * as RadixCollapsible from '@radix-ui/react-collapsible';
+
 import { cn } from 'src/utils/cn';
+import { twMerge } from 'tailwind-merge';
 
 interface CollapsibleProps extends RadixCollapsible.CollapsibleProps {
   className?: string;

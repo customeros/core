@@ -23,9 +23,7 @@ export interface FeaturedIconStyleProps
   extends VariantProps<typeof featureIconVariant>,
     VariantProps<typeof sizeIcon> {
   className?: string;
-  children:
-    | ReactNode
-    | ((props: React.HTMLAttributes<HTMLDivElement>) => ReactNode);
+  children: ReactNode | ((props: React.HTMLAttributes<HTMLDivElement>) => ReactNode);
 }
 
 export const FeaturedIcon = ({
@@ -39,14 +37,14 @@ export const FeaturedIcon = ({
     className: twMerge(
       sizeIcon({ size }),
       featureIconVariant({ className, colorScheme }),
-      className,
+      className
     ),
   };
 
   return isValidElement(children)
     ? cloneElement(children, iconProps)
     : typeof children === 'function'
-    ? // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      children(iconProps as any)
-    : children;
+      ? // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        children(iconProps as any)
+      : children;
 };

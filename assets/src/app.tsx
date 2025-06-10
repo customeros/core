@@ -1,10 +1,10 @@
-import 'phoenix_html';
-
 import { lazy } from 'react';
-import { createInertiaApp } from '@inertiajs/react';
 import { createRoot } from 'react-dom/client';
+import { createInertiaApp } from '@inertiajs/react';
 
 import axios from 'axios';
+
+import 'phoenix_html';
 
 const Signin = lazy(() => import('./pages/Signin'));
 const Welcome = lazy(() => import('./pages/Welcome'));
@@ -19,6 +19,7 @@ const pages = {
   Welcome,
   Document,
 };
+
 createInertiaApp({
   resolve: async name => {
     return await pages[name as keyof typeof pages];

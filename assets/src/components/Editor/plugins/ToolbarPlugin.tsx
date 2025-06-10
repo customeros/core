@@ -1,10 +1,13 @@
 import * as React from 'react';
 import { useState, useEffect } from 'react';
+import { useLexicalComposerContext } from '@lexical/react/LexicalComposerContext';
 
+import clsx from 'clsx';
+import { Icon } from 'src/components/Icon/Icon';
 import { $setBlocksType } from '@lexical/selection';
+import { IconButton } from 'src/components/IconButton';
 import { $isQuoteNode, $createQuoteNode } from '@lexical/rich-text';
 import { $isListNode, $createListNode, $isListItemNode } from '@lexical/list';
-import { useLexicalComposerContext } from '@lexical/react/LexicalComposerContext';
 import {
   LexicalNode,
   UNDO_COMMAND,
@@ -18,9 +21,6 @@ import {
   $createParagraphNode,
   SELECTION_CHANGE_COMMAND,
 } from 'lexical';
-import { IconButton } from 'src/components/IconButton';
-import { Icon } from 'src/components/Icon/Icon';
-import clsx from 'clsx';
 
 const activeStyle = 'bg-gray-100 text-gray-700 hover:bg-gray-100';
 
@@ -234,8 +234,8 @@ export default function ToolbarPlugin(): React.ReactNode {
       <IconButton
         size="xs"
         variant="ghost"
-        aria-label="Format text as an bullet list"
         icon={<Icon name="list-bulleted" />}
+        aria-label="Format text as an bullet list"
         className={clsx('rounded-sm', {
           [activeStyle]: isUnorderedList,
         })}

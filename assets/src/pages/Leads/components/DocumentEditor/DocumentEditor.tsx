@@ -1,21 +1,21 @@
-import { useState, useEffect, useMemo } from 'react';
-
 import { router } from '@inertiajs/react';
+import { usePage } from '@inertiajs/react';
+import { useMemo, useState, useEffect } from 'react';
+
 import { Icon } from 'src/components/Icon';
+import { PageProps } from '@inertiajs/core';
+import { Lead, User, Tenant } from 'src/types';
 import { Editor } from 'src/components/Editor/Editor';
 import { IconButton } from 'src/components/IconButton';
+import { toastSuccess } from 'src/components/Toast/success';
+import { usePresence } from 'src/providers/PresenceProvider';
+import { FeaturedIcon } from 'src/components/FeaturedIcon/FeaturedIcon';
 import {
   ScrollAreaRoot,
   ScrollAreaThumb,
   ScrollAreaViewport,
   ScrollAreaScrollbar,
 } from 'src/components/ScrollArea';
-import { toastSuccess } from 'src/components/Toast/success';
-import { usePresence } from 'src/providers/PresenceProvider';
-import { usePage } from '@inertiajs/react';
-import { Lead, Tenant, User } from 'src/types';
-import { PageProps } from '@inertiajs/core';
-import { FeaturedIcon } from 'src/components/FeaturedIcon/FeaturedIcon';
 
 export const DocumentEditor = () => {
   const page = usePage<PageProps & { tenant: Tenant; currentUser: User; companies: Lead[] }>();
@@ -48,6 +48,7 @@ export const DocumentEditor = () => {
 
   const handleViewModeChange = () => {
     const params = new URLSearchParams(window.location.search);
+
     if (viewMode === 'default') {
       params.set('viewMode', 'focus');
       setViewMode('focus');
@@ -60,6 +61,7 @@ export const DocumentEditor = () => {
 
   const closeEditor = () => {
     const params = new URLSearchParams(window.location.search);
+
     params.delete('lead');
     params.delete('viewMode');
     router.visit('/leads', {
@@ -71,6 +73,7 @@ export const DocumentEditor = () => {
 
   const copyDocumentLink = () => {
     const url = window.location.host;
+
     navigator.clipboard.writeText(`${url}/documents/${currentLead?.document_id}`);
     toastSuccess('Document link copied', 'document-link-copied');
   };
@@ -86,10 +89,10 @@ export const DocumentEditor = () => {
                   <div className="flex items-center w-full justify-start gap-2 min-w-0">
                     {currentLead?.icon ? (
                       <img
-                        className="size-6 object-contain border border-gray-200 rounded flex-shrink-0"
                         loading="lazy"
-                        src={currentLead?.icon}
                         alt="Lead icon"
+                        src={currentLead?.icon}
+                        className="size-6 object-contain border border-gray-200 rounded flex-shrink-0"
                       />
                     ) : (
                       <div className="size-6 flex items-center justify-center border border-gray-200 rounded flex-shrink-0">
@@ -125,8 +128,8 @@ export const DocumentEditor = () => {
                       <IconButton
                         size="xs"
                         variant="ghost"
-                        aria-label="toggle view mode"
                         className="hidden md:flex"
+                        aria-label="toggle view mode"
                         onClick={handleViewModeChange}
                         icon={<Icon name={viewMode === 'default' ? 'expand-01' : 'collapse-01'} />}
                       />
@@ -152,13 +155,13 @@ export const DocumentEditor = () => {
 
               {currentLead?.document_id ? (
                 <Editor
-                  documentId={currentLead?.document_id}
-                  useYjs={true}
-                  namespace="leads"
                   size="sm"
+                  useYjs={true}
                   placeholder=""
+                  namespace="leads"
                   user={presenceUser}
                   key={currentLead?.document_id}
+                  documentId={currentLead?.document_id}
                 />
               ) : (
                 <div className="flex items-center justify-start flex-col h-full">

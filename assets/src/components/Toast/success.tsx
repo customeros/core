@@ -1,21 +1,21 @@
 import { toast } from 'react-toastify';
 
-import { IconButton } from '../IconButton';
 import { Icon } from '../Icon';
+import { IconButton } from '../IconButton';
 
 export const toastSuccess = (text: string, id: string) => {
   return toast.success(text, {
     toastId: id,
-    icon: <Icon name="check-circle" className="size-6" />,
+    icon: <Icon className="size-6" name="check-circle" />,
     autoClose: 5000,
     closeButton: ({ closeToast }) => (
       <IconButton
-        variant="ghost"
         size="xs"
+        variant="ghost"
         aria-label="Close"
-        colorScheme="success"
         className="ml-auto"
         onClick={closeToast}
+        colorScheme="success"
         icon={<Icon name="x-close" />}
       />
     ),

@@ -77,15 +77,15 @@ export function $createExtendedTextNode(text: string): ExtendedTextNode {
 }
 
 export function $isExtendedTextNode(
-  node: LexicalNode | null | undefined,
+  node: LexicalNode | null | undefined
 ): node is ExtendedTextNode {
   return node instanceof ExtendedTextNode;
 }
 
 function patchStyleConversion(
-  originalDOMConverter?: (node: HTMLElement) => DOMConversion | null,
+  originalDOMConverter?: (node: HTMLElement) => DOMConversion | null
 ): (node: HTMLElement) => DOMConversionOutput | null {
-  return (node) => {
+  return node => {
     const original = originalDOMConverter?.(node);
 
     if (!original) {
@@ -103,7 +103,7 @@ function patchStyleConversion(
     return {
       ...originalOutput,
       forChild: (lexicalNode, parent) => {
-        const originalForChild = originalOutput?.forChild ?? ((x) => x);
+        const originalForChild = originalOutput?.forChild ?? (x => x);
         const result = originalForChild(lexicalNode, parent);
 
         if ($isTextNode(result)) {
@@ -111,7 +111,7 @@ function patchStyleConversion(
             fontWeight ? `font-weight: ${fontWeight}` : null,
             textDecoration ? `text-decoration: ${textDecoration}` : null,
           ]
-            .filter((value) => value != null)
+            .filter(value => value != null)
             .join('; ');
 
           if (style.length) {

@@ -1,5 +1,4 @@
 import * as React from 'react';
-
 import { AutoLinkPlugin, createLinkMatcherWithRegExp } from '@lexical/react/LexicalAutoLinkPlugin';
 
 const URL_REGEX =

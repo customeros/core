@@ -1,6 +1,6 @@
 import { ReactNode, MouseEventHandler } from 'react';
 
-import { Button } from '@ui/form/Button/Button';
+import { Button } from 'src/components/Button';
 
 import {
   AlertDialog,
@@ -40,27 +40,21 @@ export const InfoDialog = ({
     <AlertDialog isOpen={isOpen} onClose={onClose}>
       <AlertDialogPortal>
         <AlertDialogOverlay>
-          <AlertDialogContent className='top-[15%] rounded-md'>
-            <div className='flex items-center w-full justify-between'>
-              {label && (
-                <p className='pb-0 font-semibold line-clamp-2'>{label}</p>
-              )}
+          <AlertDialogContent className="top-[15%] rounded-md">
+            <div className="flex items-center w-full justify-between">
+              {label && <p className="pb-0 font-semibold line-clamp-2">{label}</p>}
               {!hideCloseButton && <AlertDialogCloseIconButton />}
             </div>
-            <AlertDialogHeader className='font-bold'>
+            <AlertDialogHeader className="font-bold">
               {description && (
-                <p className='mt-1 text-sm text-grayModern-700 font-normal'>
-                  {description}
-                </p>
+                <p className="mt-1 text-sm text-grayModern-700 font-normal">{description}</p>
               )}
             </AlertDialogHeader>
 
-            {(body ?? children) && (
-              <AlertDialogBody>{body ?? children}</AlertDialogBody>
-            )}
+            {(body ?? children) && <AlertDialogBody>{body ?? children}</AlertDialogBody>}
 
-            <AlertDialogFooter className='grid-cols-1'>
-              <Button variant='outline' className='w-full' onClick={onConfirm}>
+            <AlertDialogFooter className="grid-cols-1">
+              <Button variant="outline" className="w-full" onClick={onConfirm}>
                 {confirmButtonLabel}
               </Button>
             </AlertDialogFooter>

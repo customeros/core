@@ -28,7 +28,7 @@ export const buttonSize = cva([], {
 
 interface IconProps {
   className?: string;
-  [key: string]: any;
+  [key: string]: unknown;
 }
 
 export interface ButtonProps
@@ -40,11 +40,11 @@ export interface ButtonProps
   isLoading?: boolean;
   isDisabled?: boolean;
   loadingText?: string;
+  type?: 'button' | 'reset' | 'submit';
   leftIcon?: React.ReactElement<IconProps>;
   rightIcon?: React.ReactElement<IconProps>;
   leftSpinner?: React.ReactElement<IconProps>;
   rightSpinner?: React.ReactElement<IconProps>;
-  type?: 'button' | 'reset' | 'submit';
   variant?: 'link' | 'ghost' | 'solid' | 'outline';
 }
 

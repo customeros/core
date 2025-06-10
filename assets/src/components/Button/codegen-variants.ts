@@ -278,17 +278,16 @@ ${buttonTypes
 
 const filePath = path.join(cwd(), 'src', 'components', 'Button', 'Button.variants.ts');
 
-console.log('Current working directory:', cwd());
-console.log('Writing file to:', filePath);
-
 format(fileContent, {
   ...prettierConfig,
   parser: 'babel',
 }).then(formattedContent => {
   fs.writeFile(filePath, formattedContent, err => {
     if (err) {
+      // eslint-disable-next-line no-console
       console.error('Error writing file:', err);
     } else {
+      // eslint-disable-next-line no-console
       console.log('Successfully generated Button.variants.ts');
     }
   });

@@ -1,16 +1,17 @@
-import { createContext, useContext, ReactNode } from 'react';
-import { usePresenceChannel } from '../hooks/useChannel';
 import { usePage } from '@inertiajs/react';
-import { Tenant, User } from '../types';
+import { ReactNode, useContext, createContext } from 'react';
+
+import { User, Tenant } from '../types';
+import { usePresenceChannel } from '../hooks/useChannel';
 
 type PresenceContextType = {
+  currentUserId: string;
   presentUsers: {
+    color: string;
     user_id: string;
     username: string;
-    color: string;
     online_at: number;
   }[];
-  currentUserId: string;
 };
 
 const PresenceContext = createContext<PresenceContextType>({

@@ -1,8 +1,9 @@
 import { useEffect } from 'react';
 import { usePage } from '@inertiajs/react';
-import { PageProps } from '@inertiajs/core';
 
-import { Lead, Tenant, User } from 'src/types';
+import { PageProps } from '@inertiajs/core';
+import { Lead, User, Tenant } from 'src/types';
+
 import { useChannel } from './useChannel';
 
 type EventType = 'lead_created' | 'lead_updated';

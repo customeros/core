@@ -30,8 +30,8 @@ export interface IconButtonProps
   isLoading?: boolean;
   isDisabled?: boolean;
   'aria-label': string;
-  icon: React.ReactElement<HTMLElement>;
   spinner?: React.ReactElement;
+  icon: React.ReactElement<HTMLElement>;
   variant?: 'ghost' | 'solid' | 'outline';
 }
 

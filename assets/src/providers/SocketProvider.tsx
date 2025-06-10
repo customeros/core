@@ -1,11 +1,11 @@
-import { useState, useEffect, createContext, useCallback } from 'react';
+import { useState, useEffect, useCallback, createContext } from 'react';
 
-import { Channel, Socket } from 'phoenix';
+import { Socket, Channel } from 'phoenix';
 
 const PhoenixSocketContext = createContext<{
   socket: Socket | null;
-  createChannel: (channelName: string, attrs: Record<string, any>) => Promise<Channel | null>;
   channels: Map<string, Channel>;
+  createChannel: (channelName: string, attrs: Record<string, unknown>) => Promise<Channel | null>;
 }>({
   socket: null,
   createChannel: () => null as unknown as Promise<Channel | null>,
@@ -15,7 +15,7 @@ const PhoenixSocketContext = createContext<{
 const channelPromise = (
   socket: Socket,
   channelName: string,
-  attrs: Record<string, any>
+  attrs: Record<string, unknown>
 ): Promise<Channel | null> => {
   return new Promise((resolve, reject) => {
     const channel = socket?.channel(channelName, attrs);
@@ -38,7 +38,7 @@ const PhoenixSocketProvider = ({ children }: { children: React.ReactNode }) => {
   const socketPath = '/socket';
 
   const createChannel = useCallback(
-    async (channelName: string, attrs: Record<string, any>) => {
+    async (channelName: string, attrs: Record<string, unknown>) => {
       if (!socket) return null;
 
       if (channels.has(channelName)) {
@@ -51,12 +51,13 @@ const PhoenixSocketProvider = ({ children }: { children: React.ReactNode }) => {
 
       setChannels(prev => {
         prev.set(channelName, channel);
+
         return new Map(prev);
       });
 
       return channels.get(channelName) as Channel;
     },
-    [socket, setChannels]
+    [socket, channels]
   );
 
   useEffect(() => {
@@ -67,7 +68,8 @@ const PhoenixSocketProvider = ({ children }: { children: React.ReactNode }) => {
 
       setSocket(socket);
     } catch (e) {
-      console.log('error connecting to socket', e);
+      // eslint-disable-next-line no-console
+      console.error('error connecting to socket', e);
       // TODO: log error
     }
   }, [socketPath]);

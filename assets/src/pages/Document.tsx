@@ -1,13 +1,13 @@
-import { Editor } from 'src/components/Editor/Editor';
 import { Icon } from 'src/components/Icon';
+import { Lead, Document } from 'src/types';
+import { RootLayout } from 'src/layouts/Root';
+import { Editor } from 'src/components/Editor/Editor';
 import {
   ScrollAreaRoot,
+  ScrollAreaThumb,
   ScrollAreaViewport,
   ScrollAreaScrollbar,
-  ScrollAreaThumb,
 } from 'src/components/ScrollArea';
-import { RootLayout } from 'src/layouts/Root';
-import { Document, Lead } from 'src/types';
 
 interface DocumentProps {
   lead: Lead;
@@ -30,10 +30,10 @@ export default function Document({ document, lead }: DocumentProps) {
                 <div className="flex items-center w-full justify-start mb-3 gap-2">
                   {icon ? (
                     <img
-                      className="size-6 object-contain border border-gray-200 rounded flex-shrink-0"
-                      loading="lazy"
                       src={icon}
+                      loading="lazy"
                       alt="Lead icon"
+                      className="size-6 object-contain border border-gray-200 rounded flex-shrink-0"
                     />
                   ) : (
                     <div className="size-6 flex items-center justify-center border border-gray-200 rounded flex-shrink-0">
@@ -49,7 +49,7 @@ export default function Document({ document, lead }: DocumentProps) {
                   )}
                 </div>
               </div>
-              <Editor documentId={docId} namespace="documents" size="sm" useYjs isReadOnly />
+              <Editor useYjs size="sm" isReadOnly documentId={docId} namespace="documents" />
 
               <div className="h-20 w-full"></div>
             </div>

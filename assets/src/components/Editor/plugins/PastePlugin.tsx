@@ -1,8 +1,8 @@
 import { useEffect, ClipboardEvent } from 'react';
+import { useLexicalComposerContext } from '@lexical/react/LexicalComposerContext';
 
 import { $createLinkNode } from '@lexical/link';
 import { $generateNodesFromDOM } from '@lexical/html';
-import { useLexicalComposerContext } from '@lexical/react/LexicalComposerContext';
 import { $getSelection, PASTE_COMMAND, $createTextNode, $isRangeSelection } from 'lexical';
 
 export function LinkPastePlugin() {
@@ -108,6 +108,7 @@ export function isValidUrl(string: string) {
     return false;
   }
 }
+
 export const removeProtocolFromLink = (link: string): string => {
   const protocolIndex = link.indexOf('://');
 

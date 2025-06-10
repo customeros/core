@@ -1,4 +1,5 @@
 import { usePresence } from 'src/providers/PresenceProvider';
+
 import { UserHexagon } from '../UserHexagon';
 
 export const UserPresence = () => {

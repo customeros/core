@@ -1,7 +1,6 @@
 import React, { useRef, MouseEventHandler } from 'react';
 
-import { Spinner } from '@ui/feedback/Spinner/Spinner';
-import { Button, ButtonProps } from '@ui/form/Button/Button';
+import { Button, ButtonProps } from 'src/components/Button';
 
 import {
   AlertDialog,
@@ -48,54 +47,43 @@ export const ConfirmDialog = ({
   const cancelRef = useRef<HTMLButtonElement>(null);
 
   return (
-    <AlertDialog isOpen={isOpen} onClose={onClose} className='z-[99999]'>
+    <AlertDialog isOpen={isOpen} onClose={onClose} className="z-[99999]">
       <AlertDialogPortal>
         <AlertDialogOverlay>
-          <AlertDialogContent className='rounded-xl '>
-            <div className='flex items-start justify-between w-full'>
-              <p className='font-semibold line-clamp-2'>{title}</p>
-              {!hideCloseButton && (
-                <AlertDialogCloseIconButton className='mt-[3px]' />
-              )}
+          <AlertDialogContent className="rounded-xl ">
+            <div className="flex items-start justify-between w-full">
+              <p className="font-semibold line-clamp-2">{title}</p>
+              {!hideCloseButton && <AlertDialogCloseIconButton className="mt-[3px]" />}
             </div>
 
-            <AlertDialogHeader className='font-bold'>
+            <AlertDialogHeader className="font-bold">
               {description && (
-                <p className='mt-1 text-sm text-grayModern-700 font-normal'>
-                  {description}
-                </p>
+                <p className="mt-1 text-sm text-grayModern-700 font-normal">{description}</p>
               )}
             </AlertDialogHeader>
             {body && <AlertDialogBody>{body}</AlertDialogBody>}
             <AlertDialogFooter>
               <AlertDialogCloseButton>
                 <Button
-                  size='sm'
+                  size="sm"
                   ref={cancelRef}
-                  variant='outline'
+                  variant="outline"
+                  colorScheme="gray"
                   isDisabled={isLoading}
-                  colorScheme={'grayModern'}
-                  className='bg-white w-full'
+                  className="bg-white w-full"
                 >
                   {cancelButtonLabel}
                 </Button>
               </AlertDialogCloseButton>
               <AlertDialogConfirmButton asChild>
                 <Button
-                  size='sm'
-                  variant='outline'
-                  className='w-full'
+                  size="sm"
+                  variant="outline"
+                  className="w-full"
                   onClick={onConfirm}
                   isLoading={isLoading}
                   loadingText={loadingButtonLabel}
                   colorScheme={colorScheme || 'primary'}
-                  rightSpinner={
-                    <Spinner
-                      size={'sm'}
-                      label='deleting'
-                      className='text-primary-300 fill-primary-700'
-                    />
-                  }
                 >
                   {confirmButtonLabel}
                 </Button>

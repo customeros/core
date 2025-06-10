@@ -1,11 +1,11 @@
 import React, { forwardRef, ElementRef } from 'react';
+import * as RadixAlertDialog from '@radix-ui/react-alert-dialog';
 
 import { twMerge } from 'tailwind-merge';
 import { cva } from 'class-variance-authority';
-import * as RadixAlertDialog from '@radix-ui/react-alert-dialog';
 
-import { IconButton } from '../IconButton/IconButton';
 import { Icon } from '../Icon';
+import { IconButton } from '../IconButton/IconButton';
 
 interface AlertDialogGenericProps extends React.HTMLAttributes<HTMLDivElement> {
   asChild?: boolean;
@@ -21,7 +21,7 @@ interface AlertDialogProps {
 }
 
 export const AlertDialog = forwardRef<HTMLDivElement, AlertDialogProps>(
-  ({ children, className, isOpen, onClose, ...props }, ref) => {
+  ({ children, isOpen, onClose, ...props }) => {
     return (
       <RadixAlertDialog.Root open={isOpen} onOpenChange={onClose} {...props}>
         {children}
@@ -122,7 +122,7 @@ export const AlertDialogFooter = ({ children, className }: AlertDialogGenericPro
 export const AlertDialogCloseButton = forwardRef<
   ElementRef<typeof RadixAlertDialog.AlertDialogCancel>,
   RadixAlertDialog.AlertDialogCancelProps
->(({ asChild, children, ...props }, ref) => {
+>(({ children, ...props }, ref) => {
   return (
     <RadixAlertDialog.Cancel asChild ref={ref} {...props}>
       {children}
@@ -144,7 +144,7 @@ export const AlertDialogConfirmButton = forwardRef<
 export const AlertDialogCloseIconButton = forwardRef<
   ElementRef<typeof RadixAlertDialog.Cancel>,
   RadixAlertDialog.AlertDialogCancelProps
->(({ asChild, children, className, ...props }, ref) => {
+>(({ className, ...props }, ref) => {
   return (
     <RadixAlertDialog.Cancel
       asChild
@@ -155,9 +155,9 @@ export const AlertDialogCloseIconButton = forwardRef<
       <IconButton
         size="xs"
         variant="ghost"
-        icon={<Icon name="x-close" />}
         colorScheme="gray"
         aria-label="Close dialog"
+        icon={<Icon name="x-close" />}
       />
     </RadixAlertDialog.Cancel>
   );

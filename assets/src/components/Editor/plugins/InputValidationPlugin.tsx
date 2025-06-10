@@ -1,8 +1,7 @@
 import { useEffect } from 'react';
-
-import { $getRoot, TextNode, ParagraphNode } from 'lexical';
 import { useLexicalComposerContext } from '@lexical/react/LexicalComposerContext';
 
+import { $getRoot, TextNode, ParagraphNode } from 'lexical';
 import { validateEmail } from 'src/components/Editor/utils/validateEmail';
 
 const validLinkedInProfileUrl = (url: string): boolean => {

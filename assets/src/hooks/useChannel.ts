@@ -1,7 +1,8 @@
+import { usePage } from '@inertiajs/react';
 import { useState, useEffect, useContext } from 'react';
 
 import { Presence } from 'phoenix';
-import { usePage } from '@inertiajs/react';
+
 import { PhoenixSocketContext } from '../providers/SocketProvider';
 
 type Meta = {
@@ -15,7 +16,7 @@ type Meta = {
 
 type PresenceState = { metas: Meta[] }[];
 
-type User = { email: string; id: string; name: string };
+type User = { id: string; name: string; email: string };
 
 export const useChannel = (channelName: string) => {
   const page = usePage();
@@ -27,6 +28,7 @@ export const useChannel = (channelName: string) => {
 
   useEffect(() => {
     if (!socket || !user_id) return;
+
     (async () => {
       try {
         await createChannel(channelName, {

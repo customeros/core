@@ -1,5 +1,4 @@
 import clsx from 'clsx';
-
 import { IconButton, IconButtonProps } from 'src/components/IconButton/IconButton';
 
 interface FloatingToolbarButtonProps extends IconButtonProps {

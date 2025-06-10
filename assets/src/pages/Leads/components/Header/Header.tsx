@@ -1,34 +1,35 @@
 import { useMemo, useState } from 'react';
 import { router, usePage } from '@inertiajs/react';
 
-import { Button } from 'src/components/Button';
-import { Icon } from 'src/components/Icon/Icon';
-import { useEventsChannel, LeadCreatedEvent } from 'src/hooks';
-import { UserPresence } from '../UserPresence/UserPresence';
-import { Lead, Tenant, User } from 'src/types';
+import { cn } from 'src/utils/cn';
 import { PageProps } from '@inertiajs/core';
+import { Button } from 'src/components/Button';
+import { Lead, User, Tenant } from 'src/types';
+import { Avatar } from 'src/components/Avatar';
+import { Icon } from 'src/components/Icon/Icon';
+import { Tooltip } from 'src/components/Tooltip';
+import { toastSuccess } from 'src/components/Toast';
+import { IconButton } from 'src/components/IconButton';
+import { useEventsChannel, LeadCreatedEvent } from 'src/hooks';
 import {
   Modal,
   ModalBody,
-  ModalCloseButton,
+  ModalClose,
   ModalFooter,
   ModalHeader,
-  ModalOverlay,
   ModalPortal,
+  ModalOverlay,
   ModalContent,
-  ModalClose,
+  ModalCloseButton,
 } from 'src/components/Modal/Modal';
-import { cn } from 'src/utils/cn';
-import { Avatar } from 'src/components/Avatar';
-import { Tooltip } from 'src/components/Tooltip';
-import { toastSuccess } from 'src/components/Toast';
+
 import { TenantSwitcher } from '../TenantSwitcher';
-import { IconButton } from 'src/components/IconButton';
+import { UserPresence } from '../UserPresence/UserPresence';
 
 export const Header = () => {
   const [createdLeadIcons, setCreatedLeadIcons] = useState<string[]>([]);
   const page = usePage<
-    PageProps & { tenant: Tenant; currentUser: User; companies: Lead[]; profile: string }
+    PageProps & { tenant: Tenant; profile: string; currentUser: User; companies: Lead[] }
   >();
   const [isOpen, setIsOpen] = useState(false);
   const [displayProfile, setDisplayProfile] = useState(false);
@@ -59,6 +60,7 @@ export const Header = () => {
   }, [createdLeadIcons]);
 
   const leadsMessage = leadCount > 1 ? 'leads' : 'lead';
+
   return (
     <>
       <div className="flex w-full z-20 bg-white sticky top-0 group">
@@ -85,14 +87,14 @@ export const Header = () => {
               </div>
             </TenantSwitcher>
             <IconButton
+              size="xs"
+              variant="ghost"
               aria-label="icp"
+              icon={<Icon name="building-03" />}
               onClick={e => {
                 page.props.profile && setDisplayProfile(true);
                 e.stopPropagation();
               }}
-              icon={<Icon name="building-03" />}
-              size="xs"
-              variant="ghost"
             />
           </div>
 
@@ -100,9 +102,9 @@ export const Header = () => {
             <Tooltip label="Invite team">
               <div onClick={() => setInviteTeam(true)}>
                 <Avatar
-                  icon={<Icon name="user-plus-01" className="text-gray-700 size-5 p-0.5" />}
                   size="xs"
                   variant="circle"
+                  icon={<Icon name="user-plus-01" className="text-gray-700 size-5 p-0.5" />}
                   className="border border-dashed group-hover:opacity-100 opacity-0 transition-opacity duration-300 size-7 cursor-pointer"
                 />
               </div>
@@ -119,8 +121,8 @@ export const Header = () => {
             </Button> */}
             {page.props.companies.length > 0 && (
               <Button
-                colorScheme="gray"
                 size="xs"
+                colorScheme="gray"
                 leftIcon={<Icon name="download-02" />}
                 onClick={() => {
                   window.location.href = '/leads/download';
@@ -185,14 +187,14 @@ export const Header = () => {
             </ModalBody>
             <ModalFooter className="flex justify-between gap-2">
               <ModalClose asChild>
-                <Button colorScheme="gray" size="sm" className="w-full">
+                <Button size="sm" colorScheme="gray" className="w-full">
                   Cancel
                 </Button>
               </ModalClose>
               <Button
-                colorScheme="primary"
                 size="sm"
                 className="w-full"
+                colorScheme="primary"
                 onClick={() => {
                   window.open('https://cal.com/mbrown/20min', '_blank');
                   setIsOpen(false);
@@ -216,7 +218,7 @@ export const Header = () => {
             </ModalBody>
             <ModalFooter>
               <ModalClose asChild>
-                <Button colorScheme="gray" size="sm" className="w-full">
+                <Button size="sm" colorScheme="gray" className="w-full">
                   Cancel
                 </Button>
               </ModalClose>
@@ -248,8 +250,8 @@ export const Header = () => {
             </ModalBody>
             <ModalFooter className="flex justify-between gap-2">
               <Button
-                colorScheme="gray"
                 size="sm"
+                colorScheme="gray"
                 className="w-full"
                 onClick={() => {
                   navigator.clipboard.writeText(window.location.href);
