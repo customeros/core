@@ -28,9 +28,7 @@ defmodule Core.Researcher.IcpBuilder do
   end
 
   def tenant_icp(tenant_record) do
-    with {:ok, icp} <- build_icp(tenant_record.domain),
-         {:ok, profile} <-
-           save_icp(tenant_record.domain, icp, tenant_record.id) do
+    with {:ok, profile} <- build_icp(tenant_record.domain, tenant_record.id) do
       Core.Researcher.IcpFinder.find_matching_companies_start(profile.id)
       {:ok, profile}
     else
@@ -40,47 +38,76 @@ defmodule Core.Researcher.IcpBuilder do
     end
   end
 
-  def build_icp(domain) do
+  def build_icp(domain, tenant_id) do
     task = Crawler.crawl_supervised(domain)
 
     with {:ok, {:ok, _scraped_data}} <- Task.yield(task, @crawl_timeout),
-         {:ok, icp} <- ProfileWriter.generate_icp(domain) do
-      {:ok, icp}
+         {:ok, profile} <- generate_and_save(domain, tenant_id) do
+      {:ok, profile}
     else
       {:error, reason} ->
-        Logger.error("Building ICP failed: #{reason}")
+        Logger.error("Building ICP failed: #{inspect(reason)}")
         {:error, reason}
 
       {:ok, {:error, reason}} ->
-        Logger.error("Building ICP failed: #{reason}")
+        Logger.error("Crawling failed: #{inspect(reason)}")
         {:error, reason}
 
+      {:ok, {:api_error, message}} ->
+        Logger.error("API error during crawling: #{message}")
+        {:error, {:api_error, message}}
+
       {:exit, reason} ->
-        Logger.error("Building ICP crashed: #{reason}")
+        Logger.error("Building ICP crashed: #{inspect(reason)}")
         {:error, reason}
 
       nil ->
+        Logger.error("ICP generation timed out after #{@crawl_timeout}ms")
         {:error, :icp_generation_timeout}
     end
   end
 
   def build_icp_fast(domain) do
-    with {:ok, _homepage} <- Scraper.scrape_webpage(domain),
-         {:ok, icp} <-
-           ProfileWriter.generate_icp(domain),
-         {:ok, _profile} <- save_icp(domain, icp) do
-      {:ok, icp}
+    case IcpProfiles.get_by_domain(domain) do
+      {:ok, existing_profile} ->
+        {:ok, existing_profile}
+
+      {:error, _} ->
+        with {:ok, _content} <- Scraper.scrape_webpage(domain),
+             {:ok, profile} <- generate_and_save(domain) do
+          {:ok, profile}
+        else
+          {:error, reason} ->
+            Logger.error(
+              "Could not build fast ICP: #{inspect(reason)}",
+              domain: domain
+            )
+
+            {:error, reason}
+        end
+    end
+  end
+
+  defp generate_and_save(domain) do
+    generate_and_save(domain, nil)
+  end
+
+  defp generate_and_save(domain, tenant_id) do
+    with {:ok, icp} <- ProfileWriter.generate_icp(domain),
+         {:ok, profile} <- save_icp(domain, icp, tenant_id) do
+      {:ok, profile}
     else
       {:error, reason} ->
         Logger.error(
-          "Ideal Customer Profile generation failed: #{inspect(reason)}"
+          "Could not generate and save ICP: #{inspect(reason)}",
+          domain: domain
         )
 
         {:error, reason}
     end
   end
 
-  defp save_icp(domain, icp_output, tenant_id \\ nil) do
+  defp save_icp(domain, icp_output, tenant_id) do
     base_attrs = %{
       domain: domain,
       profile: icp_output.icp,
