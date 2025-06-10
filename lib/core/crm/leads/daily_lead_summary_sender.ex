@@ -26,6 +26,8 @@ defmodule Core.Crm.Leads.DailyLeadSummarySender do
   alias Core.Utils.Cron.CronLock
   alias Core.Auth.Users
   alias Core.Mailer
+  alias Core.Tenants
+  alias Core.Slack
 
   # Constants
   @cron_name :cron_daily_lead_summary_sender
@@ -178,6 +180,20 @@ defmodule Core.Crm.Leads.DailyLeadSummarySender do
       Enum.each(leads_by_tenant, fn {tenant_id, tenant_leads} ->
         process_tenant_leads(tenant_id, tenant_leads)
       end)
+
+      # Prepare data for Slack summary
+      tenant_leads =
+        leads_by_tenant
+        |> Enum.map(fn {tenant_id, tenant_leads} ->
+          case Tenants.get_tenant_by_id(tenant_id) do
+            {:ok, tenant} -> {tenant.name, length(tenant_leads)}
+            _ -> {tenant_id, length(tenant_leads)}
+          end
+        end)
+        |> Enum.sort_by(fn {name, _count} -> String.downcase(name) end)
+
+      # Send Slack summary
+      send_slack_summary(tenant_leads)
     end
   end
 
@@ -240,6 +256,85 @@ defmodule Core.Crm.Leads.DailyLeadSummarySender do
       Logger.info(
         "Skipping daily lead summary for tenant #{tenant_id} - no leads to report"
       )
+
+
+  defp send_slack_summary(tenant_leads)
+       when is_list(tenant_leads)
+       and length(tenant_leads) > 0
+       and Enum.all?(tenant_leads, fn {name, count} ->
+         is_binary(name) and is_integer(count) and count >= 0
+       end) do
+    webhook_url = Application.get_env(:core, :slack)[:daily_lead_summary_webhook_url]
+
+    case webhook_url do
+      val when val in [nil, ""] ->
+        Logger.warning("Slack daily lead summary webhook URL not configured")
+        {:error, :webhook_not_configured}
+
+      _ ->
+        # Create the message blocks
+        message = %{
+          blocks: [
+            %{
+              type: "header",
+              text: %{
+                type: "plain_text",
+                text: "📊 Daily Lead Summary Report",
+                emoji: true
+              }
+            },
+            %{
+              type: "section",
+              text: %{
+                type: "mrkdwn",
+                text: format_tenant_table(tenant_leads)
+              }
+            },
+            %{
+              type: "context",
+              elements: [
+                %{
+                  type: "mrkdwn",
+                  text: "Generated at: #{DateTime.utc_now() |> Calendar.strftime("%Y-%m-%d %H:%M:%S UTC")}"
+                }
+              ]
+            }
+          ]
+        }
+
+        case Slack.send_message(webhook_url, message) do
+          :ok ->
+            Logger.info("Successfully sent Slack daily lead summary report")
+            :ok
+
+          {:error, reason} ->
+            Logger.error("Failed to send Slack daily lead summary report: #{inspect(reason)}")
+            {:error, reason}
+        end
+    end
+  end
+
+  # Handle empty list case
+  defp send_slack_summary([]), do: :ok
+
+  defp format_tenant_table(tenant_rows) do
+    # Calculate column widths
+    max_name_length = Enum.max_by(tenant_rows, fn {name, _} -> String.length(name) end) |> elem(0) |> String.length()
+    max_count_length = Enum.max_by(tenant_rows, fn {_, count} -> to_string(count) |> String.length() end) |> elem(1) |> to_string() |> String.length()
+
+    # Format header
+    header = String.pad_trailing("Tenant", max_name_length) <> " | " <> String.pad_leading("Leads", max_count_length)
+    separator = String.duplicate("-", max_name_length) <> "-+-" <> String.duplicate("-", max_count_length)
+
+    # Format rows
+    rows =
+      Enum.map(tenant_rows, fn {name, count} ->
+        String.pad_trailing(name, max_name_length) <> " | " <> String.pad_leading(to_string(count), max_count_length)
+      end)
+
+    # Combine all parts
+    [header, separator | rows] |> Enum.join("\n")
+  end
 
   defp deliver_lead_summary(to, subject, html_body, text_body) do
     email =

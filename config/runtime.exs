@@ -159,6 +159,8 @@ config :core, :slack,
   enabled: true,
   new_tenant_webhook_url: get_env.("SLACK_NEW_TENANT_WEBHOOK_URL", nil),
   new_user_webhook_url: get_env.("SLACK_NEW_USER_WEBHOOK_URL", nil),
+  daily_lead_summary_webhook_url:
+    get_env.("SLACK_DAILY_LEAD_SUMMARY_WEBHOOK_URL", nil),
   crash_webhook_url: get_env.("SLACK_CRASH_WEBHOOK_URL", nil),
   error_webhook_url: get_env.("SLACK_CRASH_WEBHOOK_URL", nil)
 
