@@ -42,14 +42,14 @@ defmodule Core.Researcher.Scraper do
   @err_unexpected_response {:error, "webscraper returned unexpected response"}
 
   @type validate_url_error ::
-    :should_not_scrape |
-    :invalid_domain |
-    :not_primary_domain |
-    :invalid_url_format |
-    :https_conversion_failed |
-    :too_many_redirects |
-    :no_content_type |
-    :webpage_content_type_not_text_html
+          :should_not_scrape
+          | :invalid_domain
+          | :not_primary_domain
+          | :invalid_url_format
+          | :https_conversion_failed
+          | :too_many_redirects
+          | :no_content_type
+          | :webpage_content_type_not_text_html
 
   @type scrape_result :: %{
           content: String.t(),
@@ -104,7 +104,8 @@ defmodule Core.Researcher.Scraper do
     end
   end
 
-  @spec validate_url(String.t()) :: {:ok, String.t()} | {:error, validate_url_error()}
+  @spec validate_url(String.t()) ::
+          {:ok, String.t()} | {:error, validate_url_error()}
   def validate_url(url) do
     OpenTelemetry.Tracer.with_span "scraper.validate_url" do
       OpenTelemetry.Tracer.set_attributes([
@@ -143,7 +144,8 @@ defmodule Core.Researcher.Scraper do
     end
   end
 
-  @spec validate_is_primary_domain(String.t()) :: {:ok, true} | {:error, :not_primary_domain | :invalid_domain}
+  @spec validate_is_primary_domain(String.t()) ::
+          {:ok, true} | {:error, :not_primary_domain | :invalid_domain}
   defp validate_is_primary_domain(url) do
     case PrimaryDomainFinder.primary_domain?(url) do
       {:ok, true} -> {:ok, true}
@@ -409,8 +411,8 @@ defmodule Core.Researcher.Scraper do
   end
 
   @spec fetch_content_type(String.t(), non_neg_integer()) ::
-    {:ok, String.t()} |
-    {:error, :too_many_redirects | :no_content_type | :invalid_domain}
+          {:ok, String.t()}
+          | {:error, :too_many_redirects | :no_content_type | :invalid_domain}
   defp fetch_content_type(url, depth \\ 0) do
     OpenTelemetry.Tracer.with_span "scraper.fetch_content_type" do
       OpenTelemetry.Tracer.set_attributes([
@@ -475,8 +477,8 @@ defmodule Core.Researcher.Scraper do
   end
 
   @spec webpage_content_type_allow_scrape(String.t()) ::
-    {:ok, true} |
-    {:error, :webpage_content_type_not_text_html}
+          {:ok, true}
+          | {:error, :webpage_content_type_not_text_html}
   defp webpage_content_type_allow_scrape(content_type) do
     # Allow only HTML and similar web content
     if String.starts_with?(content_type, "text/html") do

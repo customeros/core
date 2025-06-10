@@ -42,7 +42,7 @@ defmodule Core.Ai.Groq.TestGroq do
 
       {:error, reason} ->
         IO.puts("\n=== Groq API Test Error ===")
-        IO.puts(reason, label: "Error")
+        IO.puts("Error: #{inspect(reason)}")
         IO.puts("===========================\n")
         {:error, reason}
     end
@@ -80,7 +80,7 @@ defmodule Core.Ai.Groq.TestGroq do
 
       {:error, reason} ->
         IO.puts("\n=== Groq API Test Error ===")
-        IO.puts(reason, label: "Error")
+        IO.puts("Error: #{inspect(reason)}")
         IO.puts("===========================\n")
         {:error, reason}
     end

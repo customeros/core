@@ -9,8 +9,12 @@ defmodule Core.Researcher.IcpBuilder do
   - Initiating company matching processes for new ICPs
   """
 
+  require Logger
+
   alias Core.Researcher.IcpBuilder.ProfileWriter
+  alias Core.Researcher.IcpProfiles
   alias Core.Researcher.Crawler
+  alias Core.Researcher.Scraper
 
   @crawl_timeout 5 * 60 * 1000
 
@@ -24,25 +28,14 @@ defmodule Core.Researcher.IcpBuilder do
   end
 
   def tenant_icp(tenant_record) do
-    case build_icp(tenant_record.domain) do
-      {:ok, icp} ->
-        profile = %{
-          domain: tenant_record.domain,
-          tenant_id: tenant_record.id,
-          profile: icp.icp,
-          qualifying_attributes: icp.qualifying_attributes
-        }
-
-        case Core.Researcher.IcpProfiles.create_profile(profile) do
-          {:ok, profile} ->
-            Core.Researcher.IcpFinder.find_matching_companies_start(profile.id)
-            {:ok, profile}
-
-          {:error, changeset} ->
-            {:error, changeset}
-        end
-
+    with {:ok, icp} <- build_icp(tenant_record.domain),
+         {:ok, profile} <-
+           save_icp(tenant_record.domain, icp, tenant_record.id) do
+      Core.Researcher.IcpFinder.find_matching_companies_start(profile.id)
+      {:ok, profile}
+    else
       {:error, reason} ->
+        Logger.error("Generating Tenant ICP failed: #{inspect(reason)}")
         {:error, reason}
     end
   end
@@ -55,16 +48,51 @@ defmodule Core.Researcher.IcpBuilder do
       {:ok, icp}
     else
       {:error, reason} ->
+        Logger.error("Building ICP failed: #{reason}")
         {:error, reason}
 
       {:ok, {:error, reason}} ->
+        Logger.error("Building ICP failed: #{reason}")
         {:error, reason}
 
       {:exit, reason} ->
+        Logger.error("Building ICP crashed: #{reason}")
         {:error, reason}
 
       nil ->
         {:error, :icp_generation_timeout}
     end
+  end
+
+  def build_icp_fast(domain) do
+    with {:ok, _homepage} <- Scraper.scrape_webpage(domain),
+         {:ok, icp} <-
+           ProfileWriter.generate_icp(domain),
+         {:ok, _profile} <- save_icp(domain, icp) do
+      {:ok, icp}
+    else
+      {:error, reason} ->
+        Logger.error(
+          "Ideal Customer Profile generation failed: #{inspect(reason)}"
+        )
+
+        {:error, reason}
+    end
+  end
+
+  defp save_icp(domain, icp_output, tenant_id \\ nil) do
+    base_attrs = %{
+      domain: domain,
+      profile: icp_output.icp,
+      qualifying_attributes: icp_output.qualifying_attributes
+    }
+
+    profile_attrs =
+      case tenant_id do
+        nil -> base_attrs
+        id -> Map.put(base_attrs, :tenant_id, id)
+      end
+
+    IcpProfiles.create_profile(profile_attrs)
   end
 end
