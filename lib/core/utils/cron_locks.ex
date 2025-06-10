@@ -87,25 +87,28 @@ defmodule Core.Utils.CronLocks do
   end
 
   @doc """
-  Attempts to release a lock for a cron job.
+  Attempts to release a lock for a cron job and update the last execution time.
 
   The lock will only be released if the provided UUID matches the current lock.
   This ensures that only the process that acquired the lock can release it.
+  The last_execution_at field will be updated to the current time.
 
   ## Examples
 
       iex> release_lock(:cron_company_enricher, "123e4567-e89b-12d3-a456-426614174000")
-      :ok  # Lock released
+      :ok  # Lock released and last execution time updated
       :error  # Lock not released (UUID mismatch or no lock)
   """
   @spec release_lock(CronLock.cron_name(), String.t()) :: :ok | :error
   def release_lock(cron_name, lock_uuid) when cron_name in @valid_cron_names do
-    # Only release if the UUID matches
+    now = DateTime.utc_now()
+
+    # Only release if the UUID matches and update last_execution_at
     query =
       from c in CronLock,
         where: c.cron_name == ^cron_name,
         where: c.lock == ^lock_uuid,
-        update: [set: [lock: nil, locked_at: nil]]
+        update: [set: [lock: nil, locked_at: nil, last_execution_at: ^now]]
 
     case Repo.update_all(query, []) do
       {1, _} -> :ok
@@ -119,6 +122,38 @@ defmodule Core.Utils.CronLocks do
     )
 
     :error
+  end
+
+  @doc """
+  Gets the last execution time for a cron job.
+
+  Returns the last_execution_at timestamp if available, nil otherwise.
+
+  ## Examples
+
+      iex> get_last_execution_time(:cron_company_enricher)
+      ~U[2024-03-14 06:00:00Z]  # Last execution time
+      nil  # No previous execution
+  """
+  @spec get_last_execution_time(CronLock.cron_name()) :: DateTime.t() | nil
+  def get_last_execution_time(cron_name) when cron_name in @valid_cron_names do
+    query =
+      from c in CronLock,
+        where: c.cron_name == ^cron_name,
+        select: c.last_execution_at
+
+    case Repo.one(query) do
+      nil -> nil
+      timestamp -> timestamp
+    end
+  end
+
+  def get_last_execution_time(invalid_name) do
+    Logger.error(
+      "Attempted to get last execution time for invalid cron name: #{inspect(invalid_name)}"
+    )
+
+    nil
   end
 
   @doc """
