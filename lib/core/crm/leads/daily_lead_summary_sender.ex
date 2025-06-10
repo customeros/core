@@ -15,24 +15,44 @@ defmodule Core.Crm.Leads.DailyLeadSummarySender do
   require Logger
   require OpenTelemetry.Tracer
   import Ecto.Query
+  import Phoenix.Component
+  import Swoosh.Email, except: [from: 2]
 
   alias Core.Repo
   alias Core.Crm.Leads.Lead
+  alias Core.Crm.Companies
   alias Core.Utils.Tracing
   alias Core.Utils.CronLocks
   alias Core.Utils.Cron.CronLock
   alias Core.Auth.Users
+  alias Core.Mailer
 
   # Constants
   @cron_name :cron_daily_lead_summary_sender
   # Duration in minutes after which a lock is considered stuck
   @stuck_lock_duration_minutes 30
   # Check every 5 minutes
-  @check_interval_ms 1 * 60 * 1000
+  @check_interval_ms 1 * 10 * 1000  # TODO restore to 5 minutes
   # Minimum time between executions (23 hours and 30 minutes in seconds)
   @min_execution_interval_seconds 23 * 3600 + 30 * 60
+  # Email sender details
+  @from_name "CustomerOS"
+  @from_email "notification@app.customeros.ai"
+  # Base URL for links
+  @base_url "https://preview.customeros.ai"
+  # Maximum number of companies to show in the list
+  @max_companies_in_list 3
+  # Stage order for the breakdown
+  @stage_order [
+    :target,
+    :education,
+    :solution,
+    :evaluation,
+    :ready_to_buy
+  ]
 
   def start_link(opts \\ []) do
+    # TODO: remove true and uncomment below when we are ready to enable crons
     # crons_enabled = Application.get_env(:core, :crons)[:enabled] || false
     crons_enabled = true
     if crons_enabled do
@@ -94,8 +114,8 @@ defmodule Core.Crm.Leads.DailyLeadSummarySender do
   defp should_run_now? do
     now = DateTime.utc_now()
 
-    # Check if it's between 6:00 and 6:30 AM UTC
-    time_window_ok = now.hour == 6 and now.minute <= 30
+    # Check if it's between 6:00 and 6:15 AM UTC
+    time_window_ok = now.hour == 13 and now.minute <= 59 #TODO restore to 6 and 15
 
     # Check if enough time has passed since last execution
     time_since_last_execution_ok =
@@ -150,6 +170,8 @@ defmodule Core.Crm.Leads.DailyLeadSummarySender do
       # Get leads from the past 24 hours that are ICP fit
       leads = fetch_recent_icp_fit_leads()
 
+      Logger.info("Found #{length(leads)} ICP fit leads in the past 24 hours")
+
       # Group leads by tenant
       leads_by_tenant = Enum.group_by(leads, & &1.tenant_id)
 
@@ -193,18 +215,256 @@ defmodule Core.Crm.Leads.DailyLeadSummarySender do
         )
       else
         subject = generate_email_subject(leads)
-        body = "Hello, this is a test email"
-        from_email = "notification@app.customeros.ai"
+        {html_body, text_body} = render_email_content(leads)
 
-        # TODO: Implement email preparation and sending with Postmark
-        Logger.info("Preparing daily lead summary for tenant #{tenant_id}",
-          tenant_id: tenant_id,
-          leads_count: length(leads),
-          recipient_count: length(user_emails),
-          subject: subject
-        )
+        # Send email to all users in the tenant
+        Enum.each(user_emails, fn email ->
+          case deliver_lead_summary(email, subject, html_body, text_body) do
+            {:ok, _email} ->
+              Logger.info("Successfully sent daily lead summary to #{email}",
+                tenant_id: tenant_id,
+                leads_count: length(leads)
+              )
+
+            {:error, reason} ->
+              Tracing.error(reason, "Failed to send daily lead summary to #{email}",
+                tenant_id: tenant_id
+              )
+          end
+        end)
       end
     end
+  end
+
+  defp deliver_lead_summary(to, subject, html_body, text_body) do
+    email =
+      new()
+      |> to(to)
+      |> Swoosh.Email.from({@from_name, @from_email})
+      |> subject(subject)
+      |> html_body(html_body)
+      |> text_body(text_body)
+      |> put_provider_option(:track_opens, false)
+      |> put_provider_option(:track_links, "None")
+      |> put_provider_option(:message_stream, "daily-lead-summary")
+
+    with {:ok, _metadata} <- Mailer.deliver(email) do
+      {:ok, email}
+    end
+  end
+
+  defp email_layout(assigns) do
+    ~H"""
+    <!DOCTYPE html>
+    <html lang="en">
+      <head>
+        <meta charset="UTF-8" />
+        <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+        <style>
+          body {
+            font-family: system-ui, sans-serif;
+            margin: 3em auto;
+            overflow-wrap: break-word;
+            word-break: break-all;
+            max-width: 1024px;
+            padding: 0 1em;
+            color: #121926;
+          }
+        </style>
+      </head>
+      <body>
+        {render_slot(@inner_block)}
+      </body>
+    </html>
+    """
+  end
+
+  defp format_stage(stage) do
+    stage
+    |> Atom.to_string()
+    |> String.split("_")
+    |> Enum.map(&String.capitalize/1)
+    |> Enum.join(" ")
+  end
+
+  defp get_company_name(ref_id) do
+    case Companies.get_by_id(ref_id) do
+      {:ok, company} ->
+        if company.name && company.name != "" do
+          company.name
+        else
+          company.primary_domain
+        end
+      _ -> "Unknown Company"
+    end
+  end
+
+  defp single_lead_content(assigns) do
+    company_name = get_company_name(assigns.lead.ref_id)
+    formatted_stage = format_stage(assigns.lead.stage)
+    assigns = Map.merge(assigns, %{company_name: company_name, formatted_stage: formatted_stage})
+
+    ~H"""
+    <.email_layout>
+      <p>Hey 👋</p>
+
+      <p>Just one new lead for you today—<strong><%= @company_name %></strong>, sitting in the <strong><%= @formatted_stage %></strong> stage.</p>
+
+      <p>Cheers,<br />The CustomerOS Team</p>
+    </.email_layout>
+    """
+  end
+
+  defp multiple_leads_content(assigns) do
+    leads_with_company = Enum.map(assigns.leads, fn lead ->
+      company_name = get_company_name(lead.ref_id)
+      formatted_stage = format_stage(lead.stage)
+      Map.put(lead, :company_name, company_name)
+      |> Map.put(:formatted_stage, formatted_stage)
+    end)
+    assigns = Map.put(assigns, :leads_with_company, leads_with_company)
+
+    ~H"""
+    <.email_layout>
+      <p>Hey 👋</p>
+
+      <p>You have <%= length(@leads) %> new leads today:</p>
+
+      <ul>
+        <%= for lead <- @leads_with_company do %>
+          <li><strong><%= lead.company_name %></strong> (<%= lead.formatted_stage %>)</li>
+        <% end %>
+      </ul>
+
+      <p>Cheers,<br />The CustomerOS Team</p>
+    </.email_layout>
+    """
+  end
+
+  defp no_leads_content(assigns) do
+    ~H"""
+    <.email_layout>
+      <p>Hey 👋</p>
+
+      <p>No new leads today.</p>
+
+      <p>Cheers,<br />The CustomerOS Team</p>
+    </.email_layout>
+    """
+  end
+
+  defp multiple_leads_same_stage_content(assigns) do
+    leads_with_company = Enum.map(assigns.leads, fn lead ->
+      company_name = get_company_name(lead.ref_id)
+      formatted_stage = format_stage(lead.stage)
+      Map.put(lead, :company_name, company_name)
+      |> Map.put(:formatted_stage, formatted_stage)
+    end)
+    |> Enum.take(@max_companies_in_list)
+
+    assigns = Map.merge(assigns, %{
+      leads_with_company: leads_with_company,
+      formatted_stage: format_stage(assigns.leads |> List.first() |> Map.get(:stage)),
+      base_url: @base_url
+    })
+
+    ~H"""
+    <.email_layout>
+      <p>Hey 👋</p>
+
+      <p>We added <%= length(@leads) %> new leads to your pipeline in the <strong><%= @formatted_stage %></strong> stage over the past 24 hours:</p>
+
+      <ul style="list-style-type: none; padding-left: 0;">
+        <%= for lead <- @leads_with_company do %>
+          <li style="margin-bottom: 0.5em;">• <%= lead.company_name %></li>
+        <% end %>
+      </ul>
+
+      <p><a href={@base_url}>See all leads</a></p>
+
+      <p>Cheers,<br />The CustomerOS Team</p>
+    </.email_layout>
+    """
+  end
+
+  defp multiple_leads_mixed_stages_content(assigns) do
+    # Group leads by stage and count them
+    leads_by_stage = Enum.group_by(assigns.leads, & &1.stage)
+    stage_counts = Map.new(leads_by_stage, fn {stage, leads} -> {stage, length(leads)} end)
+
+    # Get companies for the last stage that has leads
+    last_stage_with_leads =
+      @stage_order
+      |> Enum.reverse()
+      |> Enum.find(fn stage -> Map.get(stage_counts, stage, 0) > 0 end)
+
+    companies_for_last_stage =
+      case last_stage_with_leads do
+        nil -> []
+        stage ->
+          leads_by_stage[stage]
+          |> Enum.map(fn lead -> get_company_name(lead.ref_id) end)
+          |> Enum.take(@max_companies_in_list)
+      end
+
+    assigns = Map.merge(assigns, %{
+      stage_counts: stage_counts,
+      companies_for_last_stage: companies_for_last_stage,
+      base_url: @base_url,
+      stage_order: @stage_order
+    })
+
+    ~H"""
+    <.email_layout>
+      <p>Hey 👋</p>
+
+      <p>We added <%= length(@leads) %> high-fit leads to your pipeline in the past 24 hours. Here's a quick breakdown:</p>
+
+      <%= for stage <- @stage_order do %>
+        <% count = Map.get(@stage_counts, stage, 0) %>
+        <%= if count > 0 do %>
+          <p><strong><%= format_stage(stage) %></strong>: <%= count %></p>
+        <% end %>
+      <% end %>
+
+      <%= if length(@companies_for_last_stage) > 0 do %>
+        <ul style="list-style-type: none; padding-left: 0;">
+          <%= for company <- @companies_for_last_stage do %>
+            <li style="margin-bottom: 0.5em;">• <%= company %></li>
+          <% end %>
+        </ul>
+      <% end %>
+
+      <p><a href={@base_url}>See all leads</a></p>
+
+      <p>Cheers,<br />The CustomerOS Team</p>
+    </.email_layout>
+    """
+  end
+
+  defp render_email_content(leads) do
+    template =
+      cond do
+        length(leads) == 1 ->
+          single_lead_content(%{lead: List.first(leads)})
+
+        length(leads) > 1 ->
+          # Check if all leads have the same stage
+          stages = Enum.map(leads, & &1.stage) |> Enum.uniq()
+          if length(stages) == 1 do
+            multiple_leads_same_stage_content(%{leads: leads})
+          else
+            multiple_leads_mixed_stages_content(%{leads: leads})
+          end
+
+        true ->
+          no_leads_content(%{})
+      end
+
+    html = heex_to_html(template)
+    text = html_to_text(html)
+
+    {html, text}
   end
 
   defp generate_email_subject(leads) do
@@ -215,5 +475,18 @@ defmodule Core.Crm.Leads.DailyLeadSummarySender do
       count > 1 -> "You have #{count} new leads today"
       true -> "No new leads today"
     end
+  end
+
+  defp heex_to_html(template) do
+    template
+    |> Phoenix.HTML.Safe.to_iodata()
+    |> IO.iodata_to_binary()
+  end
+
+  defp html_to_text(html) do
+    html
+    |> Floki.parse_document!()
+    |> Floki.find("body")
+    |> Floki.text(sep: "\n\n")
   end
 end
