@@ -40,7 +40,10 @@ export type IconName =
   | 'clock-fast-forward'
   | 'flame'
   | 'user-plus-01'
-  | 'check-circle';
+  | 'building-03'
+  | 'check-circle'
+  | 'search-sm'
+  | 'check';
 
 export const Icon = ({
   name,
