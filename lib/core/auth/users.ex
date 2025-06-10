@@ -317,4 +317,20 @@ defmodule Core.Auth.Users do
     |> Ecto.Changeset.change(%{tenant_id: new_tenant_id})
     |> Repo.update()
   end
+
+  @doc """
+  Gets all users for a tenant.
+  """
+  def get_users_by_tenant(tenant_id) when is_binary(tenant_id) do
+    OpenTelemetry.Tracer.with_span "users.get_users_by_tenant" do
+      OpenTelemetry.Tracer.set_attributes([
+        {"tenant.id", tenant_id}
+      ])
+
+      User
+      |> where([u], u.tenant_id == ^tenant_id)
+      |> where([u], not is_nil(u.confirmed_at))
+      |> Repo.all()
+    end
+  end
 end

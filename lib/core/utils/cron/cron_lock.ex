@@ -4,7 +4,8 @@ defmodule Core.Utils.Cron.CronLock do
 
   This schema represents a locking mechanism for cron jobs to prevent
   multiple instances of the same job from running simultaneously.
-  It tracks which cron jobs are currently locked and when they were locked.
+  It tracks which cron jobs are currently locked, when they were locked,
+  and when they were last executed.
   """
 
   use Ecto.Schema
@@ -13,7 +14,8 @@ defmodule Core.Utils.Cron.CronLock do
     :cron_company_domain_processor,
     :cron_company_enricher,
     :cron_session_closer,
-    :cron_icp_fit_evaluator
+    :cron_icp_fit_evaluator,
+    :cron_daily_lead_summary_sender
   ]
 
   @type cron_name :: unquote(Enum.reduce(@cron_names, &{:|, [], [&1, &2]}))
@@ -23,6 +25,7 @@ defmodule Core.Utils.Cron.CronLock do
           cron_name: cron_name(),
           lock: String.t() | nil,
           locked_at: DateTime.t() | nil,
+          last_execution_at: DateTime.t() | nil,
           inserted_at: DateTime.t() | nil,
           updated_at: DateTime.t() | nil
         }
@@ -31,6 +34,7 @@ defmodule Core.Utils.Cron.CronLock do
     field(:cron_name, Ecto.Enum, values: @cron_names)
     field(:lock, :string)
     field(:locked_at, :utc_datetime)
+    field(:last_execution_at, :utc_datetime)
 
     timestamps()
   end

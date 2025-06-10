@@ -16,6 +16,7 @@ defmodule Core.Application do
       Core.Crm.Companies.CompanyEnricher,
       Core.Crm.Companies.CompanyDomainProcessor,
       Core.Crm.Leads.IcpFitEvaluator,
+      Core.Crm.Leads.DailyLeadSummarySender,
       Core.WebTracker.SessionCloser,
       Core.Crm.Industries,
       Web.Endpoint,
