@@ -26,8 +26,8 @@ defmodule Core.Crm.Leads.DailyLeadSummarySender do
   alias Core.Utils.Cron.CronLock
   alias Core.Auth.Users
   alias Core.Mailer
-  alias Core.Tenants
-  alias Core.Slack
+  alias Core.Auth.Tenants
+  alias Core.Notifications.Slack
 
   # Constants
   @cron_name :cron_daily_lead_summary_sender
@@ -260,10 +260,7 @@ defmodule Core.Crm.Leads.DailyLeadSummarySender do
 
   defp send_slack_summary(tenant_leads)
        when is_list(tenant_leads)
-       and length(tenant_leads) > 0
-       and Enum.all?(tenant_leads, fn {name, count} ->
-         is_binary(name) and is_integer(count) and count >= 0
-       end) do
+       and length(tenant_leads) > 0 do
     webhook_url = Application.get_env(:core, :slack)[:daily_lead_summary_webhook_url]
 
     case webhook_url do
