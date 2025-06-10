@@ -256,7 +256,6 @@ defmodule Core.Crm.Documents do
   to lexical state and initializing the YDoc.
   """
   def migrate_documents_lexical_state do
-    # Get all documents with empty lexical_state
     documents =
       from(d in Document,
         where:
@@ -265,20 +264,13 @@ defmodule Core.Crm.Documents do
       )
       |> Repo.all()
 
-    dbg(documents)
-
     Enum.each(documents, fn document ->
-      # Convert body to lexical state
       case convert_md_to_lexical(document.body) do
         {:ok, lexical_state} ->
-          # Delete existing document writes
-          dbg(lexical_state)
           Core.Crm.Documents.YDoc.clear_document(document.id)
 
-          # Initialize new YDoc with the converted lexical state
           case initialize_y_writing(document.id, lexical_state) do
             {:ok, _} ->
-              # Update the document with the new lexical state
               update_document(%{
                 id: document.id,
                 lexical_state: lexical_state

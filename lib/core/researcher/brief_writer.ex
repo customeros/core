@@ -18,9 +18,10 @@ defmodule Core.Researcher.BriefWriter do
 
   alias Core.Ai
   alias Core.Crm.Leads
-  alias Core.Researcher.IcpProfiles
   alias Core.Crm.Documents
   alias Core.Researcher.Webpages
+  alias Core.Researcher.IcpProfiles
+  alias Core.Utils.MarkdownValidator
   alias Core.Researcher.BriefWriter.PromptBuilder
 
   @timeout 60 * 1000
@@ -31,9 +32,9 @@ defmodule Core.Researcher.BriefWriter do
          {:ok, pages} <-
            Webpages.get_business_pages_by_domain(lead_domain, limit: 8),
          request <- build_request(lead_domain, icp, pages),
-         {:ok, brief} <-
-           generate_brief(request) do
-      save_document(lead, brief)
+         {:ok, brief} <- generate_brief(request),
+         {:ok, validated_brief} <- MarkdownValidator.validate_and_clean(brief) do
+      save_document(lead, validated_brief)
     else
       {:error, reason} ->
         {:error, reason}

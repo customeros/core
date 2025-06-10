@@ -19,10 +19,13 @@ defmodule Core.Ai.Groq.TestGroq do
   def test_api do
     # Create a test request with hardcoded values
     request = %Request{
-      model: :llama3_70b,  # Using LLaMA3 70B as it's a production model
+      # Using LLaMA3 70B as it's a production model
+      model: :llama3_70b,
       prompt: "Explain what Elixir is in one sentence.",
-      system_prompt: "You are a helpful AI assistant that provides concise, accurate responses.",
-      max_output_tokens: 256,  # Keep it short for testing
+      system_prompt:
+        "You are a helpful AI assistant that provides concise, accurate responses.",
+      # Keep it short for testing
+      max_output_tokens: 256,
       model_temperature: 0.7
     }
 
@@ -39,7 +42,7 @@ defmodule Core.Ai.Groq.TestGroq do
 
       {:error, reason} ->
         IO.puts("\n=== Groq API Test Error ===")
-        IO.inspect(reason, label: "Error")
+        IO.puts(reason, label: "Error")
         IO.puts("===========================\n")
         {:error, reason}
     end
@@ -57,9 +60,11 @@ defmodule Core.Ai.Groq.TestGroq do
   """
   def test_api_with_prompt(prompt) when is_binary(prompt) do
     request = %Request{
-      model: :llama3_70b,  # Using LLaMA3 70B as it's a production model
+      # Using LLaMA3 70B as it's a production model
+      model: :llama3_70b,
       prompt: prompt,
-      system_prompt: "You are a helpful AI assistant that provides concise, accurate responses.",
+      system_prompt:
+        "You are a helpful AI assistant that provides concise, accurate responses.",
       max_output_tokens: 256,
       model_temperature: 0.5
     }
@@ -75,7 +80,7 @@ defmodule Core.Ai.Groq.TestGroq do
 
       {:error, reason} ->
         IO.puts("\n=== Groq API Test Error ===")
-        IO.inspect(reason, label: "Error")
+        IO.puts(reason, label: "Error")
         IO.puts("===========================\n")
         {:error, reason}
     end

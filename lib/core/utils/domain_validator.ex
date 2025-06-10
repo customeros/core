@@ -140,8 +140,6 @@ defmodule Core.Utils.DomainValidator do
     end
   end
 
-  defp idna_valid?(_), do: false
-
   @doc """
   Parses a domain into root domain and subdomain components.
 
