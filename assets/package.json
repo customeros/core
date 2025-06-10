@@ -8,8 +8,7 @@
     "codegen": "tsx scripts/codegen-tw.ts",
     "deploy": "NODE_ENV=production npm run codegen && tailwindcss -i css/app.css -o ../priv/static/assets/app.css --minify",
     "lint": "eslint . --ext .ts,.tsx",
-    "lint:fix": "eslint . --ext .ts,.tsx --fix",
-    "prepare": "husky"
+    "lint:fix": "eslint . --ext .ts,.tsx --fix"
   },
   "private": "true",
   "dependencies": {
