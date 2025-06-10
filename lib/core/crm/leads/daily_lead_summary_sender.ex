@@ -32,7 +32,7 @@ defmodule Core.Crm.Leads.DailyLeadSummarySender do
   # Duration in minutes after which a lock is considered stuck
   @stuck_lock_duration_minutes 30
   # Check every 5 minutes
-  @check_interval_ms 1 * 10 * 1000  # TODO restore to 5 minutes
+  @check_interval_ms 5 * 2 * 1000
   # Minimum time between executions (23 hours and 30 minutes in seconds)
   @min_execution_interval_seconds 23 * 3600 + 30 * 60
   # Email sender details
@@ -52,9 +52,8 @@ defmodule Core.Crm.Leads.DailyLeadSummarySender do
   ]
 
   def start_link(opts \\ []) do
-    # TODO: remove true and uncomment below when we are ready to enable crons
-    # crons_enabled = Application.get_env(:core, :crons)[:enabled] || false
-    crons_enabled = true
+    crons_enabled = Application.get_env(:core, :crons)[:enabled] || false
+
     if crons_enabled do
       GenServer.start_link(__MODULE__, opts, name: __MODULE__)
     else
@@ -114,8 +113,8 @@ defmodule Core.Crm.Leads.DailyLeadSummarySender do
   defp should_run_now? do
     now = DateTime.utc_now()
 
-    # Check if it's between 6:00 and 6:15 AM UTC
-    time_window_ok = now.hour == 13 and now.minute <= 59 #TODO restore to 6 and 15
+    # Check if it's between 6:00 and 6:20 AM UTC
+    time_window_ok = now.hour == 6 and now.minute <= 20
 
     # Check if enough time has passed since last execution
     time_since_last_execution_ok =
@@ -195,7 +194,7 @@ defmodule Core.Crm.Leads.DailyLeadSummarySender do
     |> Repo.all()
   end
 
-  defp process_tenant_leads(tenant_id, leads) do
+  defp process_tenant_leads(tenant_id, leads) when length(leads) > 0 do
     OpenTelemetry.Tracer.with_span "daily_lead_summary_sender.process_tenant_leads" do
       OpenTelemetry.Tracer.set_attributes([
         {"tenant.id", tenant_id},
@@ -205,9 +204,6 @@ defmodule Core.Crm.Leads.DailyLeadSummarySender do
       # Get all confirmed users for this tenant
       users = Users.get_users_by_tenant(tenant_id)
       user_emails = Enum.map(users, & &1.email)
-
-      # TODO hardcode user_emails to just one email 'alex@customeros.ai' temporary
-      user_emails = ["alex@customeros.ai"]
 
       if Enum.empty?(user_emails) do
         Logger.info(
@@ -227,7 +223,9 @@ defmodule Core.Crm.Leads.DailyLeadSummarySender do
               )
 
             {:error, reason} ->
-              Tracing.error(reason, "Failed to send daily lead summary to #{email}",
+              Tracing.error(
+                reason,
+                "Failed to send daily lead summary to #{email}",
                 tenant_id: tenant_id
               )
           end
@@ -235,6 +233,13 @@ defmodule Core.Crm.Leads.DailyLeadSummarySender do
       end
     end
   end
+
+  # Handle empty leads list
+  defp process_tenant_leads(tenant_id, []),
+    do:
+      Logger.info(
+        "Skipping daily lead summary for tenant #{tenant_id} - no leads to report"
+      )
 
   defp deliver_lead_summary(to, subject, html_body, text_body) do
     email =
@@ -295,58 +300,31 @@ defmodule Core.Crm.Leads.DailyLeadSummarySender do
         else
           company.primary_domain
         end
-      _ -> "Unknown Company"
+
+      _ ->
+        "Unknown Company"
     end
   end
 
   defp single_lead_content(assigns) do
     company_name = get_company_name(assigns.lead.ref_id)
     formatted_stage = format_stage(assigns.lead.stage)
-    assigns = Map.merge(assigns, %{company_name: company_name, formatted_stage: formatted_stage})
+
+    assigns =
+      Map.merge(assigns, %{
+        company_name: company_name,
+        formatted_stage: formatted_stage
+      })
 
     ~H"""
     <.email_layout>
       <p>Hey 👋</p>
 
-      <p>Just one new lead for you today—<strong><%= @company_name %></strong>, sitting in the <strong><%= @formatted_stage %></strong> stage.</p>
-
-      <p>Cheers,<br />The CustomerOS Team</p>
-    </.email_layout>
-    """
-  end
-
-  defp multiple_leads_content(assigns) do
-    leads_with_company = Enum.map(assigns.leads, fn lead ->
-      company_name = get_company_name(lead.ref_id)
-      formatted_stage = format_stage(lead.stage)
-      Map.put(lead, :company_name, company_name)
-      |> Map.put(:formatted_stage, formatted_stage)
-    end)
-    assigns = Map.put(assigns, :leads_with_company, leads_with_company)
-
-    ~H"""
-    <.email_layout>
-      <p>Hey 👋</p>
-
-      <p>You have <%= length(@leads) %> new leads today:</p>
-
-      <ul>
-        <%= for lead <- @leads_with_company do %>
-          <li><strong><%= lead.company_name %></strong> (<%= lead.formatted_stage %>)</li>
-        <% end %>
-      </ul>
-
-      <p>Cheers,<br />The CustomerOS Team</p>
-    </.email_layout>
-    """
-  end
-
-  defp no_leads_content(assigns) do
-    ~H"""
-    <.email_layout>
-      <p>Hey 👋</p>
-
-      <p>No new leads today.</p>
+      <p>
+        Just one new lead for you today—<strong><%= @company_name %></strong>, sitting in the
+        <strong>{@formatted_stage}</strong>
+        stage.
+      </p>
 
       <p>Cheers,<br />The CustomerOS Team</p>
     </.email_layout>
@@ -354,31 +332,40 @@ defmodule Core.Crm.Leads.DailyLeadSummarySender do
   end
 
   defp multiple_leads_same_stage_content(assigns) do
-    leads_with_company = Enum.map(assigns.leads, fn lead ->
-      company_name = get_company_name(lead.ref_id)
-      formatted_stage = format_stage(lead.stage)
-      Map.put(lead, :company_name, company_name)
-      |> Map.put(:formatted_stage, formatted_stage)
-    end)
-    |> Enum.take(@max_companies_in_list)
+    leads_with_company =
+      Enum.map(assigns.leads, fn lead ->
+        company_name = get_company_name(lead.ref_id)
+        formatted_stage = format_stage(lead.stage)
+        Map.put(lead, :company_name, company_name)
+        |> Map.put(:formatted_stage, formatted_stage)
+      end)
+      |> Enum.take(@max_companies_in_list)
 
-    assigns = Map.merge(assigns, %{
-      leads_with_company: leads_with_company,
-      formatted_stage: format_stage(assigns.leads |> List.first() |> Map.get(:stage)),
-      base_url: @base_url
-    })
+    assigns =
+      Map.merge(assigns, %{
+        leads_with_company: leads_with_company,
+        formatted_stage:
+          format_stage(assigns.leads |> List.first() |> Map.get(:stage)),
+        base_url: @base_url
+      })
 
     ~H"""
     <.email_layout>
       <p>Hey 👋</p>
 
-      <p>We added <%= length(@leads) %> new leads to your pipeline in the <strong><%= @formatted_stage %></strong> stage over the past 24 hours:</p>
+      <p>
+        We added {length(@leads)} new leads to your pipeline in the
+        <strong>{@formatted_stage}</strong>
+        stage over the past 24 hours:
+      </p>
 
-      <ul style="list-style-type: none; padding-left: 0;">
-        <%= for lead <- @leads_with_company do %>
-          <li style="margin-bottom: 0.5em;">• <%= lead.company_name %></li>
-        <% end %>
-      </ul>
+      <div style="margin: 0.5em 0;">
+        <ul style="list-style-type: none; padding-left: 0; margin: 0;">
+          <%= for lead <- @leads_with_company do %>
+            <li style="margin: 0;">• {lead.company_name}</li>
+          <% end %>
+        </ul>
+      </div>
 
       <p><a href={@base_url}>See all leads</a></p>
 
@@ -390,7 +377,9 @@ defmodule Core.Crm.Leads.DailyLeadSummarySender do
   defp multiple_leads_mixed_stages_content(assigns) do
     # Group leads by stage and count them
     leads_by_stage = Enum.group_by(assigns.leads, & &1.stage)
-    stage_counts = Map.new(leads_by_stage, fn {stage, leads} -> {stage, length(leads)} end)
+
+    stage_counts =
+      Map.new(leads_by_stage, fn {stage, leads} -> {stage, length(leads)} end)
 
     # Get companies for the last stage that has leads
     last_stage_with_leads =
@@ -400,39 +389,46 @@ defmodule Core.Crm.Leads.DailyLeadSummarySender do
 
     companies_for_last_stage =
       case last_stage_with_leads do
-        nil -> []
+        nil ->
+          []
+
         stage ->
           leads_by_stage[stage]
           |> Enum.map(fn lead -> get_company_name(lead.ref_id) end)
           |> Enum.take(@max_companies_in_list)
       end
 
-    assigns = Map.merge(assigns, %{
-      stage_counts: stage_counts,
-      companies_for_last_stage: companies_for_last_stage,
-      base_url: @base_url,
-      stage_order: @stage_order
-    })
+    assigns =
+      Map.merge(assigns, %{
+        stage_counts: stage_counts,
+        companies_for_last_stage: companies_for_last_stage,
+        base_url: @base_url,
+        stage_order: @stage_order
+      })
 
     ~H"""
     <.email_layout>
       <p>Hey 👋</p>
 
-      <p>We added <%= length(@leads) %> high-fit leads to your pipeline in the past 24 hours. Here's a quick breakdown:</p>
+      <p>
+        We added {length(@leads)} high-fit leads to your pipeline in the past 24 hours. Here's a quick breakdown:
+      </p>
 
-      <%= for stage <- @stage_order do %>
-        <% count = Map.get(@stage_counts, stage, 0) %>
-        <%= if count > 0 do %>
-          <p><strong><%= format_stage(stage) %></strong>: <%= count %></p>
+      <div style="margin: 0.5em 0;">
+        <%= for stage <- @stage_order do %>
+          <% count = Map.get(@stage_counts, stage, 0) %>
+          <%= if count > 0 do %><p style="margin: 0; padding-bottom: 4px;"><strong><%= format_stage(stage) %></strong>: {count}</p><% end %>
         <% end %>
-      <% end %>
+      </div>
 
       <%= if length(@companies_for_last_stage) > 0 do %>
-        <ul style="list-style-type: none; padding-left: 0;">
-          <%= for company <- @companies_for_last_stage do %>
-            <li style="margin-bottom: 0.5em;">• <%= company %></li>
-          <% end %>
-        </ul>
+        <div style="margin: 0.5em 0;">
+          <ul style="list-style-type: none; padding-left: 0; margin: 0;">
+            <%= for company <- @companies_for_last_stage do %>
+              <li style="margin: 0;">• {company}</li>
+            <% end %>
+          </ul>
+        </div>
       <% end %>
 
       <p><a href={@base_url}>See all leads</a></p>
@@ -451,14 +447,12 @@ defmodule Core.Crm.Leads.DailyLeadSummarySender do
         length(leads) > 1 ->
           # Check if all leads have the same stage
           stages = Enum.map(leads, & &1.stage) |> Enum.uniq()
+
           if length(stages) == 1 do
             multiple_leads_same_stage_content(%{leads: leads})
           else
             multiple_leads_mixed_stages_content(%{leads: leads})
           end
-
-        true ->
-          no_leads_content(%{})
       end
 
     html = heex_to_html(template)
