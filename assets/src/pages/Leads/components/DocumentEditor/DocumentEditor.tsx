@@ -17,21 +17,17 @@ import { Lead, Tenant, User } from 'src/types';
 import { PageProps } from '@inertiajs/core';
 import { FeaturedIcon } from 'src/components/FeaturedIcon/FeaturedIcon';
 
-interface DocumentEditorProps {
-  selectedLead: string | null;
-}
-
-export const DocumentEditor = ({ selectedLead }: DocumentEditorProps) => {
+export const DocumentEditor = () => {
   const page = usePage<PageProps & { tenant: Tenant; currentUser: User; companies: Lead[] }>();
   const [viewMode, setViewMode] = useState('default');
-  const docId = new URLSearchParams(window.location.search).get('doc');
+  const leadId = new URLSearchParams(window.location.search).get('lead');
   const urlViewMode = new URLSearchParams(window.location.search).get('viewMode');
 
   const { presentUsers, currentUserId } = usePresence();
 
   const currentLead = useMemo(() => {
-    return page.props.companies.find(c => c.id === selectedLead);
-  }, [page.props.companies, selectedLead]);
+    return page.props.companies.find(c => c.id === leadId);
+  }, [page.props.companies, leadId]);
 
   const presenceUser = useMemo(() => {
     const found = presentUsers.find(u => u.user_id === currentUserId);
@@ -64,7 +60,7 @@ export const DocumentEditor = ({ selectedLead }: DocumentEditorProps) => {
 
   const closeEditor = () => {
     const params = new URLSearchParams(window.location.search);
-    params.delete('doc');
+    params.delete('lead');
     params.delete('viewMode');
     router.visit('/leads', {
       preserveState: true,
@@ -75,7 +71,7 @@ export const DocumentEditor = ({ selectedLead }: DocumentEditorProps) => {
 
   const copyDocumentLink = () => {
     const url = window.location.host;
-    navigator.clipboard.writeText(`${url}/documents/${docId}`);
+    navigator.clipboard.writeText(`${url}/documents/${currentLead?.document_id}`);
     toastSuccess('Document link copied', 'document-link-copied');
   };
 
@@ -100,7 +96,7 @@ export const DocumentEditor = ({ selectedLead }: DocumentEditorProps) => {
                         <Icon name="building-06" />
                       </div>
                     )}
-                    <p className="text-sm font-medium text-gray-900 truncate">
+                    <p className="text-[16px] font-medium text-gray-900 truncate">
                       {currentLead?.name} Account Brief
                     </p>
                     {currentLead?.icp_fit === 'strong' && (
@@ -124,7 +120,7 @@ export const DocumentEditor = ({ selectedLead }: DocumentEditorProps) => {
                     aria-label="download document"
                     icon={<Icon name="download-02" />}
                   /> */}
-                  {docId && (
+                  {currentLead?.document_id && (
                     <>
                       <IconButton
                         size="xs"
@@ -154,14 +150,15 @@ export const DocumentEditor = ({ selectedLead }: DocumentEditorProps) => {
                 </div>
               </div>
 
-              {docId ? (
+              {currentLead?.document_id ? (
                 <Editor
-                  documentId={docId}
+                  documentId={currentLead?.document_id}
                   useYjs={true}
                   namespace="leads"
                   size="sm"
+                  placeholder=""
                   user={presenceUser}
-                  key={docId}
+                  key={currentLead?.document_id}
                 />
               ) : (
                 <div className="flex items-center justify-start flex-col h-full">

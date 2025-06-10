@@ -1,4 +1,4 @@
-import { useState, lazy, useCallback, useMemo } from 'react';
+import { useState, lazy, useCallback, useMemo, useEffect } from 'react';
 import { router } from '@inertiajs/react';
 
 import { cn } from 'src/utils/cn';
@@ -80,6 +80,13 @@ export default function Leads({ companies }: LeadsProps) {
       preserveScroll: true,
     });
   }, []);
+
+  useEffect(() => {
+    if (viewMode === 'focus' && !currentLeadId) {
+      params.delete('viewMode');
+      router.visit('/leads');
+    }
+  }, [hasLeadParam, currentLeadId]);
 
   return (
     <RootLayout>
@@ -206,7 +213,12 @@ export default function Leads({ companies }: LeadsProps) {
                                     </div>
                                   ) : (
                                     <div className="size-6 flex items-center justify-center border border-gray-200 rounded flex-shrink-0">
-                                      <Icon name="building-06" />
+                                      <Icon
+                                        name="building-06"
+                                        onClick={() => {
+                                          handleOpenLead(c);
+                                        }}
+                                      />
                                       {c?.icp_fit === 'strong' && (
                                         <Icon
                                           name="flame"
@@ -264,10 +276,10 @@ export default function Leads({ companies }: LeadsProps) {
                 hasLeadParam
                   ? 'opacity-100 w-[100%] md:w-[728px] translate-x-[0px]'
                   : 'opacity-0 w-[0px] translate-x-[728px]',
-                viewMode === 'focus' && 'w-full border-transparent'
+                viewMode === 'focus' && 'w-full md:w-full border-transparent'
               )}
             >
-              <DocumentEditor selectedLead={currentLeadId} />
+              <DocumentEditor />
             </div>
           </div>
         </div>

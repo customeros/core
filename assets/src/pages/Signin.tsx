@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { useForm, usePage, router } from '@inertiajs/react';
+import { useForm } from '@inertiajs/react';
 
 import { RootLayout } from '../layouts/Root';
 import { Input } from '../components/Input';
