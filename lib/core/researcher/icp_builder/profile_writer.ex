@@ -31,7 +31,7 @@ defmodule Core.Researcher.IcpBuilder.ProfileWriter do
     with {:ok, pages} <-
            Webpages.get_business_pages_by_domain(
              domain,
-             limit: 10
+             limit: 8
            ),
          {system_prompt, prompt} <- build_prompts(domain, pages) do
       ask_ai_for_icp(build_request(system_prompt, prompt))

@@ -49,7 +49,7 @@ defmodule Web.IcpController do
   end
 
   defp handle_icp_request(conn, %{"domain" => domain}) do
-    case Core.Researcher.IcpBuilder.build_icp(domain) do
+    case Core.Researcher.IcpBuilder.build_icp_fast(domain) do
       {:ok, icp} ->
         conn
         |> put_status(:ok)
