@@ -6,7 +6,10 @@
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1",
     "codegen": "tsx scripts/codegen-tw.ts",
-    "deploy": "NODE_ENV=production npm run codegen && tailwindcss -i css/app.css -o ../priv/static/assets/app.css --minify"
+    "deploy": "NODE_ENV=production npm run codegen && tailwindcss -i css/app.css -o ../priv/static/assets/app.css --minify",
+    "lint": "eslint . --ext .ts,.tsx",
+    "lint:fix": "eslint . --ext .ts,.tsx --fix",
+    "prepare": "husky"
   },
   "private": "true",
   "dependencies": {
@@ -14,12 +17,12 @@
     "@inertiajs/react": "^1.2.0",
     "@lexical/link": "^0.19.0",
     "@lexical/react": "^0.19.0",
+    "@radix-ui/react-alert-dialog": "^1.0.5",
     "@radix-ui/react-avatar": "^1.0.4",
     "@radix-ui/react-collapsible": "^1.1.11",
     "@radix-ui/react-popover": "^1.0.7",
     "@radix-ui/react-scroll-area": "^1.0.5",
     "@radix-ui/react-tooltip": "^1.0.7",
-    "@radix-ui/react-alert-dialog": "^1.0.5",
     "axios": "^1.6.7",
     "class-variance-authority": "^0.7.0",
     "clsx": "^2.1.1",
@@ -32,11 +35,20 @@
     "yjs": "^13.6.24"
   },
   "devDependencies": {
+    "@stylistic/eslint-plugin": "^4.4.1",
     "@types/node": "^22.15.21",
     "@types/phoenix": "^1.6.4",
     "@types/react-dom": "^19.1.5",
-    "@typescript-eslint/eslint-plugin": "^7.2.0",
-    "@typescript-eslint/parser": "^7.2.0",
+    "@typescript-eslint/eslint-plugin": "^7.18.0",
+    "@typescript-eslint/parser": "^7.18.0",
+    "eslint": "^8.57.1",
+    "eslint-config-prettier": "^10.1.5",
+    "eslint-plugin-jsx-a11y": "^6.10.2",
+    "eslint-plugin-perfectionist": "^4.14.0",
+    "eslint-plugin-prettier": "^5.4.1",
+    "eslint-plugin-react": "^7.37.5",
+    "eslint-plugin-react-hooks": "^5.2.0",
+    "eslint-plugin-validate-jsx-nesting": "^0.1.1",
     "glob": "^11.0.2",
     "prettier": "^3.3.3",
     "tailwind-merge": "^2.2.1",

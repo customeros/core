@@ -98,7 +98,7 @@ export default function Leads({ companies }: LeadsProps) {
       params.delete('viewMode');
       router.visit('/leads');
     }
-  }, [hasLeadParam, currentLeadId]);
+  }, [hasLeadParam, currentLeadId, viewMode, params]);
 
   const heightCalc = useCallback(
     (count: number) => {
