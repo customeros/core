@@ -1,4 +1,4 @@
-import { useState, lazy, useCallback, useMemo, useEffect } from 'react';
+import { useState, lazy, useCallback, useMemo, useEffect, startTransition } from 'react';
 import { router } from '@inertiajs/react';
 
 import { cn } from 'src/utils/cn';
@@ -57,6 +57,18 @@ export default function Leads({ companies }: LeadsProps) {
   const params = new URLSearchParams(window.location.search);
   const currentLeadId = params.get('lead');
 
+  const stageCounts = useMemo(() => {
+    const counts = new Map<string, number>();
+    stages.forEach(stage => {
+      counts.set(stage.value, companies.filter(c => c.stage === stage.value).length);
+    });
+    return counts;
+  }, [companies]);
+
+  const maxCount = useMemo(() => {
+    return Math.max(...Array.from(stageCounts.values()));
+  }, [stageCounts]);
+
   const filteredCompanies = useMemo(
     () => (selectedStage ? companies.filter(c => c.stage === selectedStage) : companies),
     [selectedStage, companies]
@@ -88,6 +100,15 @@ export default function Leads({ companies }: LeadsProps) {
     }
   }, [hasLeadParam, currentLeadId]);
 
+  const heightCalc = useCallback(
+    (count: number) => {
+      return scrollProgress < 0.2
+        ? `${count ? Math.min((count / maxCount) * 100, 100) : 15}px`
+        : '20px';
+    },
+    [scrollProgress, maxCount]
+  );
+
   return (
     <RootLayout>
       <EventSubscriber />
@@ -100,13 +121,9 @@ export default function Leads({ companies }: LeadsProps) {
             <div className="flex-1 flex flex-col overflow-hidden">
               <div className="w-full items-center justify-center mb-2 mt-2 p-1 hidden md:flex max-w-[800px] mx-auto bg-primary-25 rounded-[8px] transition-all duration-200">
                 {stages.map((stage, index) => {
-                  const count = companies.filter(c => c.stage === stage.value).length;
-                  const prevCount = companies.filter(
-                    c => c.stage === stages[index - 1]?.value
-                  ).length;
-                  const nextCount = companies.filter(
-                    c => c.stage === stages[index + 1]?.value
-                  ).length;
+                  const count = stageCounts.get(stage.value) || 0;
+                  const prevCount = stageCounts.get(stages[index - 1]?.value) || 0;
+                  const nextCount = stageCounts.get(stages[index + 1]?.value) || 0;
 
                   return (
                     <div
@@ -121,10 +138,7 @@ export default function Leads({ companies }: LeadsProps) {
                         count === 0 && 'cursor-not-allowed hover:bg-primary-100'
                       )}
                       style={{
-                        height:
-                          scrollProgress < 0.2
-                            ? `${count ? Math.min((count / Math.max(...stages.map(s => companies.filter(c => c.stage === s.value).length))) * 100, 100) : 15}px`
-                            : '20px',
+                        height: heightCalc(count),
                         zIndex: 10 - index,
                         maxHeight: '100px',
                         minHeight: '20px',
@@ -150,12 +164,14 @@ export default function Leads({ companies }: LeadsProps) {
                 <ScrollAreaViewport
                   className="absolute"
                   onScroll={e => {
-                    if (e.target instanceof HTMLElement) {
-                      const scrollTop = e.target.scrollTop;
-                      const maxScroll = 200;
-                      const progress = Math.min(scrollTop / maxScroll, 1);
-                      setScrollProgress(progress);
-                    }
+                    startTransition(() => {
+                      if (e.target instanceof HTMLElement) {
+                        const scrollTop = e.target.scrollTop;
+                        const maxScroll = 200;
+                        const progress = Math.min(scrollTop / maxScroll, 1);
+                        setScrollProgress(progress);
+                      }
+                    });
                   }}
                 >
                   <div className="">
@@ -171,7 +187,7 @@ export default function Leads({ companies }: LeadsProps) {
                               params.size !== 0 && 'md:rounded-r-none'
                             )}
                             isSelected={isSelected(stage.value)}
-                            count={companies.filter(c => c.stage === stage.value).length}
+                            count={stageCounts.get(stage.value) || 0}
                             icon={<Icon name={stage.icon as IconName} className="text-gray-500" />}
                             handleClearFilter={() => {
                               setSelectedStage('');

@@ -273,4 +273,17 @@ defmodule Core.Auth.Tenants do
       path: "#{tenant.name}/workspace"
     })
   end
+
+  def get_all_tenants do
+    Repo.all(Tenant)
+    |> Enum.map(fn tenant ->
+      %{
+        id: tenant.id,
+        workspace_name: tenant.workspace_name,
+        name: tenant.name,
+        workspace_icon_key: Images.get_cdn_url(tenant.workspace_icon_key)
+      }
+    end)
+    |> Enum.sort_by(& &1.workspace_name)
+  end
 end

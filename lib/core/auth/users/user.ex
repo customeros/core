@@ -28,7 +28,8 @@ defmodule Core.Auth.Users.User do
              :confirmed_at,
              :tenant_id,
              :inserted_at,
-             :updated_at
+             :updated_at,
+             :admin
            ]}
   @primary_key {:id, :string, autogenerate: false}
   schema "users" do
@@ -37,7 +38,7 @@ defmodule Core.Auth.Users.User do
     field(:tenant_id, :string)
     field(:domain, :string, virtual: true)
     field(:tenant_name, :string, virtual: true)
-
+    field(:admin, :boolean, default: false)
     timestamps(type: :utc_datetime)
   end
 
@@ -49,7 +50,8 @@ defmodule Core.Auth.Users.User do
           domain: String.t() | nil,
           tenant_name: String.t() | nil,
           inserted_at: DateTime.t(),
-          updated_at: DateTime.t()
+          updated_at: DateTime.t(),
+          admin: boolean()
         }
 
   @doc """

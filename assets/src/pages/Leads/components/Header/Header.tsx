@@ -66,8 +66,16 @@ export const Header = () => {
 
         <div className="flex justify-between items-center border-b border-gray-200 w-full 2xl:w-[1440px] 2xl:mx-auto py-2 px-4">
           <div className="flex items-center gap-2">
-            <TenantSwitcher>
-              <div className="flex items-center gap-2 cursor-pointer">
+            <TenantSwitcher
+              currentTenant={page.props.tenant.id}
+              isAdmin={page.props.currentUser.admin}
+            >
+              <div
+                className={cn(
+                  'flex items-center gap-2 cursor-pointer',
+                  !page.props.currentUser.admin && 'cursor-default'
+                )}
+              >
                 {worksspaceLogo ? (
                   <img src={worksspaceLogo} alt="Workspace logo" className="size-6 rounded-full" />
                 ) : (
