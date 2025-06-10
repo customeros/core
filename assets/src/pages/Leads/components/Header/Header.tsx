@@ -22,13 +22,6 @@ import { cn } from 'src/utils/cn';
 import { Avatar } from 'src/components/Avatar';
 import { Tooltip } from 'src/components/Tooltip';
 import { toastSuccess } from 'src/components/Toast';
-import { IconButton } from 'src/components/IconButton';
-
-const defaultIconSet = [
-  'https://images.cust.cx/_companies/img_6qggfu0eyp2ixcillgd5t.jpg',
-  'https://images.cust.cx/_companies/img_ml571h9vzoqtykm4r74tc.jpg',
-  'https://images.cust.cx/_companies/img_ph7o54ooitopkynfs5p62.jpg',
-];
 
 export const Header = () => {
   const [createdLeadIcons, setCreatedLeadIcons] = useState<string[]>([]);
@@ -60,7 +53,7 @@ export const Header = () => {
   }, [createdLeadIcons]);
 
   const headIcons = useMemo(() => {
-    return createdLeadIcons.slice(0, 3).map((v, index) => v || defaultIconSet[index]);
+    return createdLeadIcons.slice(0, 3).filter(Boolean);
   }, [createdLeadIcons]);
 
   const leadsMessage = leadCount > 1 ? 'leads' : 'lead';
@@ -81,7 +74,7 @@ export const Header = () => {
             ) : (
               <div className="size-6 rounded-full bg-[url('/images/customeros.png')] bg-cover bg-center" />
             )}
-            <h1 className="text-sm font-medium">{workspaceName || 'CustomerOS'}</h1>
+            <h1 className="text-[16px] font-medium">{workspaceName || 'CustomerOS'}</h1>
           </div>
           <div className="flex items-center gap-2">
             <Tooltip label="Invite team">
@@ -124,7 +117,7 @@ export const Header = () => {
         {createdLeadIcons.length > 0 && (
           <div
             onClick={handleClick}
-            className="absolute top-[120px] left-1/2 transform -translate-x-1/2 z-[10000] px-4 py-3 rounded-full bg-white shadow-lg cursor-pointer"
+            className="fixed top-[20px] left-1/2 transform -translate-x-1/2 z-[10000] px-4 py-3 rounded-full bg-white shadow-lg cursor-pointer"
           >
             <div className="flex items-center gap-2">
               {headIcons.map((icon, index) =>

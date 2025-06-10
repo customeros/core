@@ -49,14 +49,13 @@ import clsx from 'clsx';
 import { LinkPastePlugin } from './plugins/PastePlugin.tsx';
 
 const theme: EditorThemeClasses = {
-  paragraph: 'my-3',
+  paragraph: 'mb-2',
   heading: {
-    h1: 'text-2xl font-bold my-3',
-    h2: 'text-xl font-bold my-2.5',
-    h3: 'text-lg font-bold my-2',
-    h4: 'text-base font-bold my-2',
-    h5: 'text-sm font-bold my-1.5',
-    h6: 'text-xs font-bold my-1.5',
+    h1: 'text-lg font-bold mb-4',
+    h2: 'text-md font-bold mb-3',
+    h3: 'text-sm font-bold mb-2',
+    h4: 'text-sm font-medium mb-2',
+    h5: 'text-sm font-medium mb-2',
   },
   list: {
     ulDepth: [
@@ -70,8 +69,8 @@ const theme: EditorThemeClasses = {
     nested: {
       listitem: 'editor__nestedListItem list-none',
     },
-    ol: 'p-0 m-0 list-outside list-decimal',
-    ul: 'p-0 m-0 list-outside',
+    ol: 'p-0 m-0 list-outside list-decimal mb-2',
+    ul: 'p-0 m-0 list-outside mb-2',
     listitem: 'ml-8',
     olDepth: [
       'p-0 m-0 list-outside',

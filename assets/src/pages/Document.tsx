@@ -27,14 +27,20 @@ export default function Document({ document, lead }: DocumentProps) {
           <div className="relative w-full h-full bg-white px-6">
             <div className="relative bg-white h-full mx-auto pt-[2px] w-full md:min-w-[680px] max-w-[680px]">
               <div className="flex items-center justify-between mt-[1px]">
-                <div className="flex items-center w-full justify-start  mb-3 gap-2">
-                  <img
-                    className="size-6 object-contain border border-gray-200 rounded flex-shrink-0"
-                    loading="lazy"
-                    src={icon}
-                    alt="Lead icon"
-                  />
-                  <p className="text-sm font-medium text-gray-900">{name}</p>
+                <div className="flex items-center w-full justify-start mb-3 gap-2">
+                  {icon ? (
+                    <img
+                      className="size-6 object-contain border border-gray-200 rounded flex-shrink-0"
+                      loading="lazy"
+                      src={icon}
+                      alt="Lead icon"
+                    />
+                  ) : (
+                    <div className="size-6 flex items-center justify-center border border-gray-200 rounded flex-shrink-0">
+                      <Icon name="building-06" />
+                    </div>
+                  )}
+                  <p className="text-[16px] font-medium text-gray-900">{name}</p>
                   {strongFit && (
                     <div className="bg-error-100 w-fit px-2 py-1 rounded-[4px] max-w-[100px] truncate flex items-center gap-1">
                       <Icon name="flame" className="w-[14px] h-[14px] text-error-500" />
