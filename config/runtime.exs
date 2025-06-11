@@ -163,7 +163,7 @@ config :core, :slack,
     get_env.("SLACK_DAILY_LEAD_SUMMARY_WEBHOOK_URL", nil),
   crash_webhook_url: get_env.("SLACK_CRASH_WEBHOOK_URL", nil),
   error_webhook_url: get_env.("SLACK_CRASH_WEBHOOK_URL", nil),
-  alerts_prospects_url: get_env.("SLACK_PROSPECTS_ALERT_URL", nil)
+  alerts_prospects_webhook_url: get_env.("SLACK_PROSPECTS_ALERT_URL", nil)
 
 config :core, :mailsherpa,
   mailsherpa_api_url: get_env.("MAILSHERPA_API_URL", nil),
