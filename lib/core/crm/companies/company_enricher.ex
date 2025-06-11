@@ -20,8 +20,8 @@ defmodule Core.Crm.Companies.CompanyEnricher do
   alias Core.Utils.CronLocks
   alias Core.Utils.Cron.CronLock
 
-  # 2 minutes
-  @default_interval_ms 2 * 60 * 1000
+  # 1 minutes
+  @default_interval_ms 1 * 60 * 1000
   # 15 minutes
   @long_interval_ms 15 * 60 * 1000
   @default_batch_size 5
@@ -74,7 +74,7 @@ defmodule Core.Crm.Companies.CompanyEnricher do
 
           # Schedule the next check - use default interval if either enrichment hit the batch size
           next_interval_ms =
-            if num_companies_for_icon_enrichment == @default_batch_size or
+            if num_companies_for_icon_enrichment == @default_batch_size_icons or
                  num_companies_for_name_enrichment == @default_batch_size or
                  num_companies_for_country_enrichment == @default_batch_size or
                  num_companies_for_industry_enrichment == @default_batch_size or
