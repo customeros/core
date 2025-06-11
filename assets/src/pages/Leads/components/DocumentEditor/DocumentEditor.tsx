@@ -168,6 +168,7 @@ export const DocumentEditor = () => {
                   placeholder=""
                   namespace="leads"
                   user={presenceUser}
+                  user_id={currentUserId}
                   key={currentLead?.document_id}
                   documentId={currentLead?.document_id}
                 />

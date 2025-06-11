@@ -145,6 +145,7 @@ interface EditorProps extends VariantProps<typeof contentEditableVariants> {
     username: string;
     cursorColor: string;
   };
+  user_id?: string;
   onKeyDown?: (e: React.KeyboardEvent<HTMLDivElement>) => void;
   onUndoStateChange?: (canUndo: boolean, canRedo: boolean) => void;
   undoRef?: React.RefObject<{
@@ -177,6 +178,7 @@ export const Editor = forwardRef<LexicalEditor | null, EditorProps>(
       onKeyDown,
       useYjs = false,
       user,
+      user_id,
       placeholder = 'Type something',
       showToolbarBottom = false,
       isReadOnly = false,
@@ -274,6 +276,7 @@ export const Editor = forwardRef<LexicalEditor | null, EditorProps>(
 
         const provider = new PhoenixChannelProvider(socket!, `documents:${id}`, doc, {
           disableBc: true,
+          params: {user_id}
         });
 
         provider.on('status', e => {

@@ -20,15 +20,19 @@ defmodule Web.Channels.DocumentsChannel do
   require Logger
 
   alias Yex.Sync.SharedDoc
+  alias Core.Stats
 
   @impl true
-  def join("documents:" <> doc_name, _payload, socket) do
+  def join("documents:" <> doc_name, payload, socket) do
     # TODO: code for authorization is commented until implemented
     #    if authorized?(payload) do
     case start_shared_doc(doc_name) do
       {:ok, docpid} ->
         Process.monitor(docpid)
         SharedDoc.observe(docpid)
+
+        Stats.register_event_start(payload.user_id, :view_document)
+
         {:ok, socket |> assign(doc_name: doc_name, doc_pid: docpid)}
 
       {:error, reason} ->
