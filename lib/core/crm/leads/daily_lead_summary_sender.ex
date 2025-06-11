@@ -4,7 +4,7 @@ defmodule Core.Crm.Leads.DailyLeadSummarySender do
 
   This module:
   * Runs daily at 6am UTC
-  * Collects leads created in the past 24 hours that are ICP fit (strong or moderate)
+  * Collects leads created in the last 24 hours that are ICP fit (strong or moderate)
   * Groups leads by tenant
   * Prepares and sends email summaries per tenant
   * Uses cron locking to prevent multiple executions
@@ -168,10 +168,10 @@ defmodule Core.Crm.Leads.DailyLeadSummarySender do
 
   def process_daily_summaries do
     OpenTelemetry.Tracer.with_span "daily_lead_summary_sender.process_daily_summaries" do
-      # Get leads from the past 24 hours that are ICP fit
+      # Get leads from the last 24 hours that are ICP fit
       leads = fetch_recent_icp_fit_leads()
 
-      Logger.info("Found #{length(leads)} ICP fit leads in the past 24 hours")
+      Logger.info("Found #{length(leads)} ICP fit leads in the last 24 hours")
 
       # Group leads by tenant
       leads_by_tenant = Enum.group_by(leads, & &1.tenant_id)
@@ -413,7 +413,7 @@ defmodule Core.Crm.Leads.DailyLeadSummarySender do
       <p>Hey 👋</p>
 
       <p>
-        Just one new lead for you today—<strong><%= @company_name %></strong>, sitting in the
+        You’ve got one new lead today: <strong><%= @company_name %></strong>, currently in the
         <strong>{@formatted_stage}</strong>
         stage.
       </p>
@@ -448,7 +448,7 @@ defmodule Core.Crm.Leads.DailyLeadSummarySender do
       <p>
         We added {length(@leads)} new leads to your pipeline in the
         <strong>{@formatted_stage}</strong>
-        stage over the past 24 hours:
+        stage in the last 24 hours:
       </p>
 
       <div style="margin: 0.5em 0;">
@@ -459,7 +459,7 @@ defmodule Core.Crm.Leads.DailyLeadSummarySender do
         </ul>
       </div>
 
-      <p><a href={@base_url}>See all leads</a></p>
+      <p>👉 <a href={@base_url}>See all leads</a></p>
 
       <p>Cheers,<br />The CustomerOS Team</p>
     </.email_layout>
@@ -503,7 +503,7 @@ defmodule Core.Crm.Leads.DailyLeadSummarySender do
       <p>Hey 👋</p>
 
       <p>
-        We added {length(@leads)} high-fit leads to your pipeline in the past 24 hours. Here's a quick breakdown:
+        We added {length(@leads)} high-fit leads to your pipeline in the last 24 hours.
       </p>
 
       <div style="margin: 0.5em 0;">
@@ -512,6 +512,8 @@ defmodule Core.Crm.Leads.DailyLeadSummarySender do
           <%= if count > 0 do %><p style="margin: 0; padding-bottom: 4px;"><strong><%= format_stage(stage) %></strong>: {count}</p><% end %>
         <% end %>
       </div>
+
+      <p>A few from today's batch:</p>
 
       <%= if length(@companies_for_last_stage) > 0 do %>
         <div style="margin: 0.5em 0;">
@@ -523,7 +525,7 @@ defmodule Core.Crm.Leads.DailyLeadSummarySender do
         </div>
       <% end %>
 
-      <p><a href={@base_url}>See all leads</a></p>
+      <p>👉 <a href={@base_url}>See all leads</a></p>
 
       <p>Cheers,<br />The CustomerOS Team</p>
     </.email_layout>
