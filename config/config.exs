@@ -59,6 +59,13 @@ config :core,
   ai: [
     anthropic_api_path: "https://api.anthropic.com/v1/messages",
     default_llm_timeout: 45_000
+  ],
+  analytics: [
+    posthog_key: System.get_env("POSTHOG_KEY"),
+    posthog_host: System.get_env("POSTHOG_HOST", "https://app.posthog.com")
+  ],
+  support: [
+    atlas_app_id: System.get_env("ATLAS_APP_ID")
   ]
 
 # Esbuild configuration

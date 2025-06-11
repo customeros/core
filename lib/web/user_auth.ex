@@ -440,4 +440,38 @@ defmodule Web.UserAuth do
       "users_sessions:#{Base.url_encode64(token)}"
     )
   end
+
+  @doc """
+  Decorates the request with global application state.
+  This includes analytics configuration, support tools, and other global props.
+  """
+  def decorate_request(conn, _opts) do
+    analytics_config = Application.get_env(:core, :analytics)
+    support_config = Application.get_env(:core, :support)
+
+    conn
+    |> assign_prop(:analytics, %{
+      posthogKey: analytics_config[:posthog_key],
+      posthogHost: analytics_config[:posthog_host]
+    })
+    |> assign_prop(:support, %{
+      atlasAppId: support_config[:atlas_app_id]
+    })
+    |> maybe_assign_user()
+  end
+
+  @doc """
+  Assigns user data to the connection if a user is logged in.
+  Only includes necessary user data for analytics and identification.
+  """
+  defp maybe_assign_user(conn) do
+    case conn.assigns[:current_user] do
+      %{email: email} when is_binary(email) ->
+        assign_prop(conn, :user, %{
+          email: email
+        })
+      _ ->
+        conn
+    end
+  end
 end

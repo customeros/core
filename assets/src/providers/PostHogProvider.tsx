@@ -1,18 +1,12 @@
-import posthog from 'posthog-js';
 import { createContext, useContext, useEffect, type ReactNode } from 'react';
+import posthog from 'posthog-js';
+import { usePage } from '@inertiajs/react';
 
-// Initialize PostHog
-posthog.init(process.env.POSTHOG_KEY || '', {
-  api_host: process.env.POSTHOG_HOST || 'https://app.posthog.com',
-  defaults: '2025-05-24',
-  person_profiles: 'identified_only',
-  loaded: (posthog) => {
-    if (process.env.NODE_ENV === 'development') posthog.debug();
-  },
-});
+interface PostHogContextType {
+  capture: (event: string, properties?: Record<string, any>) => void;
+}
 
-// Create context
-const PostHogContext = createContext<typeof posthog | null>(null);
+const PostHogContext = createContext<PostHogContextType | null>(null);
 
 export const usePostHog = () => {
   const context = useContext(PostHogContext);
@@ -27,15 +21,53 @@ interface PostHogProviderProps {
 }
 
 export const PostHogProvider = ({ children }: PostHogProviderProps) => {
+  const { props } = usePage();
+  const analytics = props.analytics as { posthogKey: string; posthogHost: string } | undefined;
+  const user = props.user as { email: string } | undefined;
+
   useEffect(() => {
-    // Cleanup on unmount
+    try {
+      if (!analytics?.posthogKey) {
+        console.warn('PostHog key is not defined. Analytics will be disabled.');
+        return;
+      }
+
+      // Initialize PostHog
+      posthog.init(analytics.posthogKey, {
+        api_host: analytics.posthogHost || 'https://app.posthog.com',
+        defaults: '2025-05-24',
+        person_profiles: 'identified_only',
+        debug: process.env.NODE_ENV === 'development',
+        loaded: (posthog) => {
+          if (process.env.NODE_ENV === 'development') posthog.debug();
+        }
+      });
+
+      // Identify user if available
+      if (user?.email) {
+        posthog.identify(user.email, {
+          email: user.email
+        });
+      }
+    } catch (error) {
+      console.error('Error initializing PostHog:', error);
+    }
+
     return () => {
       posthog.opt_out_capturing();
     };
-  }, []);
+  }, [analytics, user]);
+
+  const capture = (event: string, properties?: Record<string, any>) => {
+    try {
+      posthog.capture(event, properties);
+    } catch (error) {
+      console.error('Error capturing PostHog event:', error);
+    }
+  };
 
   return (
-    <PostHogContext.Provider value={posthog}>
+    <PostHogContext.Provider value={{ capture }}>
       {children}
     </PostHogContext.Provider>
   );
