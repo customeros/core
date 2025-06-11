@@ -55,11 +55,7 @@ defmodule Core.Researcher.IcpProfiles do
 
       case Repo.get_by(Profile, tenant_id: tenant_id) do
         %Profile{} = icp ->
-          {:ok,
-           %{
-             profile: icp.profile,
-             qualifying_attributes: icp.qualifying_attributes
-           }}
+          {:ok, icp}
 
         nil ->
           Tracing.error(:not_found)
