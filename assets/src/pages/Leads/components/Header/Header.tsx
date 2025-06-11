@@ -220,10 +220,10 @@ export const Header = () => {
             </ModalHeader>
             <ModalCloseButton />
             <ModalBody className="flex flex-col gap-2">
-              <p>{page.props?.profile.profile}</p>
+              <p>{page.props?.profile?.profile}</p>
               <p className="text-sm font-medium">Qualifying criteria</p>
               <ul className="list-disc pl-4 flex flex-col gap-0 text-sm">
-                {page.props?.profile.qualifyingAttributes?.map(attribute => (
+                {page.props?.profile?.qualifyingAttributes?.map(attribute => (
                   <li key={attribute}>{attribute}</li>
                 ))}
               </ul>
