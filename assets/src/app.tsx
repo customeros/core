@@ -1,6 +1,7 @@
 import { lazy } from 'react';
 import { createRoot } from 'react-dom/client';
 import { createInertiaApp } from '@inertiajs/react';
+import { PostHogProvider } from './providers/PostHogProvider';
 
 import axios from 'axios';
 
@@ -25,6 +26,10 @@ createInertiaApp({
     return await pages[name as keyof typeof pages];
   },
   setup({ App, el, props }) {
-    createRoot(el).render(<App {...props} />);
+    createRoot(el).render(
+      <PostHogProvider>
+        <App {...props} />
+      </PostHogProvider>
+    );
   },
 });
