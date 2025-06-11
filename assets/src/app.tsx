@@ -1,5 +1,3 @@
-import type { PageProps } from '@inertiajs/core';
-
 import { lazy } from 'react';
 import { createRoot } from 'react-dom/client';
 import { createInertiaApp } from '@inertiajs/react';
@@ -27,18 +25,8 @@ const pages = {
 };
 
 createInertiaApp({
-  resolve: async name => {
-    return await pages[name as keyof typeof pages];
-  },
+  resolve: name => pages[name as keyof typeof pages],
   setup({ App, el, props }) {
-    const root = createRoot(el);
-
-    root.render(
-      <App {...props}>
-        {(pageProps: { props: PageProps; Component: React.ComponentType<PageProps> }) => (
-          <pageProps.Component {...pageProps.props} />
-        )}
-      </App>
-    );
+    createRoot(el).render(<App {...props} />);
   },
 });
