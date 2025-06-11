@@ -25,6 +25,7 @@ defmodule Core.Crm.Companies.CompanyEnricher do
   # 15 minutes
   @long_interval_ms 15 * 60 * 1000
   @default_batch_size 5
+  @default_batch_size_icons 50
   # Duration in minutes after which a lock is considered stuck
   @stuck_lock_duration_minutes 30
 
@@ -106,11 +107,11 @@ defmodule Core.Crm.Companies.CompanyEnricher do
   defp enrich_companies_icon() do
     OpenTelemetry.Tracer.with_span "company_enricher.enrich_companies_icon" do
       companies_for_icon_enrichment =
-        fetch_companies_for_icon_enrichment(@default_batch_size)
+        fetch_companies_for_icon_enrichment(@default_batch_size_icons)
 
       OpenTelemetry.Tracer.set_attributes([
         {"companies.found", length(companies_for_icon_enrichment)},
-        {"batch.size", @default_batch_size}
+        {"batch.size", @default_batch_size_icons}
       ])
 
       # Enrich each company's icon
