@@ -2,7 +2,10 @@ defmodule Web.IcpController do
   use Web, :controller
   require OpenTelemetry.Tracer
 
-  alias Core.Researcher.IcpProfiles
+  require Logger
+  alias Core.Utils.Media.Images
+  alias Core.Utils.PrimaryDomainFinder
+  alias Core.Crm.Companies
   alias Core.Researcher.IcpBuilder
 
   @rate_limit_table :icp_rate_limit
@@ -52,23 +55,10 @@ defmodule Web.IcpController do
   end
 
   defp handle_icp_request(conn, %{"domain" => domain}) do
-    case IcpBuilder.build_icp_fast(domain) do
-      {:ok, %IcpProfiles.Profile{} = profile} ->
-        response_data = %{
-          domain: profile.domain,
-          profile: profile.profile,
-          qualifying_attributes: profile.qualifying_attributes
-        }
-
-        conn
-        |> put_status(:ok)
-        |> json(response_data)
-
-      {:error, _reason} ->
-        conn
-        |> put_status(:internal_server_error)
-        |> json(%{error: "Cannot process request at this time."})
-    end
+    domain
+    |> PrimaryDomainFinder.get_primary_domain()
+    |> get_company()
+    |> process_response(conn)
   end
 
   defp handle_icp_request(conn, _params) do
@@ -77,19 +67,70 @@ defmodule Web.IcpController do
     |> json(%{error: "Required parameters not set"})
   end
 
+  defp get_company({:error, reason}), do: {:error, reason}
+
+  defp get_company({:ok, primary_domain}) do
+    Companies.get_or_create_by_domain(primary_domain)
+  end
+
+  defp process_response({:error, reason}, conn) do
+    Logger.info("Returning error: #{reason}")
+    return_error({:error, reason}, conn)
+  end
+
+  defp process_response({:ok, company}, conn) do
+    Logger.info("building ICP...")
+
+    case IcpBuilder.build_icp_fast(company.primary_domain) do
+      {:error, reason} -> return_error({:error, reason}, conn)
+      {:ok, profile} -> respond(company.id, profile, conn)
+    end
+  end
+
+  defp respond(company_id, profile, conn) do
+    Logger.info("Responding...")
+
+    case Companies.get_by_id(company_id) do
+      {:ok, company} ->
+        response = %{
+          company_name: company.name,
+          logo: Images.get_cdn_url(company.icon_key),
+          domain: company.primary_domain,
+          profile: profile.profile,
+          qualifying_attributes: profile.qualifying_attributes
+        }
+
+        conn
+        |> put_status(:ok)
+        |> json(response)
+
+      {:error, :not_found} ->
+        Logger.error("Company not found: #{company_id}")
+
+        conn
+        |> put_status(:not_found)
+        |> json(%{error: "Company not found"})
+    end
+  end
+
+  defp return_error({:error, reason}, conn) do
+    Logger.error("Failed to handle ICP request: #{inspect(reason)}")
+
+    conn
+    |> put_status(:internal_server_error)
+    |> json(%{error: "Cannot process request at this time."})
+  end
+
   defp check_rate_limit(client_ip) do
     ensure_table_exists()
     now = System.system_time(:millisecond)
     key = "icp_api:#{client_ip}"
 
-    # Clean up old entries first
     cleanup_old_entries(key, now)
 
-    # Get current request count
     current_count = get_request_count(key, now)
 
     if current_count < @max_requests do
-      # Record this request
       :ets.insert(@rate_limit_table, {key, now})
       :ok
     else

@@ -58,10 +58,15 @@ defmodule Core.Crm.Companies.CompanyEnricher do
         %CronLock{} ->
           # Lock acquired, proceed with enrichment
           {_, num_companies_for_icon_enrichment} = enrich_companies_icon()
-          {_, num_companies_for_industry_enrichment} = enrich_companies_industry()
+
+          {_, num_companies_for_industry_enrichment} =
+            enrich_companies_industry()
+
           {_, num_companies_for_name_enrichment} = enrich_companies_name()
           {_, num_companies_for_country_enrichment} = enrich_companies_country()
-          {_, num_companies_for_homepage_scrape} = enrich_companies_homepage_scrape()
+
+          {_, num_companies_for_homepage_scrape} =
+            enrich_companies_homepage_scrape()
 
           # Release the lock after processing
           CronLocks.release_lock(:cron_company_enricher, lock_uuid)
@@ -82,11 +87,19 @@ defmodule Core.Crm.Companies.CompanyEnricher do
 
         nil ->
           # Lock not acquired, try to force release if stuck
-          Logger.info("Company enricher lock not acquired, attempting to release any stuck locks")
+          Logger.info(
+            "Company enricher lock not acquired, attempting to release any stuck locks"
+          )
 
-          case CronLocks.force_release_stuck_lock(:cron_company_enricher, @stuck_lock_duration_minutes) do
+          case CronLocks.force_release_stuck_lock(
+                 :cron_company_enricher,
+                 @stuck_lock_duration_minutes
+               ) do
             :ok ->
-              Logger.info("Successfully released stuck lock, will retry acquisition on next run")
+              Logger.info(
+                "Successfully released stuck lock, will retry acquisition on next run"
+              )
+
             :error ->
               Logger.info("No stuck lock found or could not release it")
           end
