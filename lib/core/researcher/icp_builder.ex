@@ -68,6 +68,10 @@ defmodule Core.Researcher.IcpBuilder do
   end
 
   def build_icp_fast(domain) do
+    Task.start(fn ->
+      Core.Notifications.Slack.notify_new_icp_request(domain)
+    end)
+
     case IcpProfiles.get_by_domain(domain) do
       {:ok, existing_profile} ->
         {:ok, existing_profile}
