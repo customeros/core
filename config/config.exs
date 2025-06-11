@@ -30,6 +30,7 @@ config :logger, :console,
     :company_domain,
     :email,
     :error,
+    :event_type,
     :function,
     :icp_fit,
     :lead_id,
@@ -43,7 +44,8 @@ config :logger, :console,
     :status,
     :tenant_id,
     :trace_id,
-    :url
+    :url,
+    :user_id
   ]
 
 # Phoenix

@@ -2,6 +2,7 @@ defmodule Web.AuthController do
   use Web, :controller
   alias Core.Auth.Users
   alias Core.Auth.Users.User
+  alias Core.Stats
 
   def index(conn, _params) do
     conn |> render_inertia("Signin")
@@ -43,6 +44,8 @@ defmodule Web.AuthController do
     case Users.get_user_by_email_token(token, "magic_link") do
       %User{} = user ->
         {:ok, user} = Users.confirm_user(user)
+
+        Stats.register_event_start(user.id, :login)
 
         conn
         |> put_flash(:info, "Logged in successfully.")

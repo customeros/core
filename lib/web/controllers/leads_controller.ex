@@ -2,6 +2,7 @@ defmodule Web.LeadsController do
   use Web, :controller
   require OpenTelemetry.Tracer
   alias Core.Crm.Leads
+  alias Core.Stats
   alias CSV
 
   def index(conn, _params) do
@@ -28,7 +29,7 @@ defmodule Web.LeadsController do
   end
 
   def download(conn, _params) do
-    %{tenant_id: tenant_id} = conn.assigns.current_user
+    %{tenant_id: tenant_id, id: user_id} = conn.assigns.current_user
     companies = Leads.list_view_by_tenant_id(tenant_id)
 
     base_url = "#{conn.scheme}://#{get_req_header(conn, "host")}"
@@ -66,6 +67,8 @@ defmodule Web.LeadsController do
       )
       |> Enum.to_list()
       |> Enum.join("\n")
+
+    Stats.register_event_start(user_id, :download_document)
 
     conn
     |> put_resp_content_type("text/csv")

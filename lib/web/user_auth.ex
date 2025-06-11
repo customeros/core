@@ -23,6 +23,7 @@ defmodule Web.UserAuth do
   alias Core.Auth.Users
   alias Core.Auth.ApiTokens
   alias Core.Auth.Tenants
+  alias Core.Stats
 
   # Make the remember me cookie valid for 60 days.
   # If you want bump or reduce this value, also change
@@ -49,6 +50,7 @@ defmodule Web.UserAuth do
 
     conn
     |> renew_session()
+    |> tap(fn _ -> Stats.register_event_start(user.id, :login) end)
     |> put_token_in_session(token)
     |> maybe_write_remember_me_cookie(token, params)
     |> redirect(to: user_return_to || signed_in_path(conn))
@@ -59,6 +61,7 @@ defmodule Web.UserAuth do
 
     conn
     |> renew_session()
+    |> tap(fn _ -> Stats.register_event_start(user.id, :login) end)
     |> put_token_in_session(token)
     |> maybe_write_remember_me_cookie(token, params)
     |> redirect(to: signed_up_path(conn))
