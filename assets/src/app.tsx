@@ -1,9 +1,8 @@
+import type { PageProps } from '@inertiajs/core';
+
 import { lazy } from 'react';
 import { createRoot } from 'react-dom/client';
 import { createInertiaApp } from '@inertiajs/react';
-import { PostHogProvider } from './providers/PostHogProvider';
-import { AtlasProvider } from './providers/AtlasProvider';
-import type { PageProps } from '@inertiajs/core';
 
 import axios from 'axios';
 
@@ -28,19 +27,16 @@ const pages = {
 };
 
 createInertiaApp({
-  resolve: async (name) => {
+  resolve: async name => {
     return await pages[name as keyof typeof pages];
   },
   setup({ App, el, props }) {
     const root = createRoot(el);
+
     root.render(
       <App {...props}>
-        {(pageProps: { Component: React.ComponentType<PageProps>; props: PageProps }) => (
-          <AtlasProvider>
-            <PostHogProvider>
-              <pageProps.Component {...pageProps.props} />
-            </PostHogProvider>
-          </AtlasProvider>
+        {(pageProps: { props: PageProps; Component: React.ComponentType<PageProps> }) => (
+          <pageProps.Component {...pageProps.props} />
         )}
       </App>
     );

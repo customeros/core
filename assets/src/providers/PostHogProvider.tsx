@@ -1,6 +1,8 @@
-import { createContext, useContext, useEffect, type ReactNode } from 'react';
-import posthog from 'posthog-js';
 import { usePage } from '@inertiajs/react';
+import { useEffect, useContext, createContext, type ReactNode } from 'react';
+/* eslint-disable @typescript-eslint/no-explicit-any */
+
+import posthog from 'posthog-js';
 
 interface PostHogContextType {
   capture: (event: string, properties?: Record<string, any>) => void;
@@ -10,9 +12,11 @@ const PostHogContext = createContext<PostHogContextType | null>(null);
 
 export const usePostHog = () => {
   const context = useContext(PostHogContext);
+
   if (!context) {
     throw new Error('usePostHog must be used within a PostHogProvider');
   }
+
   return context;
 };
 
@@ -29,6 +33,7 @@ export const PostHogProvider = ({ children }: PostHogProviderProps) => {
     try {
       if (!analytics?.posthogKey) {
         console.warn('PostHog key is not defined. Analytics will be disabled.');
+
         return;
       }
 
@@ -38,15 +43,15 @@ export const PostHogProvider = ({ children }: PostHogProviderProps) => {
         defaults: '2025-05-24',
         person_profiles: 'identified_only',
         debug: process.env.NODE_ENV === 'development',
-        loaded: (posthog) => {
+        loaded: posthog => {
           if (process.env.NODE_ENV === 'development') posthog.debug();
-        }
+        },
       });
 
       // Identify user if available
       if (user?.email) {
         posthog.identify(user.email, {
-          email: user.email
+          email: user.email,
         });
       }
     } catch (error) {
@@ -66,9 +71,5 @@ export const PostHogProvider = ({ children }: PostHogProviderProps) => {
     }
   };
 
-  return (
-    <PostHogContext.Provider value={{ capture }}>
-      {children}
-    </PostHogContext.Provider>
-  );
-}; 
+  return <PostHogContext.Provider value={{ capture }}>{children}</PostHogContext.Provider>;
+};

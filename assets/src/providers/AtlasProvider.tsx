@@ -1,8 +1,9 @@
-import { createContext, useContext, useEffect, type ReactNode } from 'react';
+/* eslint-disable @typescript-eslint/no-explicit-any */
 import { usePage } from '@inertiajs/react';
+import { useEffect, useContext, createContext, type ReactNode } from 'react';
 
 interface AtlasContextType {
-  identify: (user: { userId: string; name?: string; email?: string }) => void;
+  identify: (user: { name?: string; userId: string; email?: string }) => void;
 }
 
 interface SupportProps {
@@ -17,9 +18,11 @@ const AtlasContext = createContext<AtlasContextType | null>(null);
 
 export const useAtlas = () => {
   const context = useContext(AtlasContext);
+
   if (!context) {
     throw new Error('useAtlas must be used within an AtlasProvider');
   }
+
   return context;
 };
 
@@ -38,24 +41,28 @@ export const AtlasProvider = ({ children }: AtlasProviderProps) => {
     const initializeAtlas = () => {
       if (!support?.atlasAppId) {
         console.warn('Atlas app ID is not defined. Support will be disabled.');
+
         return;
       }
 
       try {
         // Initialize Atlas
-        const atlasInstance = { 
+        const atlasInstance = {
           appId: support.atlasAppId,
-          v: 2, 
-          q: [] as any[], 
-          call: function(...args: any[]) { this.q.push(args) } 
+          v: 2,
+          q: [] as any[],
+          call: function (...args: any[]) {
+            this.q.push(args);
+          },
         };
+
         (window as any).Atlas = atlasInstance;
 
-        script = document.createElement("script");
+        script = document.createElement('script');
         script.async = true;
-        script.src = "https://app.atlas.so/client-js/atlas.bundle.js";
-        
-        script.onerror = (error) => {
+        script.src = 'https://app.atlas.so/client-js/atlas.bundle.js';
+
+        script.onerror = error => {
           console.error('Failed to load Atlas script:', error);
         };
 
@@ -67,7 +74,7 @@ export const AtlasProvider = ({ children }: AtlasProviderProps) => {
             // Identify user if available
             if (user?.email) {
               (window as any).Atlas.call('identify', {
-                userId: user.email
+                userId: user.email,
               });
             }
           } catch (error) {
@@ -90,10 +97,11 @@ export const AtlasProvider = ({ children }: AtlasProviderProps) => {
     };
   }, [support, user]);
 
-  const identify = (user: { userId: string; name?: string; email?: string }) => {
+  const identify = (user: { name?: string; userId: string; email?: string }) => {
     try {
       if (!(window as any).Atlas) {
         console.warn('Atlas is not initialized. Cannot identify user.');
+
         return;
       }
       (window as any).Atlas.call('identify', user);
@@ -102,9 +110,5 @@ export const AtlasProvider = ({ children }: AtlasProviderProps) => {
     }
   };
 
-  return (
-    <AtlasContext.Provider value={{ identify }}>
-      {children}
-    </AtlasContext.Provider>
-  );
-}; 
+  return <AtlasContext.Provider value={{ identify }}>{children}</AtlasContext.Provider>;
+};
