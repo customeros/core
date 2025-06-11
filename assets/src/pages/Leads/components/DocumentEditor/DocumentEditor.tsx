@@ -7,6 +7,7 @@ import { PageProps } from '@inertiajs/core';
 import { Lead, User, Tenant } from 'src/types';
 import { Editor } from 'src/components/Editor/Editor';
 import { IconButton } from 'src/components/IconButton';
+import { Tooltip } from 'src/components/Tooltip/Tooltip';
 import { toastSuccess } from 'src/components/Toast/success';
 import { usePresence } from 'src/providers/PresenceProvider';
 import { FeaturedIcon } from 'src/components/FeaturedIcon/FeaturedIcon';
@@ -84,7 +85,7 @@ export const DocumentEditor = () => {
         <ScrollAreaViewport>
           <div className="relative w-full h-[calc(100vh-53px)] bg-white px-4 md:px-6">
             <div className="relative bg-white h-full mx-auto  w-full md:min-w-[680px] max-w-[680px]">
-              <div className="flex items-center justify-between sticky top-0 bg-white z-10 py-2.5">
+              <div className="flex items-center justify-between sticky top-0 bg-white z-10 py-0.5">
                 {currentLead && (
                   <div className="flex items-center w-full justify-start gap-2 min-w-0">
                     {currentLead?.icon ? (
@@ -125,22 +126,29 @@ export const DocumentEditor = () => {
                   /> */}
                   {currentLead?.document_id && (
                     <>
-                      <IconButton
-                        size="xs"
-                        variant="ghost"
-                        className="hidden md:flex"
-                        aria-label="toggle view mode"
-                        onClick={handleViewModeChange}
-                        icon={<Icon name={viewMode === 'default' ? 'expand-01' : 'collapse-01'} />}
-                      />
-                      <IconButton
-                        size="xs"
-                        variant="ghost"
-                        aria-label="copy link"
-                        className="hidden md:flex"
-                        onClick={copyDocumentLink}
-                        icon={<Icon name="link-01" />}
-                      />
+                      <Tooltip side="bottom" label="Focus mode">
+                        <IconButton
+                          size="xs"
+                          variant="ghost"
+                          className="hidden md:flex"
+                          aria-label="toggle view mode"
+                          onClick={handleViewModeChange}
+                          icon={
+                            <Icon name={viewMode === 'default' ? 'expand-01' : 'collapse-01'} />
+                          }
+                        />
+                      </Tooltip>
+
+                      <Tooltip side="bottom" label="Copy document link">
+                        <IconButton
+                          size="xs"
+                          variant="ghost"
+                          aria-label="copy link"
+                          className="hidden md:flex"
+                          onClick={copyDocumentLink}
+                          icon={<Icon name="link-01" />}
+                        />
+                      </Tooltip>
                     </>
                   )}
                   <IconButton
