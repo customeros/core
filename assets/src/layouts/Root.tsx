@@ -2,6 +2,9 @@ import { useEffect } from 'react';
 import { usePage } from '@inertiajs/react';
 import { cssTransition, ToastContainer } from 'react-toastify';
 
+import { AtlasProvider } from 'src/providers/AtlasProvider';
+import { PostHogProvider } from 'src/providers/PostHogProvider';
+
 import { toastSuccess } from '../components/Toast';
 import { PresenceProvider } from '../providers/PresenceProvider';
 import { PhoenixSocketProvider } from '../providers/SocketProvider';
@@ -28,20 +31,24 @@ export const RootLayout = ({ children }: { children: React.ReactNode }) => {
   return (
     <PhoenixSocketProvider>
       <PresenceProvider>
-        <ToastContainer
-          limit={3}
-          theme="colored"
-          autoClose={8000}
-          closeOnClick={true}
-          hideProgressBar={true}
-          position="bottom-right"
-          transition={cssTransition({
-            enter: 'animate-slideDownAndFade',
-            exit: 'animate-fadeOut',
-            collapse: false,
-          })}
-        />
-        {children}
+        <PostHogProvider>
+          <AtlasProvider>
+            <ToastContainer
+              limit={3}
+              theme="colored"
+              autoClose={8000}
+              closeOnClick={true}
+              hideProgressBar={true}
+              position="bottom-right"
+              transition={cssTransition({
+                enter: 'animate-slideDownAndFade',
+                exit: 'animate-fadeOut',
+                collapse: false,
+              })}
+            />
+            {children}
+          </AtlasProvider>
+        </PostHogProvider>
       </PresenceProvider>
     </PhoenixSocketProvider>
   );

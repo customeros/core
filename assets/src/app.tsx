@@ -6,12 +6,16 @@ import axios from 'axios';
 
 import 'phoenix_html';
 
+// Configure axios defaults
+axios.defaults.headers.common['X-Requested-With'] = 'XMLHttpRequest';
+axios.defaults.withCredentials = true;
+axios.defaults.xsrfHeaderName = 'x-csrf-token';
+
+// Lazy load pages
 const Signin = lazy(() => import('./pages/Signin'));
 const Welcome = lazy(() => import('./pages/Welcome'));
 const Leads = lazy(() => import('./pages/Leads/Leads'));
 const Document = lazy(() => import('./pages/Document'));
-
-axios.defaults.xsrfHeaderName = 'x-csrf-token';
 
 const pages = {
   Leads,
@@ -21,9 +25,7 @@ const pages = {
 };
 
 createInertiaApp({
-  resolve: async name => {
-    return await pages[name as keyof typeof pages];
-  },
+  resolve: name => pages[name as keyof typeof pages],
   setup({ App, el, props }) {
     createRoot(el).render(<App {...props} />);
   },
