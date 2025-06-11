@@ -188,6 +188,64 @@ defmodule Core.Notifications.Slack do
   def notify_new_user(_, _), do: {:error, :invalid_input}
 
   @doc """
+  Notify of a new ICP request submission from our website.
+  """
+  def notify_new_icp_request(domain)
+      when is_binary(domain) and domain != "" do
+    case slack_enabled?() do
+      false ->
+        :ok
+
+      true ->
+        webhook_url =
+          Application.get_env(:core, :slack)[:alerts_prospects_webhook_url]
+
+        case webhook_url do
+          val when val in [nil, ""] ->
+            Logger.warning("Slack ICP request webhook URL not configured")
+            {:error, :webhook_not_configured}
+
+          _ ->
+            fields = [
+              %{
+                type: "mrkdwn",
+                text: "*Domain:*\n#{domain}"
+              }
+            ]
+
+            message = %{
+              blocks: [
+                %{
+                  type: "header",
+                  text: %{
+                    type: "plain_text",
+                    text: "New ICP Request",
+                    emoji: true
+                  }
+                },
+                %{
+                  type: "section",
+                  fields: fields
+                },
+                %{
+                  type: "context",
+                  elements: [
+                    %{
+                      type: "mrkdwn",
+                      text:
+                        "Submitted at: #{DateTime.utc_now() |> Calendar.strftime("%Y-%m-%d %H:%M:%S UTC")}"
+                    }
+                  ]
+                }
+              ]
+            }
+
+            send_message(webhook_url, message)
+        end
+    end
+  end
+
+  @doc """
   Send a notification about a system crash or error.
   Includes error type, message, module/function context, and timestamp.
   """
