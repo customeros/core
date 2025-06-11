@@ -40,10 +40,8 @@ defmodule Core.Crm.Companies do
       # First check if company exists with this exact domain
       case get_by_primary_domain(domain) do
         %Company{} = company ->
-          Tracing.ok()
-
           OpenTelemetry.Tracer.set_attributes([
-            {"company.found_by", "exact_domain"}
+            {"result", "company already exists"}
           ])
 
           {:ok, company}
@@ -72,9 +70,13 @@ defmodule Core.Crm.Companies do
                   {:ok, company}
               end
 
-            _ ->
-              Tracing.error("invalid_domain")
-              {:error, "not a valid domain"}
+            {:error, :no_primary_domain} ->
+              Tracing.warning(:no_primary_domain, "No primary domain found for #{domain}")
+              {:error, :no_primary_domain}
+
+            {:error, reason} ->
+              Tracing.error(inspect(reason))
+              {:error, reason}
           end
       end
     end
