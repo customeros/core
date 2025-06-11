@@ -233,7 +233,7 @@ export default function Leads({ companies }: LeadsProps) {
                                       )}
                                     </div>
                                   ) : (
-                                    <div className="size-6 flex items-center justify-center border border-gray-200 rounded flex-shrink-0">
+                                    <div className="size-6 flex items-center justify-center border border-gray-200 rounded flex-shrink-0 cursor-pointer">
                                       <Icon
                                         name="building-06"
                                         onClick={() => {
@@ -259,11 +259,12 @@ export default function Leads({ companies }: LeadsProps) {
                                   </p>
                                 </div>
                                 <p className="flex-4 text-right mr-4 min-w-0 flex-shrink-0 bg-white hidden md:block group-hover:bg-gray-50">
-                                  <span className="bg-gray-100 w-fit px-2 py-1 rounded-[4px] max-w-[100px] truncate">
-                                    {c.industry}
-                                  </span>
+                                  {c.industry && (
+                                    <span className="bg-gray-100 w-fit px-2 py-1 rounded-[4px] max-w-[100px] truncate">
+                                      {c.industry}
+                                    </span>
+                                  )}
                                 </p>
-
                                 <p
                                   onClick={() => {
                                     window.open(`https://${c.domain}`, '_blank');

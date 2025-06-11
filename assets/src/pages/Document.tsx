@@ -24,10 +24,10 @@ export default function Document({ document, lead }: DocumentProps) {
     <RootLayout>
       <ScrollAreaRoot>
         <ScrollAreaViewport>
-          <div className="relative w-full h-full bg-white px-6">
-            <div className="relative bg-white h-full mx-auto pt-[2px] w-full md:min-w-[680px] max-w-[680px]">
-              <div className="flex items-center justify-between mt-[1px]">
-                <div className="flex items-center w-full justify-start mb-3 gap-2">
+          <div className="relative w-full h-[calc(100vh-53px)] bg-white px-6">
+            <div className="relative bg-white h-full mx-auto pt-6 w-full md:min-w-[680px] max-w-[680px]">
+              <div className="flex items-center justify-between sticky top-0  pt-2 bg-white z-10">
+                <div className="flex items-center w-full justify-start mb-3 gap-2 ">
                   {icon ? (
                     <img
                       src={icon}
