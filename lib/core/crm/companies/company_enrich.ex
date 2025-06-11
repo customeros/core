@@ -178,10 +178,10 @@ defmodule Core.Crm.Companies.CompanyEnrich do
 
   defp trigger_enrichment_tasks(company_id) do
     [
-      enrich_industry_task(company_id),
+      enrich_icon_task(company_id),
       enrich_name_task(company_id),
-      enrich_country_task(company_id),
-      enrich_icon_task(company_id)
+      enrich_industry_task(company_id),
+      enrich_country_task(company_id)
     ]
     |> Enum.each(fn
       {:ok, _pid} ->
