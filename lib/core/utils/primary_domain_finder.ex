@@ -18,7 +18,12 @@ defmodule Core.Utils.PrimaryDomainFinder do
   alias Core.Utils.Errors
   alias Finch.Response
   alias Core.Utils.Tracing
-  alias Core.Utils.{DomainValidator, DomainExtractor, DnsResolver, UrlExpander}
+  alias Core.Utils.{DomainValidator, DomainExtractor, DnsResolver, UrlExpander, UrlFormatter}
+
+  # Configuration constants
+  @max_retries 5
+  @retry_delay_ms 1000
+  @max_redirects 3
 
   @doc """
   Checks if a domain is a primary domain.
@@ -54,7 +59,11 @@ defmodule Core.Utils.PrimaryDomainFinder do
 
   If the input domain is not primary, this function attempts to find
   the actual primary domain (e.g., root domain or redirect target).
-  Follows up to 3 redirects before erroring.
+
+  The function will:
+  1. Try up to #{@max_retries} times with the domain as-is, waiting #{@retry_delay_ms}ms between attempts
+  2. If all attempts fail, try up to #{@max_retries} times with https:// prefix, waiting #{@retry_delay_ms}ms between attempts
+  3. Follow up to #{@max_redirects} redirects before erroring
   """
   @spec get_primary_domain(String.t()) ::
           {:ok, String.t()}
@@ -65,21 +74,46 @@ defmodule Core.Utils.PrimaryDomainFinder do
     OpenTelemetry.Tracer.with_span "primary_domain_finder.get_primary_domain" do
       OpenTelemetry.Tracer.set_attributes([{"domain", domain}])
 
-      case follow_domain_chain(domain, MapSet.new(), 3) do
+      # First try with the domain as is, with retries
+      case retry_with_delay(fn -> try_get_primary_domain(domain) end, @max_retries) do
         {:ok, primary_domain} ->
           OpenTelemetry.Tracer.set_attributes([
             {"result.primary_domain", primary_domain}
           ])
-
-          Tracing.ok()
-
           {:ok, primary_domain}
+
+        {:error, :no_primary_domain} ->
+          # If all attempts fail with no_primary_domain, retry with https://
+          case UrlFormatter.to_https(domain) do
+            {:ok, https_domain} ->
+              OpenTelemetry.Tracer.set_attributes([
+                {"retry.with_https", true},
+                {"retry.domain", https_domain}
+              ])
+
+              # Retry with https:// prefix
+              case retry_with_delay(fn -> try_get_primary_domain(https_domain) end, @max_retries) do
+                {:ok, primary_domain} ->
+                  OpenTelemetry.Tracer.set_attributes([
+                    {"result.primary_domain", primary_domain}
+                  ])
+                  {:ok, primary_domain}
+
+                {:error, reason} ->
+                  OpenTelemetry.Tracer.set_attributes([
+                    {"result.cause", inspect(reason)}
+                  ])
+                  {:error, reason}
+              end
+
+            {:error, _} ->
+              {:error, :no_primary_domain}
+          end
 
         {:error, reason} ->
           OpenTelemetry.Tracer.set_attributes([
             {"result.cause", inspect(reason)}
           ])
-
           {:error, reason}
       end
     end
@@ -89,17 +123,43 @@ defmodule Core.Utils.PrimaryDomainFinder do
   def get_primary_domain(nil), do: Errors.error(:domain_not_provided)
   def get_primary_domain(_), do: Errors.error(:invalid_domain)
 
+  # Helper function to try getting primary domain
+  defp try_get_primary_domain(domain) do
+    follow_domain_chain(domain, MapSet.new(), @max_redirects)
+  end
+
+  # Retry a function with delay between attempts
+  defp retry_with_delay(fun, retries_remaining, attempt \\ 1) do
+    case fun.() do
+      {:ok, result} ->
+        {:ok, result}
+
+      {:error, :no_primary_domain} when retries_remaining > 0 ->
+        OpenTelemetry.Tracer.set_attributes([
+          {"retry.attempt", attempt},
+          {"retry.remaining", retries_remaining - 1}
+        ])
+
+        Process.sleep(@retry_delay_ms)
+        retry_with_delay(fun, retries_remaining - 1, attempt + 1)
+
+      {:error, reason} ->
+        {:error, reason}
+    end
+  end
+
   defp follow_domain_chain(current_domain, visited, redirects_remaining) do
     if MapSet.member?(visited, current_domain) do
       handle_error({:error, :circular_domain_reference})
     else
       new_visited = MapSet.put(visited, current_domain)
 
-      with {:ok, {_is_primary, primary_domain}} <-
-             primary_domain_check(current_domain),
+      with {:ok, cleaned_domain} <- safe_clean_domain(current_domain),
+           {:ok, {_is_primary, primary_domain}} <-
+             primary_domain_check(cleaned_domain),
            :ok <- validate_non_empty(primary_domain),
            :ok <- validate_suspicious_domain(primary_domain) do
-        if String.downcase(primary_domain) == String.downcase(current_domain) do
+        if String.downcase(primary_domain) == String.downcase(cleaned_domain) do
           # Found stable domain - success!
           Tracing.ok()
 
