@@ -7,6 +7,7 @@ defmodule Core.Researcher.IcpFitEvaluator.PromptBuilder do
   structured prompts for AI-based ICP fit evaluation.
   """
 
+  alias Core.Researcher.Scraper
   alias Core.Ai
   @model :claude_sonnet
   @model_temperature 0.2
@@ -22,8 +23,11 @@ defmodule Core.Researcher.IcpFitEvaluator.PromptBuilder do
   end
 
   def build_prompts(domain, business_pages, icp) do
+    {:ok, homepage} = Scraper.scrape_webpage(domain)
+
     system_prompt = """
-      I will provide you with a B2B company and relevant context from their website.  I will also provide you with a description of my ideal customer profile and qualifying criteria.  Your job is to determine how well the company matches my ideal customer profile.  Valid response values are "strong", "moderate", "not a fit".  Please only return one of these three values.
+      I will provide you with a B2B company and relevant context from their website.  I will also provide you with a description of my business, my ideal customer profile and qualifying criteria.  Your job is to determine how well the company matches my ideal customer profile.  Valid response values are "strong", "moderate", "not a fit".  Please only return one of these three values.
+      NOTE: If the company I provide you sells a product or service that is a substitute for my product or service, they are a competitor.  Return "not a fit".
       IMPORTANT:  Your response MUST be in valid JSON format exactly matching this schema:
       {
         "icp_fit": "strong"
@@ -32,6 +36,7 @@ defmodule Core.Researcher.IcpFitEvaluator.PromptBuilder do
     """
 
     prompt = """
+    About my business: #{homepage["summary"]}
     My Ideal Customer Profile: #{icp.profile}
     My Qualifying Criteria: #{icp.qualifying_attributes}
 
