@@ -44,3 +44,8 @@ export type Document = {
   inserted_at: string;
   lexical_state: string;
 };
+
+export type IcpProfile = {
+  profile: string;
+  qualifyingAttributes: string[];
+};

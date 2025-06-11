@@ -16,7 +16,7 @@ defmodule Web.LeadsController do
 
       profile =
         case Core.Researcher.IcpProfiles.get_by_tenant_id(tenant_id) do
-          {:ok, profile} -> Map.get(profile, :profile)
+          {:ok, profile} -> profile
           _ -> nil
         end
 
