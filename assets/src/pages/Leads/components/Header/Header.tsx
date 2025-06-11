@@ -4,12 +4,12 @@ import { router, usePage } from '@inertiajs/react';
 import { cn } from 'src/utils/cn';
 import { PageProps } from '@inertiajs/core';
 import { Button } from 'src/components/Button';
-import { Lead, User, Tenant } from 'src/types';
 import { Avatar } from 'src/components/Avatar';
 import { Icon } from 'src/components/Icon/Icon';
 import { Tooltip } from 'src/components/Tooltip';
 import { toastSuccess } from 'src/components/Toast';
 import { IconButton } from 'src/components/IconButton';
+import { Lead, User, Tenant, IcpProfile } from 'src/types';
 import { useEventsChannel, LeadCreatedEvent } from 'src/hooks';
 import {
   Modal,
@@ -29,7 +29,7 @@ import { UserPresence } from '../UserPresence/UserPresence';
 export const Header = () => {
   const [createdLeadIcons, setCreatedLeadIcons] = useState<string[]>([]);
   const page = usePage<
-    PageProps & { tenant: Tenant; profile: string; currentUser: User; companies: Lead[] }
+    PageProps & { tenant: Tenant; currentUser: User; companies: Lead[]; profile: IcpProfile }
   >();
   const [isOpen, setIsOpen] = useState(false);
   const [displayProfile, setDisplayProfile] = useState(false);
@@ -91,6 +91,7 @@ export const Header = () => {
               variant="ghost"
               aria-label="icp"
               icon={<Icon name="building-03" />}
+              className="group-hover:opacity-100 opacity-0 transition-opacity duration-300"
               onClick={e => {
                 page.props.profile && setDisplayProfile(true);
                 e.stopPropagation();
@@ -211,10 +212,21 @@ export const Header = () => {
         <ModalPortal>
           <ModalOverlay />
           <ModalContent placement="top" aria-describedby="profile-modal">
-            <ModalHeader className="font-semibold text-base">See who's ready to buy</ModalHeader>
+            <ModalHeader className="font-semibold text-base">
+              <div className="flex flex-col items-start gap-2">
+                <p className="font-semibold">Your Ideal Customer Profile</p>
+                <p className="font-medium text-sm">Description</p>
+              </div>
+            </ModalHeader>
             <ModalCloseButton />
             <ModalBody className="flex flex-col gap-2">
-              <p>{page.props?.profile}</p>
+              <p>{page.props?.profile.profile}</p>
+              <p className="text-sm font-medium">Qualifying criteria</p>
+              <ul className="list-disc pl-4 flex flex-col gap-0 text-sm">
+                {page.props?.profile.qualifyingAttributes?.map(attribute => (
+                  <li key={attribute}>{attribute}</li>
+                ))}
+              </ul>
             </ModalBody>
             <ModalFooter>
               <ModalClose asChild>
