@@ -12,15 +12,12 @@ defmodule Core.Utils.UrlFormatter do
     input = String.trim(input)
 
     cond do
-      # Already has https://
       String.starts_with?(input, "https://") ->
         {:ok, input}
 
-      # Has http:// - convert to https://
       String.starts_with?(input, "http://") ->
         {:ok, String.replace_prefix(input, "http://", "https://")}
 
-      # No protocol - add https://
       true ->
         {:ok, "https://#{input}"}
     end
@@ -50,11 +47,9 @@ defmodule Core.Utils.UrlFormatter do
 
     case String.split(url, "?", parts: 2) do
       [base_url] ->
-        # No query parameters
         {:ok, base_url, %{}}
 
       [base_url, query_string] ->
-        # Parse query parameters
         query_params = parse_query_string(query_string)
         {:ok, base_url, query_params}
     end
@@ -94,7 +89,6 @@ defmodule Core.Utils.UrlFormatter do
     end
   end
 
-  # Private helper to parse query string into a map
   defp parse_query_string(query_string) do
     query_string
     |> String.split("&")

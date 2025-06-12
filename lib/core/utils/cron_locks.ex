@@ -13,6 +13,8 @@ defmodule Core.Utils.CronLocks do
 
   @valid_cron_names CronLock.valid_cron_names()
 
+  @err_invalid_cron_name {:error, "invalid cron name"}
+
   @doc """
   Registers a cron job in the locking system if it doesn't exist.
 
@@ -41,7 +43,7 @@ defmodule Core.Utils.CronLocks do
       "Attempted to register invalid cron name: #{inspect(invalid_name)}"
     )
 
-    {:error, :invalid_cron_name}
+    @err_invalid_cron_name
   end
 
   @doc """
