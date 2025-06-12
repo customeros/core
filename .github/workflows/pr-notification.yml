@@ -15,17 +15,123 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-      - name: Slack Notification
-        uses: slackapi/slack-github-action@v1.25.0
+      - name: Get PR Author Info
+        id: author
+        uses: actions/github-script@v7
         with:
-          channel-id: ${{ secrets.SLACK_CHANNEL_ID }}
-          slack-message: |
-            *Pull Request ${{ github.event.action }}*
-            *Repository:* ${{ github.repository }}
-            *PR Title:* ${{ github.event.pull_request.title }}
-            *PR Number:* #${{ github.event.pull_request.number }}
-            *Author:* ${{ github.event.pull_request.user.login }}
-            *Status:* ${{ github.event.action }}
-            *URL:* ${{ github.event.pull_request.html_url }}
-        env:
-          SLACK_BOT_TOKEN: ${{ secrets.SLACK_API_TOKEN }}
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          script: |
+            const { data: user } = await github.rest.users.getByUsername({
+              username: context.payload.pull_request.user.login
+            });
+            return user;
+
+      - name: Slack Notification
+        id: slack
+        uses: slackapi/slack-github-action@v2.1.0
+        with:
+          method: chat.postMessage
+          token: ${{ secrets.SLACK_API_TOKEN }}
+          payload: |
+            {
+              "channel": "${{ secrets.SLACK_CHANNEL_ID }}",
+              "text": "",
+              "blocks": [
+                {
+                  "type": "header",
+                  "text": {
+                    "type": "plain_text",
+                    "text": "Pull Request ${{ github.event.action }}",
+                    "emoji": true
+                  }
+                },
+                {
+                  "type": "section",
+                  "text": {
+                    "type": "mrkdwn",
+                    "text": "*Repository:* `${{ github.repository }}`\n*PR Title:* <${{ github.event.pull_request.html_url }}|${{ github.event.pull_request.title }}>\n*PR Number:* #${{ github.event.pull_request.number }}"
+                  },
+                  "accessory": {
+                    "type": "image",
+                    "image_url": "${{ github.event.pull_request.user.avatar_url }}",
+                    "alt_text": "${{ github.event.pull_request.user.login }}"
+                  }
+                },
+                {
+                  "type": "section",
+                  "fields": [
+                    {
+                      "type": "mrkdwn",
+                      "text": "*Author:*\n${{ steps.author.outputs.result.name || github.event.pull_request.user.login }}"
+                    },
+                    {
+                      "type": "mrkdwn",
+                      "text": "*Status:*\n${{ github.event.action }}"
+                    }
+                  ]
+                },
+                {
+                  "type": "context",
+                  "elements": [
+                    {
+                      "type": "mrkdwn",
+                      "text": "🔗 <${{ github.event.pull_request.html_url }}|View on GitHub>"
+                    }
+                  ]
+                }
+              ],
+              "unfurl_links": false,
+              "unfurl_media": false
+            }
+
+      - name: Add Reaction
+        if: github.event.action == 'opened' || github.event.action == 'ready_for_review'
+        uses: slackapi/slack-github-action@v2.1.0
+        with:
+          method: reactions.add
+          token: ${{ secrets.SLACK_API_TOKEN }}
+          payload: |
+            {
+              "channel": "${{ secrets.SLACK_CHANNEL_ID }}",
+              "name": "eyes",
+              "timestamp": "${{ steps.slack.outputs.ts }}"
+            }
+
+      - name: Add Approval Reaction
+        if: github.event_name == 'pull_request_review' && github.event.review.state == 'approved'
+        uses: slackapi/slack-github-action@v2.1.0
+        with:
+          method: reactions.add
+          token: ${{ secrets.SLACK_API_TOKEN }}
+          payload: |
+            {
+              "channel": "${{ secrets.SLACK_CHANNEL_ID }}",
+              "name": "white_check_mark",
+              "timestamp": "${{ steps.slack.outputs.ts }}"
+            }
+
+      - name: Add Merge Reaction
+        if: github.event.action == 'closed' && github.event.pull_request.merged == true
+        uses: slackapi/slack-github-action@v2.1.0
+        with:
+          method: reactions.add
+          token: ${{ secrets.SLACK_API_TOKEN }}
+          payload: |
+            {
+              "channel": "${{ secrets.SLACK_CHANNEL_ID }}",
+              "name": "partymerge",
+              "timestamp": "${{ steps.slack.outputs.ts }}"
+            }
+
+      - name: Add Close Reaction
+        if: github.event.action == 'closed' && github.event.pull_request.merged == false
+        uses: slackapi/slack-github-action@v2.1.0
+        with:
+          method: reactions.add
+          token: ${{ secrets.SLACK_API_TOKEN }}
+          payload: |
+            {
+              "channel": "${{ secrets.SLACK_CHANNEL_ID }}",
+              "name": "x",
+              "timestamp": "${{ steps.slack.outputs.ts }}"
+            }
