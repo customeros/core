@@ -71,17 +71,27 @@ defmodule Core.Crm.Companies.CompanyDomainProcessor do
 
           # Choose interval based on whether we found any domains
           next_interval_ms =
-            if domain_count > 0, do: @default_interval_ms, else: @long_interval_ms
+            if domain_count > 0,
+              do: @default_interval_ms,
+              else: @long_interval_ms
 
           schedule_check(next_interval_ms)
 
         nil ->
           # Lock not acquired, try to force release if stuck
-          Logger.info("Company domain processor lock not acquired, attempting to release any stuck locks")
+          Logger.info(
+            "Company domain processor lock not acquired, attempting to release any stuck locks"
+          )
 
-          case CronLocks.force_release_stuck_lock(:cron_company_domain_processor, @stuck_lock_duration_minutes) do
+          case CronLocks.force_release_stuck_lock(
+                 :cron_company_domain_processor,
+                 @stuck_lock_duration_minutes
+               ) do
             :ok ->
-              Logger.info("Successfully released stuck lock, will retry acquisition on next run")
+              Logger.info(
+                "Successfully released stuck lock, will retry acquisition on next run"
+              )
+
             :error ->
               Logger.info("No stuck lock found or could not release it")
           end

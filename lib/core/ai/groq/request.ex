@@ -4,7 +4,8 @@ defmodule Core.Ai.Groq.Request do
   Represents a request to ask a question to Groq AI.
   """
 
-  @type model :: :llama3_70b | :llama3_8b | :llama33_70b | :llama31_8b | :gemma2_9b
+  @type model ::
+          :llama3_70b | :llama3_8b | :llama33_70b | :llama31_8b | :gemma2_9b
 
   @type t :: %__MODULE__{
           model: model(),
@@ -27,8 +28,15 @@ defmodule Core.Ai.Groq.Request do
   """
   def validate(%__MODULE__{} = request) do
     cond do
-      request.model not in [:llama3_70b, :llama3_8b, :llama33_70b, :llama31_8b, :gemma2_9b] ->
-        {:error, "model must be one of: :llama3_70b, :llama3_8b, :llama33_70b, :llama31_8b, or :gemma2_9b"}
+      request.model not in [
+        :llama3_70b,
+        :llama3_8b,
+        :llama33_70b,
+        :llama31_8b,
+        :gemma2_9b
+      ] ->
+        {:error,
+         "model must be one of: :llama3_70b, :llama3_8b, :llama33_70b, :llama31_8b, or :gemma2_9b"}
 
       is_nil(request.prompt) or request.prompt == "" ->
         {:error, "prompt cannot be empty"}

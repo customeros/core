@@ -89,11 +89,19 @@ defmodule Core.WebTracker.SessionCloser do
 
         nil ->
           # Lock not acquired, try to force release if stuck
-          Logger.info("Session closer lock not acquired, attempting to release any stuck locks")
+          Logger.info(
+            "Session closer lock not acquired, attempting to release any stuck locks"
+          )
 
-          case CronLocks.force_release_stuck_lock(:cron_session_closer, @stuck_lock_duration_minutes) do
+          case CronLocks.force_release_stuck_lock(
+                 :cron_session_closer,
+                 @stuck_lock_duration_minutes
+               ) do
             :ok ->
-              Logger.info("Successfully released stuck lock, will retry acquisition on next run")
+              Logger.info(
+                "Successfully released stuck lock, will retry acquisition on next run"
+              )
+
             :error ->
               Logger.info("No stuck lock found or could not release it")
           end

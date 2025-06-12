@@ -18,7 +18,14 @@ defmodule Core.Utils.PrimaryDomainFinder do
   alias Core.Utils.Errors
   alias Finch.Response
   alias Core.Utils.Tracing
-  alias Core.Utils.{DomainValidator, DomainExtractor, DnsResolver, UrlExpander, UrlFormatter}
+
+  alias Core.Utils.{
+    DomainValidator,
+    DomainExtractor,
+    DnsResolver,
+    UrlExpander,
+    UrlFormatter
+  }
 
   # Configuration constants
   @max_retries 5
@@ -75,11 +82,15 @@ defmodule Core.Utils.PrimaryDomainFinder do
       OpenTelemetry.Tracer.set_attributes([{"domain", domain}])
 
       # First try with the domain as is, with retries
-      case retry_with_delay(fn -> try_get_primary_domain(domain) end, @max_retries) do
+      case retry_with_delay(
+             fn -> try_get_primary_domain(domain) end,
+             @max_retries
+           ) do
         {:ok, primary_domain} ->
           OpenTelemetry.Tracer.set_attributes([
             {"result.primary_domain", primary_domain}
           ])
+
           {:ok, primary_domain}
 
         {:error, :no_primary_domain} ->
@@ -92,17 +103,22 @@ defmodule Core.Utils.PrimaryDomainFinder do
               ])
 
               # Retry with https:// prefix
-              case retry_with_delay(fn -> try_get_primary_domain(https_domain) end, @max_retries) do
+              case retry_with_delay(
+                     fn -> try_get_primary_domain(https_domain) end,
+                     @max_retries
+                   ) do
                 {:ok, primary_domain} ->
                   OpenTelemetry.Tracer.set_attributes([
                     {"result.primary_domain", primary_domain}
                   ])
+
                   {:ok, primary_domain}
 
                 {:error, reason} ->
                   OpenTelemetry.Tracer.set_attributes([
                     {"result.cause", inspect(reason)}
                   ])
+
                   {:error, reason}
               end
 
@@ -114,6 +130,7 @@ defmodule Core.Utils.PrimaryDomainFinder do
           OpenTelemetry.Tracer.set_attributes([
             {"result.cause", inspect(reason)}
           ])
+
           {:error, reason}
       end
     end

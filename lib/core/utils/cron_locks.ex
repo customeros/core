@@ -165,10 +165,10 @@ defmodule Core.Utils.CronLocks do
       :ok  # Lock released if it was older than 30 minutes
       :error  # No stuck lock found or lock was too recent
   """
-  @spec force_release_stuck_lock(CronLock.cron_name(), pos_integer()) :: :ok | :error
+  @spec force_release_stuck_lock(CronLock.cron_name(), pos_integer()) ::
+          :ok | :error
   def force_release_stuck_lock(cron_name, max_duration_minutes)
       when cron_name in @valid_cron_names and max_duration_minutes > 0 do
-
     cutoff_time = DateTime.add(DateTime.utc_now(), -max_duration_minutes * 60)
 
     query =
@@ -180,10 +180,17 @@ defmodule Core.Utils.CronLocks do
 
     case Repo.update_all(query, []) do
       {1, _} ->
-        Logger.info("Force released stuck lock for cron job: #{cron_name} (older than #{max_duration_minutes} minutes)")
+        Logger.info(
+          "Force released stuck lock for cron job: #{cron_name} (older than #{max_duration_minutes} minutes)"
+        )
+
         :ok
+
       {0, _} ->
-        Logger.info("No stuck lock found for cron job: #{cron_name} (older than #{max_duration_minutes} minutes)")
+        Logger.info(
+          "No stuck lock found for cron job: #{cron_name} (older than #{max_duration_minutes} minutes)"
+        )
+
         :error
     end
   end

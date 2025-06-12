@@ -48,7 +48,9 @@ defmodule Core.Crm.Industries do
   defp load_codes_from_db do
     Logger.info("Loading NAICS codes from database...")
 
-    case Repo.all(from industry in Industry, select: {industry.code, industry.name}) do
+    case Repo.all(
+           from industry in Industry, select: {industry.code, industry.name}
+         ) do
       [] ->
         Logger.warning("No NAICS codes found in database")
         %{}

@@ -257,11 +257,11 @@ defmodule Core.Crm.Leads.DailyLeadSummarySender do
         "Skipping daily lead summary for tenant #{tenant_id} - no leads to report"
       )
 
-
   defp send_slack_summary(tenant_leads)
-       when is_list(tenant_leads)
-       and length(tenant_leads) > 0 do
-    webhook_url = Application.get_env(:core, :slack)[:daily_lead_summary_webhook_url]
+       when is_list(tenant_leads) and
+              length(tenant_leads) > 0 do
+    webhook_url =
+      Application.get_env(:core, :slack)[:daily_lead_summary_webhook_url]
 
     case webhook_url do
       val when val in [nil, ""] ->
@@ -292,7 +292,8 @@ defmodule Core.Crm.Leads.DailyLeadSummarySender do
               elements: [
                 %{
                   type: "mrkdwn",
-                  text: "Generated at: #{DateTime.utc_now() |> Calendar.strftime("%Y-%m-%d %H:%M:%S UTC")}"
+                  text:
+                    "Generated at: #{DateTime.utc_now() |> Calendar.strftime("%Y-%m-%d %H:%M:%S UTC")}"
                 }
               ]
             }
@@ -305,7 +306,10 @@ defmodule Core.Crm.Leads.DailyLeadSummarySender do
             :ok
 
           {:error, reason} ->
-            Logger.error("Failed to send Slack daily lead summary report: #{inspect(reason)}")
+            Logger.error(
+              "Failed to send Slack daily lead summary report: #{inspect(reason)}"
+            )
+
             {:error, reason}
         end
     end
@@ -316,17 +320,33 @@ defmodule Core.Crm.Leads.DailyLeadSummarySender do
 
   defp format_tenant_table(tenant_rows) do
     # Calculate column widths
-    max_name_length = Enum.max_by(tenant_rows, fn {name, _} -> String.length(name) end) |> elem(0) |> String.length()
-    max_count_length = Enum.max_by(tenant_rows, fn {_, count} -> to_string(count) |> String.length() end) |> elem(1) |> to_string() |> String.length()
+    max_name_length =
+      Enum.max_by(tenant_rows, fn {name, _} -> String.length(name) end)
+      |> elem(0)
+      |> String.length()
+
+    max_count_length =
+      Enum.max_by(tenant_rows, fn {_, count} ->
+        to_string(count) |> String.length()
+      end)
+      |> elem(1)
+      |> to_string()
+      |> String.length()
 
     # Format header
-    header = String.pad_trailing("Tenant", max_name_length) <> " | " <> String.pad_leading("Leads", max_count_length)
-    separator = String.duplicate("-", max_name_length) <> "-+-" <> String.duplicate("-", max_count_length)
+    header =
+      String.pad_trailing("Tenant", max_name_length) <>
+        " | " <> String.pad_leading("Leads", max_count_length)
+
+    separator =
+      String.duplicate("-", max_name_length) <>
+        "-+-" <> String.duplicate("-", max_count_length)
 
     # Format rows
     rows =
       Enum.map(tenant_rows, fn {name, count} ->
-        String.pad_trailing(name, max_name_length) <> " | " <> String.pad_leading(to_string(count), max_count_length)
+        String.pad_trailing(name, max_name_length) <>
+          " | " <> String.pad_leading(to_string(count), max_count_length)
       end)
 
     # Combine all parts
@@ -428,6 +448,7 @@ defmodule Core.Crm.Leads.DailyLeadSummarySender do
       Enum.map(assigns.leads, fn lead ->
         company_name = get_company_name(lead.ref_id)
         formatted_stage = format_stage(lead.stage)
+
         Map.put(lead, :company_name, company_name)
         |> Map.put(:formatted_stage, formatted_stage)
       end)
@@ -509,7 +530,11 @@ defmodule Core.Crm.Leads.DailyLeadSummarySender do
       <div style="margin: 0.5em 0;">
         <%= for stage <- @stage_order do %>
           <% count = Map.get(@stage_counts, stage, 0) %>
-          <%= if count > 0 do %><p style="margin: 0; padding-bottom: 4px;"><strong><%= format_stage(stage) %></strong>: {count}</p><% end %>
+          <%= if count > 0 do %>
+            <p style="margin: 0; padding-bottom: 4px;">
+              <strong><%= format_stage(stage) %></strong>: {count}
+            </p>
+          <% end %>
         <% end %>
       </div>
 

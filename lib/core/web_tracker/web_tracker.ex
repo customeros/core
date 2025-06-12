@@ -351,7 +351,10 @@ defmodule Core.WebTracker do
           end
 
         {:error, :no_primary_domain} ->
-          Tracing.warning(:no_primary_domain, "No primary domain found for #{domain}")
+          Tracing.warning(
+            :no_primary_domain,
+            "No primary domain found for #{domain}"
+          )
 
         {:error, reason} ->
           Tracing.error(reason, "Company not created from webTracker",

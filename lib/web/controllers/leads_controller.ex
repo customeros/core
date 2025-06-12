@@ -17,8 +17,14 @@ defmodule Web.LeadsController do
 
       profile =
         case Core.Researcher.IcpProfiles.get_by_tenant_id(tenant_id) do
-          {:ok, icp} -> %{profile: icp.profile, qualifying_attributes: icp.qualifying_attributes}
-          _ -> nil
+          {:ok, icp} ->
+            %{
+              profile: icp.profile,
+              qualifying_attributes: icp.qualifying_attributes
+            }
+
+          _ ->
+            nil
         end
 
       conn

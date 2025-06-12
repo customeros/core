@@ -117,7 +117,8 @@ defmodule Core.Ai.Groq.Ask do
 
   defp process_response(status, body) when status in 200..299 do
     with {:ok, decoded} <- Jason.decode(body),
-         %{"choices" => [%{"message" => %{"content" => content}} | _]} <- decoded do
+         %{"choices" => [%{"message" => %{"content" => content}} | _]} <-
+           decoded do
       {:ok, String.trim(content)}
     else
       _ -> {:error, {:invalid_response, "Invalid response format"}}
