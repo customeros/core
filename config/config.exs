@@ -4,7 +4,8 @@ get_env = fn key, default -> System.get_env(key, default) end
 # Core application
 config :core,
   ecto_repos: [Core.Repo],
-  generators: [timestamp_type: :utc_datetime]
+  generators: [timestamp_type: :utc_datetime],
+  app_env: config_env()
 
 # OpenTelemetry configuration for SigNoz
 config :opentelemetry, :resource,
