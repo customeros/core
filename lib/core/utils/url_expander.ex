@@ -13,14 +13,14 @@ defmodule Core.Utils.UrlExpander do
   proper error handling and validation throughout the process.
   """
 
-  alias Core.Utils.Errors
+  @err_empty_url {:error, "empty url"}
+  @err_invalid_url {:error, "invalid_url"}
+  @err_unable_to_expand_url {:error, "unable to expand url"}
 
   @doc """
   Expands shortened URLs to their full domain.
   Returns {expanded_domain, was_expanded}.
   """
-  @spec expand_short_url(String.t()) ::
-          {:ok, String.t()} | Core.Utils.Errors.url_error()
   def expand_short_url(domain) when is_binary(domain) do
     url_shorteners = [
       "bit.ly/",
@@ -38,17 +38,17 @@ defmodule Core.Utils.UrlExpander do
           {:ok, expanded_domain}
 
         {:ok, ""} ->
-          Errors.error(:unable_to_expand_url)
+          @err_unable_to_expand_url
 
         {:error, reason} ->
-          Errors.error(reason)
+          {:error, reason}
       end
     else
       {:ok, domain}
     end
   end
 
-  def expand_short_url(nil), do: Errors.error(:url_not_provided)
-  def expand_short_url(""), do: Errors.error(:url_not_provided)
-  def expand_short_url(_), do: Errors.error(:invalid_url)
+  def expand_short_url(nil), do: @err_empty_url
+  def expand_short_url(""), do: @err_empty_url
+  def expand_short_url(_), do: @err_invalid_url
 end
