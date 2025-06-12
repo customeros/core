@@ -32,6 +32,7 @@ defmodule Core.Crm.Companies.Enrichment.Location do
      - Contact addresses
      - Domain registration country
      - Language and currency used
+     - Website extension
   </INSTRUCTIONS>
   """
 
