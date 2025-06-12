@@ -48,17 +48,14 @@ defmodule Core.WebTracker.IPProfiler do
   """
   @spec get_company_info(String.t()) :: {:ok, map()} | {:error, term()}
   def get_company_info(ip) when is_binary(ip) do
-    case IpIntelligence.get_by_ip(ip) do
-      {:ok, %IpIntelligence{domain_source: :snitcher, domain: domain} = record} when not is_nil(domain) ->
-        {:ok, %{
-          ip: record.ip,
-          domain: record.domain,
-          type: "company",
-          company: %{}
-        }}
-
-      {:ok, _} ->
-        IpIdentifier.identify_ip(ip)
+    case IpIntelligence.get_domain_by_ip(ip) do
+      {:ok, domain} ->
+        {:ok,
+         %{
+           ip: ip,
+           domain: domain,
+           company: %{}
+         }}
 
       {:error, _} ->
         IpIdentifier.identify_ip(ip)
@@ -79,7 +76,7 @@ defmodule Core.WebTracker.IPProfiler do
 
     case ipdata_mod.verify_ip(ip) do
       {:ok, data} ->
-        insert_ip_intelligence(ip, data)
+        update_ip_intelligence(ip, data)
         {:ok, data}
 
       {:error, reason} ->
@@ -87,29 +84,59 @@ defmodule Core.WebTracker.IPProfiler do
     end
   end
 
-  defp insert_ip_intelligence(ip, data) do
+  defp update_ip_intelligence(ip, data) do
     attrs = %{
-      id: IdGenerator.generate_id_21(IpIntelligence.id_prefix()),
-      ip: ip,
-      domain_source: nil,
-      domain: nil,
       is_mobile: data.is_mobile,
       city: data.city,
       region: data.region,
       country: data.country_code,
-      has_threat: data.is_threat
+      has_threat: data.is_threat,
+      updated_at: DateTime.utc_now() |> DateTime.truncate(:second)
     }
 
-    %IpIntelligence{}
-    |> IpIntelligence.changeset(attrs)
-    |> Repo.insert()
-    |> case do
-      {:ok, _record} ->
-        :ok
+    case IpIntelligence.get_by_ip(ip) do
+      {:ok, nil} ->
+        # Create new record with IP data
+        %IpIntelligence{}
+        |> IpIntelligence.changeset(
+          Map.merge(attrs, %{
+            id: IdGenerator.generate_id_21(IpIntelligence.id_prefix()),
+            ip: ip
+          })
+        )
+        |> Repo.insert()
+        |> case do
+          {:ok, _record} ->
+            :ok
 
-      {:error, changeset} ->
+          {:error, changeset} ->
+            Logger.error(
+              "Failed to create IP intelligence record: #{inspect(changeset.errors)}"
+            )
+
+            :error
+        end
+
+      {:ok, record} ->
+        # Update existing record with IP data
+        record
+        |> IpIntelligence.changeset(attrs)
+        |> Repo.update()
+        |> case do
+          {:ok, _record} ->
+            :ok
+
+          {:error, changeset} ->
+            Logger.error(
+              "Failed to update IP intelligence record: #{inspect(changeset.errors)}"
+            )
+
+            :error
+        end
+
+      {:error, reason} ->
         Logger.error(
-          "Failed to create IP intelligence record: #{inspect(changeset.errors)}"
+          "Failed to query IP intelligence record: #{inspect(reason)}"
         )
 
         :error
