@@ -45,8 +45,6 @@ defmodule Web.AuthController do
       %User{} = user ->
         {:ok, user} = Users.confirm_user(user)
 
-        Stats.register_event_start(user.id, :login)
-
         conn
         |> put_flash(:info, "Logged in successfully.")
         |> Web.UserAuth.signup_user(user)
