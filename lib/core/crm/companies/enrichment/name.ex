@@ -13,7 +13,8 @@ defmodule Core.Crm.Companies.Enrichment.Name do
   alias Core.Utils.Tracing
 
   @timeout 30 * 1000
-  @model :gemini_flash
+  @model_gemini :gemini_flash
+  @model_groq :llama3_70b
   @max_tokens 250
   @temperature 0.05
   @system_prompt """
@@ -39,13 +40,41 @@ defmodule Core.Crm.Companies.Enrichment.Name do
 
   @spec identify(input()) ::
           {:ok, String.t()} | {:error, term()} | {:error, term(), String.t()}
-  def identify(%{domain: domain, homepage_content: content}) do
+  def identify(%{domain: _domain, homepage_content: _content} = input) do
+    OpenTelemetry.Tracer.with_span "name.identify" do
+      case identify(input, @model_gemini) do
+        {:ok, name} ->
+          OpenTelemetry.Tracer.set_attributes([
+            {"result.name", name},
+            {"result.model", @model_gemini}
+          ])
+
+          {:ok, name}
+
+        {:error, _reason} ->
+          case identify(input, @model_groq) do
+            {:ok, name} ->
+              OpenTelemetry.Tracer.set_attributes([
+                {"result", name},
+                {"result.model", @model_groq}
+              ])
+
+              {:ok, name}
+
+            {:error, reason} ->
+              {:error, reason}
+          end
+      end
+    end
+  end
+
+  defp identify(%{domain: domain, homepage_content: content}, model) do
     OpenTelemetry.Tracer.with_span "name.identify" do
       prompt = build_prompt(domain, content)
 
       request =
         Ai.Request.new(prompt,
-          model: @model,
+          model: model,
           system_prompt: @system_prompt,
           max_tokens: @max_tokens,
           temperature: @temperature

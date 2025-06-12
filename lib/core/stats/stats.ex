@@ -31,12 +31,15 @@ defmodule Core.Stats do
       })
       |> Repo.insert()
       |> case do
-        {:ok, _event} -> :ok
+        {:ok, _event} ->
+          :ok
+
         {:error, changeset} ->
           Tracing.error(changeset, "Failed to register user event",
             user_id: user_id,
             event_type: event_type
           )
+
           :error
       end
     end)

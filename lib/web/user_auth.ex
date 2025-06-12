@@ -463,16 +463,13 @@ defmodule Web.UserAuth do
     |> maybe_assign_user()
   end
 
-  @doc """
-  Assigns user data to the connection if a user is logged in.
-  Only includes necessary user data for analytics and identification.
-  """
   defp maybe_assign_user(conn) do
     case conn.assigns[:current_user] do
       %{email: email} when is_binary(email) ->
         assign_prop(conn, :user, %{
           email: email
         })
+
       _ ->
         conn
     end

@@ -68,13 +68,22 @@ defmodule Core.Crm.Companies.Enrichment.Industry do
   def identify(input) when is_map(input), do: identify(input, [], @max_retries)
   def identify(_), do: {:error, {:invalid_request, "Invalid input format"}}
 
-  @spec identify(input(), [String.t()], non_neg_integer()) :: {:ok, String.t()} | {:error, term()}
+  @spec identify(input(), [String.t()], non_neg_integer()) ::
+          {:ok, String.t()} | {:error, term()}
   defp identify(_input, _blacklist, 0) do
-    Tracing.error(:max_attempts_exceeded, "Maximum retry attempts exceeded for industry identification")
+    Tracing.error(
+      :max_attempts_exceeded,
+      "Maximum retry attempts exceeded for industry identification"
+    )
+
     {:error, :max_attempts_exceeded}
   end
 
-  defp identify(%{domain: domain, homepage_content: content} = input, blacklist, retries_left)
+  defp identify(
+         %{domain: domain, homepage_content: content} = input,
+         blacklist,
+         retries_left
+       )
        when is_binary(domain) and is_binary(content) do
     OpenTelemetry.Tracer.with_span "industry.identify.retry" do
       OpenTelemetry.Tracer.set_attributes([
@@ -109,7 +118,10 @@ defmodule Core.Crm.Companies.Enrichment.Industry do
               {:error, :empty_ai_response}
 
             not Industries.valid_code?(code) ->
-              Logger.info("Invalid code received: #{code}, adding to blacklist and retrying...")
+              Logger.info(
+                "Invalid code received: #{code}, adding to blacklist and retrying..."
+              )
+
               identify(input, [code | blacklist], retries_left - 1)
 
             true ->
@@ -130,7 +142,10 @@ defmodule Core.Crm.Companies.Enrichment.Industry do
               {:error, :empty_ai_response}
 
             not Industries.valid_code?(code) ->
-              Logger.info("Invalid code received: #{code}, adding to blacklist and retrying...")
+              Logger.info(
+                "Invalid code received: #{code}, adding to blacklist and retrying..."
+              )
+
               identify(input, [code | blacklist], retries_left - 1)
 
             true ->
@@ -175,7 +190,8 @@ defmodule Core.Crm.Companies.Enrichment.Industry do
   defp build_prompt(domain, content, blacklist) do
     blacklist_block =
       if is_list(blacklist) and blacklist != [] do
-        "\nDo NOT return any of the following invalid codes: " <> Enum.join(Enum.uniq(blacklist), ", ") <> "."
+        "\nDo NOT return any of the following invalid codes: " <>
+          Enum.join(Enum.uniq(blacklist), ", ") <> "."
       else
         ""
       end

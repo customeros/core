@@ -28,10 +28,11 @@ defmodule Core.Researcher.IcpBuilder do
   end
 
   def tenant_icp(tenant_record) do
-    with {:ok, profile} <- build_icp(tenant_record.domain, tenant_record.id) do
-      Core.Researcher.IcpFinder.find_matching_companies_start(profile.id)
-      {:ok, profile}
-    else
+    case build_icp(tenant_record.domain, tenant_record.id) do
+      {:ok, profile} ->
+        Core.Researcher.IcpFinder.find_matching_companies_start(profile.id)
+        {:ok, profile}
+
       {:error, reason} ->
         Logger.error("Generating Tenant ICP failed: #{inspect(reason)}")
         {:error, reason}
@@ -84,7 +85,7 @@ defmodule Core.Researcher.IcpBuilder do
           {:error, reason} ->
             Logger.error(
               "Could not build fast ICP: #{inspect(reason)}",
-              domain: domain
+              company_domain: domain
             )
 
             {:error, reason}
@@ -104,7 +105,7 @@ defmodule Core.Researcher.IcpBuilder do
       {:error, reason} ->
         Logger.error(
           "Could not generate and save ICP: #{inspect(reason)}",
-          domain: domain
+          company_domain: domain
         )
 
         {:error, reason}

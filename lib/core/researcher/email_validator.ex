@@ -1,4 +1,23 @@
 defmodule Core.Researcher.EmailValidator do
+  @moduledoc """
+  Provides email validation functionality using external validation services.
+
+  This module serves as the main interface for email validation in the system,
+  currently using the Mailsherpa service to validate email addresses. It handles:
+
+  * Email format validation
+  * Integration with external validation services
+  * Logging of validation attempts and results
+  * Error handling and reporting
+
+  The validation process checks for:
+  * Email format correctness
+  * Domain validity
+  * Mailbox existence
+  * Disposable email detection
+  * Role-based email detection
+  """
+
   require Logger
   alias Core.Researcher.EmailValidator.Mailsherpa
 
