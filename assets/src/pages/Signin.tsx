@@ -35,7 +35,7 @@ export default function Signin() {
                     {!emailSent && (
                       <>
                         <p className="text-3xl font-semibold -mt-[34px] text-gray-900">
-                          Welcome back
+                          Good to see you
                         </p>
                       </>
                     )}
@@ -44,8 +44,9 @@ export default function Signin() {
                     {emailSent ? (
                       <div className="space-y-2 text-center pt-4 -mt-[60px]">
                         <p className="font-semibold text-3xl">Check your email</p>
-                        <p className="text-gray-500">
-                          We've sent you an email with a magic code to {data.email}
+                        <p>
+                          We've sent you an email with a magic link to{' '}
+                          <span className="font-medium">{data.email}</span>
                         </p>
                         <Button
                           variant="outline"
@@ -60,11 +61,13 @@ export default function Signin() {
                       </div>
                     ) : (
                       <>
-                        <p className="text-base mt-3">Sign in to your account</p>
+                        <p className="text-base mt-3">We'll email you a magic link to get in </p>
                         <div className="w-full flex flex-col items-start">
                           <Input
+                            type="email"
                             variant="outline"
                             value={data.email}
+                            autoComplete="email"
                             className="rounded-lg"
                             invalid={!!errors.email}
                             placeholder="Enter your email"
@@ -85,17 +88,15 @@ export default function Signin() {
                           colorScheme="primary"
                           isDisabled={processing}
                         >
-                          Sign in
+                          Send link
                         </Button>
-                        <p className="text-gray-500">We'll send you an email with a magic link</p>
                       </>
                     )}
 
                     {!emailSent && (
                       <>
-                        <div className="w-full h-1 border-t" />
-                        <div className="text-gray-500 text-center text-xs">
-                          By logging in you agree to CustomerOS's
+                        <div className="text-gray-500 text-center text-xs pt-4">
+                          By signing in you agree to CustomerOS's
                           <div className="text-gray-500">
                             <a
                               className="text-primary-700 mr-1 underline"
