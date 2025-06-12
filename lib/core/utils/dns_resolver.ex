@@ -5,7 +5,11 @@ defmodule Core.Utils.DnsResolver do
   This module provides functions to retrieve various DNS records (A, AAAA, MX, SPF, CNAME)
   for domains and returns structured information about their DNS configuration.
   """
-  alias Core.Utils.Errors
+
+  @err_empty_domain {:error, "empty domain"}
+  @err_invalid_domain {:error, "invalid domain"}
+  @err_no_records_found {:error, "no records found"}
+  @err_dns_lookup_failed {:error, "dns lookup failed"}
 
   @type dns_result :: %{
           mx: [String.t()],
@@ -33,8 +37,6 @@ defmodule Core.Utils.DnsResolver do
       }}
   """
 
-  @spec get_dns(String.t()) ::
-          {:ok, dns_result()} | {:error, Core.Utils.Errors.dns_error()}
   def get_dns(domain) when is_binary(domain) and byte_size(domain) > 0 do
     try do
       result =
@@ -46,13 +48,13 @@ defmodule Core.Utils.DnsResolver do
 
       {:ok, result}
     rescue
-      _ -> Errors.error(:dns_lookup_failed)
+      _ -> @err_dns_lookup_failed
     end
   end
 
-  def get_dns(""), do: Errors.error(:invalid_domain)
-  def get_dns(nil), do: Errors.error(:invalid_domain)
-  def get_dns(_), do: Errors.error(:invalid_domain)
+  def get_dns(""), do: @err_empty_domain
+  def get_dns(nil), do: @err_empty_domain
+  def get_dns(_), do: @err_invalid_domain
 
   @doc """
   Gets MX records for a domain, sorted by priority.
@@ -61,8 +63,6 @@ defmodule Core.Utils.DnsResolver do
   Hostnames are normalized (trailing dots removed, lowercased).
 
   """
-  @spec get_mx_records(String.t()) ::
-          {:ok, [String.t()]} | {:error, Core.Utils.Errors.dns_error()}
   def get_mx_records(domain) when is_binary(domain) and byte_size(domain) > 0 do
     try do
       domain
@@ -70,13 +70,13 @@ defmodule Core.Utils.DnsResolver do
       |> lookup_mx_records()
       |> process_mx_records()
     rescue
-      _ -> Errors.error(:dns_lookup_failed)
+      _ -> @err_dns_lookup_failed
     end
   end
 
-  def get_mx_records(""), do: Errors.error(:invalid_domain)
-  def get_mx_records(nil), do: Errors.error(:invalid_domain)
-  def get_mx_records(_), do: Errors.error(:invalid_domain)
+  def get_mx_records(""), do: @err_empty_domain
+  def get_mx_records(nil), do: @err_empty_domain
+  def get_mx_records(_), do: @err_invalid_domain
 
   @doc """
   Gets the SPF record for a domain.
@@ -84,42 +84,38 @@ defmodule Core.Utils.DnsResolver do
   Searches TXT records for SPF (Sender Policy Framework) configuration.
   Returns the first SPF record found (starting with "v=spf1").
   """
-  @spec get_spf_record(String.t()) ::
-          {:ok, String.t()} | {:error, Core.Utils.Errors.dns_error()}
   def get_spf_record(domain) when is_binary(domain) and byte_size(domain) > 0 do
     try do
       case lookup_txt_records(domain) do
         {:ok, records} ->
           case find_spf_in_records(records) do
-            "" -> Errors.error(:no_records_found)
+            "" -> @err_no_records_found
             spf -> {:ok, spf}
           end
 
         {:error, _} ->
-          Errors.error(:no_records_found)
+          @err_no_records_found
       end
     rescue
-      _ -> Errors.error(:no_records_found)
+      _ -> @err_no_records_found
     end
   end
 
-  def get_spf_record(""), do: {:error, :invalid_domain}
-  def get_spf_record(nil), do: {:error, :invalid_domain}
-  def get_spf_record(_), do: {:error, :invalid_domain}
+  def get_spf_record(""), do: @err_empty_domain
+  def get_spf_record(nil), do: @err_empty_domain
+  def get_spf_record(_), do: @err_invalid_domain
 
   @doc """
   Gets the CNAME record for a domain if it exists.
 
   Checks if the domain has a CNAME record pointing to a different hostname.
   """
-  @spec get_cname_record(String.t()) ::
-          {:ok, String.t()} | {:error, Core.Utils.Errors.dns_error()}
   def get_cname_record(domain)
       when is_binary(domain) and byte_size(domain) > 0 do
     try do
       case domain |> String.to_charlist() |> lookup_cname_record() do
         [] ->
-          Errors.error(:no_records_found)
+          @err_no_records_found
 
         [cname | _] ->
           cname_str = cname |> to_string() |> String.trim_trailing(".")
@@ -128,17 +124,17 @@ defmodule Core.Utils.DnsResolver do
           if cname_str != domain && "#{cname_str}." != domain do
             {:ok, cname_str}
           else
-            Errors.error(:no_records_found)
+            @err_no_records_found
           end
       end
     rescue
-      _ -> Errors.error(:dns_lookup_failed)
+      _ -> @err_dns_lookup_failed
     end
   end
 
-  def get_cname_record(""), do: Errors.error(:domain_not_provided)
-  def get_cname_record(nil), do: Errors.error(:domain_not_provided)
-  def get_cname_record(_), do: Errors.error(:invalid_domain)
+  def get_cname_record(""), do: @err_empty_domain
+  def get_cname_record(nil), do: @err_empty_domain
+  def get_cname_record(_), do: @err_invalid_domain
 
   @doc """
   Checks if a domain has A or AAAA records.
@@ -146,8 +142,6 @@ defmodule Core.Utils.DnsResolver do
   Determines if the domain resolves to IPv4 (A) or IPv6 (AAAA) addresses.
   This indicates whether the domain has active hosting.
   """
-  @spec has_a_or_aaaa_record(String.t()) ::
-          {:ok, boolean()} | {:error, Core.Utils.Errors.dns_error()}
   def has_a_or_aaaa_record(domain)
       when is_binary(domain) and byte_size(domain) > 0 do
     try do
@@ -161,13 +155,13 @@ defmodule Core.Utils.DnsResolver do
 
       {:ok, has_record}
     rescue
-      _ -> Errors.error(:dns_lookup_failed)
+      _ -> @err_dns_lookup_failed
     end
   end
 
-  def has_a_or_aaaa_record(""), do: Errors.error(:domain_not_provided)
-  def has_a_or_aaaa_record(nil), do: Errors.error(:domain_not_provided)
-  def has_a_or_aaaa_record(_), do: Errors.error(:invalid_domain)
+  def has_a_or_aaaa_record(""), do: @err_empty_domain
+  def has_a_or_aaaa_record(nil), do: @err_empty_domain
+  def has_a_or_aaaa_record(_), do: @err_invalid_domain
 
   # Private functions
 
@@ -209,7 +203,7 @@ defmodule Core.Utils.DnsResolver do
     :inet_res.lookup(domain_charlist, :in, :mx)
   end
 
-  defp process_mx_records([]), do: Errors.error(:no_records_found)
+  defp process_mx_records([]), do: @err_no_records_found
 
   defp process_mx_records(records) when is_list(records) do
     sorted =
@@ -225,7 +219,7 @@ defmodule Core.Utils.DnsResolver do
   defp lookup_txt_records(domain) do
     case :inet_res.lookup(String.to_charlist(domain), :in, :txt) do
       [] ->
-        Errors.error(:no_records_found)
+        @err_no_records_found
 
       records when is_list(records) ->
         {:ok, records}
