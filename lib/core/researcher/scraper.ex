@@ -40,7 +40,7 @@ defmodule Core.Researcher.Scraper do
   @err_url_not_provided {:error, :url_not_provided}
   @err_webscraper_timed_out {:error, "webscraper timed out"}
   @err_unexpected_response {:error, "webscraper returned unexpected response"}
-  @err_not_primary_domain {:error, "not primary_domain"}
+  @err_not_primary_domain {:error, "not primary domain"}
 
   @type scrape_result :: %{
           content: String.t(),
