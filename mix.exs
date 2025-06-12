@@ -59,6 +59,7 @@ defmodule Core.MixProject do
       {:credo, "~> 1.7", only: [:dev, :test], runtime: false},
       {:csv, "~> 3.2"},
       {:dialyxir, "~> 1.4", only: [:dev, :test], runtime: false},
+      {:domainatrex, "~> 3.0"},
       {:dns_cluster, "~> 0.2.0"},
       {:earmark, "~> 1.4"},
       {:ecto_psql_extras, "~> 0.8"},

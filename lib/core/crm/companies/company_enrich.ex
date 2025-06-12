@@ -25,48 +25,18 @@ defmodule Core.Crm.Companies.CompanyEnrich do
   alias Core.Crm.Companies.Company
   alias Core.Crm.Companies.Enrichment
   alias Core.Crm.Industries
-  alias Core.Utils.Errors
   alias Core.Utils.Media.Images
   alias Core.Utils.Tracing
   alias Core.Researcher.Scraper
 
-  @type scrape_homepage_error ::
-          :not_found
-          | :update_failed
-          | :no_content
-          | :unprocessable
-          | :webscraper_timeout
-          | :url_not_provided
-          | :invalid_url
-  @type enrich_industry_error ::
-          :not_found
-          | :update_failed
-          | :industry_not_found
-          | :invalid_request
-          | :ai_timeout
-          | :invalid_ai_response
-          | :empty_ai_response
-  @type enrich_country_error ::
-          :not_found
-          | :update_failed
-          | :invalid_request
-          | :ai_timeout
-          | :invalid_ai_response
-  @type enrich_name_error ::
-          :not_found
-          | :update_failed
-          | :invalid_request
-          | :ai_timeout
-          | :invalid_ai_response
-  @type enrich_icon_error ::
-          :not_found
-          | :update_failed
-          | :invalid_request
-          | :ai_timeout
-          | :invalid_ai_response
-          | :download_failed
-          | :storage_failed
-          | :image_not_found
+  @err_not_found {:error, "not found"}
+  @err_update_failed {:error, "update failed"}
+  @err_invalid_request {:error, "invalid request"}
+  @err_image_not_found {:error, "image not found"}
+  @err_empty_ai_response {:error, "empty ai response"}
+  @err_scrape_not_needed {:error, "scrape not needed"}
+  @err_industry_not_found {:error, "industry not found"}
+  @err_enrichment_not_needed {:error, "enrichment not needed"}
 
   @spec scrape_homepage_start(String.t()) :: {:ok, pid()} | {:error, term()}
   def scrape_homepage_start(company_id) do
@@ -80,7 +50,6 @@ defmodule Core.Crm.Companies.CompanyEnrich do
     end
   end
 
-  @spec scrape_homepage(String.t()) :: :ok | {:error, scrape_homepage_error()}
   def scrape_homepage(company_id) do
     OpenTelemetry.Tracer.with_span "company_enrich.scrape_homepage" do
       with {:ok, company} <- fetch_company(company_id),
@@ -100,7 +69,7 @@ defmodule Core.Crm.Companies.CompanyEnrich do
     case Repo.get(Company, company_id) do
       nil ->
         Tracing.error(:not_found, "Company not found", company_id: company_id)
-        Errors.error(:not_found)
+        @err_not_found
 
       company ->
         {:ok, company}
@@ -111,7 +80,7 @@ defmodule Core.Crm.Companies.CompanyEnrich do
     if should_scrape_homepage?(company) do
       :ok
     else
-      {:error, :scrape_not_needed}
+      @err_scrape_not_needed
     end
   end
 
@@ -130,7 +99,7 @@ defmodule Core.Crm.Companies.CompanyEnrich do
           company_id: company_id
         )
 
-        Errors.error(:update_failed)
+        @err_update_failed
 
       {_count, _} ->
         :ok
@@ -169,7 +138,7 @@ defmodule Core.Crm.Companies.CompanyEnrich do
           company_id: company_id
         )
 
-        Errors.error(:update_failed)
+        @err_update_failed
 
       {_count, _} ->
         :ok
@@ -216,7 +185,6 @@ defmodule Core.Crm.Companies.CompanyEnrich do
     end
   end
 
-  @spec enrich_industry(String.t()) :: :ok | {:error, enrich_industry_error()}
   def enrich_industry(company_id) do
     OpenTelemetry.Tracer.with_span "company_enrich.enrich_industry" do
       OpenTelemetry.Tracer.set_attributes([{"company.id", company_id}])
@@ -239,7 +207,7 @@ defmodule Core.Crm.Companies.CompanyEnrich do
   defp validate_industry_eligibility(company) do
     if should_enrich_industry?(company),
       do: :ok,
-      else: {:error, :enrichment_not_needed}
+      else: @err_enrichment_not_needed
   end
 
   defp mark_industry_attempt(company_id) do
@@ -255,7 +223,7 @@ defmodule Core.Crm.Companies.CompanyEnrich do
           company_id: company_id
         )
 
-        Errors.error(:update_failed)
+        @err_update_failed
 
       {_count, _} ->
         :ok
@@ -283,14 +251,14 @@ defmodule Core.Crm.Companies.CompanyEnrich do
               company_id: company.id
             )
 
-            {:error, :invalid_request}
+            @err_invalid_request
 
           {:error, :empty_ai_response} ->
             Tracing.warning(:empty_ai_response, "No industry code from AI",
               company_id: company.id
             )
 
-            {:error, :empty_ai_response}
+            @err_empty_ai_response
 
           {:error, reason} ->
             Tracing.error(reason, "Failed to get industry code from AI",
@@ -317,7 +285,7 @@ defmodule Core.Crm.Companies.CompanyEnrich do
           company_id: company.id
         )
 
-        {:error, :industry_not_found}
+        @err_industry_not_found
 
       industry ->
         {:ok, industry}
@@ -334,7 +302,7 @@ defmodule Core.Crm.Companies.CompanyEnrich do
           company_id: company_id
         )
 
-        Errors.error(:update_failed)
+        @err_update_failed
 
       {_count, _} ->
         :ok
@@ -353,7 +321,6 @@ defmodule Core.Crm.Companies.CompanyEnrich do
     end
   end
 
-  @spec enrich_name(String.t()) :: :ok | {:error, enrich_name_error()}
   def enrich_name(company_id) do
     OpenTelemetry.Tracer.with_span "company_enrich.enrich_name" do
       OpenTelemetry.Tracer.set_attributes([{"company.id", company_id}])
@@ -373,7 +340,7 @@ defmodule Core.Crm.Companies.CompanyEnrich do
   defp validate_name_eligibility(company) do
     if should_enrich_name?(company),
       do: :ok,
-      else: {:error, :enrichment_not_needed}
+      else: @err_enrichment_not_needed
   end
 
   defp mark_name_attempt(company_id) do
@@ -389,7 +356,7 @@ defmodule Core.Crm.Companies.CompanyEnrich do
           company_id: company_id
         )
 
-        Errors.error(:update_failed)
+        @err_update_failed
 
       {_count, _} ->
         :ok
@@ -440,7 +407,7 @@ defmodule Core.Crm.Companies.CompanyEnrich do
           company_id: company_id
         )
 
-        Errors.error(:update_failed)
+        @err_update_failed
 
       {_count, _} ->
         :ok
@@ -459,7 +426,6 @@ defmodule Core.Crm.Companies.CompanyEnrich do
     end
   end
 
-  @spec enrich_country(String.t()) :: :ok | {:error, enrich_country_error()}
   def enrich_country(company_id) do
     OpenTelemetry.Tracer.with_span "company_enrich.enrich_country" do
       OpenTelemetry.Tracer.set_attributes([{"company.id", company_id}])
@@ -481,7 +447,7 @@ defmodule Core.Crm.Companies.CompanyEnrich do
   defp validate_country_eligibility(company) do
     if should_enrich_country?(company),
       do: :ok,
-      else: {:error, :enrichment_not_needed}
+      else: @err_enrichment_not_needed
   end
 
   defp mark_country_attempt(company_id) do
@@ -497,7 +463,7 @@ defmodule Core.Crm.Companies.CompanyEnrich do
           company_id: company_id
         )
 
-        {:error, :update_failed}
+        @err_update_failed
 
       {_count, _} ->
         :ok
@@ -551,7 +517,7 @@ defmodule Core.Crm.Companies.CompanyEnrich do
           company_id: company_id
         )
 
-        Errors.error(:update_failed)
+        @err_update_failed
 
       {_count, _} ->
         :ok
@@ -570,7 +536,6 @@ defmodule Core.Crm.Companies.CompanyEnrich do
     end
   end
 
-  @spec enrich_icon(String.t()) :: :ok | {:error, enrich_icon_error()}
   def enrich_icon(company_id) do
     OpenTelemetry.Tracer.with_span "company_enrich.enrich_icon" do
       OpenTelemetry.Tracer.set_attributes([{"company.id", company_id}])
@@ -591,7 +556,7 @@ defmodule Core.Crm.Companies.CompanyEnrich do
   defp validate_icon_eligibility(company) do
     if should_enrich_icon?(company),
       do: :ok,
-      else: {:error, :enrichment_not_needed}
+      else: @err_enrichment_not_needed
   end
 
   defp mark_icon_attempt(company_id) do
@@ -607,7 +572,7 @@ defmodule Core.Crm.Companies.CompanyEnrich do
           company_id: company_id
         )
 
-        Errors.error(:update_failed)
+        @err_update_failed
 
       {_count, _} ->
         :ok
@@ -636,7 +601,7 @@ defmodule Core.Crm.Companies.CompanyEnrich do
           "Icon not found for company #{company.id} (domain: #{company.primary_domain})"
         )
 
-        {:error, :image_not_found}
+        @err_image_not_found
 
       {:error, reason} ->
         Tracing.error(reason, "Failed to download icon for company",
@@ -676,7 +641,7 @@ defmodule Core.Crm.Companies.CompanyEnrich do
           company_id: company_id
         )
 
-        Errors.error(:update_failed)
+        @err_update_failed
 
       {_count, _} ->
         :ok
@@ -694,7 +659,7 @@ defmodule Core.Crm.Companies.CompanyEnrich do
           company_id: company_id
         )
 
-        Errors.error(:not_found)
+        @err_not_found
 
       company ->
         {:ok, company}
@@ -857,7 +822,7 @@ defmodule Core.Crm.Companies.CompanyEnrich do
           company_domain: domain
         )
 
-        {:error, :not_found}
+        @err_not_found
     end
   end
 end
