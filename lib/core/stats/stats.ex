@@ -12,7 +12,7 @@ defmodule Core.Stats do
 
   ## Parameters
     - user_id: String representing the user identifier
-    - event_type: Atom representing the type of event (:login, :logout, :view_document, :download_document)
+    - event_type: Atom representing the type of event
 
   ## Returns
     - `:ok` immediately, as the operation is performed asynchronously
