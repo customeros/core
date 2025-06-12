@@ -48,8 +48,21 @@ defmodule Core.WebTracker.IPProfiler do
   """
   @spec get_company_info(String.t()) :: {:ok, map()} | {:error, term()}
   def get_company_info(ip) when is_binary(ip) do
-    #    // if in db return it otherwise move one
-    IpIdentifier.identify_ip(ip)
+    case IpIntelligence.get_by_ip(ip) do
+      {:ok, %IpIntelligence{domain_source: :snitcher, domain: domain} = record} when not is_nil(domain) ->
+        {:ok, %{
+          ip: record.ip,
+          domain: record.domain,
+          type: "company",
+          company: %{}
+        }}
+
+      {:ok, _} ->
+        IpIdentifier.identify_ip(ip)
+
+      {:error, _} ->
+        IpIdentifier.identify_ip(ip)
+    end
   end
 
   def get_company_info(_), do: {:error, "IP address must be a string"}
