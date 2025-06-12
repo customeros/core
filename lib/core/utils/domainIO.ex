@@ -1,15 +1,27 @@
 defmodule Core.Utils.DomainIO do
   @moduledoc """
-
   """
   alias Finch.Response
-
   @err_cannot_resolve_url {:error, "url does not resolve"}
   @err_empty_url {:error, "url is empty"}
   @err_invalid_url {:error, "invalid url"}
 
   def test_redirect(url)
       when is_binary(url) and byte_size(url) > 0 do
+    case Task.Supervisor.async_nolink(Core.TaskSupervisor, fn ->
+           test_redirect_call(url)
+         end)
+         |> Task.yield(6000) do
+      {:ok, result} -> result
+      nil -> @err_cannot_resolve_url
+    end
+  end
+
+  def test_redirect(nil), do: @err_empty_url
+  def test_redirect(""), do: @err_empty_url
+  def test_redirect(_), do: @err_invalid_url
+
+  defp test_redirect_call(url) do
     request =
       Finch.build(:get, url, [
         {"user-agent",
@@ -34,12 +46,25 @@ defmodule Core.Utils.DomainIO do
     end
   end
 
-  def test_redirect(nil), do: @err_empty_url
-  def test_redirect(""), do: @err_empty_url
-  def test_redirect(_), do: @err_invalid_url
-
   def test_reachability(domain)
       when is_binary(domain) and byte_size(domain) > 0 do
+    case Task.Supervisor.async_nolink(
+           Core.TaskSupervisor,
+           fn ->
+             test_reachability_call(domain)
+           end
+         )
+         |> Task.yield(6000) do
+      {:ok, result} -> result
+      nil -> @err_cannot_resolve_url
+    end
+  end
+
+  def test_reachability(nil), do: @err_empty_url
+  def test_reachability(""), do: @err_empty_url
+  def test_reachability(_), do: @err_invalid_url
+
+  defp test_reachability_call(domain) do
     try do
       result =
         [80, 443]
@@ -54,10 +79,6 @@ defmodule Core.Utils.DomainIO do
       _ -> @err_cannot_resolve_url
     end
   end
-
-  def test_reachability(nil), do: @err_empty_url
-  def test_reachability(""), do: @err_empty_url
-  def test_reachability(_), do: @err_invalid_url
 
   defp establish_connection(domain_charlist, port) do
     case :gen_tcp.connect(domain_charlist, port, [], 1000) do
