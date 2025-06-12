@@ -511,9 +511,7 @@ defmodule Core.Notifications.Slack do
     fields =
       if custom_metadata && map_size(custom_metadata) > 0 do
         metadata_lines =
-          custom_metadata
-          |> Enum.map(fn {k, v} -> "*#{k}:* #{v}" end)
-          |> Enum.join("\n")
+          Enum.map_join(custom_metadata, "\n", fn {k, v} -> "*#{k}:* #{v}" end)
 
         fields ++
           [

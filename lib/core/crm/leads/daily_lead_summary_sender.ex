@@ -400,8 +400,7 @@ defmodule Core.Crm.Leads.DailyLeadSummarySender do
     stage
     |> Atom.to_string()
     |> String.split("_")
-    |> Enum.map(&String.capitalize/1)
-    |> Enum.join(" ")
+    |> Enum.map_join(" ", &String.capitalize/1)
   end
 
   defp get_company_name(ref_id) do
