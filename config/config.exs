@@ -1,4 +1,5 @@
 import Config
+get_env = fn key, default -> System.get_env(key, default) end
 
 # Core application
 config :core,
@@ -58,18 +59,19 @@ config :swoosh,
   finch_name: Core.Finch
 
 # External services and integrations
-config :core,
+config :core, Core.Repo,
   ai: [
     anthropic_api_path: "https://api.anthropic.com/v1/messages",
     default_llm_timeout: 45_000
   ],
-  analytics: [
-    posthog_key: System.get_env("POSTHOG_KEY"),
-    posthog_host: System.get_env("POSTHOG_HOST", "https://app.posthog.com")
-  ],
   support: [
-    atlas_app_id: System.get_env("ATLAS_APP_ID")
+    atlas_app_id: get_env.("ATLAS_APP_ID", nil)
   ]
+
+# Analytics configuration
+config :core, :analytics,
+  posthog_key: get_env.("POSTHOG_KEY", nil),
+  posthog_host: get_env.("POSTHOG_HOST", "https://app.posthog.com")
 
 # Esbuild configuration
 config :esbuild,

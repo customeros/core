@@ -47,6 +47,13 @@ config :core, Core.Repo,
   show_sensitive_data_on_connection_error: true,
   pool_size: 10
 
+config :core, :analytics,
+  posthog_key: get_env.("POSTHOG_KEY", nil),
+  posthog_host: get_env.("POSTHOG_HOST", "https://app.posthog.com")
+
+# Support configuration
+config :core, :support, atlas_app_id: get_env.("ATLAS_APP_ID", nil)
+
 # OpenTelemetry configuration
 config :opentelemetry,
        :processors,

@@ -1,15 +1,5 @@
 import Config
 
-# Configure your database
-config :core, Core.Repo,
-  username: System.get_env("POSTGRES_USER", "postgres"),
-  password: System.get_env("POSTGRES_PASSWORD", "postgres"),
-  hostname: System.get_env("POSTGRES_HOST", "localhost"),
-  database: System.get_env("POSTGRES_DB", "core_dev"),
-  stacktrace: true,
-  show_sensitive_data_on_connection_error: true,
-  pool_size: 10
-
 # Web endpoint configuration for development
 config :core, Web.Endpoint,
   http: [ip: {127, 0, 0, 1}, port: 4000],
@@ -42,18 +32,6 @@ config :phoenix, :stacktrace_depth, 20
 
 # Initialize plugs at runtime for faster development compilation
 config :phoenix, :plug_init_mode, :runtime
-
-# Disable swoosh api client as it is only required for production adapters.
-config :swoosh, :api_client, false
-
-# Development analytics configuration
-config :core, :analytics,
-  posthog_key: System.get_env("POSTHOG_KEY", "your_posthog_key_here"),
-  posthog_host: System.get_env("POSTHOG_HOST", "https://app.posthog.com")
-
-# Development support configuration
-config :core, :support,
-  atlas_app_id: System.get_env("ATLAS_APP_ID", "your_atlas_app_id_here")
 
 # Development-specific configurations
 config :core, :realtime,
