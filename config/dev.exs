@@ -60,3 +60,4 @@ config :phoenix_live_view, :debug_heex_annotations, true
 
 # Disable cron jobs in development by default
 config :core, :crons, enabled: false
+config :core, :app_env, :dev

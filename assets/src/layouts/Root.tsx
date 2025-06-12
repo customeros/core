@@ -16,6 +16,15 @@ type Flash = {
   [K in FlashType]: string;
 };
 
+// Define Atlas window interface
+declare global {
+  interface Window {
+    Atlas?: {
+      call: (method: string, ...args: unknown[]) => void;
+    };
+  }
+}
+
 export const RootLayout = ({ children }: { children: React.ReactNode }) => {
   const { props } = usePage<
     PageProps & { tenant: Tenant; currentUser: User; companies: Lead[]; profile: IcpProfile }
@@ -30,12 +39,15 @@ export const RootLayout = ({ children }: { children: React.ReactNode }) => {
       }
     }
   }, [props.flash]);
+
   useEffect(() => {
     if (props.currentUser) {
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      (window as any)?.Atlas?.call('identify', props.currentUser.email);
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      (window as any)?.Atlas?.call('start');
+      // Start Atlas first
+      window.Atlas?.call('start');
+      // Then identify the user
+      window.Atlas?.call('identify', props.currentUser.email, {
+        email: props.currentUser.email,
+      });
       posthog?.identify(props.currentUser.email);
     }
   }, [props.currentUser]);
