@@ -35,7 +35,7 @@ defmodule Core.Integrations.HubSpot.OAuth do
   ```
   """
 
-  @behaviour Core.Integrations.Base
+  @behaviour Core.Integrations.OAuth.Base
 
   @impl true
   def authorize_url(provider) do
