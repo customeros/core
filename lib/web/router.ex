@@ -117,6 +117,24 @@ defmodule Web.Router do
     # get "/*path", LandingController, :redirect
   end
 
+  # Integration routes (require authentication)
+  scope "/integrations", Web.Controllers.Integrations do
+    pipe_through [:browser, :require_authenticated]
+
+    # HubSpot integration routes
+    get "/hubspot/authorize", HubspotController, :authorize
+    get "/hubspot/callback", HubspotController, :callback
+    delete "/hubspot/disconnect", HubspotController, :disconnect
+  end
+
+  # Webhook routes (public, but secured with tenant-specific tokens)
+  scope "/integrations", Web.Controllers.Integrations do
+    pipe_through [:public_api]
+
+    # HubSpot webhook endpoint
+    post "/hubspot/webhook/:tenant_id", HubspotController, :webhook
+  end
+
   # V1 API endpoints
   scope "/v1", Web do
     pipe_through :public_api
