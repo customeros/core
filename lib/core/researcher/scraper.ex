@@ -40,16 +40,7 @@ defmodule Core.Researcher.Scraper do
   @err_url_not_provided {:error, :url_not_provided}
   @err_webscraper_timed_out {:error, "webscraper timed out"}
   @err_unexpected_response {:error, "webscraper returned unexpected response"}
-
-  @type validate_url_error ::
-          :should_not_scrape
-          | :invalid_domain
-          | :not_primary_domain
-          | :invalid_url_format
-          | :https_conversion_failed
-          | :too_many_redirects
-          | :no_content_type
-          | :webpage_content_type_not_text_html
+  @err_not_primary_domain {:error, "not primary domain"}
 
   @type scrape_result :: %{
           content: String.t(),
@@ -57,8 +48,6 @@ defmodule Core.Researcher.Scraper do
           links: [String.t()] | nil
         }
 
-  @spec scrape_webpage(String.t()) ::
-          {:ok, String.t() | scrape_result()} | {:error, any()}
   def scrape_webpage(url) when is_binary(url) and byte_size(url) > 0 do
     OpenTelemetry.Tracer.with_span "scraper.scrape_webpage" do
       OpenTelemetry.Tracer.set_attributes([
@@ -104,8 +93,6 @@ defmodule Core.Researcher.Scraper do
     end
   end
 
-  @spec validate_url(String.t()) ::
-          {:ok, String.t()} | {:error, validate_url_error()}
   def validate_url(url) do
     OpenTelemetry.Tracer.with_span "scraper.validate_url" do
       OpenTelemetry.Tracer.set_attributes([
@@ -144,13 +131,10 @@ defmodule Core.Researcher.Scraper do
     end
   end
 
-  @spec validate_is_primary_domain(String.t()) ::
-          {:ok, true} | {:error, :not_primary_domain | :invalid_domain}
   defp validate_is_primary_domain(url) do
     case PrimaryDomainFinder.primary_domain?(url) do
-      {:ok, true} -> {:ok, true}
-      {:ok, false} -> {:error, :not_primary_domain}
-      {:error, reason} -> {:error, reason}
+      true -> {:ok, true}
+      false -> @err_not_primary_domain
     end
   end
 
