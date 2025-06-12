@@ -6,7 +6,7 @@ export const UserPresence = () => {
   const { presentUsers, currentUserId } = usePresence();
 
   return (
-    <div className="flex gap-1">
+    <div className="gap-1 hidden sm:flex md:flex lg:flex xl:flex 2xl:flex">
       {presentUsers.map((user, idx) => {
         return (
           <UserHexagon

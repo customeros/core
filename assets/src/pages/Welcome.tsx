@@ -56,16 +56,16 @@ export default function Welcome() {
   };
 
   return (
-    <div className="w-screen flex flex-col items-center justify-start px-4 h-screen bg-white relative overflow-x-hidden animate-fadeIn">
-      <div className="bg-[url('/images/half-circle-pattern.svg')] bg-cover bg-center bg-no-repeat w-[700px] h-[700px] absolute top-0 left-1/2 -translate-x-1/2 -translate-y-[40%]">
-        <div className="flex flex-col items-center justify-between h-full pt-[35%] translate-y-[28%] pb-8">
+    <div className="w-screen flex flex-col items-center justify-start px-4 h-screen bg-white relative overflow-x-hidden animate-fadeIn ">
+      <div className="bg-[url('/images/half-circle-pattern.svg')] bg-cover bg-center bg-no-repeat w-[700px] h-[700px] absolute top-0 left-1/2 -translate-x-1/2 -translate-y-[55%] sm:-translate-y-[55%] md:-translate-y-[40%] lg:-translate-y-[40%] xl:-translate-y-[40%] ">
+        <div className="flex flex-col items-center justify-between h-full pt-[35%] translate-y-[28%] pb-8 ">
           <div className="flex flex-col items-center">
             <div className="bg-[url('/images/box-illustration.svg')] w-[152px] h-[130px] bg-cover bg-center bg-no-repeat" />
 
             <h1 className="text-xl font-semibold text-gray-900 mt-8">Welcome!</h1>
             <p className="text-sm text-gray-500 mt-2">3 things you can do in CustomerOS…</p>
 
-            <div className="relative mt-8 h-[260px] flex items-center justify-center w-full max-w-4xl">
+            <div className="relative sm:mt-8 md:mt-8 lg:mt-8 xl:mt-8 h-[260px] flex items-center justify-center w-full max-w-4xl">
               <div className="relative w-full h-full flex items-center justify-center">
                 <div className="absolute left-[-480px] top-0 bottom-0 w-[280px] bg-gradient-to-r from-white to-transparent z-20 pointer-events-none" />
                 <div className="absolute right-[-480px] top-0 bottom-0 w-[280px] bg-gradient-to-l from-white to-transparent z-20 pointer-events-none" />
@@ -132,8 +132,8 @@ export default function Welcome() {
           </div>
 
           <Button
-            variant="ghost"
-            className="mt-4 font-medium"
+            variant="outline"
+            className="mt-6 font-medium"
             onClick={() => {
               router.visit('/leads');
             }}

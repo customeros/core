@@ -20,6 +20,7 @@ import {
   ModalPortal,
   ModalOverlay,
   ModalContent,
+  ModalScrollBody,
   ModalCloseButton,
 } from 'src/components/Modal/Modal';
 
@@ -91,11 +92,11 @@ export const Header = () => {
               variant="ghost"
               aria-label="icp"
               icon={<Icon name="building-03" />}
-              className="group-hover:opacity-100 opacity-0 transition-opacity duration-300"
               onClick={e => {
                 page.props.profile && setDisplayProfile(true);
                 e.stopPropagation();
               }}
+              className="group-hover:opacity-100 opacity-100 sm:opacity-0 md:opacity-0 lg:opacity-0 xl:opacity-0 2xl:opacity-0 transition-opacity duration-300"
             />
           </div>
 
@@ -106,7 +107,7 @@ export const Header = () => {
                   size="xs"
                   variant="circle"
                   icon={<Icon name="user-plus-01" className="text-gray-700 size-5 p-0.5" />}
-                  className="border border-dashed group-hover:opacity-100 opacity-0 transition-opacity duration-300 size-7 cursor-pointer"
+                  className="border border-dashed group-hover:opacity-100 pacity-100 sm:opacity-0 md:opacity-0 lg:opacity-0 xl:opacity-0 2xl:opacity-0 transition-opacity duration-300 size-7 cursor-pointer"
                 />
               </div>
             </Tooltip>
@@ -174,36 +175,38 @@ export const Header = () => {
         <ModalPortal>
           <ModalOverlay />
           <ModalContent placement="top">
-            <ModalHeader className="font-semibold text-base">See who's ready to buy</ModalHeader>
-            <ModalClose />
-            <ModalBody className="flex flex-col gap-2">
-              <p>
-                To know where your leads are in their journey and who's ready to buy, let's help you
-                set up our simple web tracker.
-              </p>
-              <p>
-                Once set up, we'll automatically fill your pipeline with highly-qualified leads,
-                enriched with intent signals.
-              </p>
-            </ModalBody>
-            <ModalFooter className="flex justify-between gap-2">
-              <ModalClose asChild>
-                <Button size="sm" colorScheme="gray" className="w-full">
-                  Cancel
+            <ModalScrollBody>
+              <ModalHeader className="font-semibold text-base">See who's ready to buy</ModalHeader>
+              <ModalClose />
+              <ModalBody className="flex flex-col gap-2">
+                <p>
+                  To know where your leads are in their journey and who's ready to buy, let's help
+                  you set up our simple web tracker.
+                </p>
+                <p>
+                  Once set up, we'll automatically fill your pipeline with highly-qualified leads,
+                  enriched with intent signals.
+                </p>
+              </ModalBody>
+              <ModalFooter className="flex justify-between gap-2">
+                <ModalClose asChild>
+                  <Button size="sm" colorScheme="gray" className="w-full">
+                    Cancel
+                  </Button>
+                </ModalClose>
+                <Button
+                  size="sm"
+                  className="w-full"
+                  colorScheme="primary"
+                  onClick={() => {
+                    window.open('https://cal.com/mbrown/20min', '_blank');
+                    setIsOpen(false);
+                  }}
+                >
+                  Book a call
                 </Button>
-              </ModalClose>
-              <Button
-                size="sm"
-                className="w-full"
-                colorScheme="primary"
-                onClick={() => {
-                  window.open('https://cal.com/mbrown/20min', '_blank');
-                  setIsOpen(false);
-                }}
-              >
-                Book a call
-              </Button>
-            </ModalFooter>
+              </ModalFooter>
+            </ModalScrollBody>
           </ModalContent>
         </ModalPortal>
       </Modal>
@@ -211,16 +214,21 @@ export const Header = () => {
       <Modal open={displayProfile} onOpenChange={setDisplayProfile}>
         <ModalPortal>
           <ModalOverlay />
-          <ModalContent placement="top" aria-describedby="profile-modal">
-            <ModalHeader className="font-semibold text-base">
+          <ModalContent
+            placement="top"
+            aria-describedby="profile-modal"
+            className="max-h-[90vh] overflow-y-auto"
+          >
+            <ModalHeader className="font-semibold text-base sticky top-0 bg-white ">
               <div className="flex flex-col items-start gap-2">
                 <p className="font-semibold">Your Ideal Customer Profile</p>
-                <p className="font-medium text-sm">Description</p>
               </div>
+              <ModalCloseButton />
             </ModalHeader>
-            <ModalCloseButton />
             <ModalBody className="flex flex-col gap-2">
-              <p>{page.props?.profile?.profile}</p>
+              <p className="font-medium text-sm">Description</p>
+
+              <p className="mb-4">{page.props?.profile?.profile}</p>
               <p className="text-sm font-medium">Qualifying criteria</p>
               <ul className="list-disc pl-4 flex flex-col gap-0 text-sm">
                 {page.props?.profile?.qualifyingAttributes?.map(attribute => (
@@ -228,7 +236,7 @@ export const Header = () => {
                 ))}
               </ul>
             </ModalBody>
-            <ModalFooter>
+            <ModalFooter className="sticky bottom-0 bg-white">
               <ModalClose asChild>
                 <Button size="sm" colorScheme="gray" className="w-full">
                   Cancel
@@ -242,7 +250,11 @@ export const Header = () => {
       <Modal open={inviteTeam} onOpenChange={setInviteTeam}>
         <ModalPortal>
           <ModalOverlay />
-          <ModalContent placement="top" aria-describedby="profile-modal">
+          <ModalContent
+            placement="top"
+            aria-describedby="profile-modal"
+            className="max-h-[90vh] overflow-y-auto"
+          >
             <ModalHeader className="font-semibold text-base">
               Unlimited seats, unlimited collaboration
             </ModalHeader>
