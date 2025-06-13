@@ -19,7 +19,7 @@ import {
 
 export const DocumentEditor = () => {
   const page = usePage<
-    PageProps & { tenant: Tenant; currentUser: User; leads: Lead[] | Record<Stage, Lead[]> }
+    PageProps & { tenant: Tenant; current_user: User; leads: Lead[] | Record<Stage, Lead[]> }
   >();
   const params = new URLSearchParams(window.location.search);
   const leadId = params.get('lead');

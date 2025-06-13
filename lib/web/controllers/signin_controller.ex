@@ -6,7 +6,7 @@ defmodule Web.AuthController do
 
   def index(conn, _params) do
     conn
-    |> assign_prop(:pageTitle, "Sign In | CustomerOS")
+    |> assign_prop(:page_title, "Sign In | CustomerOS")
     |> render_inertia("Signin")
   end
 
@@ -19,7 +19,7 @@ defmodule Web.AuthController do
 
       {:error, errors} ->
         conn
-        |> assign_prop(:pageTitle, "Sign In | CustomerOS")
+        |> assign_prop(:page_title, "Sign In | CustomerOS")
         |> assign_prop(:errors, %{
           email: Keyword.get(errors, :email, "Something went wrong")
         })

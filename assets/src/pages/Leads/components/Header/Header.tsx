@@ -45,8 +45,8 @@ export const Header = () => {
       leads: Lead[];
       tenant: Tenant;
       profile: Profile;
-      maxCount: number;
-      currentUser: User;
+      max_count: number;
+      current_user: User;
     }
   >();
   const [isOpen, setIsOpen] = useState(false);
@@ -93,12 +93,12 @@ export const Header = () => {
           <div className="flex items-center gap-2">
             <TenantSwitcher
               currentTenant={page.props.tenant.id}
-              isAdmin={page.props.currentUser.admin}
+              isAdmin={page.props.current_user.admin}
             >
               <div
                 className={cn(
                   'flex items-center gap-2 cursor-pointer',
-                  !page.props.currentUser.admin && 'cursor-default'
+                  !page.props.current_user.admin && 'cursor-default'
                 )}
               >
                 {worksspaceLogo ? (
@@ -257,7 +257,7 @@ export const Header = () => {
                 </div>
               </PopoverContent>
             </Popover>
-            {page.props.maxCount > 0 && (
+            {page.props.max_count > 0 && (
               <Button
                 size="xs"
                 colorScheme="gray"

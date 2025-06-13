@@ -2,7 +2,9 @@ import { usePage } from '@inertiajs/react';
 import { useState, useEffect, useContext } from 'react';
 
 import { Presence } from 'phoenix';
+import { PageProps } from '@inertiajs/core';
 
+import { User, Tenant } from '../types';
 import { PhoenixSocketContext } from '../providers/SocketProvider';
 
 type Meta = {
@@ -16,15 +18,13 @@ type Meta = {
 
 type PresenceState = { metas: Meta[] }[];
 
-type User = { id: string; name: string; email: string };
-
 export const useChannel = (channelName: string) => {
-  const page = usePage();
+  const page = usePage<PageProps & { tenant: Tenant; current_user: User }>();
   const { socket, createChannel, channels } = useContext(PhoenixSocketContext);
   const channel = channels.get(channelName);
 
-  const user_id = (page?.props?.currentUser as User)?.id ?? '';
-  const username = (page?.props?.currentUser as User)?.email;
+  const user_id = (page?.props?.current_user as User)?.id ?? '';
+  const username = (page?.props?.current_user as User)?.email;
 
   useEffect(() => {
     if (!socket || !user_id) return;

@@ -18,9 +18,9 @@ import {
 import { Header, Pipeline, LeadItem, EmptyState, stageOptions } from './components';
 interface LeadsProps {
   tenant: Tenant;
-  maxCount: number;
-  currentUser: User;
-  stageCounts: Record<Stage, number>;
+  max_count: number;
+  current_user: User;
+  stage_counts: Record<Stage, number>;
   leads: Lead[] | Record<Stage, Lead[]>;
 }
 
@@ -30,8 +30,8 @@ const DocumentEditor = lazy(() =>
   }))
 );
 
-export default function Leads({ leads, stageCounts, maxCount }: LeadsProps) {
-  const [scrollProgress, setScrollProgress] = useState(0);
+export default function Leads({ leads, stage_counts, max_count }: LeadsProps) {
+  const [scroll_progress, setScrollProgress] = useState(0);
   const { getUrlState, setUrlState } = useUrlState<UrlState>({ revalidate: ['leads'] });
   const { viewMode, group, lead, stage: selectedStage } = getUrlState();
 
@@ -83,17 +83,18 @@ export default function Leads({ leads, stageCounts, maxCount }: LeadsProps) {
     <RootLayout>
       <EventSubscriber />
       <Header />
-      {maxCount === 0 ? (
+      {max_count === 0 ? (
         <EmptyState />
       ) : (
         <div className="relative h-[calc(100vh-3rem)] overflow-x-hidden bg-white p-0 transition-[width] duration-300 ease-in-out w-full 2xl:w-[1440px] 2xl:mx-auto animate-fadeIn">
           <div className="w-full flex">
             <div className="flex-1 flex flex-col overflow-hidden">
               <Pipeline
-                maxCount={maxCount}
-                stageCounts={stageCounts}
-                scrollProgress={scrollProgress}
+                leads={leads}
+                max_count={max_count}
+                stage_counts={stage_counts}
                 onStageClick={handleStageClick}
+                scroll_progress={scroll_progress}
               />
               <ScrollAreaRoot>
                 <ScrollAreaViewport
@@ -116,7 +117,7 @@ export default function Leads({ leads, stageCounts, maxCount }: LeadsProps) {
                           <div key={stage} className="flex flex-col w-full">
                             <SegmentedView
                               isSelected={selectedStage === stage}
-                              count={stageCounts[stage as Stage] || 0}
+                              count={stage_counts[stage as Stage] || 0}
                               label={stageOptions.find(s => s.value === stage)?.label || stage}
                               onClick={() => {
                                 handleStageClick(stage as Stage);

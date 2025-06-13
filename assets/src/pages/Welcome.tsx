@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { router } from '@inertiajs/react';
 
 import { Dot } from 'src/components/Dot';
+import { RootLayout } from 'src/layouts/Root';
 import { Button } from 'src/components/Button';
 import { Icon, IconName } from 'src/components/Icon';
 import { FeaturedIcon } from 'src/components/FeaturedIcon/FeaturedIcon';
@@ -56,92 +57,94 @@ export default function Welcome() {
   };
 
   return (
-    <div className="w-screen flex flex-col items-center justify-start px-4 h-screen bg-white relative overflow-x-hidden animate-fadeIn ">
-      <div className="bg-[url('/images/half-circle-pattern.svg')] bg-cover bg-center bg-no-repeat w-[700px] h-[700px] absolute top-0 left-1/2 -translate-x-1/2 -translate-y-[55%] sm:-translate-y-[55%] md:-translate-y-[40%] lg:-translate-y-[40%] xl:-translate-y-[40%] ">
-        <div className="flex flex-col items-center justify-between h-full pt-[35%] translate-y-[28%] pb-8 ">
-          <div className="flex flex-col items-center">
-            <div className="bg-[url('/images/box-illustration.svg')] w-[152px] h-[130px] bg-cover bg-center bg-no-repeat" />
+    <RootLayout>
+      <div className="w-screen flex flex-col items-center justify-start px-4 h-screen bg-white relative overflow-x-hidden animate-fadeIn ">
+        <div className="bg-[url('/images/half-circle-pattern.svg')] bg-cover bg-center bg-no-repeat w-[700px] h-[700px] absolute top-0 left-1/2 -translate-x-1/2 -translate-y-[55%] sm:-translate-y-[55%] md:-translate-y-[40%] lg:-translate-y-[40%] xl:-translate-y-[40%] ">
+          <div className="flex flex-col items-center justify-between h-full pt-[35%] translate-y-[28%] pb-8 ">
+            <div className="flex flex-col items-center">
+              <div className="bg-[url('/images/box-illustration.svg')] w-[152px] h-[130px] bg-cover bg-center bg-no-repeat" />
 
-            <h1 className="text-xl font-semibold text-gray-900 mt-8">Welcome!</h1>
-            <p className="text-sm text-gray-500 mt-2">3 things you can do in CustomerOS…</p>
+              <h1 className="text-xl font-semibold text-gray-900 mt-8">Welcome!</h1>
+              <p className="text-sm text-gray-500 mt-2">3 things you can do in CustomerOS…</p>
 
-            <div className="relative sm:mt-8 md:mt-8 lg:mt-8 xl:mt-8 h-[260px] flex items-center justify-center w-full max-w-4xl">
-              <div className="relative w-full h-full flex items-center justify-center">
-                <div className="absolute left-[-480px] top-0 bottom-0 w-[280px] bg-gradient-to-r from-white to-transparent z-20 pointer-events-none" />
-                <div className="absolute right-[-480px] top-0 bottom-0 w-[280px] bg-gradient-to-l from-white to-transparent z-20 pointer-events-none" />
+              <div className="relative sm:mt-8 md:mt-8 lg:mt-8 xl:mt-8 h-[260px] flex items-center justify-center w-full max-w-4xl">
+                <div className="relative w-full h-full flex items-center justify-center">
+                  <div className="absolute left-[-480px] top-0 bottom-0 w-[280px] bg-gradient-to-r from-white to-transparent z-20 pointer-events-none" />
+                  <div className="absolute right-[-480px] top-0 bottom-0 w-[280px] bg-gradient-to-l from-white to-transparent z-20 pointer-events-none" />
 
-                {slides.map((slide, index) => {
-                  const rel = getRelativeIndex(index);
+                  {slides.map((slide, index) => {
+                    const rel = getRelativeIndex(index);
 
-                  if (Math.abs(rel) > 1) return null;
+                    if (Math.abs(rel) > 1) return null;
 
-                  return (
-                    <div
-                      key={index}
-                      style={getTransformStyle(rel)}
-                      onClick={() => setCurrentSlide(index)}
-                      className="absolute transition-all duration-500 ease-in-out w-[380px] cursor-pointer"
-                      onTouchStart={e => {
-                        const touch = e.touches[0];
-                        const startX = touch.clientX;
-
-                        const handleTouchMove = (e: TouchEvent) => {
+                    return (
+                      <div
+                        key={index}
+                        style={getTransformStyle(rel)}
+                        onClick={() => setCurrentSlide(index)}
+                        className="absolute transition-all duration-500 ease-in-out w-[380px] cursor-pointer"
+                        onTouchStart={e => {
                           const touch = e.touches[0];
-                          const currentX = touch.clientX;
-                          const diff = startX - currentX;
+                          const startX = touch.clientX;
 
-                          if (Math.abs(diff) > 50) {
-                            if (diff > 0) {
-                              setCurrentSlide(prev => (prev + 1) % slides.length);
-                            } else {
-                              setCurrentSlide(prev => (prev - 1 + slides.length) % slides.length);
+                          const handleTouchMove = (e: TouchEvent) => {
+                            const touch = e.touches[0];
+                            const currentX = touch.clientX;
+                            const diff = startX - currentX;
+
+                            if (Math.abs(diff) > 50) {
+                              if (diff > 0) {
+                                setCurrentSlide(prev => (prev + 1) % slides.length);
+                              } else {
+                                setCurrentSlide(prev => (prev - 1 + slides.length) % slides.length);
+                              }
+                              document.removeEventListener('touchmove', handleTouchMove);
                             }
-                            document.removeEventListener('touchmove', handleTouchMove);
-                          }
-                        };
+                          };
 
-                        document.addEventListener('touchmove', handleTouchMove);
-                      }}
-                    >
-                      <div className="bg-white rounded-xl shadow-lg p-6 text-center border border-gray-200 flex flex-col items-center gap-4">
-                        <FeaturedIcon size="md" colorScheme="primary">
-                          <Icon name={slide.icon as IconName} />
-                        </FeaturedIcon>
-                        <h2 className="text-base font-semibold text-primary-600 mb-2">
-                          {slide.title}
-                        </h2>
-                        <p className="text-sm text-gray-600">{slide.description}</p>
+                          document.addEventListener('touchmove', handleTouchMove);
+                        }}
+                      >
+                        <div className="bg-white rounded-xl shadow-lg p-6 text-center border border-gray-200 flex flex-col items-center gap-4">
+                          <FeaturedIcon size="md" colorScheme="primary">
+                            <Icon name={slide.icon as IconName} />
+                          </FeaturedIcon>
+                          <h2 className="text-base font-semibold text-primary-600 mb-2">
+                            {slide.title}
+                          </h2>
+                          <p className="text-sm text-gray-600">{slide.description}</p>
+                        </div>
                       </div>
-                    </div>
-                  );
-                })}
+                    );
+                  })}
+                </div>
+              </div>
+
+              <div className="flex justify-center gap-2 mt-6">
+                {slides.map((_, index) => (
+                  <Dot
+                    key={index}
+                    onClick={() => setCurrentSlide(index)}
+                    aria-label={`Go to slide ${index + 1}`}
+                    colorScheme={currentSlide === index ? 'primary' : 'gray'}
+                    className={`w-2.5 h-2.5 rounded-full transition-colors duration-300 cursor-pointer`}
+                  />
+                ))}
               </div>
             </div>
 
-            <div className="flex justify-center gap-2 mt-6">
-              {slides.map((_, index) => (
-                <Dot
-                  key={index}
-                  onClick={() => setCurrentSlide(index)}
-                  aria-label={`Go to slide ${index + 1}`}
-                  colorScheme={currentSlide === index ? 'primary' : 'gray'}
-                  className={`w-2.5 h-2.5 rounded-full transition-colors duration-300 cursor-pointer`}
-                />
-              ))}
-            </div>
+            <Button
+              variant="outline"
+              className="mt-6 font-medium"
+              onClick={() => {
+                router.visit('/leads');
+              }}
+            >
+              Skip & Open app
+            </Button>
           </div>
-
-          <Button
-            variant="outline"
-            className="mt-6 font-medium"
-            onClick={() => {
-              router.visit('/leads');
-            }}
-          >
-            Skip & Open app
-          </Button>
         </div>
       </div>
-    </div>
+    </RootLayout>
   );
 }
