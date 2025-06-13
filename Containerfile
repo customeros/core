@@ -76,14 +76,14 @@ RUN if [ -f rel/overlays/bin/server ]; then chmod +x rel/overlays/bin/server; fi
 # Install Node.js and npm for ARM64
 RUN curl -fsSL https://deb.nodesource.com/setup_20.x | bash - && \
   apt-get install -y nodejs && \
-  npm install -g npm@latest
+  npm install -g npm@latest 
 
 # Verify Node.js installation
 RUN node --version && npm --version && echo "Node architecture: $(node -e 'console.log(process.arch)')"
 
 # Install frontend dependencies
 COPY assets /app/assets
-RUN npm install --prefix /app/assets
+RUN npm install --prefix /app/assets --ignore-scripts
 
 # Build and deploy frontend assets
 RUN mix assets.deploy
