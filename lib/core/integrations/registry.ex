@@ -1,115 +1,180 @@
 defmodule Core.Integrations.Registry do
   @moduledoc """
-  Registry module for managing tenant-specific integrations.
+  Registry for managing tenant-specific integrations.
 
-  This module provides a centralized way to manage and access integration
-  connections for different tenants. It handles:
-  - Registration of integration providers
-  - Retrieval of tenant-specific integration connections
-  - Management of integration states
+  This module provides a facade for managing integration connections, handling:
+  - Registration and management of integration connections
+  - Provider type conversion (atoms to strings and vice versa)
+  - Connection status management
+  - Error handling and validation
+  - Future extensibility for caching and connection pooling
 
   ## Usage
 
   ```elixir
-  # Get an integration connection for a tenant
-  connection = Core.Integrations.Registry.get_connection(tenant_id, :hubspot)
+  # Get a connection
+  {:ok, connection} = Registry.get_connection(tenant_id, :hubspot)
+  nil = Registry.get_connection(tenant_id, :nonexistent)
 
-  # Register a new integration connection
-  :ok = Core.Integrations.Registry.register_connection(tenant_id, :hubspot, connection)
+  # Register a connection
+  {:ok, connection} = Registry.register_connection(tenant_id, :hubspot, credentials)
+  {:error, reason} = Registry.register_connection(tenant_id, :invalid, credentials)
 
-  # Remove an integration connection
-  :ok = Core.Integrations.Registry.remove_connection(tenant_id, :hubspot)
+  # Update a connection
+  {:ok, connection} = Registry.update_connection(tenant_id, :hubspot, %{status: "active"})
+  {:error, reason} = Registry.update_connection(tenant_id, :hubspot, %{status: "invalid"})
+
+  # List connections
+  {:ok, connections} = Registry.list_connections(tenant_id)
   ```
+
+  ## Connection Status
+
+  Connections can have the following statuses:
+  - `"active"` - Connection is active and ready to use
+  - `"inactive"` - Connection is temporarily disabled
+  - `"error"` - Connection has encountered an error and needs attention
   """
+
   use GenServer
   require Logger
+
+  alias Core.Integrations.IntegrationConnections
+  alias Core.Integrations.IntegrationConnection
 
   # Client API
 
   @doc """
-  Starts the integration registry.
+  Gets a connection for a tenant and provider.
+  Returns {:ok, connection} if found, nil if not found.
   """
-  def start_link(_opts) do
-    GenServer.start_link(__MODULE__, %{}, name: __MODULE__)
-  end
-
-  @doc """
-  Gets an integration connection for a specific tenant and provider.
-  Returns nil if no connection exists.
-  """
-  def get_connection(tenant_id, provider) do
+  def get_connection(tenant_id, provider) when is_atom(provider) do
     GenServer.call(__MODULE__, {:get_connection, tenant_id, provider})
   end
 
   @doc """
-  Registers an integration connection for a specific tenant and provider.
+  Registers a new connection for a tenant and provider.
+  Returns {:ok, connection} on success, {:error, reason} on failure.
   """
-  def register_connection(tenant_id, provider, connection) do
-    GenServer.call(__MODULE__, {:register_connection, tenant_id, provider, connection})
+  def register_connection(tenant_id, provider, credentials) when is_atom(provider) do
+    GenServer.call(__MODULE__, {:register_connection, tenant_id, provider, credentials})
   end
 
   @doc """
-  Removes an integration connection for a specific tenant and provider.
+  Updates an existing connection.
+  Returns {:ok, connection} on success, {:error, reason} on failure.
   """
-  def remove_connection(tenant_id, provider) do
+  def update_connection(tenant_id, provider, attrs) when is_atom(provider) do
+    GenServer.call(__MODULE__, {:update_connection, tenant_id, provider, attrs})
+  end
+
+  @doc """
+  Updates the status of a connection.
+  Returns {:ok, connection} on success, {:error, reason} on failure.
+  """
+  def update_connection_status(tenant_id, provider, status) when is_atom(provider) do
+    GenServer.call(__MODULE__, {:update_status, tenant_id, provider, status})
+  end
+
+  @doc """
+  Updates the last sync timestamp for a connection.
+  Returns {:ok, connection} on success, {:error, reason} on failure.
+  """
+  def update_last_sync(tenant_id, provider) when is_atom(provider) do
+    GenServer.call(__MODULE__, {:update_last_sync, tenant_id, provider})
+  end
+
+  @doc """
+  Removes a connection for a tenant and provider.
+  Returns :ok on success, {:error, reason} on failure.
+  """
+  def remove_connection(tenant_id, provider) when is_atom(provider) do
     GenServer.call(__MODULE__, {:remove_connection, tenant_id, provider})
   end
 
   @doc """
-  Lists all connections for a specific tenant.
+  Lists all connections for a tenant.
+  Returns {:ok, connections} on success, {:error, reason} on failure.
   """
   def list_connections(tenant_id) do
     GenServer.call(__MODULE__, {:list_connections, tenant_id})
   end
 
-  # Server callbacks
+  # Server Callbacks
 
   @impl true
-  def init(state) do
-    # Could load persisted connections from database here
-    {:ok, state}
+  def init(_) do
+    {:ok, %{}}
   end
 
   @impl true
   def handle_call({:get_connection, tenant_id, provider}, _from, state) do
-    connection = get_in(state, [tenant_id, provider])
-    {:reply, connection, state}
+    case IntegrationConnections.get_connection(tenant_id, Atom.to_string(provider)) do
+      nil -> {:reply, nil, state}
+      {:ok, connection} -> {:reply, {:ok, connection}, state}
+    end
   end
 
   @impl true
-  def handle_call({:register_connection, tenant_id, provider, connection}, _from, state) do
-    tenant_connections = Map.get(state, tenant_id, %{})
-    updated_tenant = Map.put(tenant_connections, provider, connection)
-    updated_state = Map.put(state, tenant_id, updated_tenant)
+  def handle_call({:register_connection, tenant_id, provider, credentials}, _from, state) do
+    case IntegrationConnections.create_connection(tenant_id, Atom.to_string(provider), credentials) do
+      {:ok, connection} -> {:reply, {:ok, connection}, state}
+      {:error, changeset} -> {:reply, {:error, format_changeset_errors(changeset)}, state}
+    end
+  end
 
-    # Could persist to database here
-    Logger.info("Registered #{provider} connection for tenant #{tenant_id}")
+  @impl true
+  def handle_call({:update_connection, tenant_id, provider, attrs}, _from, state) do
+    case IntegrationConnections.update_connection(tenant_id, Atom.to_string(provider), attrs) do
+      {:ok, connection} -> {:reply, {:ok, connection}, state}
+      {:error, :not_found} -> {:reply, {:error, :not_found}, state}
+      {:error, changeset} -> {:reply, {:error, format_changeset_errors(changeset)}, state}
+    end
+  end
 
-    {:reply, :ok, updated_state}
+  @impl true
+  def handle_call({:update_status, tenant_id, provider, status}, _from, state) do
+    case IntegrationConnections.update_status(tenant_id, Atom.to_string(provider), status) do
+      {:ok, connection} -> {:reply, {:ok, connection}, state}
+      {:error, :not_found} -> {:reply, {:error, :not_found}, state}
+      {:error, :invalid_status} -> {:reply, {:error, :invalid_status}, state}
+      {:error, changeset} -> {:reply, {:error, format_changeset_errors(changeset)}, state}
+    end
+  end
+
+  @impl true
+  def handle_call({:update_last_sync, tenant_id, provider}, _from, state) do
+    case IntegrationConnections.update_last_sync(tenant_id, Atom.to_string(provider)) do
+      {:ok, connection} -> {:reply, {:ok, connection}, state}
+      {:error, :not_found} -> {:reply, {:error, :not_found}, state}
+      {:error, changeset} -> {:reply, {:error, format_changeset_errors(changeset)}, state}
+    end
   end
 
   @impl true
   def handle_call({:remove_connection, tenant_id, provider}, _from, state) do
-    updated_state = case Map.get(state, tenant_id) do
-      nil -> state
-      tenant_connections ->
-        updated_tenant = Map.delete(tenant_connections, provider)
-        if map_size(updated_tenant) == 0 do
-          Map.delete(state, tenant_id)
-        else
-          Map.put(state, tenant_id, updated_tenant)
-        end
+    case IntegrationConnections.delete_connection(tenant_id, Atom.to_string(provider)) do
+      {:ok, _} -> {:reply, :ok, state}
+      {:error, :not_found} -> {:reply, {:error, :not_found}, state}
+      {:error, changeset} -> {:reply, {:error, format_changeset_errors(changeset)}, state}
     end
-
-    # Could update database here
-    Logger.info("Removed #{provider} connection for tenant #{tenant_id}")
-
-    {:reply, :ok, updated_state}
   end
 
   @impl true
   def handle_call({:list_connections, tenant_id}, _from, state) do
-    connections = Map.get(state, tenant_id, %{})
-    {:reply, Map.keys(connections), state}
+    case IntegrationConnections.list_connections(tenant_id) do
+      {:ok, connections} -> {:reply, {:ok, connections}, state}
+      {:error, reason} -> {:reply, {:error, reason}, state}
+    end
+  end
+
+  # Private Functions
+
+  defp format_changeset_errors(changeset) do
+    Ecto.Changeset.traverse_errors(changeset, fn {msg, opts} ->
+      Enum.reduce(opts, msg, fn {key, value}, acc ->
+        String.replace(acc, "%{#{key}}", to_string(value))
+      end)
+    end)
   end
 end

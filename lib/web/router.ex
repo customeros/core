@@ -4,7 +4,7 @@ defmodule Web.Router do
   import Web.UserAuth
 
   pipeline :browser do
-    plug :accepts, ["html"]
+    plug :accepts, ["html", "json"] # TODO alexb remove json
     plug :fetch_session
     plug :fetch_live_flash
     plug :put_root_layout, html: {Web.Layouts, :root}
@@ -113,13 +113,15 @@ defmodule Web.Router do
     get "/welcome", WelcomeController, :index
     get "/tenants", TenantController, :index
     post "/tenants/switch", TenantController, :switch
+    # Test page for integrations, TODO alexb remove this file
+    get "/test/integrations", Controllers.TestController, :index
     # Catch-all route for undefined paths
     # get "/*path", LandingController, :redirect
   end
 
   # Integration routes (require authentication)
   scope "/settings", Web.Controllers do
-    pipe_through [:browser, :require_authenticated_user]
+    pipe_through [:browser, :require_authenticated]
 
     # Integration routes
     scope "/integrations" do
