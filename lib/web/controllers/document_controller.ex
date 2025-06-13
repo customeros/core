@@ -33,6 +33,7 @@ defmodule Web.DocumentController do
         case Core.Crm.Leads.get_view_by_id(ref_id) do
           {:ok, lead} ->
             conn
+            |> assign_prop(:page_title, "#{document.name} | CustomerOS")
             |> assign_prop(:document, document)
             |> assign_prop(:lead, lead)
             |> render_inertia("Document")

@@ -1,5 +1,5 @@
 import { useEffect } from 'react';
-import { usePage } from '@inertiajs/react';
+import { Head, usePage } from '@inertiajs/react';
 import { cssTransition, ToastContainer } from 'react-toastify';
 
 import posthog from 'posthog-js';
@@ -27,7 +27,13 @@ declare global {
 
 export const RootLayout = ({ children }: { children: React.ReactNode }) => {
   const { props } = usePage<
-    PageProps & { tenant: Tenant; currentUser: User; companies: Lead[]; profile: IcpProfile }
+    PageProps & {
+      tenant: Tenant;
+      currentUser: User;
+      companies: Lead[];
+      pageTitle?: string;
+      profile: IcpProfile;
+    }
   >();
 
   useEffect(() => {
@@ -55,6 +61,9 @@ export const RootLayout = ({ children }: { children: React.ReactNode }) => {
   return (
     <PhoenixSocketProvider>
       <PresenceProvider>
+        <Head>
+          <title>{props.pageTitle || 'CustomerOS'}</title>
+        </Head>
         <ToastContainer
           limit={3}
           theme="colored"

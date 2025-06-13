@@ -103,7 +103,11 @@ config :inertia,
   static_paths: ["/assets/app.js"],
   default_version: "1",
   ssr: false,
-  raise_on_ssr_failure: true
+  raise_on_ssr_failure: true,
+  page_title: true,
+  props: %{
+    pageTitle: "CustomerOS"
+  }
 
 # Cron jobs configuration
 config :core, :crons, enabled: true
