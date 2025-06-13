@@ -23,6 +23,7 @@ defmodule Core.Integrations.HubSpot.Company do
 
   @impl true
   def fetch_companies(tenant_id) do
+    dbg("fetch_companies ===============")
     case Registry.get_connection(tenant_id, :hubspot) do
       nil ->
         {:error, :no_connection}
@@ -34,6 +35,7 @@ defmodule Core.Integrations.HubSpot.Company do
 
   @impl true
   def fetch_company(tenant_id, company_id) do
+    dbg("fetch_company ===============")
     case Registry.get_connection(tenant_id, :hubspot) do
       nil ->
         {:error, :no_connection}
@@ -46,6 +48,7 @@ defmodule Core.Integrations.HubSpot.Company do
   # Private functions for HubSpot API calls
 
   defp fetch_companies_from_hubspot(token) do
+    dbg("fetch_companies_from_hubspot ===============")
     params = %{
       "limit" => 100,
       "properties" => "name,domain,phone,address,city,state,country,zip"
@@ -70,6 +73,7 @@ defmodule Core.Integrations.HubSpot.Company do
   end
 
   defp fetch_company_from_hubspot(token, company_id) do
+    dbg("fetch_company_from_hubspot ===============")
     params = %{
       "properties" => "name,domain,phone,address,city,state,country,zip"
     }
@@ -93,6 +97,7 @@ defmodule Core.Integrations.HubSpot.Company do
 
   # Helper function to format HubSpot company data
   defp format_company(company) do
+    dbg("format_company ===============")
     properties = company["properties"] || %{}
 
     %{

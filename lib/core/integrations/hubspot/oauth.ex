@@ -41,6 +41,7 @@ defmodule Core.Integrations.HubSpot.OAuth do
 
   @impl true
   def authorize_url(_provider) do
+    dbg("authorize_url ===============")
     config = Application.get_env(:core, :hubspot)
 
     query_params = %{
@@ -57,6 +58,7 @@ defmodule Core.Integrations.HubSpot.OAuth do
 
   @impl true
   def get_token(_provider, code) do
+    dbg("get_token ===============")
     config = Application.get_env(:core, :hubspot)
 
     body = %{
@@ -92,6 +94,7 @@ defmodule Core.Integrations.HubSpot.OAuth do
 
   @impl true
   def refresh_token(_provider) do
+    dbg("refresh_token ===============")
     config = Application.get_env(:core, :hubspot)
 
     # In a real implementation, you would retrieve the refresh token
@@ -130,6 +133,7 @@ defmodule Core.Integrations.HubSpot.OAuth do
 
   @impl true
   def revoke_token(_provider) do
+    dbg("revoke_token ===============")
     # HubSpot doesn't have a specific token revocation endpoint
     # To revoke access, you typically delete the tokens from your storage
     # and stop using them

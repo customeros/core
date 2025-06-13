@@ -19,6 +19,7 @@ defmodule Core.Integrations.HubSpot.Webhook do
 
   @impl true
   def handle_webhook(tenant_id, webhook_data) do
+    dbg("handle_webhook ===============")
     # Extract the event type from the webhook data
     event_type = get_event_type(webhook_data)
 
@@ -42,6 +43,7 @@ defmodule Core.Integrations.HubSpot.Webhook do
   # Private functions for handling different webhook events
 
   defp handle_company_creation(tenant_id, webhook_data) do
+    dbg("handle_company_creation ===============")
     company_id = get_object_id(webhook_data)
 
     Logger.info("Processing HubSpot company creation webhook for company ID: #{company_id}")
@@ -59,6 +61,7 @@ defmodule Core.Integrations.HubSpot.Webhook do
   end
 
   defp handle_company_update(tenant_id, webhook_data) do
+    dbg("handle_company_update ===============")
     company_id = get_object_id(webhook_data)
 
     Logger.info("Processing HubSpot company update webhook for company ID: #{company_id}")
@@ -76,6 +79,7 @@ defmodule Core.Integrations.HubSpot.Webhook do
   end
 
   defp handle_company_deletion(tenant_id, webhook_data) do
+    dbg("handle_company_deletion ===============")
     company_id = get_object_id(webhook_data)
 
     Logger.info("Processing HubSpot company deletion webhook for company ID: #{company_id}")
@@ -100,6 +104,7 @@ defmodule Core.Integrations.HubSpot.Webhook do
   defp get_object_id(_), do: nil
 
   defp create_or_update_external_company(tenant_id, company_data) do
+    dbg("create_or_update_external_company ===============")
     # Check if the external company already exists
     case ExternalCompanies.get_by_external_id(tenant_id, :hubspot, company_data.external_id) do
       nil ->

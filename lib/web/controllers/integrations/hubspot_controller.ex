@@ -15,6 +15,7 @@ defmodule Web.Controllers.Integrations.HubspotController do
   Initiates the HubSpot OAuth authorization flow.
   """
   def authorize(conn, _params) do
+    dbg("hubspot_controller.authorize ===============")
     {:ok, url} = OAuth.authorize_url(:hubspot)
     redirect(conn, external: url)
   end
@@ -23,6 +24,7 @@ defmodule Web.Controllers.Integrations.HubspotController do
   Handles the OAuth callback from HubSpot.
   """
   def callback(conn, %{"code" => code}) do
+    dbg("hubspot_controller.callback with code ===============")
     case OAuth.get_token(:hubspot, code) do
       {:ok, token} ->
         case create_integration_connection(conn.assigns.current_tenant.id, :hubspot, token) do
@@ -47,6 +49,7 @@ defmodule Web.Controllers.Integrations.HubspotController do
   end
 
   def callback(conn, %{"error" => error, "error_description" => description}) do
+    dbg("hubspot_controller.callback with error ===============")
     Logger.error("HubSpot OAuth error: #{error} - #{description}")
     conn
     |> put_status(:bad_request)
@@ -54,6 +57,7 @@ defmodule Web.Controllers.Integrations.HubspotController do
   end
 
   def callback(conn, _params) do
+    dbg("hubspot_controller.callback invalid params ===============")
     conn
     |> put_status(:bad_request)
     |> json(%{status: "error", message: "Invalid HubSpot callback"})
@@ -63,6 +67,7 @@ defmodule Web.Controllers.Integrations.HubspotController do
   Disconnects the HubSpot integration.
   """
   def disconnect(conn, _params) do
+    dbg("hubspot_controller.disconnect ===============")
     case Registry.remove_connection(conn.assigns.current_tenant.id, :hubspot) do
       :ok ->
         conn
@@ -80,6 +85,7 @@ defmodule Web.Controllers.Integrations.HubspotController do
   # Private functions
 
   defp create_integration_connection(tenant_id, provider, %{access_token: access_token} = token) do
+    dbg("hubspot_controller.create_integration_connection ===============")
     Registry.register_connection(tenant_id, provider, %{
       access_token: access_token,
       refresh_token: token.refresh_token,
