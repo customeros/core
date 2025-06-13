@@ -12,20 +12,25 @@ defmodule Web.Controllers.Integrations.IntegrationsController do
   Returns a list of available integrations and their connection status.
   """
   def index(conn, _params) do
-    # TODO test positive flow
-    tenant_id = conn.assigns[:current_user].tenant_id
+    tenant_id = conn.assigns.current_user.tenant_id
     connections = Registry.list_connections(tenant_id)
     hubspot_config = Application.get_env(:core, :hubspot)
+
+    # Check if there's an active HubSpot connection
+    hubspot_connection = Enum.find(connections, fn conn ->
+      conn.provider == :hubspot && conn.status == :active
+    end)
 
     json(conn, %{
       integrations: [
         %{
           id: :hubspot,
           name: "HubSpot",
-          connected: :hubspot in connections,
+          connected: hubspot_connection != nil,
+          external_system_id: if(hubspot_connection, do: hubspot_connection.external_system_id),
           scopes: hubspot_config[:scopes] || [],
           actions: %{
-            connect: "/settings/integrations/hubspot/authorize",
+            connect: "/settings/integrations/hubspot/connect",
             disconnect: "/settings/integrations/hubspot/disconnect"
           }
         }

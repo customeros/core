@@ -8,6 +8,8 @@ defmodule Core.Repo.Migrations.CreateIntegrationConnections do
       add :tenant_id, :string, null: false, size: 50
       add :provider, :string, null: false, size: 50
       add :status, :string, null: false, default: "pending", size: 20
+      add :external_system_id, :string, size: 50
+      add :connection_error, :string
 
       # OAuth fields
       add :access_token, :string, null: false
@@ -16,10 +18,6 @@ defmodule Core.Repo.Migrations.CreateIntegrationConnections do
       add :expires_at, :utc_datetime
       add :scopes, {:array, :string}
 
-      # Sync tracking
-      add :last_sync_at, :utc_datetime
-      add :last_sync_status, :string
-      add :last_sync_error, :string
 
       timestamps(type: :utc_datetime)
     end
@@ -29,7 +27,7 @@ defmodule Core.Repo.Migrations.CreateIntegrationConnections do
     create index(:integration_connections, [:status])
     create index(:integration_connections, [:provider])
     create index(:integration_connections, [:expires_at])
-    create index(:integration_connections, [:last_sync_at])
+    create index(:integration_connections, [:external_system_id])
   end
 
   def down do

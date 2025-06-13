@@ -29,7 +29,6 @@ defmodule Core.Application do
       Core.Crm.Leads.DailyLeadSummarySender,
       Core.WebTracker.SessionCloser,
       Core.Crm.Industries,
-      Core.Integrations.Registry,
       Web.Endpoint,
       Web.Presence,
       Web.Telemetry,
@@ -37,7 +36,9 @@ defmodule Core.Application do
       ## 3rd party
       {DNSCluster,
        query: Application.get_env(:core, :dns_cluster_query) || :ignore},
-      {Finch, name: Core.Finch}
+      {Finch, name: Core.Finch, pools: %{
+        default: [size: 10]
+      }}
     ]
 
     env = Application.get_env(:core, :app_env, :prod)

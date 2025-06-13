@@ -263,7 +263,7 @@ defmodule Core.Auth.Tenants do
   end
 
   defp copy_company_icon_to_tenant(_tenant, _company) do
-    Logger.debug("No company icon to copy")
+    Logger.info("No company icon to copy")
     :ok
   end
 

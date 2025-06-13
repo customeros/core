@@ -1,180 +1,138 @@
 defmodule Core.Integrations.Registry do
   @moduledoc """
-  Registry for managing tenant-specific integrations.
+  Registry for integration providers.
 
-  This module provides a facade for managing integration connections, handling:
-  - Registration and management of integration connections
-  - Provider type conversion (atoms to strings and vice versa)
-  - Connection status management
-  - Error handling and validation
-  - Future extensibility for caching and connection pooling
+  This module maintains a registry of available integration providers and their
+  implementations. It provides functions for:
+  - Looking up provider implementations
+  - Managing provider lifecycle
+  - Listing and managing connections
 
-  ## Usage
-
-  ```elixir
-  # Get a connection
-  {:ok, connection} = Registry.get_connection(tenant_id, :hubspot)
-  nil = Registry.get_connection(tenant_id, :nonexistent)
-
-  # Register a connection
-  {:ok, connection} = Registry.register_connection(tenant_id, :hubspot, credentials)
-  {:error, reason} = Registry.register_connection(tenant_id, :invalid, credentials)
-
-  # Update a connection
-  {:ok, connection} = Registry.update_connection(tenant_id, :hubspot, %{status: "active"})
-  {:error, reason} = Registry.update_connection(tenant_id, :hubspot, %{status: "invalid"})
-
-  # List connections
-  {:ok, connections} = Registry.list_connections(tenant_id)
-  ```
-
-  ## Connection Status
-
-  Connections can have the following statuses:
-  - `"active"` - Connection is active and ready to use
-  - `"inactive"` - Connection is temporarily disabled
-  - `"error"` - Connection has encountered an error and needs attention
+  This is a simple module that doesn't maintain any state, so it doesn't need
+  to be supervised.
   """
 
-  use GenServer
-  require Logger
-
-  alias Core.Integrations.IntegrationConnections
-  alias Core.Integrations.IntegrationConnection
-
-  # Client API
+  alias Core.Integrations.Connections
+  alias Core.Integrations.OAuth.Providers.HubSpot, as: HubSpotOAuth
+  alias Core.Integrations.Providers.HubSpot.{Client, Company, Webhook}
 
   @doc """
   Gets a connection for a tenant and provider.
-  Returns {:ok, connection} if found, nil if not found.
+
+  ## Examples
+
+      iex> get_connection("tenant_123", :hubspot)
+      {:ok, %Connection{}}
+
+      iex> get_connection("tenant_123", :nonexistent)
+      {:error, :not_found}
   """
-  def get_connection(tenant_id, provider) when is_atom(provider) do
-    GenServer.call(__MODULE__, {:get_connection, tenant_id, provider})
+  def get_connection(tenant_id, provider) do
+    Connections.get_connection(tenant_id, provider)
   end
 
   @doc """
-  Registers a new connection for a tenant and provider.
-  Returns {:ok, connection} on success, {:error, reason} on failure.
+  Gets the OAuth implementation for a provider.
+
+  ## Examples
+
+      iex> get_oauth(:hubspot)
+      {:ok, HubSpotOAuth}
+
+      iex> get_oauth(:nonexistent)
+      {:error, :not_found}
   """
-  def register_connection(tenant_id, provider, credentials) when is_atom(provider) do
-    GenServer.call(__MODULE__, {:register_connection, tenant_id, provider, credentials})
+  def get_oauth(:hubspot), do: {:ok, HubSpotOAuth}
+  def get_oauth(_), do: {:error, :not_found}
+
+  @doc """
+  Gets the client implementation for a provider.
+
+  ## Examples
+
+      iex> get_client(:hubspot)
+      {:ok, Client}
+
+      iex> get_client(:nonexistent)
+      {:error, :not_found}
+  """
+  def get_client(:hubspot), do: {:ok, Client}
+  def get_client(_), do: {:error, :not_found}
+
+  @doc """
+  Gets the company implementation for a provider.
+
+  ## Examples
+
+      iex> get_company(:hubspot)
+      {:ok, Company}
+
+      iex> get_company(:nonexistent)
+      {:error, :not_found}
+  """
+  def get_company(:hubspot), do: {:ok, Company}
+  def get_company(_), do: {:error, :not_found}
+
+  @doc """
+  Gets the webhook implementation for a provider.
+
+  ## Examples
+
+      iex> get_webhook(:hubspot)
+      {:ok, Webhook}
+
+      iex> get_webhook(:nonexistent)
+      {:error, :not_found}
+  """
+  def get_webhook(:hubspot), do: {:ok, Webhook}
+  def get_webhook(_), do: {:error, :not_found}
+
+  @doc """
+  Lists all available providers.
+
+  ## Examples
+
+      iex> list_providers()
+      [:hubspot]
+  """
+  def list_providers do
+    [:hubspot]
   end
 
   @doc """
-  Updates an existing connection.
-  Returns {:ok, connection} on success, {:error, reason} on failure.
-  """
-  def update_connection(tenant_id, provider, attrs) when is_atom(provider) do
-    GenServer.call(__MODULE__, {:update_connection, tenant_id, provider, attrs})
-  end
+  Checks if a provider is available.
 
-  @doc """
-  Updates the status of a connection.
-  Returns {:ok, connection} on success, {:error, reason} on failure.
-  """
-  def update_connection_status(tenant_id, provider, status) when is_atom(provider) do
-    GenServer.call(__MODULE__, {:update_status, tenant_id, provider, status})
-  end
+  ## Examples
 
-  @doc """
-  Updates the last sync timestamp for a connection.
-  Returns {:ok, connection} on success, {:error, reason} on failure.
-  """
-  def update_last_sync(tenant_id, provider) when is_atom(provider) do
-    GenServer.call(__MODULE__, {:update_last_sync, tenant_id, provider})
-  end
+      iex> provider_available?(:hubspot)
+      true
 
-  @doc """
-  Removes a connection for a tenant and provider.
-  Returns :ok on success, {:error, reason} on failure.
+      iex> provider_available?(:nonexistent)
+      false
   """
-  def remove_connection(tenant_id, provider) when is_atom(provider) do
-    GenServer.call(__MODULE__, {:remove_connection, tenant_id, provider})
+  def provider_available?(provider) do
+    provider in list_providers()
   end
 
   @doc """
   Lists all connections for a tenant.
-  Returns {:ok, connections} on success, {:error, reason} on failure.
+
+  ## Parameters
+    - tenant_id - The ID of the tenant to list connections for
+
+  ## Returns
+    - `{:ok, [Connection.t()]}` - List of connections
+    - `{:error, term()}` - Error reason
+
+  ## Examples
+
+      iex> list_connections("tenant_123")
+      {:ok, [%Connection{provider: :hubspot, ...}]}
+
+      iex> list_connections("nonexistent")
+      {:error, :not_found}
   """
   def list_connections(tenant_id) do
-    GenServer.call(__MODULE__, {:list_connections, tenant_id})
-  end
-
-  # Server Callbacks
-
-  @impl true
-  def init(_) do
-    {:ok, %{}}
-  end
-
-  @impl true
-  def handle_call({:get_connection, tenant_id, provider}, _from, state) do
-    case IntegrationConnections.get_connection(tenant_id, Atom.to_string(provider)) do
-      nil -> {:reply, nil, state}
-      {:ok, connection} -> {:reply, {:ok, connection}, state}
-    end
-  end
-
-  @impl true
-  def handle_call({:register_connection, tenant_id, provider, credentials}, _from, state) do
-    case IntegrationConnections.create_connection(tenant_id, Atom.to_string(provider), credentials) do
-      {:ok, connection} -> {:reply, {:ok, connection}, state}
-      {:error, changeset} -> {:reply, {:error, format_changeset_errors(changeset)}, state}
-    end
-  end
-
-  @impl true
-  def handle_call({:update_connection, tenant_id, provider, attrs}, _from, state) do
-    case IntegrationConnections.update_connection(tenant_id, Atom.to_string(provider), attrs) do
-      {:ok, connection} -> {:reply, {:ok, connection}, state}
-      {:error, :not_found} -> {:reply, {:error, :not_found}, state}
-      {:error, changeset} -> {:reply, {:error, format_changeset_errors(changeset)}, state}
-    end
-  end
-
-  @impl true
-  def handle_call({:update_status, tenant_id, provider, status}, _from, state) do
-    case IntegrationConnections.update_status(tenant_id, Atom.to_string(provider), status) do
-      {:ok, connection} -> {:reply, {:ok, connection}, state}
-      {:error, :not_found} -> {:reply, {:error, :not_found}, state}
-      {:error, :invalid_status} -> {:reply, {:error, :invalid_status}, state}
-      {:error, changeset} -> {:reply, {:error, format_changeset_errors(changeset)}, state}
-    end
-  end
-
-  @impl true
-  def handle_call({:update_last_sync, tenant_id, provider}, _from, state) do
-    case IntegrationConnections.update_last_sync(tenant_id, Atom.to_string(provider)) do
-      {:ok, connection} -> {:reply, {:ok, connection}, state}
-      {:error, :not_found} -> {:reply, {:error, :not_found}, state}
-      {:error, changeset} -> {:reply, {:error, format_changeset_errors(changeset)}, state}
-    end
-  end
-
-  @impl true
-  def handle_call({:remove_connection, tenant_id, provider}, _from, state) do
-    case IntegrationConnections.delete_connection(tenant_id, Atom.to_string(provider)) do
-      {:ok, _} -> {:reply, :ok, state}
-      {:error, :not_found} -> {:reply, {:error, :not_found}, state}
-      {:error, changeset} -> {:reply, {:error, format_changeset_errors(changeset)}, state}
-    end
-  end
-
-  @impl true
-  def handle_call({:list_connections, tenant_id}, _from, state) do
-    case IntegrationConnections.list_connections(tenant_id) do
-      {:ok, connections} -> {:reply, {:ok, connections}, state}
-      {:error, reason} -> {:reply, {:error, reason}, state}
-    end
-  end
-
-  # Private Functions
-
-  defp format_changeset_errors(changeset) do
-    Ecto.Changeset.traverse_errors(changeset, fn {msg, opts} ->
-      Enum.reduce(opts, msg, fn {key, value}, acc ->
-        String.replace(acc, "%{#{key}}", to_string(value))
-      end)
-    end)
+    Connections.list_connections(tenant_id)
   end
 end
