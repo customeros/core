@@ -16,6 +16,7 @@ module.exports = {
     '*.svg',
     '*.png',
     'codegen-variants.ts',
+    '.lintstagedrc.js',
   ],
   extends: [
     'eslint:recommended',
