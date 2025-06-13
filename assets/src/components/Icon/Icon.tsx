@@ -43,7 +43,13 @@ export type IconName =
   | 'building-03'
   | 'check-circle'
   | 'search-sm'
-  | 'check';
+  | 'check'
+  | 'distribute-spacing-vertical'
+  | 'rows-01'
+  | 'recording-01'
+  | 'arrow-switch-vertical-01'
+  | 'arrows-down'
+  | 'arrows-up';
 
 export const Icon = ({
   name,

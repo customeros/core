@@ -19,7 +19,7 @@ const PopoverContent = React.forwardRef<
       align={align}
       sideOffset={sideOffset}
       className={cn(
-        'z-50 w-fit flex relative flex-col rounded-lg border bg-white py-2 px-1 shadow-md outline-none will-change-[transform,opacity] data-[state=open]:data-[side=top]:animate-slideDownAndFade data-[state=open]:data-[side=right]:animate-slideLeftAndFade data-[state=open]:data-[side=bottom]:animate-slideUpAndFade data-[state=open]:data-[side=left]:animate-slideRightAndFade',
+        'z-50 w-fit flex relative flex-col rounded-lg border bg-white py-2 px-1 shadow-lg outline-none will-change-[transform,opacity] data-[state=open]:data-[side=top]:animate-slideDownFade data-[state=open]:data-[side=right]:animate-slideLeftFade data-[state=open]:data-[side=bottom]:animate-slideUpFade data-[state=open]:data-[side=left]:animate-slideRightFade',
         className
       )}
       {...props}

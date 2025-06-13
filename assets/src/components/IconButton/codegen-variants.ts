@@ -12,7 +12,7 @@ const genCompoundVariant = (size: string, variant: string, colorScheme: string) 
 
   switch (size) {
     case 'xxs':
-      iconSize = 'w-3 h-3';
+      iconSize = 'w-4 h-4';
       break;
     case 'xs':
       iconSize = 'w-4 h-4';
