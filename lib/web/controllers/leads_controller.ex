@@ -61,7 +61,10 @@ defmodule Web.LeadsController do
               _ -> "#{base_url}/documents/#{lead.document_id}"
             end,
           "Created" =>
-            lead.inserted_at |> DateTime.to_date() |> Date.to_string()
+            case lead.inserted_at do
+              nil -> nil
+              datetime -> datetime |> DateTime.to_date() |> Date.to_string()
+            end
         }
       end)
       |> CSV.encode(
