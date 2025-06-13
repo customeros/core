@@ -1,13 +1,13 @@
 import { router } from '@inertiajs/react';
-import { lazy, useMemo, useState, useEffect, useCallback, startTransition } from 'react';
+import { lazy, useState, useEffect, useCallback, startTransition } from 'react';
 
 import { cn } from 'src/utils/cn';
 import { RootLayout } from 'src/layouts/Root';
-import { Lead, User, Tenant } from 'src/types';
-import { Tooltip } from 'src/components/Tooltip';
+import { useUrlState } from 'src/hooks/useUrlState';
 import { Icon, IconName } from 'src/components/Icon';
 import { SegmentedView } from 'src/components/SegmentedView';
 import { LeadUpdatedEvent, useEventsChannel } from 'src/hooks';
+import { Lead, User, Stage, Tenant, UrlState } from 'src/types';
 import {
   ScrollAreaRoot,
   ScrollAreaThumb,
@@ -15,34 +15,14 @@ import {
   ScrollAreaScrollbar,
 } from 'src/components/ScrollArea';
 
-import { Header, EmptyState } from './components';
+import { Header, Pipeline, LeadItem, EmptyState, stageOptions } from './components';
 interface LeadsProps {
   tenant: Tenant;
-  companies: Lead[];
+  maxCount: number;
   currentUser: User;
+  stageCounts: Record<Stage, number>;
+  leads: Lead[] | Record<Stage, Lead[]>;
 }
-
-const stages = [
-  { label: 'Target', value: 'target', icon: 'target-04' },
-  { label: 'Education', value: 'education', icon: 'book-closed' },
-  { label: 'Solution', value: 'solution', icon: 'lightbulb-02' },
-  { label: 'Evaluation', value: 'evaluation', icon: 'clipboard-check' },
-  { label: 'Ready to buy', value: 'ready_to_buy', icon: 'rocket-02' },
-];
-
-const countryCodeToEmoji = (code: string) => {
-  if (!code || code.toLowerCase() === 'xx') {
-    return '🌐';
-  }
-
-  try {
-    return code
-      .toUpperCase()
-      .replace(/./g, char => String.fromCodePoint(127397 + char.charCodeAt(0)));
-  } catch {
-    return '🌐';
-  }
-};
 
 const DocumentEditor = lazy(() =>
   import('./components/DocumentEditor/DocumentEditor').then(module => ({
@@ -50,120 +30,71 @@ const DocumentEditor = lazy(() =>
   }))
 );
 
-export default function Leads({ companies }: LeadsProps) {
-  const [selectedStage, setSelectedStage] = useState<string>('');
+export default function Leads({ leads, stageCounts, maxCount }: LeadsProps) {
   const [scrollProgress, setScrollProgress] = useState(0);
-  const hasLeadParam = new URLSearchParams(window.location.search).has('lead');
-  const viewMode = new URLSearchParams(window.location.search).get('viewMode');
-  const params = new URLSearchParams(window.location.search);
-  const currentLeadId = params.get('lead');
+  const { getUrlState, setUrlState } = useUrlState<UrlState>({ revalidate: ['leads'] });
+  const { viewMode, group, lead, stage: selectedStage } = getUrlState();
 
-  const stageCounts = useMemo(() => {
-    const counts = new Map<string, number>();
+  const handleOpenLead = useCallback(
+    (lead: { id: string }) => {
+      setUrlState(({ lead: currentLead, ...rest }) => {
+        if (lead.id === currentLead) {
+          return {
+            ...rest,
+            viewMode: 'default',
+          };
+        }
 
-    stages.forEach(stage => {
-      counts.set(stage.value, companies.filter(c => c.stage === stage.value).length);
-    });
-
-    return counts;
-  }, [companies]);
-
-  const maxCount = useMemo(() => {
-    return Math.max(...Array.from(stageCounts.values()));
-  }, [stageCounts]);
-
-  const filteredCompanies = useMemo(
-    () => (selectedStage ? companies.filter(c => c.stage === selectedStage) : companies),
-    [selectedStage, companies]
+        return {
+          ...rest,
+          lead: lead.id,
+          viewMode: 'default',
+        };
+      });
+    },
+    [setUrlState]
   );
 
-  const isSelected = (stage: string) => {
-    return !!selectedStage && selectedStage === stage;
+  const handleStageClick = (stage: Stage | null) => {
+    setUrlState(({ stage: currentStage, ...rest }) => {
+      if (stage === currentStage || !stage) {
+        return {
+          ...rest,
+        };
+      }
+
+      return {
+        ...rest,
+        stage: stage,
+      };
+    });
   };
 
-  const handleOpenLead = useCallback((lead: { id: string }) => {
-    if (currentLeadId === lead.id || params.size === 1) {
-      params.delete('lead');
-    }
-
-    if (params.size === 0) {
-      params.set('lead', lead.id ?? '');
-    }
-
-    router.visit(window.location.pathname + '?' + params.toString(), {
-      preserveState: true,
-      replace: true,
-      preserveScroll: true,
-    });
-  }, []);
-
   useEffect(() => {
-    if (viewMode === 'focus' && !currentLeadId) {
-      params.delete('viewMode');
-      router.visit('/leads');
+    if (viewMode === 'focus' && !lead) {
+      setUrlState(state => ({
+        ...state,
+        viewMode: 'default',
+      }));
     }
-  }, [hasLeadParam, currentLeadId, viewMode, params]);
-
-  const heightCalc = useCallback(
-    (count: number) => {
-      return scrollProgress < 0.2
-        ? `${count ? Math.min((count / maxCount) * 100, 100) : 15}px`
-        : '20px';
-    },
-    [scrollProgress, maxCount]
-  );
+  }, [lead, viewMode, setUrlState]);
 
   return (
     <RootLayout>
       <EventSubscriber />
       <Header />
-      {companies.length === 0 ? (
+      {maxCount === 0 ? (
         <EmptyState />
       ) : (
         <div className="relative h-[calc(100vh-3rem)] overflow-x-hidden bg-white p-0 transition-[width] duration-300 ease-in-out w-full 2xl:w-[1440px] 2xl:mx-auto animate-fadeIn">
           <div className="w-full flex">
             <div className="flex-1 flex flex-col overflow-hidden">
-              <div className="w-full items-center justify-center mb-2 mt-2 p-1 hidden md:flex max-w-[800px] mx-auto bg-primary-25 rounded-[8px] transition-all duration-200">
-                {stages.map((stage, index) => {
-                  const count = stageCounts.get(stage.value) || 0;
-                  const prevCount = stageCounts.get(stages[index - 1]?.value) || 0;
-                  const nextCount = stageCounts.get(stages[index + 1]?.value) || 0;
-
-                  return (
-                    <div
-                      key={stage.value}
-                      style={{
-                        height: heightCalc(count),
-                        zIndex: 10 - index,
-                        maxHeight: '100px',
-                        minHeight: '20px',
-                      }}
-                      onClick={e => {
-                        e.stopPropagation();
-                        count > 0 &&
-                          setSelectedStage(prev => (prev === stage.value ? '' : stage.value));
-                      }}
-                      className={cn(
-                        'flex-1 flex items-center justify-center bg-primary-100 cursor-pointer hover:bg-primary-200 duration-300',
-                        scrollProgress < 0.2 && count > nextCount && 'rounded-r-md',
-                        scrollProgress < 0.2 && count > prevCount && 'rounded-l-md',
-                        scrollProgress > 0.2 && index === 0 && 'rounded-l-md',
-                        scrollProgress > 0.2 && index === stages.length - 1 && 'rounded-r-md',
-                        selectedStage === stage.value && 'bg-primary-200',
-                        count === 0 && 'cursor-not-allowed hover:bg-primary-100'
-                      )}
-                    >
-                      <div className="flex text-center text-primary-700 select-none">
-                        <span>
-                          {stage.label}
-                          <span className="mx-1">•</span>
-                        </span>
-                        <span>{count}</span>
-                      </div>
-                    </div>
-                  );
-                })}
-              </div>
+              <Pipeline
+                maxCount={maxCount}
+                stageCounts={stageCounts}
+                scrollProgress={scrollProgress}
+                onStageClick={handleStageClick}
+              />
               <ScrollAreaRoot>
                 <ScrollAreaViewport
                   className="absolute"
@@ -180,108 +111,54 @@ export default function Leads({ companies }: LeadsProps) {
                   }}
                 >
                   <div className="">
-                    {stages
-                      .filter(stage => !selectedStage || stage.value === selectedStage)
-                      .map((stage, index) => (
-                        <div key={stage.value} className="flex flex-col w-full">
-                          <SegmentedView
-                            label={stage.label}
-                            isSelected={isSelected(stage.value)}
-                            count={stageCounts.get(stage.value) || 0}
-                            icon={<Icon className="text-gray-500" name={stage.icon as IconName} />}
-                            onClick={() => {
-                              setSelectedStage(stage.value);
-                            }}
-                            handleClearFilter={() => {
-                              setSelectedStage('');
-                            }}
-                            className={cn(
-                              'sticky top-0 z-30',
-                              index === 0 ? 'mt-0' : '',
-                              params.size !== 0 && 'md:rounded-r-none'
-                            )}
-                          />
+                    {group === 'stage' && !Array.isArray(leads)
+                      ? Object.entries(leads).map(([stage, groupedLeads], index) => (
+                          <div key={stage} className="flex flex-col w-full">
+                            <SegmentedView
+                              isSelected={selectedStage === stage}
+                              count={stageCounts[stage as Stage] || 0}
+                              label={stageOptions.find(s => s.value === stage)?.label || stage}
+                              onClick={() => {
+                                handleStageClick(stage as Stage);
+                              }}
+                              handleClearFilter={() => {
+                                handleStageClick(stage as Stage);
+                              }}
+                              className={cn(
+                                'sticky top-0 z-30',
+                                index === 0 ? 'mt-0' : '',
+                                lead && 'md:rounded-r-none'
+                              )}
+                              icon={
+                                <Icon
+                                  className="text-gray-500"
+                                  name={stageOptions.find(s => s.value === stage)?.icon as IconName}
+                                />
+                              }
+                            />
 
-                          {filteredCompanies
-                            .filter(c => c.stage === stage.value)
-                            .map(c => (
-                              <div
-                                key={c.id}
-                                className="flex items-center w-full relative group hover:bg-gray-50"
-                              >
-                                <div className="flex items-center gap-2 pl-5 min-w-0 flex-1 md:flex-none md:flex-shrink-0 bg-white group-hover:bg-gray-50">
-                                  {c.icon ? (
-                                    <div
-                                      className="cursor-pointer"
-                                      onClick={() => {
-                                        handleOpenLead(c);
-                                      }}
-                                    >
-                                      <img
-                                        key={c.icon}
-                                        src={c.icon}
-                                        alt={c.name}
-                                        loading="lazy"
-                                        className="size-6 object-contain border border-gray-200 rounded flex-shrink-0 relative "
-                                      />
-                                      {c?.icp_fit === 'strong' && (
-                                        <Icon
-                                          name="flame"
-                                          className="absolute bottom-[5px] left-[35px] w-[14px] h-[14px] z-20 text-error-500 ring-offset-1
-                                        rounded-full  ring-[1px] bg-error-100 ring-white"
-                                        />
-                                      )}
-                                    </div>
-                                  ) : (
-                                    <div className="size-6 flex items-center justify-center border border-gray-200 rounded flex-shrink-0 cursor-pointer">
-                                      <Icon
-                                        name="building-06"
-                                        onClick={() => {
-                                          handleOpenLead(c);
-                                        }}
-                                      />
-                                      {c?.icp_fit === 'strong' && (
-                                        <Icon
-                                          name="flame"
-                                          className="absolute bottom-[5px] left-[35px] w-[14px] h-[14px] z-20 text-error-500 ring-offset-1
-                                        rounded-full  ring-[1px] bg-error-100 ring-white"
-                                        />
-                                      )}
-                                    </div>
-                                  )}
-                                  <p
-                                    className="py-2 px-2 cursor-pointer font-medium truncate"
-                                    onClick={() => {
-                                      handleOpenLead(c);
-                                    }}
-                                  >
-                                    {c.name || 'Unnamed'}
-                                  </p>
-                                </div>
-                                <p className="flex-4 text-right mr-4 min-w-0 flex-shrink-0 bg-white hidden md:block group-hover:bg-gray-50">
-                                  {c.industry && (
-                                    <span className="bg-gray-100 w-fit px-2 py-1 rounded-[4px] max-w-[100px] truncate">
-                                      {c.industry}
-                                    </span>
-                                  )}
-                                </p>
-                                <p
-                                  onClick={() => {
-                                    window.open(`https://${c.domain}`, '_blank');
-                                  }}
-                                  className="text-right cursor-pointer hover:underline min-w-0 flex-1 md:flex-none md:flex-shrink-0 bg-white px-2 py-1 group-hover:bg-gray-50"
-                                >
-                                  {c.domain}
-                                </p>
-                                <Tooltip label={c.country_name ?? 'Country not found'}>
-                                  <p className="text-center text-gray-500 flex-shrink-0 bg-white py-2 pl-1 pr-5 group-hover:bg-gray-50">
-                                    {countryCodeToEmoji(c.country)}
-                                  </p>
-                                </Tooltip>
-                              </div>
-                            ))}
-                        </div>
-                      ))}
+                            {Array.isArray(groupedLeads)
+                              ? groupedLeads.map(lead => (
+                                  <LeadItem
+                                    lead={lead}
+                                    key={lead.id}
+                                    handleOpenLead={handleOpenLead}
+                                    handleStageClick={handleStageClick}
+                                  />
+                                ))
+                              : null}
+                          </div>
+                        ))
+                      : Array.isArray(leads)
+                        ? leads.map(lead => (
+                            <LeadItem
+                              lead={lead}
+                              key={lead.id}
+                              handleOpenLead={handleOpenLead}
+                              handleStageClick={handleStageClick}
+                            />
+                          ))
+                        : null}
                   </div>
                 </ScrollAreaViewport>
                 <ScrollAreaScrollbar className="z-40" orientation="horizontal">
@@ -295,7 +172,7 @@ export default function Leads({ companies }: LeadsProps) {
             <div
               className={cn(
                 'border-l h-full flex-shrink-0 transition-all duration-300 ease-in-out overflow-y-auto',
-                hasLeadParam
+                lead
                   ? 'opacity-100 w-[100%] md:w-[728px] translate-x-[0px]'
                   : 'opacity-0 w-[0px] translate-x-[728px]',
                 viewMode === 'focus' && 'w-full md:w-full border-transparent'

@@ -15,7 +15,8 @@ defmodule Core.Crm.Leads.LeadView do
     :icon,
     :country,
     :country_name,
-    :document_id
+    :document_id,
+    :inserted_at
   ]
 
   @type t :: %__MODULE__{
@@ -30,7 +31,8 @@ defmodule Core.Crm.Leads.LeadView do
           icon: String.t() | nil,
           country: String.t() | nil,
           country_name: String.t() | nil,
-          document_id: String.t() | nil
+          document_id: String.t() | nil,
+          inserted_at: DateTime.t()
         }
 
   defimpl Jason.Encoder, for: __MODULE__ do
@@ -48,7 +50,8 @@ defmodule Core.Crm.Leads.LeadView do
         :icon,
         :country,
         :country_name,
-        :document_id
+        :document_id,
+        :inserted_at
       ])
       |> Jason.Encode.map(opts)
     end

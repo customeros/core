@@ -159,12 +159,12 @@ defmodule Core.Crm.Leads do
   Example:
 
   ```elixir
-  [%LeadView{}, ...] = Leads.list_view_by_tenant_id("123")
-  [%LeadView{}, ...] = Leads.list_view_by_tenant_id("123", [desc: :stage])
-  [%LeadView{}, ...] = Leads.list_view_by_tenant_id("123", [asc: :stage])
-  [%LeadView{}, ...] = Leads.list_view_by_tenant_id("123", [desc: :inserted_at])
-  [%LeadView{}, ...] = Leads.list_view_by_tenant_id("123", [asc: :inserted_at])
-  %{stage: [%LeadView{}, ...]} = Leads.list_view_by_tenant_id("123", [asc: :inserted_at], :stage)
+  %{data: [%LeadView{}, ...], stage_counts: %{target: 0, education: 1, ...}, max_count: 0} = Leads.list_view_by_tenant_id("123")
+  %{data: [%LeadView{}, ...], stage_counts: %{target: 0, education: 1, ...}, max_count: 0} = Leads.list_view_by_tenant_id("123", [desc: :stage])
+  %{data: [%LeadView{}, ...], stage_counts: %{target: 0, education: 1, ...}, max_count: 0} = Leads.list_view_by_tenant_id("123", [asc: :stage])
+  %{data: [%LeadView{}, ...], stage_counts: %{target: 0, education: 1, ...}, max_count: 0} = Leads.list_view_by_tenant_id("123", [desc: :inserted_at])
+  %{data: %{target: [%LeadView{}, ...], education: [%LeadView{}, ...]}, stage_counts: %{target: 0, education: 1, ...}, max_count: 0} = Leads.list_view_by_tenant_id("123", [asc: :inserted_at], :stage)
+  %{data: [%LeadView{}, ...], stage_counts: %{target: 0, education: 1, ...}, max_count: 0} = Leads.list_view_by_tenant_id("123", [desc: :inserted_at], nil, [stage: :target])
 
   [] = Leads.list_view_by_tenant_id("unknown_tenant_id")
   ```
@@ -172,13 +172,24 @@ defmodule Core.Crm.Leads do
   @spec list_view_by_tenant_id(
           tenant_id :: String.t(),
           order_by :: order_by(),
-          group_by :: :stage | nil
+          group_by :: :stage | nil,
+          filter_by :: :stage | nil
         ) ::
-          [LeadView.t()] | %{stage: [LeadView.t()]}
+          %{
+            data: [LeadView.t()],
+            stage_counts: %{Lead.lead_stage() => integer()},
+            max_count: integer()
+          }
+          | %{
+              data: %{stage: [LeadView.t()]},
+              stage_counts: %{Lead.lead_stage() => integer()},
+              max_count: integer()
+            }
   def list_view_by_tenant_id(
         tenant_id,
         order_by \\ [desc: :inserted_at],
-        group_by \\ nil
+        group_by \\ nil,
+        filter_by \\ nil
       ) do
     OpenTelemetry.Tracer.with_span "core.crm.leads:list_view_by_tenant_id" do
       OpenTelemetry.Tracer.set_attributes([
@@ -193,15 +204,48 @@ defmodule Core.Crm.Leads do
       |> Repo.all()
       |> then(fn
         [] ->
-          []
+          %{data: [], stage_counts: get_stage_counts([]), max_count: 0}
 
         leads ->
           output = Enum.map(leads, &parse_lead_view/1)
 
-          case group_by do
-            :stage -> Enum.group_by(output, & &1.stage)
-            _ -> output
-          end
+          stage_counts =
+            case group_by do
+              :stage ->
+                output
+                |> Enum.group_by(& &1.stage)
+                |> Enum.map(fn {stage, leads} -> {stage, Enum.count(leads)} end)
+                |> Map.new()
+
+              _ ->
+                Enum.reduce(output, %{}, fn lead, acc ->
+                  Map.update(acc, lead.stage, 1, &(&1 + 1))
+                end)
+            end
+
+          filtered_output =
+            case filter_by do
+              [stage: stage] ->
+                Enum.filter(
+                  output,
+                  &(&1.stage == String.to_existing_atom(stage))
+                )
+
+              _ ->
+                output
+            end
+
+          data =
+            case group_by do
+              :stage -> Enum.group_by(filtered_output, & &1.stage)
+              _ -> filtered_output
+            end
+
+          %{
+            data: data,
+            stage_counts: stage_counts,
+            max_count: Enum.count(output)
+          }
       end)
     end
   end
@@ -564,4 +608,10 @@ defmodule Core.Crm.Leads do
   end
 
   defp parse_lead_view(_), do: {:error, :invalid_lead_view}
+
+  defp get_stage_counts(leads) do
+    Enum.reduce(leads, %{}, fn lead, acc ->
+      Map.update(acc, lead.stage, 1, &(&1 + 1))
+    end)
+  end
 end

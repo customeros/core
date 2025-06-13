@@ -15,11 +15,11 @@ export const inputVariants = cva(
   {
     variants: {
       size: {
-        xxs: ['min-h-4 text-sm'],
-        xs: ['min-h-6 text-sm'],
-        sm: ['min-h-8 text-sm'],
-        md: ['min-h-10 text-base'],
-        lg: ['min-h-12 text-lg'],
+        xxs: ['py-0.5', 'px-1.5', 'text-xs', 'rounded-md'],
+        xs: ['px-2', 'py-1', 'leading-none', 'text-sm', 'rounded-md'],
+        sm: ['px-3', 'py-2', 'text-sm', 'rounded-lg'],
+        md: ['px-4', 'py-2.5', 'text-sm', 'rounded-lg'],
+        lg: ['px-[1.125rem]', 'py-2.5', 'text-base', 'rounded-lg'],
       },
       variant: {
         flushed: [
@@ -27,6 +27,7 @@ export const inputVariants = cva(
           'bg-transparent',
           'placeholder-gray-400',
           'border-b',
+          'rounded-none',
           'border-transparent',
           'hover:broder-b',
           'hover:border-gray-300',
@@ -51,8 +52,6 @@ export const inputVariants = cva(
           'bg-white',
           'placeholder-gray-400',
           'border',
-          'px-2',
-          'rounded-[4px]',
           'border-gray-300',
           'focus:outline-none',
           'focus:border-primary-500',

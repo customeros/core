@@ -1,9 +1,11 @@
+export type Stage = 'target' | 'education' | 'solution' | 'evaluation' | 'readyToBuy';
+
 export type Lead = {
   id: string;
   icon: string;
   name: string;
+  stage: Stage;
   count: number;
-  stage: string;
   domain: string;
   country: string;
   industry: string;
@@ -20,6 +22,16 @@ export type Tenant = {
   inserted_at: string;
   workspace_name: string;
   workspace_icon_key: string;
+};
+
+export type Profile = {
+  id: string;
+  domain: string;
+  profile: string;
+  tenant_id: string;
+  updated_at: string;
+  inserted_at: string;
+  qualifying_attributes: string[];
 };
 
 export type User = {
@@ -45,7 +57,12 @@ export type Document = {
   lexical_state: string;
 };
 
-export type IcpProfile = {
-  profile: string;
-  qualifyingAttributes: string[];
+export type UrlState = {
+  lead?: string;
+  stage?: Stage;
+  viewMode?: 'default' | 'focus';
+  pipeline?: 'hidden' | 'visible';
+  group?: 'stage' | 'industry' | 'country';
+  asc?: 'inserted_at' | 'name' | 'industry' | 'stage' | 'country';
+  desc?: 'inserted_at' | 'name' | 'industry' | 'stage' | 'country';
 };

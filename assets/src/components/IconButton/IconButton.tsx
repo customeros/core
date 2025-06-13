@@ -9,11 +9,11 @@ import { ghostButton, solidButton, outlineButton } from '../Button/Button.varian
 const buttonSize = cva([], {
   variants: {
     size: {
-      xxs: ['p-0.5', 'rounded-[4px]'],
-      xs: ['p-1.5', 'rounded-md'],
-      sm: ['p-2', 'rounded-lg', 'text-lg'],
-      md: ['p-[10px]', 'rounded-lg'],
-      lg: ['p-[10px]', 'rounded-lg'],
+      xxs: ['p-0.5', 'rounded-md', 'text-md'],
+      xs: ['p-1.5', 'rounded-md', 'text-sm'],
+      sm: ['p-2', 'rounded-lg', 'text-sm'],
+      md: ['p-2.5', 'rounded-lg', 'text-sm'],
+      lg: ['p-2.5', 'rounded-lg', 'text-base'],
     },
   },
   defaultVariants: {

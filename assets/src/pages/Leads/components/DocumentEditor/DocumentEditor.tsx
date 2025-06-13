@@ -1,10 +1,9 @@
-import { router } from '@inertiajs/react';
-import { usePage } from '@inertiajs/react';
-import { useMemo, useState, useEffect } from 'react';
+import { useMemo } from 'react';
+import { router, usePage } from '@inertiajs/react';
 
 import { Icon } from 'src/components/Icon';
 import { PageProps } from '@inertiajs/core';
-import { Lead, User, Tenant } from 'src/types';
+import { Lead, User, Stage, Tenant } from 'src/types';
 import { Editor } from 'src/components/Editor/Editor';
 import { IconButton } from 'src/components/IconButton';
 import { Tooltip } from 'src/components/Tooltip/Tooltip';
@@ -19,16 +18,27 @@ import {
 } from 'src/components/ScrollArea';
 
 export const DocumentEditor = () => {
-  const page = usePage<PageProps & { tenant: Tenant; currentUser: User; companies: Lead[] }>();
-  const [viewMode, setViewMode] = useState('default');
-  const leadId = new URLSearchParams(window.location.search).get('lead');
-  const urlViewMode = new URLSearchParams(window.location.search).get('viewMode');
+  const page = usePage<
+    PageProps & { tenant: Tenant; currentUser: User; leads: Lead[] | Record<Stage, Lead[]> }
+  >();
+  const params = new URLSearchParams(window.location.search);
+  const leadId = params.get('lead');
+  const viewMode = params.get('viewMode');
 
   const { presentUsers, currentUserId } = usePresence();
 
   const currentLead = useMemo(() => {
-    return page.props.companies.find(c => c.id === leadId);
-  }, [page.props.companies, leadId]);
+    if (Array.isArray(page.props.leads)) {
+      return page.props.leads.find(c => c.id === leadId);
+    }
+
+    const leads = page.props.leads as Record<Stage, Lead[]>;
+    const targetStage = Object.keys(leads).find(key =>
+      leads[key as Stage].some(lead => lead.id === leadId)
+    );
+
+    return targetStage ? leads[targetStage as Stage].find(lead => lead.id === leadId) : undefined;
+  }, [page.props.leads, leadId]);
 
   const presenceUser = useMemo(() => {
     const found = presentUsers.find(u => u.user_id === currentUserId);
@@ -41,23 +51,31 @@ export const DocumentEditor = () => {
     };
   }, [currentUserId, presentUsers]);
 
-  useEffect(() => {
-    if (urlViewMode) {
-      setViewMode(urlViewMode);
-    }
-  }, [urlViewMode]);
-
   const handleViewModeChange = () => {
     const params = new URLSearchParams(window.location.search);
+    const viewMode = params.get('viewMode');
 
     if (viewMode === 'default') {
       params.set('viewMode', 'focus');
-      setViewMode('focus');
+    } else if (viewMode === 'focus') {
+      params.set('viewMode', 'default');
+    } else if (!viewMode) {
+      params.set('viewMode', 'default');
     } else {
       params.delete('viewMode');
-      setViewMode('default');
     }
-    router.visit(window.location.pathname + '?' + params.toString(), { preserveState: true });
+
+    router.get(
+      '/leads',
+      {
+        ...Object.fromEntries(params.entries()),
+      },
+      {
+        only: ['leads'],
+        replace: true,
+        preserveState: true,
+      }
+    );
   };
 
   const closeEditor = () => {
@@ -65,11 +83,17 @@ export const DocumentEditor = () => {
 
     params.delete('lead');
     params.delete('viewMode');
-    router.visit('/leads', {
-      preserveState: true,
-      replace: true,
-      preserveScroll: true,
-    });
+    router.get(
+      '/leads',
+      {
+        ...Object.fromEntries(params.entries()),
+      },
+      {
+        only: ['leads'],
+        replace: true,
+        preserveState: true,
+      }
+    );
   };
 
   const copyDocumentLink = () => {

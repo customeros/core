@@ -5,7 +5,7 @@ defmodule Web.LeadsController do
   alias Core.Stats
   alias CSV
 
-  def index(conn, _params) do
+  def index(conn, params) do
     OpenTelemetry.Tracer.with_span "web.leads_controller:index" do
       OpenTelemetry.Tracer.set_attributes([
         {"tenant.id", conn.assigns.current_user.tenant_id},
@@ -13,50 +13,55 @@ defmodule Web.LeadsController do
       ])
 
       %{tenant_id: tenant_id} = conn.assigns.current_user
-      companies = Leads.list_view_by_tenant_id(tenant_id)
+
+      %{data: leads, stage_counts: stage_counts, max_count: max_count} =
+        Leads.list_view_by_tenant_id(
+          tenant_id,
+          get_order_by(params),
+          get_group_by(params),
+          get_filter_by(params)
+        )
 
       profile =
         case Core.Researcher.IcpProfiles.get_by_tenant_id(tenant_id) do
-          {:ok, icp} ->
-            %{
-              profile: icp.profile,
-              qualifying_attributes: icp.qualifying_attributes
-            }
-
-          _ ->
-            nil
+          {:ok, profile} -> profile
+          _ -> nil
         end
 
       conn
-      |> assign_prop(:companies, companies)
+      |> assign_prop(:leads, leads)
       |> assign_prop(:profile, profile)
+      |> assign_prop(:stage_counts, stage_counts)
+      |> assign_prop(:max_count, max_count)
       |> render_inertia("Leads")
     end
   end
 
   def download(conn, _params) do
     %{tenant_id: tenant_id, id: user_id} = conn.assigns.current_user
-    companies = Leads.list_view_by_tenant_id(tenant_id)
+    %{data: leads} = Leads.list_view_by_tenant_id(tenant_id)
 
     base_url = "#{conn.scheme}://#{get_req_header(conn, "host")}"
 
     # Generate CSV content
     csv_content =
-      companies
-      |> Enum.map(fn company ->
+      leads
+      |> Enum.map(fn lead ->
         %{
-          "Name" => company.name,
-          "Country Code" => company.country,
-          "Country Name" => company.country_name,
-          "Domain" => company.domain,
-          "Industry" => company.industry,
-          "Stage" => company.stage,
-          "ICP Fit" => company.icp_fit,
-          "Company Report" =>
-            case company.document_id do
+          "Name" => lead.name,
+          "Country Code" => lead.country,
+          "Country Name" => lead.country_name,
+          "Domain" => lead.domain,
+          "Industry" => lead.industry,
+          "Stage" => format_stage(lead.stage),
+          "ICP Fit" => lead.icp_fit |> Atom.to_string() |> String.capitalize(),
+          "Account Brief" =>
+            case lead.document_id do
               nil -> nil
-              _ -> "#{base_url}/documents/#{company.document_id}"
-            end
+              _ -> "#{base_url}/documents/#{lead.document_id}"
+            end,
+          "Created" =>
+            lead.inserted_at |> DateTime.to_date() |> Date.to_string()
         }
       end)
       |> CSV.encode(
@@ -68,7 +73,8 @@ defmodule Web.LeadsController do
           "Industry",
           "Stage",
           "ICP Fit",
-          "Company Report"
+          "Account Brief",
+          "Created"
         ]
       )
       |> Enum.to_list()
@@ -80,5 +86,50 @@ defmodule Web.LeadsController do
     |> put_resp_content_type("text/csv")
     |> put_resp_header("content-disposition", "attachment; filename=leads.csv")
     |> send_resp(200, csv_content)
+  end
+
+  defp get_filter_by(params) do
+    case params do
+      %{"stage" => "readyToBuy"} -> [stage: "ready_to_buy"]
+      %{"stage" => stage} -> [stage: stage]
+      _ -> nil
+    end
+  end
+
+  defp get_order_by(params) do
+    case params do
+      %{"asc" => "stage"} -> [asc: :stage]
+      %{"desc" => "stage"} -> [desc: :stage]
+      %{"asc" => "inserted_at"} -> [asc: :inserted_at]
+      %{"desc" => "inserted_at"} -> [desc: :inserted_at]
+      %{"asc" => "name"} -> [asc: :name]
+      %{"desc" => "name"} -> [desc: :name]
+      %{"asc" => "industry"} -> [asc: :industry]
+      %{"desc" => "industry"} -> [desc: :industry]
+      %{"asc" => "country"} -> [asc: :country]
+      %{"desc" => "country"} -> [desc: :country]
+      _ -> [desc: :inserted_at]
+    end
+  end
+
+  defp get_group_by(params) do
+    case params do
+      %{"group" => "stage"} -> :stage
+      _ -> nil
+    end
+  end
+
+  defp format_stage(stage) do
+    case stage do
+      :target -> "Target"
+      :education -> "Education"
+      :solution -> "Solution"
+      :evaluation -> "Evaluation"
+      :ready_to_buy -> "Ready to Buy"
+      :customer -> "Customer"
+      :not_a_fit -> "Not a Fit"
+      :pending -> "Pending"
+      _ -> stage |> Atom.to_string() |> String.capitalize()
+    end
   end
 end
