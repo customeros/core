@@ -64,11 +64,11 @@ export default function Signin() {
                         <p className="text-base mt-3">We'll email you a magic link to get in </p>
                         <div className="w-full flex flex-col items-start">
                           <Input
+                            size="md"
                             type="email"
                             variant="outline"
                             value={data.email}
                             autoComplete="email"
-                            className="rounded-lg"
                             invalid={!!errors.email}
                             placeholder="Enter your email"
                             onChange={e => setData('email', e.target.value)}
@@ -83,6 +83,7 @@ export default function Signin() {
                           </p>
                         </div>
                         <Button
+                          size="md"
                           type="submit"
                           className="w-full"
                           colorScheme="primary"
