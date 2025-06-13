@@ -1,39 +1,64 @@
 defmodule Core.Integrations.OAuth.Base do
   @moduledoc """
-  Base behaviour module for OAuth integration providers.
+  Base behaviour for OAuth providers.
 
-  This module defines the contract that all OAuth providers must implement.
-  It provides a standardized way to handle OAuth authentication across different
-  integration providers (HubSpot, Salesforce, etc.).
-
-  ## Usage
-
-  ```elixir
-  defmodule Core.Integrations.HubSpot.OAuth do
-    @behaviour Core.Integrations.OAuth.Base
-
-    # Implement required callbacks
-  end
-  ```
-
-  ## Required Callbacks
-
-  - `authorize_url/1` - Generate the OAuth authorization URL
-  - `get_token/2` - Exchange authorization code for access token
-  - `refresh_token/1` - Refresh expired access token
-  - `revoke_token/1` - Revoke access token
+  This module defines the behaviour that all OAuth provider implementations
+  must follow. It includes functions for:
+  - Authorization URL generation
+  - Token exchange
+  - Token refresh
+  - Token validation
   """
 
-  @type provider :: atom()
-  @type token :: %{
-          access_token: String.t(),
-          refresh_token: String.t(),
-          expires_at: DateTime.t(),
-          token_type: String.t()
-        }
+  @doc """
+  Generates the authorization URL for the OAuth flow.
 
-  @callback authorize_url(provider()) :: {:ok, String.t()} | {:error, term()}
-  @callback get_token(provider(), String.t()) :: {:ok, token()} | {:error, term()}
-  @callback refresh_token(provider()) :: {:ok, token()} | {:error, term()}
-  @callback revoke_token(provider()) :: :ok | {:error, term()}
+  ## Parameters
+  - `tenant_id` - The tenant ID
+  - `redirect_uri` - The URI to redirect to after authorization
+
+  ## Returns
+  - `String.t()` - The authorization URL
+  """
+  @callback authorize_url(tenant_id :: String.t(), redirect_uri :: String.t()) :: String.t()
+
+  @doc """
+  Exchanges an authorization code for an access token.
+
+  ## Parameters
+  - `code` - The authorization code
+  - `redirect_uri` - The redirect URI used in the authorization request
+
+  ## Returns
+  - `{:ok, Core.Integrations.OAuth.Token.t()}` - The access token
+  - `{:error, reason}` - Error reason
+  """
+  @callback exchange_code(code :: String.t(), redirect_uri :: String.t()) ::
+              {:ok, Core.Integrations.OAuth.Token.t()} | {:error, term()}
+
+  @doc """
+  Refreshes an access token using a refresh token.
+
+  ## Parameters
+  - `connection` - The integration connection
+
+  ## Returns
+  - `{:ok, Core.Integrations.Connection.t()}` - The updated connection
+  - `{:error, reason}` - Error reason
+  """
+  @callback refresh_token(connection :: Core.Integrations.Connection.t()) ::
+              {:ok, Core.Integrations.Connection.t()} | {:error, term()}
+
+  @doc """
+  Validates an access token.
+
+  ## Parameters
+  - `connection` - The integration connection
+
+  ## Returns
+  - `{:ok, Core.Integrations.Connection.t()}` - The validated connection
+  - `{:error, reason}` - Error reason
+  """
+  @callback validate_token(connection :: Core.Integrations.Connection.t()) ::
+              {:ok, Core.Integrations.Connection.t()} | {:error, term()}
 end

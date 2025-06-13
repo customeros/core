@@ -188,7 +188,11 @@ config :core, :mailsherpa,
 config :core, :hubspot,
   client_id: System.get_env("HUBSPOT_CLIENT_ID"),
   client_secret: System.get_env("HUBSPOT_CLIENT_SECRET"),
-  redirect_uri: System.get_env("HUBSPOT_REDIRECT_URI"),
+  redirect_uri: fn ->
+    base_url = System.get_env("HUBSPOT_REDIRECT_URI", "http://localhost:4000")
+    base_url = String.trim_trailing(base_url, "/")
+    "#{base_url}/settings/integrations/hubspot/callback"
+  end.(),
   scopes: String.split(System.get_env("HUBSPOT_SCOPES", ""), " "),
   api_base_url: "https://api.hubapi.com",
   auth_base_url: "https://app.hubspot.com"
