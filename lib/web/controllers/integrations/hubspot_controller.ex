@@ -10,6 +10,7 @@ defmodule Web.Controllers.Integrations.HubspotController do
   require Logger
   alias Core.Integrations.HubSpot.OAuth
   alias Core.Integrations.Registry
+  alias Core.Integrations.IntegrationConnections
 
   @doc """
   Initiates the HubSpot OAuth authorization flow.
@@ -25,10 +26,19 @@ defmodule Web.Controllers.Integrations.HubspotController do
   """
   def callback(conn, %{"code" => code}) do
     dbg("hubspot_controller.callback with code ===============")
+    tenant_id = conn.assigns.current_tenant.id
+
     case OAuth.get_token(:hubspot, code) do
       {:ok, token} ->
-        case create_integration_connection(conn.assigns.current_tenant.id, :hubspot, token) do
-          {:ok, _connection} ->
+        credentials = %{
+          access_token: token.access_token,
+          refresh_token: token.refresh_token,
+          expires_at: token.expires_at,
+          token_type: token.token_type
+        }
+
+        case Registry.register_connection(tenant_id, :hubspot, credentials) do
+          :ok ->
             conn
             |> put_status(:ok)
             |> json(%{status: "success", message: "Successfully connected to HubSpot"})
@@ -68,11 +78,18 @@ defmodule Web.Controllers.Integrations.HubspotController do
   """
   def disconnect(conn, _params) do
     dbg("hubspot_controller.disconnect ===============")
-    case Registry.remove_connection(conn.assigns.current_tenant.id, :hubspot) do
+    tenant_id = conn.assigns.current_tenant.id
+
+    case Registry.remove_connection(tenant_id, :hubspot) do
       :ok ->
         conn
         |> put_status(:ok)
         |> json(%{status: "success", message: "Successfully disconnected from HubSpot"})
+
+      {:error, :not_found} ->
+        conn
+        |> put_status(:not_found)
+        |> json(%{status: "error", message: "No active HubSpot connection found"})
 
       {:error, reason} ->
         Logger.error("Failed to disconnect HubSpot: #{inspect(reason)}")
@@ -80,17 +97,5 @@ defmodule Web.Controllers.Integrations.HubspotController do
         |> put_status(:internal_server_error)
         |> json(%{status: "error", message: "Failed to disconnect from HubSpot"})
     end
-  end
-
-  # Private functions
-
-  defp create_integration_connection(tenant_id, provider, %{access_token: access_token} = token) do
-    dbg("hubspot_controller.create_integration_connection ===============")
-    Registry.register_connection(tenant_id, provider, %{
-      access_token: access_token,
-      refresh_token: token.refresh_token,
-      expires_at: token.expires_at,
-      token_type: token.token_type
-    })
   end
 end
