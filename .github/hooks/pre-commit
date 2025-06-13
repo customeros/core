@@ -1,0 +1,17 @@
+echo "Running React lint in assets/..."
+
+# Navigate into the React project
+cd assets || exit 1
+
+# Run the lint script
+npm run lint
+LINT_EXIT_CODE=$?
+
+# Exit with the same code (non-zero blocks commit)
+if [ $LINT_EXIT_CODE -ne 0 ]; then
+  echo "❌ Lint failed. Commit aborted."
+  exit 1
+fi
+
+echo "✅ Lint passed. Continuing with commit."
+exit 0

@@ -30,6 +30,7 @@ export const RootLayout = ({ children }: { children: React.ReactNode }) => {
     PageProps & { tenant: Tenant; currentUser: User; companies: Lead[]; profile: IcpProfile }
   >();
 
+  console.log(props);
   useEffect(() => {
     if ('flash' in props) {
       const { flash } = props;
