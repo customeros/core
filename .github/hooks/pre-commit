@@ -5,7 +5,7 @@ echo "Running React lint in assets/..."
 # Navigate into the React project
 cd assets || exit 1
 
-npx lint
+npm run lint
 
 if [ $? -ne 0 ]; then
   echo "❌ Lint failed. Commit aborted."
