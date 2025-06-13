@@ -16,7 +16,7 @@ defmodule Core.Integrations.HubSpot.Company do
   ```
   """
 
-  @behaviour Core.Integrations.Base
+  @behaviour Core.Integrations.Company.Base
   alias Core.Integrations.HubSpot.Client
   alias Core.Integrations.Registry
   require Logger

@@ -154,22 +154,4 @@ defmodule Core.Integrations.HubSpot.OAuth do
     # Default expiry of 1 hour if expires_in is not provided
     DateTime.add(DateTime.utc_now(), 3600, :second)
   end
-
-  @impl true
-  def fetch_companies(provider) do
-    # TODO: Implement company fetching from HubSpot
-    {:error, :not_implemented}
-  end
-
-  @impl true
-  def fetch_company(provider, company_id) do
-    # TODO: Implement single company fetching from HubSpot
-    {:error, :not_implemented}
-  end
-
-  @impl true
-  def handle_webhook(provider, webhook_data) do
-    # TODO: Implement webhook handling
-    {:error, :not_implemented}
-  end
 end

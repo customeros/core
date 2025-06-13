@@ -13,9 +13,9 @@ defmodule Core.Integrations.HubSpot.Webhook do
   ```
   """
 
-  @behaviour Core.Integrations.Base
+  @behaviour Core.Integrations.Webhook.Base
   require Logger
-  alias Core.Crm.Companies
+  alias Core.Crm.Companies.ExternalCompanies
 
   @impl true
   def handle_webhook(tenant_id, webhook_data) do
@@ -81,7 +81,7 @@ defmodule Core.Integrations.HubSpot.Webhook do
     Logger.info("Processing HubSpot company deletion webhook for company ID: #{company_id}")
 
     # Delete the external company record from our database
-    case Companies.delete_external_company_by_external_id(tenant_id, :hubspot, company_id) do
+    case ExternalCompanies.delete_by_external_id(tenant_id, :hubspot, company_id) do
       {:ok, _} ->
         {:ok, :deleted}
 
@@ -101,10 +101,10 @@ defmodule Core.Integrations.HubSpot.Webhook do
 
   defp create_or_update_external_company(tenant_id, company_data) do
     # Check if the external company already exists
-    case Companies.get_external_company_by_external_id(tenant_id, :hubspot, company_data.external_id) do
+    case ExternalCompanies.get_by_external_id(tenant_id, :hubspot, company_data.external_id) do
       nil ->
         # Create a new external company record
-        Companies.create_external_company(%{
+        ExternalCompanies.create(%{
           tenant_id: tenant_id,
           name: company_data.name,
           external_id: company_data.external_id,
@@ -114,7 +114,7 @@ defmodule Core.Integrations.HubSpot.Webhook do
 
       external_company ->
         # Update the existing external company record
-        Companies.update_external_company(external_company, %{
+        ExternalCompanies.update(external_company, %{
           name: company_data.name,
           data: company_data
         })

@@ -21,14 +21,10 @@ defmodule Core.Integrations.HubSpot.Client do
     {:ok, data} -> # Process data
     {:error, reason} -> # Handle error
   end
-  ```
   """
+  require Logger
 
-  use Tesla
-
-  plug Tesla.Middleware.BaseUrl, Application.get_env(:core, :hubspot)[:api_base_url] || "https://api.hubapi.com"
-  plug Tesla.Middleware.JSON
-  plug Tesla.Middleware.Logger
+  @base_url "https://api.hubapi.com"
 
   @doc """
   Makes an authenticated request to the HubSpot API.
@@ -55,11 +51,13 @@ defmodule Core.Integrations.HubSpot.Client do
       {"content-type", "application/json"}
     ]
 
+    url = build_url(path, params)
+
     case method do
-      :get -> get(path, query: params, headers: headers)
-      :post -> post(path, body, headers: headers)
-      :put -> put(path, body, headers: headers)
-      :delete -> delete(path, headers: headers)
+      :get -> Finch.request(:get, url, headers)
+      :post -> Finch.request(:post, url, headers, Jason.encode!(body))
+      :put -> Finch.request(:put, url, headers, Jason.encode!(body))
+      :delete -> Finch.request(:delete, url, headers)
     end
   end
 
@@ -67,7 +65,7 @@ defmodule Core.Integrations.HubSpot.Client do
   Handles API response and converts it to a standard format.
 
   ## Parameters
-  - `response` - Tesla response
+  - `response` - Finch response
 
   ## Returns
   - `{:ok, data}` - Successful response with parsed data
@@ -75,19 +73,40 @@ defmodule Core.Integrations.HubSpot.Client do
   - `{:error, reason}` - Other error
   """
   def handle_response({:ok, %{status: status, body: body}}) when status in 200..299 do
-    {:ok, body}
+    case Jason.decode(body) do
+      {:ok, data} -> {:ok, data}
+      {:error, reason} -> {:error, "Failed to decode response: #{inspect(reason)}"}
+    end
   end
 
   def handle_response({:ok, %{status: status, body: body}}) do
-    error_message = extract_error_message(body)
-    {:error, {status, error_message}}
+    case Jason.decode(body) do
+      {:ok, data} ->
+        error_message = extract_error_message(data)
+        {:error, {status, error_message}}
+      {:error, _} ->
+        {:error, {status, body}}
+    end
   end
 
   def handle_response({:error, reason}) do
     {:error, reason}
   end
 
-  # Helper function to extract error messages from HubSpot error responses
+  # Helper functions
+
+  defp build_url(path, params) do
+    query_string = URI.encode_query(params)
+    base = String.trim_trailing(@base_url, "/")
+    path = String.trim_leading(path, "/")
+
+    if query_string == "" do
+      "#{base}/#{path}"
+    else
+      "#{base}/#{path}?#{query_string}"
+    end
+  end
+
   defp extract_error_message(%{"message" => message}), do: message
   defp extract_error_message(%{"errors" => [%{"message" => message} | _]}), do: message
   defp extract_error_message(body), do: body
