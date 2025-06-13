@@ -19,7 +19,6 @@ defmodule Core.Application do
       Core.Crm.Leads.DailyLeadSummarySender,
       Core.WebTracker.SessionCloser,
       Core.Crm.Industries,
-      Core.Integrations.Registry,
       Web.Endpoint,
       Web.Presence,
       Web.Telemetry,

@@ -1,4 +1,4 @@
-defmodule Core.Integrations.IntegrationConnection do
+defmodule Core.Integrations.Connection do
   @moduledoc """
   Schema for integration connections.
 

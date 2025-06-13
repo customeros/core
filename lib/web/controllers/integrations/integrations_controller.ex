@@ -12,7 +12,7 @@ defmodule Web.Controllers.Integrations.IntegrationsController do
   Returns a list of available integrations and their connection status.
   """
   def index(conn, _params) do
-    # TODO test positive flow
+    # TODO alexb test positive flow
     tenant_id = conn.assigns[:current_user].tenant_id
     connections = Registry.list_connections(tenant_id)
     hubspot_config = Application.get_env(:core, :hubspot)
