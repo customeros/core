@@ -120,6 +120,7 @@ type SelectOption = {
 
 interface EditorProps extends VariantProps<typeof contentEditableVariants> {
   useYjs?: boolean;
+  user_id?: string;
   namespace: string;
   dataTest?: string;
   className?: string;
@@ -145,7 +146,6 @@ interface EditorProps extends VariantProps<typeof contentEditableVariants> {
     username: string;
     cursorColor: string;
   };
-  user_id?: string;
   onKeyDown?: (e: React.KeyboardEvent<HTMLDivElement>) => void;
   onUndoStateChange?: (canUndo: boolean, canRedo: boolean) => void;
   undoRef?: React.RefObject<{
@@ -276,7 +276,7 @@ export const Editor = forwardRef<LexicalEditor | null, EditorProps>(
 
         const provider = new PhoenixChannelProvider(socket!, `documents:${id}`, doc, {
           disableBc: true,
-          params: {user_id}
+          params: { user_id },
         });
 
         provider.on('status', e => {

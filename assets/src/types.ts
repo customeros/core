@@ -66,3 +66,8 @@ export type UrlState = {
   asc?: 'inserted_at' | 'name' | 'industry' | 'stage' | 'country';
   desc?: 'inserted_at' | 'name' | 'industry' | 'stage' | 'country';
 };
+
+export type IcpProfile = {
+  profile: string;
+  qualifying_attributes: string[];
+};
