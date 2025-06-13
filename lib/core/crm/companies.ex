@@ -10,6 +10,8 @@ defmodule Core.Crm.Companies do
   * Icon URL management
   * Error handling and tracing
 
+  For external company mappings (e.g., HubSpot), see `Core.Crm.Companies.ExternalCompanies`.
+
   It provides the core functionality for managing companies in the
   system, including creation, lookup, and enrichment coordination.
   The module handles domain normalization, company identification,
@@ -19,8 +21,7 @@ defmodule Core.Crm.Companies do
   require Logger
   require OpenTelemetry.Tracer
   alias Ecto.Repo
-  alias Core.Crm.Companies.Company
-  alias Core.Crm.Companies.CompanyEnrich
+  alias Core.Crm.Companies.{Company, CompanyEnrich}
   alias Core.Repo
   alias Core.Utils.IdGenerator
   alias Core.Utils.Media.Images
