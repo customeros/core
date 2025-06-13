@@ -11,12 +11,15 @@ defmodule Core.Researcher.IcpBuilder do
 
   require Logger
 
+  alias Core.Utils.Retry
+  alias Core.Utils.TaskAwaiter
   alias Core.Researcher.IcpBuilder.ProfileWriter
   alias Core.Researcher.IcpProfiles
   alias Core.Researcher.Crawler
   alias Core.Researcher.Scraper
 
   @crawl_timeout 5 * 60 * 1000
+  @max_retries 2
 
   def tenant_icp_start(tenant_record) do
     Task.Supervisor.start_child(
@@ -28,7 +31,7 @@ defmodule Core.Researcher.IcpBuilder do
   end
 
   def tenant_icp(tenant_record) do
-    case build_icp(tenant_record.domain, tenant_record.id) do
+    case build_icp_with_retry(tenant_record.domain, tenant_record.id) do
       {:ok, profile} ->
         Core.Researcher.IcpFinder.find_matching_companies_start(profile.id)
         {:ok, profile}
@@ -39,33 +42,8 @@ defmodule Core.Researcher.IcpBuilder do
     end
   end
 
-  def build_icp(domain, tenant_id) do
-    task = Crawler.crawl_supervised(domain)
-
-    with {:ok, {:ok, _scraped_data}} <- Task.yield(task, @crawl_timeout),
-         {:ok, profile} <- generate_and_save(domain, tenant_id) do
-      {:ok, profile}
-    else
-      {:error, reason} ->
-        Logger.error("Building ICP failed: #{inspect(reason)}")
-        {:error, reason}
-
-      {:ok, {:error, reason}} ->
-        Logger.error("Crawling failed: #{inspect(reason)}")
-        {:error, reason}
-
-      {:ok, {:api_error, message}} ->
-        Logger.error("API error during crawling: #{message}")
-        {:error, {:api_error, message}}
-
-      {:exit, reason} ->
-        Logger.error("Building ICP crashed: #{inspect(reason)}")
-        {:error, reason}
-
-      nil ->
-        Logger.error("ICP generation timed out after #{@crawl_timeout}ms")
-        {:error, :icp_generation_timeout}
-    end
+  def build_icp_with_retry(domain, tenant_id) do
+    Retry.with_delay(fn -> build_icp(domain, tenant_id) end, @max_retries)
   end
 
   def build_icp_fast(domain) do
@@ -90,6 +68,20 @@ defmodule Core.Researcher.IcpBuilder do
 
             {:error, reason}
         end
+    end
+  end
+
+  # private
+  defp build_icp(domain, tenant_id) do
+    task = Crawler.crawl_supervised(domain)
+
+    case TaskAwaiter.await(task, @crawl_timeout) do
+      {:ok, _response} ->
+        generate_and_save(domain, tenant_id)
+
+      {:error, reason} ->
+        Logger.error("ICP builder failed: #{inspect(reason)}")
+        {:error, reason}
     end
   end
 

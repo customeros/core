@@ -17,6 +17,7 @@ defmodule Core.Researcher.IcpFitEvaluator do
   """
 
   require OpenTelemetry.Tracer
+  alias Core.Utils.TaskAwaiter
   alias Core.Ai
   alias Core.Researcher.IcpFitEvaluator.PromptBuilder
   alias Core.Researcher.IcpFitEvaluator.Validator
@@ -106,7 +107,7 @@ defmodule Core.Researcher.IcpFitEvaluator do
     OpenTelemetry.Tracer.with_span "icp_fit_evaluator.crawl_website_with_retry" do
       task = Crawler.crawl_supervised(domain)
 
-      case await_task(task, @crawl_timeout) do
+      case TaskAwaiter.await(task, @crawl_timeout) do
         {:ok, _response} ->
           :ok
 
@@ -156,7 +157,7 @@ defmodule Core.Researcher.IcpFitEvaluator do
       task =
         Ai.ask_supervised(PromptBuilder.build_request(system_prompt, prompt))
 
-      case await_task(task, @icp_timeout) do
+      case TaskAwaiter.await(task, @icp_timeout) do
         {:ok, answer} ->
           case Validator.validate_and_parse(answer) do
             {:ok, fit} ->
@@ -175,15 +176,6 @@ defmodule Core.Researcher.IcpFitEvaluator do
           Tracing.error(reason)
           {:error, reason}
       end
-    end
-  end
-
-  defp await_task(task, timeout) do
-    case Task.yield(task, timeout) do
-      {:ok, {:ok, response}} -> {:ok, response}
-      {:ok, {:error, reason}} -> {:error, reason}
-      {:exit, reason} -> {:error, reason}
-      nil -> {:error, :timeout}
     end
   end
 end

@@ -1,7 +1,15 @@
 defmodule Core.Utils.Retry do
+  @moduledoc """
+  Utility for adding retry to function calls
+  """
+
+  require Logger
+
   @retry_delay_ms 1000
 
-  def call_with_delayed_retry(function, max_retries, attempt \\ 0) do
+  def with_delay(function, max_retries, delay \\ @retry_delay_ms, attempt \\ 0) do
+    Logger.info("Retries: #{attempt}")
+
     case function.() do
       {:ok, result} ->
         {:ok, result}
@@ -12,10 +20,11 @@ defmodule Core.Utils.Retry do
           {"retry.remaining", max_retries - attempt - 1}
         ])
 
-        Process.sleep(@retry_delay_ms)
-        call_with_delayed_retry(function, max_retries, attempt + 1)
+        Process.sleep(delay)
+        with_delay(function, max_retries, delay, attempt + 1)
 
       {:error, reason} ->
+        Logger.warning("Retry failed: #{inspect(reason)}")
         {:error, reason}
     end
   end
