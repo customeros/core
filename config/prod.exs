@@ -3,7 +3,7 @@ import Config
 config :core, Web.Endpoint,
   cache_static_manifest: "priv/static/cache_manifest.json",
   check_origin: [
-    "https://preview.customeros.ai"
+    "https://app.customeros.ai"
   ]
 
 config :logger,
