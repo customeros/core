@@ -42,6 +42,7 @@ defmodule Core.Integrations.HubSpot.Client do
   - `{:error, reason}` - Error response
   """
   def request(method, path, opts \\ []) do
+    dbg("request ===============")
     token = Keyword.get(opts, :token)
     params = Keyword.get(opts, :params, %{})
     body = Keyword.get(opts, :body)
@@ -73,6 +74,7 @@ defmodule Core.Integrations.HubSpot.Client do
   - `{:error, reason}` - Other error
   """
   def handle_response({:ok, %{status: status, body: body}}) when status in 200..299 do
+    dbg("handle_response success ===============")
     case Jason.decode(body) do
       {:ok, data} -> {:ok, data}
       {:error, reason} -> {:error, "Failed to decode response: #{inspect(reason)}"}
@@ -80,6 +82,7 @@ defmodule Core.Integrations.HubSpot.Client do
   end
 
   def handle_response({:ok, %{status: status, body: body}}) do
+    dbg("handle_response error ===============")
     case Jason.decode(body) do
       {:ok, data} ->
         error_message = extract_error_message(data)
@@ -90,12 +93,14 @@ defmodule Core.Integrations.HubSpot.Client do
   end
 
   def handle_response({:error, reason}) do
+    dbg("handle_response failure ===============")
     {:error, reason}
   end
 
   # Helper functions
 
   defp build_url(path, params) do
+    dbg("build_url ===============")
     query_string = URI.encode_query(params)
     base = String.trim_trailing(@base_url, "/")
     path = String.trim_leading(path, "/")
