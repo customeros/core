@@ -41,7 +41,7 @@ defmodule Core.Crm.Leads.DailyLeadSummarySender do
   @from_name "CustomerOS"
   @from_email "notification@app.customeros.ai"
   # Base URL for links
-  @base_url "https://preview.customeros.ai"
+  @base_url "https://app.customeros.ai"
   # Maximum number of companies to show in the list
   @max_companies_in_list 3
   # Stage order for the breakdown
