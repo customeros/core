@@ -49,7 +49,8 @@ export type IconName =
   | 'recording-01'
   | 'arrow-switch-vertical-01'
   | 'arrows-down'
-  | 'arrows-up';
+  | 'arrows-up'
+  | 'layers-three-01';
 
 export const Icon = ({
   name,

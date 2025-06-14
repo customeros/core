@@ -491,7 +491,8 @@ defmodule Core.Crm.Leads do
         domain: c.primary_domain,
         country: c.country_a2,
         icon_key: c.icon_key,
-        document_id: rd.document_id
+        document_id: rd.document_id,
+        inserted_at: l.inserted_at
       }
     )
   end

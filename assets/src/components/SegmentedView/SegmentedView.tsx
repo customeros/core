@@ -10,7 +10,7 @@ interface SegmentedViewProps {
   count: number;
   className?: string;
   isSelected: boolean;
-  onClick: () => void;
+  onClick?: () => void;
   icon: React.ReactNode;
   handleClearFilter: () => void;
 }
