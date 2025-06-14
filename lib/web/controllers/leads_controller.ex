@@ -62,8 +62,11 @@ defmodule Web.LeadsController do
             end,
           "Created" =>
             case lead.inserted_at do
-              nil -> nil
-              datetime -> datetime |> DateTime.to_date() |> Date.to_string()
+              %DateTime{} = datetime ->
+                datetime |> DateTime.to_date() |> Date.to_string()
+
+              _ ->
+                nil
             end
         }
       end)

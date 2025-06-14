@@ -443,16 +443,4 @@ defmodule Web.UserAuth do
       "users_sessions:#{Base.url_encode64(token)}"
     )
   end
-
-  defp maybe_assign_user(conn) do
-    case conn.assigns[:current_user] do
-      %{email: email} when is_binary(email) ->
-        assign_prop(conn, :user, %{
-          email: email
-        })
-
-      _ ->
-        conn
-    end
-  end
 end

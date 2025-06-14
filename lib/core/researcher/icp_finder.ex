@@ -6,7 +6,6 @@ defmodule Core.Researcher.IcpFinder do
   alias Core.Crm.Leads
   alias Core.Auth.Tenants
   alias Core.Crm.Companies
-  alias Core.Crm.Companies.Company
   alias Core.Researcher.IcpProfiles
   alias Core.Researcher.IcpFinder.PromptBuilder
 
@@ -104,14 +103,4 @@ defmodule Core.Researcher.IcpFinder do
   defp parse_company(company) do
     company["domain"]
   end
-
-  defp validate(
-         %{
-           domain: _domain
-         } = _company
-       ) do
-    true
-  end
-
-  defp validate(_), do: false
 end
