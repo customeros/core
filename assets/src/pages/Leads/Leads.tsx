@@ -15,12 +15,12 @@ import {
   ScrollAreaScrollbar,
 } from 'src/components/ScrollArea';
 
-import { Header, Pipeline, LeadItem, EmptyState, stageOptions } from './components';
+import { Header, Pipeline, LeadItem, EmptyState, stageIcons, stageOptions } from './components';
 interface LeadsProps {
   tenant: Tenant;
-  maxCount: number;
-  currentUser: User;
-  stageCounts: Record<Stage, number>;
+  max_count: number;
+  current_user: User;
+  stage_counts: Record<Stage, number>;
   leads: Lead[] | Record<Stage, Lead[]>;
 }
 
@@ -30,7 +30,7 @@ const DocumentEditor = lazy(() =>
   }))
 );
 
-export default function Leads({ leads, stageCounts, maxCount }: LeadsProps) {
+export default function Leads({ leads, stage_counts, max_count }: LeadsProps) {
   const [scrollProgress, setScrollProgress] = useState(0);
   const { getUrlState, setUrlState } = useUrlState<UrlState>({ revalidate: ['leads'] });
   const { viewMode, group, lead, stage: selectedStage } = getUrlState();
@@ -83,15 +83,15 @@ export default function Leads({ leads, stageCounts, maxCount }: LeadsProps) {
     <RootLayout>
       <EventSubscriber />
       <Header />
-      {maxCount === 0 ? (
+      {max_count === 0 ? (
         <EmptyState />
       ) : (
         <div className="relative h-[calc(100vh-3rem)] overflow-x-hidden bg-white p-0 transition-[width] duration-300 ease-in-out w-full 2xl:w-[1440px] 2xl:mx-auto animate-fadeIn">
           <div className="w-full flex">
             <div className="flex-1 flex flex-col overflow-hidden">
               <Pipeline
-                maxCount={maxCount}
-                stageCounts={stageCounts}
+                maxCount={max_count}
+                stageCounts={stage_counts}
                 scrollProgress={scrollProgress}
                 onStageClick={handleStageClick}
               />
@@ -110,55 +110,81 @@ export default function Leads({ leads, stageCounts, maxCount }: LeadsProps) {
                     });
                   }}
                 >
-                  <div className="">
-                    {group === 'stage' && !Array.isArray(leads)
-                      ? Object.entries(leads).map(([stage, groupedLeads], index) => (
-                          <div key={stage} className="flex flex-col w-full">
-                            <SegmentedView
-                              isSelected={selectedStage === stage}
-                              count={stageCounts[stage as Stage] || 0}
-                              label={stageOptions.find(s => s.value === stage)?.label || stage}
-                              onClick={() => {
-                                handleStageClick(stage as Stage);
-                              }}
-                              handleClearFilter={() => {
-                                handleStageClick(stage as Stage);
-                              }}
-                              className={cn(
-                                'sticky top-0 z-30',
-                                index === 0 ? 'mt-0' : '',
-                                lead && 'md:rounded-r-none'
-                              )}
-                              icon={
-                                <Icon
-                                  className="text-gray-500"
-                                  name={stageOptions.find(s => s.value === stage)?.icon as IconName}
+                  <div>
+                    {group === 'stage' && !Array.isArray(leads) ? (
+                      Object.entries(leads).map(([stage, groupedLeads], index) => (
+                        <div key={stage} className="flex flex-col w-full">
+                          <SegmentedView
+                            isSelected={selectedStage === stage}
+                            count={stage_counts[stage as Stage] || 0}
+                            label={stageOptions.find(s => s.value === stage)?.label || stage}
+                            onClick={() => {
+                              handleStageClick(stage as Stage);
+                            }}
+                            handleClearFilter={() => {
+                              handleStageClick(stage as Stage);
+                            }}
+                            className={cn(
+                              'sticky top-0 z-30',
+                              index === 0 ? 'mt-0' : '',
+                              lead && 'md:rounded-r-none'
+                            )}
+                            icon={
+                              <Icon
+                                className="text-gray-500"
+                                name={stageOptions.find(s => s.value === stage)?.icon as IconName}
+                              />
+                            }
+                          />
+
+                          {Array.isArray(groupedLeads)
+                            ? groupedLeads.map(lead => (
+                                <LeadItem
+                                  lead={lead}
+                                  key={lead.id}
+                                  handleOpenLead={handleOpenLead}
+                                  handleStageClick={handleStageClick}
                                 />
+                              ))
+                            : null}
+                        </div>
+                      ))
+                    ) : Array.isArray(leads) ? (
+                      <div className="flex flex-col w-full">
+                        <SegmentedView
+                          count={max_count || 0}
+                          isSelected={!!selectedStage}
+                          className={cn('sticky top-0 z-30 mt-o', lead && 'md:rounded-r-none')}
+                          handleClearFilter={() => {
+                            handleStageClick(selectedStage as Stage);
+                          }}
+                          label={
+                            selectedStage
+                              ? stageOptions.find(s => s.value === selectedStage)?.label ||
+                                selectedStage
+                              : 'All leads'
+                          }
+                          icon={
+                            <Icon
+                              className="text-gray-500"
+                              name={
+                                selectedStage
+                                  ? (stageIcons[selectedStage as Stage] as IconName)
+                                  : 'layers-three-01'
                               }
                             />
-
-                            {Array.isArray(groupedLeads)
-                              ? groupedLeads.map(lead => (
-                                  <LeadItem
-                                    lead={lead}
-                                    key={lead.id}
-                                    handleOpenLead={handleOpenLead}
-                                    handleStageClick={handleStageClick}
-                                  />
-                                ))
-                              : null}
-                          </div>
-                        ))
-                      : Array.isArray(leads)
-                        ? leads.map(lead => (
-                            <LeadItem
-                              lead={lead}
-                              key={lead.id}
-                              handleOpenLead={handleOpenLead}
-                              handleStageClick={handleStageClick}
-                            />
-                          ))
-                        : null}
+                          }
+                        />
+                        {leads.map(lead => (
+                          <LeadItem
+                            lead={lead}
+                            key={lead.id}
+                            handleOpenLead={handleOpenLead}
+                            handleStageClick={handleStageClick}
+                          />
+                        ))}
+                      </div>
+                    ) : null}
                   </div>
                 </ScrollAreaViewport>
                 <ScrollAreaScrollbar className="z-40" orientation="horizontal">
@@ -171,7 +197,7 @@ export default function Leads({ leads, stageCounts, maxCount }: LeadsProps) {
             </div>
             <div
               className={cn(
-                'border-l h-full flex-shrink-0 transition-all duration-300 ease-in-out overflow-y-auto',
+                'border-l flex-shrink-0 transition-all duration-300 ease-in-out h-[calc(100vh-50px)] overflow-y-auto',
                 lead
                   ? 'opacity-100 w-[100%] md:w-[728px] translate-x-[0px]'
                   : 'opacity-0 w-[0px] translate-x-[728px]',

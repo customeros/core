@@ -99,7 +99,7 @@ config :tailwind,
 # Inertia configuration
 config :inertia,
   endpoint: Web.Endpoint,
-  camelize_props: true,
+  camelize_props: false,
   static_paths: ["/assets/app.js"],
   default_version: "1",
   ssr: false,

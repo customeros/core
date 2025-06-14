@@ -59,15 +59,15 @@ defmodule Core.Researcher.IcpFinder do
     case Task.yield(task, @icp_finder_timeout) do
       {:ok, {:ok, answer}} ->
         with {:ok, companies} <- parse_companies(answer),
-             valid_companies <- Enum.filter(companies, &validate/1),
              created_companies <-
-               Enum.map(valid_companies, &Companies.get_or_create/1),
+               Enum.map(companies, fn company ->
+                 Companies.get_or_create_by_domain(company)
+               end),
              leads <-
                Enum.map(created_companies, fn {:ok, company} ->
                  Leads.get_or_create(tenant.name, %{
                    ref_id: company.id,
-                   type: :company,
-                   stage: :target
+                   type: :company
                  })
                end) do
           {:ok, leads}
@@ -102,22 +102,12 @@ defmodule Core.Researcher.IcpFinder do
   end
 
   defp parse_company(company) do
-    %Company{
-      primary_domain: company["primary_domain"],
-      name: company["name"],
-      industry_code: company["industry_code"],
-      industry: company["industry"],
-      country_a2: company["country_a2"]
-    }
+    company["domain"]
   end
 
   defp validate(
-         %Company{
-           primary_domain: _domain,
-           name: _name,
-           industry_code: _industry_code,
-           industry: _industry,
-           country_a2: _country_a2
+         %{
+           domain: _domain
          } = _company
        ) do
     true
