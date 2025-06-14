@@ -8,37 +8,64 @@ defmodule Web.Controllers.Integrations.HubspotController do
 
   use Web, :controller
   require Logger
-  alias Core.Integrations.HubSpot.OAuth
-  alias Core.Integrations.Registry
-  alias Core.Integrations.IntegrationConnections
+
+  alias Core.Integrations.{Connection, Connections, Registry}
+  alias Core.Integrations.OAuth.Providers.HubSpot, as: HubSpotOAuth
 
   @doc """
   Initiates the HubSpot OAuth authorization flow.
+
+  Returns an error if a connection already exists for the tenant.
   """
   def authorize(conn, _params) do
-    dbg("hubspot_controller.authorize ===============")
-    {:ok, url} = OAuth.authorize_url(:hubspot)
-    redirect(conn, external: url)
+    tenant_id = conn.assigns.current_user.tenant_id
+    redirect_uri = Application.get_env(:core, :hubspot)[:redirect_uri]
+
+    # Check for existing connection
+    case Registry.get_connection(tenant_id, :hubspot) do
+      {:ok, _connection} ->
+        # Connection exists, return error
+        conn
+        |> put_status(:conflict)
+        |> json(%{
+          status: "error",
+          message: "A HubSpot connection already exists. Please disconnect it first before creating a new one."
+        })
+
+      {:error, :not_found} ->
+        # No existing connection, proceed with authorization
+        {:ok, url} = HubSpotOAuth.authorize_url(tenant_id, redirect_uri)
+        Logger.debug("Redirecting to HubSpot authorization URL: #{url}")
+        conn
+        |> put_status(302)
+        |> put_resp_header("location", url)
+        |> halt()
+    end
   end
 
   @doc """
   Handles the OAuth callback from HubSpot.
   """
   def callback(conn, %{"code" => code}) do
-    dbg("hubspot_controller.callback with code ===============")
-    tenant_id = conn.assigns.current_tenant.id
+    tenant_id = conn.assigns.current_user.tenant_id
+    redirect_uri = Application.get_env(:core, :hubspot)[:redirect_uri]
 
-    case OAuth.get_token(:hubspot, code) do
+    case HubSpotOAuth.exchange_code(code, redirect_uri) do
       {:ok, token} ->
         credentials = %{
           access_token: token.access_token,
           refresh_token: token.refresh_token,
           expires_at: token.expires_at,
-          token_type: token.token_type
+          token_type: token.token_type,
+          scopes: token.scopes
         }
 
-        case Registry.register_connection(tenant_id, :hubspot, credentials) do
-          :ok ->
+        case Connections.create_connection(%{
+               tenant_id: tenant_id,
+               provider: :hubspot,
+               status: :active
+             } |> Map.merge(credentials)) do
+          {:ok, _connection} ->
             conn
             |> put_status(:ok)
             |> json(%{status: "success", message: "Successfully connected to HubSpot"})
@@ -59,7 +86,6 @@ defmodule Web.Controllers.Integrations.HubspotController do
   end
 
   def callback(conn, %{"error" => error, "error_description" => description}) do
-    dbg("hubspot_controller.callback with error ===============")
     Logger.error("HubSpot OAuth error: #{error} - #{description}")
     conn
     |> put_status(:bad_request)
@@ -67,7 +93,6 @@ defmodule Web.Controllers.Integrations.HubspotController do
   end
 
   def callback(conn, _params) do
-    dbg("hubspot_controller.callback invalid params ===============")
     conn
     |> put_status(:bad_request)
     |> json(%{status: "error", message: "Invalid HubSpot callback"})
@@ -77,8 +102,7 @@ defmodule Web.Controllers.Integrations.HubspotController do
   Disconnects the HubSpot integration.
   """
   def disconnect(conn, _params) do
-    dbg("hubspot_controller.disconnect ===============")
-    tenant_id = conn.assigns.current_tenant.id
+    tenant_id = conn.assigns.current_user.tenant_id
 
     case Registry.remove_connection(tenant_id, :hubspot) do
       :ok ->

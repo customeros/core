@@ -7,8 +7,21 @@ defmodule Core.Integrations.Providers.HubSpot.Client do
   """
 
   alias Core.Integrations.{Connection, Connections}
+  require Logger
 
-  @base_url "https://api.hubapi.com"
+  @doc """
+  Gets the base URL for HubSpot API calls.
+  """
+  def base_url do
+    config = Application.get_env(:core, :hubspot)
+    base_url = config[:api_base_url]
+
+    unless base_url do
+      raise "HubSpot api_base_url is not configured. Please set it in your runtime config."
+    end
+
+    base_url
+  end
 
   @doc """
   Makes a GET request to the HubSpot API.
@@ -31,9 +44,11 @@ defmodule Core.Integrations.Providers.HubSpot.Client do
         {:ok, Jason.decode!(body)}
 
       {:ok, %{status: status, body: body}} ->
+        Logger.error("Failed to get HubSpot API: HTTP #{status}: #{body}")
         {:error, "HTTP #{status}: #{body}"}
 
       {:error, reason} ->
+        Logger.error("Failed to get HubSpot API: #{inspect(reason)}")
         {:error, reason}
     end
   end
@@ -63,9 +78,11 @@ defmodule Core.Integrations.Providers.HubSpot.Client do
         {:ok, Jason.decode!(body)}
 
       {:ok, %{status: status, body: body}} ->
+        Logger.error("Failed to post HubSpot API: HTTP #{status}: #{body}")
         {:error, "HTTP #{status}: #{body}"}
 
       {:error, reason} ->
+        Logger.error("Failed to post HubSpot API: #{inspect(reason)}")
         {:error, reason}
     end
   end
@@ -95,9 +112,11 @@ defmodule Core.Integrations.Providers.HubSpot.Client do
         {:ok, Jason.decode!(body)}
 
       {:ok, %{status: status, body: body}} ->
+        Logger.error("Failed to put HubSpot API: HTTP #{status}: #{body}")
         {:error, "HTTP #{status}: #{body}"}
 
       {:error, reason} ->
+        Logger.error("Failed to put HubSpot API: #{inspect(reason)}")
         {:error, reason}
     end
   end
@@ -123,9 +142,11 @@ defmodule Core.Integrations.Providers.HubSpot.Client do
         {:ok, Jason.decode!(body)}
 
       {:ok, %{status: status, body: body}} ->
+        Logger.error("Failed to delete HubSpot API: HTTP #{status}: #{body}")
         {:error, "HTTP #{status}: #{body}"}
 
       {:error, reason} ->
+        Logger.error("Failed to delete HubSpot API: #{inspect(reason)}")
         {:error, reason}
     end
   end
@@ -138,7 +159,7 @@ defmodule Core.Integrations.Providers.HubSpot.Client do
       |> Enum.map(fn {key, value} -> "#{key}=#{URI.encode_www_form(to_string(value))}" end)
       |> Enum.join("&")
 
-    url = "#{@base_url}#{path}"
+    url = "#{base_url()}#{path}"
     if query_string == "", do: url, else: "#{url}?#{query_string}"
   end
 end
