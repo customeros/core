@@ -50,7 +50,6 @@ defmodule Core.Utils.PrimaryDomainFinder do
   - No external redirects
   - Is the root domain (no subdomain)
   """
-
   def primary_domain?(domain) do
     case primary_domain_check(domain) do
       {:ok, {is_primary, _domain}} -> is_primary
@@ -69,7 +68,7 @@ defmodule Core.Utils.PrimaryDomainFinder do
     OpenTelemetry.Tracer.with_span "primary_domain_finder.get_primary_domain" do
       OpenTelemetry.Tracer.set_attributes([{"domain", domain}])
 
-      case Retry.call_with_delayed_retry(
+      case Retry.with_delay(
              fn -> try_get_primary_domain(domain) end,
              @max_retries
            ) do
@@ -84,7 +83,7 @@ defmodule Core.Utils.PrimaryDomainFinder do
           {:ok, primary_domain}
 
         {:error, _reason} ->
-          Retry.call_with_delayed_retry(
+          Retry.with_delay(
             fn -> try_get_primary_domain_https(domain) end,
             @max_retries
           )
@@ -97,13 +96,17 @@ defmodule Core.Utils.PrimaryDomainFinder do
   def get_primary_domain(_), do: @err_invalid_domain
 
   defp try_get_primary_domain(domain) do
-    follow_domain_chain(domain, MapSet.new(), @max_redirects)
+    with {:ok, clean_domain} <- safe_clean_domain(domain) do
+      follow_domain_chain(clean_domain, MapSet.new(), @max_redirects)
+    end
   end
 
   defp try_get_primary_domain_https(domain) do
     case UrlFormatter.to_https(domain) do
       {:ok, https_domain} ->
-        follow_domain_chain(https_domain, MapSet.new(), @max_redirects)
+        with {:ok, clean_domain} <- safe_clean_domain(https_domain) do
+          follow_domain_chain(clean_domain, MapSet.new(), @max_redirects)
+        end
 
       {:error, reason} ->
         {:error, reason}
@@ -111,16 +114,28 @@ defmodule Core.Utils.PrimaryDomainFinder do
   end
 
   defp follow_domain_chain(current_domain, visited, redirects_remaining) do
-    if MapSet.member?(visited, current_domain) do
+    Logger.info(
+      "Following domain chain: #{current_domain}, visited: #{inspect(MapSet.to_list(visited))}, redirects remaining: #{redirects_remaining}"
+    )
+
+    with {:ok, new_visited_set} <-
+           update_visited_domains(current_domain, visited) do
+      current_domain
+      |> primary_domain_check()
+      |> ok(&is_valid_primary_domain?/1)
+      |> continue_if_necessary(new_visited_set, redirects_remaining)
+    else
+      {:error, reason} ->
+        {:error, reason}
+    end
+  end
+
+  defp update_visited_domains(domain, visited) do
+    if MapSet.member?(visited, domain) do
+      Logger.warning("Circular domain reference detected: #{domain}")
       @err_circular_domain
     else
-      new_visited = MapSet.put(visited, current_domain)
-
-      current_domain
-      |> safe_clean_domain()
-      |> ok(&primary_domain_check/1)
-      |> ok(&is_valid_primary_domain?/1)
-      |> continue_if_necessary(new_visited, redirects_remaining)
+      {:ok, MapSet.put(visited, domain)}
     end
   end
 
@@ -159,6 +174,10 @@ defmodule Core.Utils.PrimaryDomainFinder do
     do: {:error, reason}
 
   defp continue_if_necessary({:ok, {is_primary, domain}}, visited, redirects) do
+    Logger.info(
+      "Continue if necessary: is_primary=#{is_primary}, domain=#{domain}, redirects=#{redirects}"
+    )
+
     cond do
       is_primary ->
         {:ok, domain}
@@ -167,7 +186,13 @@ defmodule Core.Utils.PrimaryDomainFinder do
         {:ok, :no_primary_domain}
 
       true ->
-        follow_domain_chain(domain, visited, redirects - 1)
+        case safe_clean_domain(domain) do
+          {:ok, clean_domain} ->
+            follow_domain_chain(clean_domain, visited, redirects - 1)
+
+          {:error, reason} ->
+            {:error, reason}
+        end
     end
   end
 
@@ -175,9 +200,10 @@ defmodule Core.Utils.PrimaryDomainFinder do
   defp is_non_empty_domain?(_), do: true
 
   defp is_suspicious_domain?(domain) do
-    domain
-    |> parse_domain()
-    |> ok(&suspicious_domain?/1)
+    case parse_domain(domain) do
+      {:ok, parsed} -> suspicious_domain?(parsed)
+      {:error, _} -> false
+    end
   end
 
   defp suspicious_domain?({_root, subdomain}) do
@@ -190,20 +216,14 @@ defmodule Core.Utils.PrimaryDomainFinder do
 
   defp domain_redirect_check(domain)
        when is_binary(domain) and byte_size(domain) > 0 do
-    case safe_clean_domain(domain) do
-      {:ok, cleaned_domain} ->
-        case check_redirect("https", cleaned_domain) do
-          {:ok, result} ->
-            handle_redirect_result(result, cleaned_domain)
+    case check_redirect("https", domain) do
+      {:ok, result} ->
+        handle_redirect_result(result, domain)
 
-          @err_invalid_domain ->
-            case check_redirect("http", cleaned_domain) do
-              {:ok, result} -> handle_redirect_result(result, cleaned_domain)
-              {:error, reason} -> {:error, reason}
-            end
-
-          {:error, reason} ->
-            {:error, reason}
+      @err_invalid_domain ->
+        case check_redirect("http", domain) do
+          {:ok, result} -> handle_redirect_result(result, domain)
+          {:error, reason} -> {:error, reason}
         end
 
       {:error, reason} ->
@@ -217,13 +237,16 @@ defmodule Core.Utils.PrimaryDomainFinder do
   defp handle_redirect_result({false, ""}, _cleaned_domain),
     do: {:ok, {false, ""}}
 
+  # Fixed: Don't clean domain again here since it's already cleaned
   defp prepare_domain(domain) do
     Logger.info("Preparing domain #{domain}")
 
     case UrlExpander.expand_short_url(domain) do
       {:ok, expanded_domain} ->
-        cleaned_domain = DomainExtractor.clean_domain(expanded_domain)
-        {:ok, cleaned_domain}
+        {:ok, expanded_domain}
+
+      {:error, reason} ->
+        {:error, reason}
     end
   end
 

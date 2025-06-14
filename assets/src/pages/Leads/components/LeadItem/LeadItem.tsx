@@ -22,7 +22,7 @@ export const LeadItem = ({ lead, handleOpenLead, handleStageClick }: LeadItemPro
     <div
       key={lead.id}
       className={cn(
-        'flex items-center w-full relative group hover:bg-gray-50',
+        'flex items-center w-full relative group hover:bg-gray-50 animate-slideUpFade',
         isSelected && 'bg-gray-50'
       )}
     >
@@ -90,16 +90,18 @@ export const LeadItem = ({ lead, handleOpenLead, handleStageClick }: LeadItemPro
           {lead.name || 'Unnamed'}
         </p>
       </div>
-      <p
+      <div
         className={cn(
           'flex-4 text-right mr-4 min-w-0 flex-shrink-0 bg-white hidden md:block group-hover:bg-gray-50',
           isSelected && 'bg-gray-50'
         )}
       >
-        <span className="bg-gray-100 w-fit px-2 py-1 rounded-[4px] max-w-[100px] truncate">
-          {lead.industry}
-        </span>
-      </p>
+        {lead.industry && (
+          <span className="bg-gray-100 w-fit px-2 py-1 rounded-[4px] max-w-[100px] truncate">
+            {lead.industry}
+          </span>
+        )}
+      </div>
 
       <p
         onClick={() => {

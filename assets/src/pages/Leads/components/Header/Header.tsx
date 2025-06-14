@@ -200,8 +200,8 @@ export const Header = () => {
                   <div className="w-fit flex items-center gap-2">
                     <Select
                       size="xxs"
-                      menuWidth="fit-item"
                       isSearchable={false}
+                      menuWidth="fit-item"
                       placeholder="Order by"
                       options={orderByOptions}
                       value={orderByOptions.find(option => option.value === orderBy) || null}

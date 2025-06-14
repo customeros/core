@@ -13,7 +13,8 @@ defmodule Web do
   """
 
   def static_paths,
-    do: ~w(assets fonts images favicon favicon/* robots.txt *.svg icons.svg)
+    do:
+      ~w(assets fonts images favicon favicon/* robots.txt *.svg icons.svg scripts scripts/*)
 
   def router do
     quote do

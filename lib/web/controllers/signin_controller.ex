@@ -2,7 +2,6 @@ defmodule Web.AuthController do
   use Web, :controller
   alias Core.Auth.Users
   alias Core.Auth.Users.User
-  alias Core.Stats
 
   def index(conn, _params) do
     conn

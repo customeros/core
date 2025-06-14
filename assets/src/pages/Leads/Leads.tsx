@@ -15,7 +15,7 @@ import {
   ScrollAreaScrollbar,
 } from 'src/components/ScrollArea';
 
-import { Header, Pipeline, LeadItem, EmptyState, stageOptions } from './components';
+import { Header, Pipeline, LeadItem, EmptyState, stageIcons, stageOptions } from './components';
 interface LeadsProps {
   tenant: Tenant;
   max_count: number;
@@ -135,31 +135,46 @@ export default function Leads({ leads, stage_counts, max_count }: LeadsProps) {
                                   className="text-gray-500"
                                   name={stageOptions.find(s => s.value === stage)?.icon as IconName}
                                 />
+                              ))
+                            : null}
+                        </div>
+                      ))
+                    ) : Array.isArray(leads) ? (
+                      <div className="flex flex-col w-full">
+                        <SegmentedView
+                          count={max_count || 0}
+                          isSelected={!!selectedStage}
+                          className={cn('sticky top-0 z-30 mt-o', lead && 'md:rounded-r-none')}
+                          handleClearFilter={() => {
+                            handleStageClick(selectedStage as Stage);
+                          }}
+                          label={
+                            selectedStage
+                              ? stageOptions.find(s => s.value === selectedStage)?.label ||
+                                selectedStage
+                              : 'All leads'
+                          }
+                          icon={
+                            <Icon
+                              className="text-gray-500"
+                              name={
+                                selectedStage
+                                  ? (stageIcons[selectedStage as Stage] as IconName)
+                                  : 'layers-three-01'
                               }
                             />
-
-                            {Array.isArray(groupedLeads)
-                              ? groupedLeads.map(lead => (
-                                  <LeadItem
-                                    lead={lead}
-                                    key={lead.id}
-                                    handleOpenLead={handleOpenLead}
-                                    handleStageClick={handleStageClick}
-                                  />
-                                ))
-                              : null}
-                          </div>
-                        ))
-                      : Array.isArray(leads)
-                        ? leads.map(lead => (
-                            <LeadItem
-                              lead={lead}
-                              key={lead.id}
-                              handleOpenLead={handleOpenLead}
-                              handleStageClick={handleStageClick}
-                            />
-                          ))
-                        : null}
+                          }
+                        />
+                        {leads.map(lead => (
+                          <LeadItem
+                            lead={lead}
+                            key={lead.id}
+                            handleOpenLead={handleOpenLead}
+                            handleStageClick={handleStageClick}
+                          />
+                        ))}
+                      </div>
+                    ) : null}
                   </div>
                 </ScrollAreaViewport>
                 <ScrollAreaScrollbar className="z-40" orientation="horizontal">
@@ -172,7 +187,7 @@ export default function Leads({ leads, stage_counts, max_count }: LeadsProps) {
             </div>
             <div
               className={cn(
-                'border-l h-full flex-shrink-0 transition-all duration-300 ease-in-out overflow-y-auto',
+                'border-l flex-shrink-0 transition-all duration-300 ease-in-out h-[calc(100vh-50px)] overflow-y-auto',
                 lead
                   ? 'opacity-100 w-[100%] md:w-[728px] translate-x-[0px]'
                   : 'opacity-0 w-[0px] translate-x-[728px]',

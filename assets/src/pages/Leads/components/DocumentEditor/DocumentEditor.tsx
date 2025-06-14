@@ -107,7 +107,7 @@ export const DocumentEditor = () => {
     <>
       <ScrollAreaRoot>
         <ScrollAreaViewport>
-          <div className="relative w-full h-[calc(100vh-53px)] bg-white px-4 md:px-6">
+          <div className="w-full bg-white px-4 md:px-6">
             <div className="relative bg-white h-full mx-auto  w-full md:min-w-[680px] max-w-[680px]">
               <div className="flex items-center justify-between sticky top-0 bg-white z-10 py-0.5">
                 {currentLead && (
