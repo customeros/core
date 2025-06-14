@@ -4,7 +4,7 @@ defmodule Web.Router do
   import Web.UserAuth
 
   pipeline :browser do
-    plug :accepts, ["html"]
+    plug :accepts, ["html", "json"] # TODO alexb remove json
     plug :fetch_session
     plug :fetch_live_flash
     plug :put_root_layout, html: {Web.Layouts, :root}
@@ -113,8 +113,34 @@ defmodule Web.Router do
     get "/welcome", WelcomeController, :index
     get "/tenants", TenantController, :index
     post "/tenants/switch", TenantController, :switch
+    # Test page for integrations, TODO alexb remove this file
+    get "/test/integrations", Controllers.TestController, :index
     # Catch-all route for undefined paths
     # get "/*path", LandingController, :redirect
+  end
+
+  # Integration routes (require authentication)
+  scope "/settings", Web.Controllers do
+    pipe_through [:browser, :require_authenticated]
+
+    # Integration routes
+    scope "/integrations" do
+      # Main integrations page
+      get "/", Integrations.IntegrationsController, :index
+
+      # HubSpot integration routes
+      get "/hubspot/authorize", Integrations.HubspotController, :authorize
+      get "/hubspot/callback", Integrations.HubspotController, :callback
+      delete "/hubspot/disconnect", Integrations.HubspotController, :disconnect
+    end
+  end
+
+  # Webhook routes (public, but secured with tenant-specific tokens)
+  scope "/integrations", Web.Controllers.Integrations do
+    pipe_through [:public_api]
+
+    # HubSpot webhook endpoint
+    post "/hubspot/webhook/:tenant_id", HubspotController, :webhook
   end
 
   # V1 API endpoints

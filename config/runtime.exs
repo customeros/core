@@ -175,3 +175,34 @@ config :core, :slack,
 config :core, :mailsherpa,
   mailsherpa_api_url: get_env.("MAILSHERPA_API_URL", nil),
   mailsherpa_api_key: get_env.("MAILSHERPA_API_KEY", nil)
+
+# HubSpot Integration Configuration
+config :core, :hubspot,
+  client_id: System.get_env("HUBSPOT_CLIENT_ID"),
+  client_secret: System.get_env("HUBSPOT_CLIENT_SECRET"),
+  redirect_uri: fn ->
+    base_url = System.get_env("HUBSPOT_REDIRECT_URI", "http://localhost:4000")
+    base_url = String.trim_trailing(base_url, "/")
+    "#{base_url}/settings/integrations/hubspot/callback"
+  end.(),
+  scopes: String.split(System.get_env("HUBSPOT_SCOPES", ""), " "),
+  api_base_url: "https://api.hubapi.com",
+  auth_base_url: "https://app.hubspot.com"
+
+# Validate required HubSpot configuration
+if config_env() == :prod do
+  required_env_vars = [
+    "HUBSPOT_CLIENT_ID",
+    "HUBSPOT_CLIENT_SECRET",
+    "HUBSPOT_REDIRECT_URI"
+  ]
+
+  Enum.each(required_env_vars, fn var ->
+    if is_nil(System.get_env(var)) do
+      raise """
+      environment variable #{var} is missing.
+      This variable is required for HubSpot integration in production.
+      """
+    end
+  end)
+end
