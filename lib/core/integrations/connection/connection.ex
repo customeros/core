@@ -71,7 +71,7 @@ defmodule Core.Integrations.Connection do
     timestamps(type: :utc_datetime)
   end
 
-  @id_regex ~r/^icn_[a-zA-Z0-9]{12}$/
+  @id_regex ~r/^icn_[a-zA-Z0-9]{16}$/
 
   @doc """
   Creates a changeset for the integration connection.
