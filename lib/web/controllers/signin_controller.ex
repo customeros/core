@@ -4,7 +4,9 @@ defmodule Web.AuthController do
   alias Core.Auth.Users.User
 
   def index(conn, _params) do
-    conn |> render_inertia("Signin")
+    conn
+    |> assign_prop(:page_title, "Sign In | CustomerOS")
+    |> render_inertia("Signin")
   end
 
   def send_magic_link(conn, %{"email" => email}) do
@@ -16,6 +18,7 @@ defmodule Web.AuthController do
 
       {:error, errors} ->
         conn
+        |> assign_prop(:page_title, "Sign In | CustomerOS")
         |> assign_prop(:errors, %{
           email: Keyword.get(errors, :email, "Something went wrong")
         })

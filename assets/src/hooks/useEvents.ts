@@ -18,7 +18,7 @@ export type LeadCreatedEvent = Event<'lead_created', { id: string; icon_url: str
 export type LeadUpdatedEvent = Event<'lead_updated', { id: string }>;
 
 export const useEventsChannel = <E extends Event>(onEvent: (event: E) => void) => {
-  const page = usePage<PageProps & { tenant: Tenant; currentUser: User; companies: Lead[] }>();
+  const page = usePage<PageProps & { tenant: Tenant; companies: Lead[]; current_user: User }>();
   const tenantId = page.props.tenant.id;
   const { channel } = useChannel(`events:${tenantId}`);
 

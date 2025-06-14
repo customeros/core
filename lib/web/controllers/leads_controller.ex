@@ -29,6 +29,7 @@ defmodule Web.LeadsController do
         end
 
       conn
+      |> assign_prop(:page_title, "Leads | CustomerOS")
       |> assign_prop(:leads, leads)
       |> assign_prop(:profile, profile)
       |> assign_prop(:stage_counts, stage_counts)
