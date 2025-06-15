@@ -90,6 +90,14 @@ config :core, :ai,
 
 # Production environment specific configuration
 if config_env() == :prod do
+  if System.get_env("NODE_NAME") do
+    Application.put_env(:kernel, :inet_dist_listen_min, 9100)
+    Application.put_env(:kernel, :inet_dist_listen_max, 9155)
+  end
+
+  config :libcluster,
+    debug: get_env_boolean.("LIBCLUSTER_DEBUG", "false")
+
   secret_key_base =
     get_env.("SECRET_KEY_BASE", nil) ||
       raise """
