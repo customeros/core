@@ -2,6 +2,7 @@ defmodule Core.Utils.DomainIO do
   @moduledoc """
   Domain I/O utilities with improved error handling for SSL/certificate issues
   """
+  alias Core.Utils.TaskAwaiter
   alias Finch.Response
   require Logger
 
@@ -11,13 +12,15 @@ defmodule Core.Utils.DomainIO do
   @err_ssl_error {:error, "ssl certificate error"}
   @err_timeout {:error, "request timeout"}
 
+  @resolve_timeout_ms 6000
+
   def test_redirect(url) when is_binary(url) and byte_size(url) > 0 do
     case Task.Supervisor.async_nolink(Core.TaskSupervisor, fn ->
            test_redirect_call(url)
          end)
-         |> Task.yield(6000) do
+         |> TaskAwaiter.await(@resolve_timeout_ms) do
       {:ok, result} -> result
-      nil -> @err_timeout
+      {:error, reason} -> {:error, reason}
     end
   end
 
