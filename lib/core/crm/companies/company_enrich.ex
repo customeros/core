@@ -374,11 +374,19 @@ defmodule Core.Crm.Companies.CompanyEnrich do
             OpenTelemetry.Tracer.set_attributes([{"ai.name", name}])
             {:ok, name}
 
-          {:error, reason, name} ->
+          {:error, reason, name} when is_binary(name) and name != "" ->
             Tracing.error(reason, "Rejected company name from AI",
               company_id: company.id,
               company_domain: company.primary_domain,
               name: name
+            )
+
+            {:error, reason}
+
+          {:error, reason, _} ->
+            Tracing.error(reason, "AI name identification failed",
+              company_id: company.id,
+              company_domain: company.primary_domain
             )
 
             {:error, reason}
