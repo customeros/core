@@ -4,11 +4,21 @@ defmodule Core.Application do
 
   @impl true
   def start(_type, _args) do
+    topologies = [
+      core_cluster: [
+        strategy: Cluster.Strategy.Epmd,
+        config: [
+          hosts: get_cluster_nodes()
+        ]
+      ]
+    ]
+
     OpentelemetryPhoenix.setup(adapter: :bandit)
     OpentelemetryEcto.setup([:core, :repo], db_statement: :enabled)
     Logger.add_backend(Core.Notifications.CrashMonitor)
 
     children = [
+      {Cluster.Supervisor, [topologies, [name: Core.ClusterSupervisor]]},
       {Phoenix.PubSub, name: Core.PubSub},
       {Task.Supervisor, name: Core.TaskSupervisor},
       Core.Auth.Users.ColorManager,
@@ -41,6 +51,19 @@ defmodule Core.Application do
 
     opts = [strategy: :one_for_one, name: Core.Supervisor]
     Supervisor.start_link(children, opts)
+  end
+
+  defp get_cluster_nodes do
+    case System.get_env("CLUSTER_NODES") do
+      nil ->
+        []
+
+      nodes_string ->
+        nodes_string
+        |> String.split(",")
+        |> Enum.map(&String.trim/1)
+        |> Enum.map(&String.to_atom/1)
+    end
   end
 
   # Tell Phoenix to update the endpoint configuration

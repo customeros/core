@@ -104,7 +104,7 @@ FROM --platform=linux/arm64 ${RUNNER_IMAGE}
 
 # Install runtime dependencies
 RUN apt-get update -y && \
-  apt-get install -y libstdc++6 openssl libncurses5 locales ca-certificates \
+  apt-get install -y libstdc++6 openssl libncurses5 locales ca-certificates curl \
   && apt-get clean && rm -f /var/lib/apt/lists/*_*
 
 # Set the locale
@@ -127,6 +127,11 @@ COPY --from=builder --chown=nobody:root /app/_build/${MIX_ENV}/rel/core ./
 # Copy the entrypoint script
 COPY scripts/build/entrypoint.sh /app/entrypoint.sh
 RUN chmod +x /app/entrypoint.sh
+
+# Expose ports for web traffic and clustering
+EXPOSE 4000
+EXPOSE 4369
+EXPOSE 9100-9155
 
 # Switch to non-root user
 USER nobody
