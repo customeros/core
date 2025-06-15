@@ -1,19 +1,26 @@
 defmodule Core.Utils.DomainIO do
   @moduledoc """
+  Domain I/O utilities with improved error handling for SSL/certificate issues
   """
+  alias Core.Utils.TaskAwaiter
   alias Finch.Response
+  require Logger
+
   @err_cannot_resolve_url {:error, "url does not resolve"}
   @err_empty_url {:error, "url is empty"}
   @err_invalid_url {:error, "invalid url"}
+  @err_ssl_error {:error, "ssl certificate error"}
+  @err_timeout {:error, "request timeout"}
 
-  def test_redirect(url)
-      when is_binary(url) and byte_size(url) > 0 do
+  @resolve_timeout_ms 6000
+
+  def test_redirect(url) when is_binary(url) and byte_size(url) > 0 do
     case Task.Supervisor.async_nolink(Core.TaskSupervisor, fn ->
            test_redirect_call(url)
          end)
-         |> Task.yield(6000) do
-      {:ok, result} -> result
-      nil -> @err_cannot_resolve_url
+         |> TaskAwaiter.await(@resolve_timeout_ms) do
+      {:ok, result} -> {:ok, result}
+      {:error, reason} -> {:error, reason}
     end
   end
 
@@ -37,11 +44,45 @@ defmodule Core.Utils.DomainIO do
         {:ok, %Response{}} ->
           {:ok, {:no_redirect}}
 
-        {:error, _} ->
+        {:error,
+         %Mint.TransportError{reason: {:tls_alert, {:certificate_unknown, _}}}} ->
+          Logger.warning("Certificate unknown error for #{url}")
+          @err_ssl_error
+
+        {:error, %Mint.TransportError{reason: {:tls_alert, _}}} ->
+          Logger.warning("TLS alert error for #{url}")
+          @err_ssl_error
+
+        {:error, reason} ->
+          Logger.warning("HTTP request failed for #{url}: #{inspect(reason)}")
           @err_cannot_resolve_url
       end
     rescue
-      _ ->
+      error ->
+        Logger.error("Unexpected error for #{url}: #{inspect(error)}",
+          url: url
+        )
+
+        @err_cannot_resolve_url
+    catch
+      :exit,
+      {{{:case_clause, {:error, {:asn1, reason}}}, _stacktrace}, _call_stack} ->
+        Logger.warning(
+          "ASN.1 certificate parsing error for #{url}: #{inspect(reason)}"
+        )
+
+        @err_ssl_error
+
+      :exit, {{:tls_alert, _}, _} ->
+        Logger.warning("TLS alert exit for #{url}")
+        @err_ssl_error
+
+      :exit, {:timeout, _} ->
+        Logger.warning("Connection timeout for #{url}")
+        @err_timeout
+
+      :exit, {reason, _} ->
+        Logger.warning("Connection exit for #{url}: #{inspect(reason)}")
         @err_cannot_resolve_url
     end
   end
@@ -56,7 +97,7 @@ defmodule Core.Utils.DomainIO do
          )
          |> Task.yield(6000) do
       {:ok, result} -> result
-      nil -> @err_cannot_resolve_url
+      nil -> @err_timeout
     end
   end
 
@@ -76,7 +117,12 @@ defmodule Core.Utils.DomainIO do
 
       {:ok, result}
     rescue
-      _ -> @err_cannot_resolve_url
+      error ->
+        Logger.debug(
+          "Reachability test failed for #{domain}: #{inspect(error)}"
+        )
+
+        @err_cannot_resolve_url
     end
   end
 

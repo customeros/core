@@ -231,13 +231,28 @@ defmodule Core.Utils.PrimaryDomainFinder do
     end
   end
 
-  defp handle_redirect_result({true, redirect_target}, _cleaned_domain),
-    do: {:ok, {true, redirect_target}}
+  defp handle_redirect_result(result, domain) do
+    Logger.info(
+      "handle_redirect_result received: #{inspect(result)}, domain: #{domain}"
+    )
 
-  defp handle_redirect_result({false, ""}, _cleaned_domain),
-    do: {:ok, {false, ""}}
+    case result do
+      {true, redirect_target} ->
+        {:ok, {true, redirect_target}}
 
-  # Fixed: Don't clean domain again here since it's already cleaned
+      {false, ""} ->
+        {:ok, {false, ""}}
+
+      other ->
+        Logger.error("Unexpected redirect result: #{inspect(other)}",
+          domain: domain,
+          result: result
+        )
+
+        {:ok, {false, ""}}
+    end
+  end
+
   defp prepare_domain(domain) do
     Logger.info("Preparing domain #{domain}")
 
