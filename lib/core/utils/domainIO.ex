@@ -19,7 +19,7 @@ defmodule Core.Utils.DomainIO do
            test_redirect_call(url)
          end)
          |> TaskAwaiter.await(@resolve_timeout_ms) do
-      {:ok, result} -> result
+      {:ok, result} -> {:ok, result}
       {:error, reason} -> {:error, reason}
     end
   end
