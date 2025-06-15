@@ -96,7 +96,7 @@ if config_env() == :prod do
   end
 
   config :libcluster,
-    debug: true
+    debug: get_env_boolean.("LIBCLUSTER_DEBUG", "false")
 
   secret_key_base =
     get_env.("SECRET_KEY_BASE", nil) ||
