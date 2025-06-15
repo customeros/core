@@ -31,7 +31,7 @@ const DocumentEditor = lazy(() =>
 );
 
 export default function Leads({ leads, stage_counts, max_count }: LeadsProps) {
-  const [scrollProgress, setScrollProgress] = useState(0);
+  const [scroll_progress, setScrollProgress] = useState(0);
   const { getUrlState, setUrlState } = useUrlState<UrlState>({ revalidate: ['leads'] });
   const { viewMode, group, lead, stage: selectedStage } = getUrlState();
 
@@ -90,10 +90,11 @@ export default function Leads({ leads, stage_counts, max_count }: LeadsProps) {
           <div className="w-full flex">
             <div className="flex-1 flex flex-col overflow-hidden">
               <Pipeline
-                maxCount={max_count}
-                stageCounts={stage_counts}
-                scrollProgress={scrollProgress}
+                leads={leads}
+                max_count={max_count}
+                stage_counts={stage_counts}
                 onStageClick={handleStageClick}
+                scroll_progress={scroll_progress}
               />
               <ScrollAreaRoot>
                 <ScrollAreaViewport
@@ -110,40 +111,29 @@ export default function Leads({ leads, stage_counts, max_count }: LeadsProps) {
                     });
                   }}
                 >
-                  <div>
-                    {group === 'stage' && !Array.isArray(leads) ? (
-                      Object.entries(leads).map(([stage, groupedLeads], index) => (
-                        <div key={stage} className="flex flex-col w-full">
-                          <SegmentedView
-                            isSelected={selectedStage === stage}
-                            count={stage_counts[stage as Stage] || 0}
-                            label={stageOptions.find(s => s.value === stage)?.label || stage}
-                            onClick={() => {
-                              handleStageClick(stage as Stage);
-                            }}
-                            handleClearFilter={() => {
-                              handleStageClick(stage as Stage);
-                            }}
-                            className={cn(
-                              'sticky top-0 z-30',
-                              index === 0 ? 'mt-0' : '',
-                              lead && 'md:rounded-r-none'
-                            )}
-                            icon={
-                              <Icon
-                                className="text-gray-500"
-                                name={stageOptions.find(s => s.value === stage)?.icon as IconName}
-                              />
-                            }
-                          />
-
-                          {Array.isArray(groupedLeads)
-                            ? groupedLeads.map(lead => (
-                                <LeadItem
-                                  lead={lead}
-                                  key={lead.id}
-                                  handleOpenLead={handleOpenLead}
-                                  handleStageClick={handleStageClick}
+                  <div className="">
+                    {group === 'stage' && !Array.isArray(leads)
+                      ? Object.entries(leads).map(([stage, groupedLeads], index) => (
+                          <div key={stage} className="flex flex-col w-full">
+                            <SegmentedView
+                              isSelected={selectedStage === stage}
+                              count={stage_counts[stage as Stage] || 0}
+                              label={stageOptions.find(s => s.value === stage)?.label || stage}
+                              onClick={() => {
+                                handleStageClick(stage as Stage);
+                              }}
+                              handleClearFilter={() => {
+                                handleStageClick(stage as Stage);
+                              }}
+                              className={cn(
+                                'sticky top-0 z-30',
+                                index === 0 ? 'mt-0' : '',
+                                lead && 'md:rounded-r-none'
+                              )}
+                              icon={
+                                <Icon
+                                  className="text-gray-500"
+                                  name={stageOptions.find(s => s.value === stage)?.icon as IconName}
                                 />
                               ))
                             : null}

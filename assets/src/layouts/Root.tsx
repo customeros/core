@@ -1,5 +1,5 @@
 import { useEffect } from 'react';
-import { usePage } from '@inertiajs/react';
+import { Head, usePage } from '@inertiajs/react';
 import { cssTransition, ToastContainer } from 'react-toastify';
 
 import posthog from 'posthog-js';
@@ -27,7 +27,13 @@ declare global {
 
 export const RootLayout = ({ children }: { children: React.ReactNode }) => {
   const { props } = usePage<
-    PageProps & { tenant: Tenant; currentUser: User; companies: Lead[]; profile: IcpProfile }
+    PageProps & {
+      tenant: Tenant;
+      companies: Lead[];
+      current_user: User;
+      page_title?: string;
+      profile: IcpProfile;
+    }
   >();
 
   useEffect(() => {
@@ -41,20 +47,23 @@ export const RootLayout = ({ children }: { children: React.ReactNode }) => {
   }, [props.flash]);
 
   useEffect(() => {
-    if (props.currentUser) {
+    if (props.current_user) {
       // Start Atlas first
       window.Atlas?.call('start');
       // Then identify the user
-      window.Atlas?.call('identify', props.currentUser.email, {
-        email: props.currentUser.email,
+      window.Atlas?.call('identify', props.current_user.email, {
+        email: props.current_user.email,
       });
-      posthog?.identify(props.currentUser.email);
+      posthog?.identify(props.current_user.email);
     }
-  }, [props.currentUser]);
+  }, [props.current_user]);
 
   return (
     <PhoenixSocketProvider>
       <PresenceProvider>
+        <Head>
+          <title>{props.page_title || 'CustomerOS'}</title>
+        </Head>
         <ToastContainer
           limit={3}
           theme="colored"

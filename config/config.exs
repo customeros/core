@@ -102,10 +102,15 @@ config :tailwind,
 config :inertia,
   endpoint: Web.Endpoint,
   camelize_props: false,
+  preserve_case: true,
   static_paths: ["/assets/app.js"],
   default_version: "1",
   ssr: false,
-  raise_on_ssr_failure: true
+  raise_on_ssr_failure: true,
+  page_title: true,
+  props: %{
+    page_title: "CustomerOS"
+  }
 
 # Cron jobs configuration
 config :core, :crons, enabled: true
