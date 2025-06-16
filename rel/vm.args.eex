@@ -1,0 +1,15 @@
+## Set the node name from the environment. The deployment script provides this.
+-sname ${NODE_NAME}
+
+## Set the cookie for distribution from the environment.
+-setcookie ${COOKIE}
+
+## Enable kernel poll and set a short tick time
++K true
++A 5
+
+## Increase number of concurrent ports
++P 1048576
+
+## Pass all arguments from the entrypoint script to the Erlang VM
+${RELEASE_EXTRA_ARGS}
