@@ -120,7 +120,7 @@ defmodule Core.Crm.Companies.Enrichment.Name do
 
             {:error, reason} ->
               Tracing.error(reason)
-              {:error, reason, name}
+              {:error, reason}
           end
 
         {:ok, {:error, reason}} ->
@@ -145,7 +145,7 @@ defmodule Core.Crm.Companies.Enrichment.Name do
         {:error, :name_empty}
 
       # Check minimum length (at least 2 characters)
-      String.length(name) < 2 ->
+      String.length(String.trim(name)) < 2 ->
         {:error, :name_too_short}
 
       # Check maximum length (reasonable company name length)
@@ -165,7 +165,7 @@ defmodule Core.Crm.Companies.Enrichment.Name do
 
       # Name looks valid
       true ->
-        {:ok, name}
+        {:ok, String.trim(name)}
     end
   end
 

@@ -38,7 +38,7 @@ defmodule Core.Crm.Leads.NewLeadPipeline do
           OpenTelemetry.Ctx.attach(span_ctx)
 
           case new_lead_pipeline(lead_id, tenant_id) do
-            {:ok} ->
+            :ok ->
               Logger.info(
                 "Successfully completed new lead pipeline for #{lead_id}"
               )
