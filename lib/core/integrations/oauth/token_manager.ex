@@ -13,8 +13,10 @@ defmodule Core.Integrations.OAuth.TokenManager do
   alias Core.Integrations.Registry
 
   @max_retries 3
-  @base_delay 1000  # 1 second
-  @max_delay 30000  # 30 seconds
+  # 1 second
+  @base_delay 1000
+  # 30 seconds
+  @max_delay 30000
 
   @doc """
   Ensures a token is valid, refreshing it if necessary.
@@ -70,7 +72,8 @@ defmodule Core.Integrations.OAuth.TokenManager do
 
   # Private functions
 
-  defp refresh_with_retry(oauth, connection, attempt) when attempt < @max_retries do
+  defp refresh_with_retry(oauth, connection, attempt)
+       when attempt < @max_retries do
     case oauth.refresh_token(connection) do
       {:ok, refreshed} ->
         log_refresh_success(connection, attempt)
@@ -80,7 +83,10 @@ defmodule Core.Integrations.OAuth.TokenManager do
         log_refresh_failure(connection, reason, attempt)
         delay = calculate_delay(attempt)
 
-        Logger.info("Retrying token refresh for #{connection.id} in #{delay}ms (attempt #{attempt + 1})")
+        Logger.info(
+          "Retrying token refresh for #{connection.id} in #{delay}ms (attempt #{attempt + 1})"
+        )
+
         Process.sleep(delay)
         refresh_with_retry(oauth, connection, attempt + 1)
     end
@@ -88,10 +94,12 @@ defmodule Core.Integrations.OAuth.TokenManager do
 
   defp refresh_with_retry(_oauth, connection, attempt) do
     log_refresh_max_retries(connection, attempt)
+
     Connections.update_connection(connection, %{
       status: :error,
       connection_error: "Token refresh failed after #{attempt} attempts"
     })
+
     {:error, :max_retries_exceeded}
   end
 

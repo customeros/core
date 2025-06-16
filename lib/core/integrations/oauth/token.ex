@@ -51,7 +51,8 @@ defmodule Core.Integrations.OAuth.Token do
       iex> Token.new(%{"access_token" => "access123"})
       {:error, :invalid_token_data}
   """
-  def new(%{"access_token" => access_token} = data) when is_binary(access_token) do
+  def new(%{"access_token" => access_token} = data)
+      when is_binary(access_token) do
     with {:ok, expires_at} <- get_expires_at(data),
          {:ok, token_type} <- get_token_type(data),
          {:ok, refresh_token} <- get_refresh_token(data) do
@@ -88,7 +89,9 @@ defmodule Core.Integrations.OAuth.Token do
       true
   """
   def expired?(%__MODULE__{expires_at: nil}), do: true
-  def expired?(%__MODULE__{expires_at: expires_at}), do: DateTime.compare(expires_at, DateTime.utc_now()) == :lt
+
+  def expired?(%__MODULE__{expires_at: expires_at}),
+    do: DateTime.compare(expires_at, DateTime.utc_now()) == :lt
 
   @doc """
   Checks if a token can be refreshed.
@@ -110,20 +113,28 @@ defmodule Core.Integrations.OAuth.Token do
       iex> Token.refreshable?(token)
       false
   """
-  def refreshable?(%__MODULE__{refresh_token: refresh_token}) when is_binary(refresh_token), do: true
+  def refreshable?(%__MODULE__{refresh_token: refresh_token})
+      when is_binary(refresh_token),
+      do: true
+
   def refreshable?(_), do: false
 
   # Private helper functions
 
-  defp get_expires_at(%{"expires_in" => expires_in}) when is_integer(expires_in) do
+  defp get_expires_at(%{"expires_in" => expires_in})
+       when is_integer(expires_in) do
     {:ok, DateTime.add(DateTime.utc_now(), expires_in)}
   end
 
   defp get_expires_at(_), do: {:ok, nil}
 
-  defp get_token_type(%{"token_type" => type}) when is_binary(type), do: {:ok, type}
+  defp get_token_type(%{"token_type" => type}) when is_binary(type),
+    do: {:ok, type}
+
   defp get_token_type(_), do: {:ok, "Bearer"}
 
-  defp get_refresh_token(%{"refresh_token" => token}) when is_binary(token), do: {:ok, token}
+  defp get_refresh_token(%{"refresh_token" => token}) when is_binary(token),
+    do: {:ok, token}
+
   defp get_refresh_token(_), do: {:ok, nil}
 end

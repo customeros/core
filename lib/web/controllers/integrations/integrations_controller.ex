@@ -17,9 +17,10 @@ defmodule Web.Controllers.Integrations.IntegrationsController do
     hubspot_config = Application.get_env(:core, :hubspot)
 
     # Check if there's an active HubSpot connection
-    hubspot_connection = Enum.find(connections, fn conn ->
-      conn.provider == :hubspot && conn.status == :active
-    end)
+    hubspot_connection =
+      Enum.find(connections, fn conn ->
+        conn.provider == :hubspot && conn.status == :active
+      end)
 
     json(conn, %{
       integrations: [
@@ -27,7 +28,8 @@ defmodule Web.Controllers.Integrations.IntegrationsController do
           id: :hubspot,
           name: "HubSpot",
           connected: hubspot_connection != nil,
-          external_system_id: if(hubspot_connection, do: hubspot_connection.external_system_id),
+          external_system_id:
+            if(hubspot_connection, do: hubspot_connection.external_system_id),
           scopes: hubspot_config[:scopes] || [],
           actions: %{
             connect: "/settings/integrations/hubspot/connect",

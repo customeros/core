@@ -203,6 +203,7 @@ defmodule Core.Crm.Leads.DailyLeadSummarySender do
 
     Lead
     |> where([l], l.icp_fit in [:strong, :moderate])
+    |> where([l], l.stage != :customer)
     |> where(
       [l],
       l.inserted_at >= ^yesterday_6am and l.inserted_at < ^today_6am
@@ -432,7 +433,7 @@ defmodule Core.Crm.Leads.DailyLeadSummarySender do
       <p>Hey 👋</p>
 
       <p>
-        You’ve got one new lead today: <strong><%= @company_name %></strong>, currently in the
+        You've got one new lead today: <strong><%= @company_name %></strong>, currently in the
         <strong>{@formatted_stage}</strong>
         stage.
       </p>

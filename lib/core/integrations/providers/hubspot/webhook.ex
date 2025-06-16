@@ -25,7 +25,10 @@ defmodule Core.Integrations.Providers.HubSpot.Webhook do
   """
   def verify_webhook(%Connection{} = connection, signature, payload) do
     expected = generate_signature(payload, connection.access_token)
-    if Plug.Crypto.secure_compare(signature, expected), do: {:ok, true}, else: {:error, :invalid_signature}
+
+    if Plug.Crypto.secure_compare(signature, expected),
+      do: {:ok, true},
+      else: {:error, :invalid_signature}
   end
 
   @doc """

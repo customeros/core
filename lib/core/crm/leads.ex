@@ -89,19 +89,21 @@ defmodule Core.Crm.Leads do
   @doc """
   Get the domain for a lead company.
 
+  Returns the domain string if successful, or an error tuple if the lead is not a company or not found.
+
   Example:
 
   ```elixir
-  {:ok, "example.com", lead} = Leads.get_domain_for_lead_company("tenant_id", "lead_id")
+  "example.com" = Leads.get_domain_for_lead_company("tenant_id", "lead_id")
   {:error, :not_a_company} = Leads.get_domain_for_lead_company("tenant_id", "lead_id")
-  :not_a_company = Leads.get_domain_for_lead_company("tenant_id", "lead_id")
+  {:error, :not_found} = Leads.get_domain_for_lead_company("tenant_id", "lead_id")
   ```
   """
   @spec get_domain_for_lead_company(
           tenant_id :: String.t(),
           lead_id :: String.t()
         ) ::
-          {:ok, String.t(), Lead.t()} | :not_a_company | {:error, :not_found}
+          String.t() | {:error, :not_a_company | :not_found}
   def get_domain_for_lead_company(tenant_id, lead_id) do
     %LeadContext{lead_id: lead_id, tenant_id: tenant_id}
     |> fetch_lead()
@@ -447,7 +449,7 @@ defmodule Core.Crm.Leads do
        ),
        do: {:ok, ctx}
 
-  defp validate_company_type({:ok, _}), do: :not_a_company
+  defp validate_company_type({:ok, _}), do: {:error, :not_a_company}
   defp validate_company_type({:error, reason}), do: {:error, reason}
 
   defp fetch_company({:ok, %LeadContext{lead: lead} = ctx}) do
@@ -459,15 +461,12 @@ defmodule Core.Crm.Leads do
   end
 
   defp fetch_company({:error, reason}), do: {:error, reason}
-  defp fetch_company(:not_a_company), do: :not_a_company
 
-  defp extract_company_domain(
-         {:ok, %LeadContext{company: company, lead: lead}}
-       ),
-       do: {:ok, company.primary_domain, lead}
+  defp extract_company_domain({:ok, %LeadContext{company: company}}) do
+    {:ok, company.primary_domain}
+  end
 
   defp extract_company_domain({:error, reason}), do: {:error, reason}
-  defp extract_company_domain(:not_a_company), do: :not_a_company
 
   defp query_leads_view() do
     latest_doc =

@@ -23,6 +23,7 @@ defmodule Core.Integrations.OAuth.Providers.HubSpot do
 
     unless base_url do
       Logger.error("HubSpot auth_base_url is not configured")
+
       raise "HubSpot auth_base_url is not configured. Please set it in your runtime config."
     end
 
@@ -48,6 +49,7 @@ defmodule Core.Integrations.OAuth.Providers.HubSpot do
   def exchange_code(code, redirect_uri) do
     config = Application.get_env(:core, :hubspot)
     base_url = config[:api_base_url]
+
     params = %{
       grant_type: "authorization_code",
       client_id: config[:client_id],
@@ -69,10 +71,12 @@ defmodule Core.Integrations.OAuth.Providers.HubSpot do
   @impl Base
   def refresh_token(%Connection{} = connection) do
     # Update connection status to refreshing
-    {:ok, connection} = Connections.update_connection(connection, %{status: :refreshing})
+    {:ok, connection} =
+      Connections.update_connection(connection, %{status: :refreshing})
 
     config = Application.get_env(:core, :hubspot)
     base_url = config[:api_base_url]
+
     params = %{
       grant_type: "refresh_token",
       client_id: config[:client_id],
@@ -86,33 +90,46 @@ defmodule Core.Integrations.OAuth.Providers.HubSpot do
 
         # Update connection with new tokens and set status back to active
         case Connections.update_connection(connection, %{
-          access_token: token.access_token,
-          refresh_token: token.refresh_token,
-          expires_at: token.expires_at,
-          scopes: config[:scopes] || [],
-          status: :active,
-          connection_error: nil  # Clear any previous errors
-        }) do
+               access_token: token.access_token,
+               refresh_token: token.refresh_token,
+               expires_at: token.expires_at,
+               scopes: config[:scopes] || [],
+               status: :active,
+               # Clear any previous errors
+               connection_error: nil
+             }) do
           {:ok, updated} ->
-            Logger.info("Successfully updated connection with new tokens: #{inspect(updated.id)}")
+            Logger.info(
+              "Successfully updated connection with new tokens: #{inspect(updated.id)}"
+            )
+
             {:ok, updated}
 
           {:error, reason} ->
-            Logger.error("Failed to update connection with new tokens: #{inspect(reason)}")
+            Logger.error(
+              "Failed to update connection with new tokens: #{inspect(reason)}"
+            )
+
             # Set status to error but keep the new tokens
-            {:ok, _} = Connections.update_connection(connection, %{
-              status: :error,
-              connection_error: "Failed to update connection: #{inspect(reason)}"
-            })
+            {:ok, _} =
+              Connections.update_connection(connection, %{
+                status: :error,
+                connection_error:
+                  "Failed to update connection: #{inspect(reason)}"
+              })
+
             {:error, :update_failed}
         end
 
       {:error, reason} ->
         Logger.error("Failed to refresh token: #{inspect(reason)}")
-        {:ok, _updated} = Connections.update_connection(connection, %{
-          status: :error,
-          connection_error: "Token refresh failed: #{inspect(reason)}"
-        })
+
+        {:ok, _updated} =
+          Connections.update_connection(connection, %{
+            status: :error,
+            connection_error: "Token refresh failed: #{inspect(reason)}"
+          })
+
         {:error, reason}
     end
   end

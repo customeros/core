@@ -18,7 +18,6 @@ defmodule Core.Repo.Migrations.CreateIntegrationConnections do
       add :expires_at, :utc_datetime
       add :scopes, {:array, :string}
 
-
       timestamps(type: :utc_datetime)
     end
 

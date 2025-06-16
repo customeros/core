@@ -31,7 +31,8 @@ defmodule Web.Controllers.Integrations.HubspotController do
         |> put_status(:conflict)
         |> json(%{
           status: "error",
-          message: "A HubSpot connection already exists. Please disconnect it first before creating a new one."
+          message:
+            "A HubSpot connection already exists. Please disconnect it first before creating a new one."
         })
 
       {:error, :not_found} ->
@@ -78,46 +79,81 @@ defmodule Web.Controllers.Integrations.HubspotController do
 
                 case Connections.create_connection(connection_params) do
                   {:ok, connection} ->
-                    Logger.info("Successfully created HubSpot connection: #{inspect(connection, pretty: true)}")
+                    Logger.info(
+                      "Successfully created HubSpot connection: #{inspect(connection, pretty: true)}"
+                    )
+
                     conn
                     |> put_status(:ok)
-                    |> json(%{status: "success", message: "Successfully connected to HubSpot"})
+                    |> json(%{
+                      status: "success",
+                      message: "Successfully connected to HubSpot"
+                    })
 
                   {:error, reason} ->
-                    Logger.error("Failed to create HubSpot connection: #{inspect(reason)}")
+                    Logger.error(
+                      "Failed to create HubSpot connection: #{inspect(reason)}"
+                    )
+
                     conn
                     |> put_status(:internal_server_error)
-                    |> json(%{status: "error", message: "Failed to complete HubSpot integration"})
+                    |> json(%{
+                      status: "error",
+                      message: "Failed to complete HubSpot integration"
+                    })
                 end
 
               {:error, reason} ->
-                Logger.error("Failed to get HubSpot portal ID: #{inspect(reason)}")
+                Logger.error(
+                  "Failed to get HubSpot portal ID: #{inspect(reason)}"
+                )
+
                 conn
                 |> put_status(:internal_server_error)
-                |> json(%{status: "error", message: "Failed to complete HubSpot integration"})
+                |> json(%{
+                  status: "error",
+                  message: "Failed to complete HubSpot integration"
+                })
             end
 
           {:ok, {:error, reason}} ->
-            Logger.error("Failed to exchange code for token: #{inspect(reason)}")
+            Logger.error(
+              "Failed to exchange code for token: #{inspect(reason)}"
+            )
+
             conn
             |> put_status(:internal_server_error)
-            |> json(%{status: "error", message: "Failed to complete HubSpot integration"})
+            |> json(%{
+              status: "error",
+              message: "Failed to complete HubSpot integration"
+            })
 
           {:error, reason} ->
-            Logger.error("Failed to exchange code for token: #{inspect(reason)}")
+            Logger.error(
+              "Failed to exchange code for token: #{inspect(reason)}"
+            )
+
             conn
             |> put_status(:internal_server_error)
-            |> json(%{status: "error", message: "Failed to complete HubSpot integration"})
+            |> json(%{
+              status: "error",
+              message: "Failed to complete HubSpot integration"
+            })
         end
 
       %{"error" => error, "error_description" => description} ->
         Logger.error("HubSpot OAuth error: #{error} - #{description}")
+
         conn
         |> put_status(:bad_request)
-        |> json(%{status: "error", message: "HubSpot authorization failed: #{description}"})
+        |> json(%{
+          status: "error",
+          message: "HubSpot authorization failed: #{description}"
+        })
 
       _ ->
         Logger.error("Invalid HubSpot callback params: #{inspect(params)}")
+
         conn
         |> put_status(:bad_request)
         |> json(%{status: "error", message: "Invalid HubSpot callback"})
@@ -136,19 +172,31 @@ defmodule Web.Controllers.Integrations.HubspotController do
           {:ok, _} ->
             conn
             |> put_status(:ok)
-            |> json(%{status: "success", message: "Successfully disconnected from HubSpot"})
+            |> json(%{
+              status: "success",
+              message: "Successfully disconnected from HubSpot"
+            })
 
           {:error, reason} ->
-            Logger.error("Failed to delete HubSpot connection: #{inspect(reason)}")
+            Logger.error(
+              "Failed to delete HubSpot connection: #{inspect(reason)}"
+            )
+
             conn
             |> put_status(:internal_server_error)
-            |> json(%{status: "error", message: "Failed to disconnect from HubSpot"})
+            |> json(%{
+              status: "error",
+              message: "Failed to disconnect from HubSpot"
+            })
         end
 
       {:error, :not_found} ->
         conn
         |> put_status(:not_found)
-        |> json(%{status: "error", message: "No active HubSpot connection found"})
+        |> json(%{
+          status: "error",
+          message: "No active HubSpot connection found"
+        })
     end
   end
 end

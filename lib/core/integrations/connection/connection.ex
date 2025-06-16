@@ -25,7 +25,8 @@ defmodule Core.Integrations.Connection do
   import Ecto.Changeset
 
   @type provider :: :hubspot
-  @type status :: :pending | :active | :inactive | :error | :refreshing | :disconnected
+  @type status ::
+          :pending | :active | :inactive | :error | :refreshing | :disconnected
   @type t :: %__MODULE__{
           id: String.t(),
           tenant_id: String.t(),
@@ -46,20 +47,23 @@ defmodule Core.Integrations.Connection do
   @foreign_key_type :string
   schema "integration_connections" do
     # Primary fields
-    field :tenant_id, :string
-    field :provider, Ecto.Enum, values: [:hubspot]
-    field :status, Ecto.Enum,
+    field(:tenant_id, :string)
+    field(:provider, Ecto.Enum, values: [:hubspot])
+
+    field(:status, Ecto.Enum,
       values: [:pending, :active, :inactive, :error, :refreshing, :disconnected],
       default: :pending
-    field :external_system_id, :string
+    )
+
+    field(:external_system_id, :string)
 
     # OAuth fields
-    field :access_token, :string
-    field :refresh_token, :string
-    field :token_type, :string
-    field :expires_at, :utc_datetime
-    field :scopes, {:array, :string}
-    field :connection_error, :string
+    field(:access_token, :string)
+    field(:refresh_token, :string)
+    field(:token_type, :string)
+    field(:expires_at, :utc_datetime)
+    field(:scopes, {:array, :string})
+    field(:connection_error, :string)
 
     timestamps(type: :utc_datetime)
   end
