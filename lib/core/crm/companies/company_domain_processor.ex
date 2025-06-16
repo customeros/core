@@ -103,6 +103,12 @@ defmodule Core.Crm.Companies.CompanyDomainProcessor do
     end
   end
 
+  @impl true
+  def handle_info(msg, state) do
+    Logger.warning("CompanyDomainProcessor received unexpected message: #{inspect(msg)}")
+    {:noreply, state}
+  end
+
   # Schedule the next check
   defp schedule_check(interval_ms) do
     Process.send_after(self(), :process_domains, interval_ms)
