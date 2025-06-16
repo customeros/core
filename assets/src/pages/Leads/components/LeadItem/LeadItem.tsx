@@ -26,7 +26,7 @@ export const LeadItem = ({ lead, handleOpenLead, handleStageClick }: LeadItemPro
         isSelected && 'bg-gray-50'
       )}
     >
-      <div className={cn('ml-6', group === 'stage' && 'hidden')}>
+      <div className={cn('ml-6', (group === 'stage' || !group) && 'hidden')}>
         <Icon
           name={stageIcons[lead.stage] as IconName}
           className="size-[14px] text-gray-500 hover:text-primary-700 transition-colors cursor-pointer"
@@ -39,7 +39,7 @@ export const LeadItem = ({ lead, handleOpenLead, handleStageClick }: LeadItemPro
         className={cn(
           'flex items-center gap-2 ml-2 min-w-0 flex-1 md:flex-none md:flex-shrink-0 bg-white group-hover:bg-gray-50',
           isSelected && 'bg-gray-50',
-          group === 'stage' && 'ml-5'
+          (group === 'stage' || !group) && 'ml-5'
         )}
       >
         {lead.icon ? (
