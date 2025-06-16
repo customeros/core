@@ -4,16 +4,13 @@ import { router, usePage } from '@inertiajs/react';
 import { cn } from 'src/utils/cn';
 import { PageProps } from '@inertiajs/core';
 import { Button } from 'src/components/Button';
-import { Toggle } from 'src/components/Toggle';
 import { Avatar } from 'src/components/Avatar';
-import { Select } from 'src/components/Select';
 import { Icon } from 'src/components/Icon/Icon';
 import { Tooltip } from 'src/components/Tooltip';
 import { toastSuccess } from 'src/components/Toast';
 import { IconButton } from 'src/components/IconButton';
-import { Lead, User, Tenant, Profile, UrlState } from 'src/types';
-import { useUrlState, useEventsChannel, LeadCreatedEvent } from 'src/hooks';
-import { Popover, PopoverContent, PopoverTrigger } from 'src/components/Popover';
+import { Lead, User, Tenant, Profile } from 'src/types';
+import { useEventsChannel, LeadCreatedEvent } from 'src/hooks';
 import {
   Modal,
   ModalBody,
@@ -27,16 +24,9 @@ import {
   ModalCloseButton,
 } from 'src/components/Modal/Modal';
 
+import { Display } from './components';
 import { TenantSwitcher } from '../TenantSwitcher';
 import { UserPresence } from '../UserPresence/UserPresence';
-
-const orderByOptions = [
-  { label: 'Created', value: 'inserted_at' },
-  { label: 'Name', value: 'name' },
-  { label: 'Industry', value: 'industry' },
-  { label: 'Stage', value: 'stage' },
-  { label: 'Country', value: 'country' },
-];
 
 export const Header = () => {
   const [createdLeadIcons, setCreatedLeadIcons] = useState<string[]>([]);
@@ -55,11 +45,6 @@ export const Header = () => {
   const worksspaceLogo = page.props.tenant?.workspace_icon_key;
   const workspaceName = page.props.tenant?.workspace_name;
   const domain = page.props.tenant?.domain;
-
-  const { getUrlState, setUrlState } = useUrlState<UrlState>({ revalidate: ['leads'] });
-
-  const { pipeline, desc, asc, group } = getUrlState();
-  const orderBy = desc || asc;
 
   useEventsChannel<LeadCreatedEvent>(event => {
     if (event.type === 'lead_created') {
@@ -133,6 +118,7 @@ export const Header = () => {
                 />
               </div>
             </Tooltip>
+
             <UserPresence />
 
             {/* <Button
@@ -143,120 +129,9 @@ export const Header = () => {
             >
               See who's ready to buy
             </Button> */}
-            <Popover>
-              <PopoverTrigger asChild>
-                <Button
-                  size="xs"
-                  variant="ghost"
-                  colorScheme="gray"
-                  leftIcon={<Icon name="distribute-spacing-vertical" />}
-                >
-                  Display
-                </Button>
-              </PopoverTrigger>
-              <PopoverContent className="flex flex-col gap-2 w-[221px]">
-                <div className="flex items-center justify-between">
-                  <div className="flex items-center gap-2">
-                    <Icon name="recording-01" />
-                    <span>Pipeline</span>
-                  </div>
 
-                  <Toggle
-                    size="sm"
-                    isChecked={pipeline !== 'hidden'}
-                    onChange={value => {
-                      setUrlState(params => ({
-                        ...params,
-                        pipeline: value ? 'visible' : 'hidden',
-                      }));
-                    }}
-                  />
-                </div>
+            <Display />
 
-                <div className="flex items-center justify-between">
-                  <div className="flex items-center gap-2">
-                    <Icon name="rows-01" />
-                    <span>Grouping</span>
-                  </div>
-
-                  <Toggle
-                    size="sm"
-                    isChecked={group === 'stage'}
-                    onChange={value => {
-                      setUrlState(params => ({
-                        ...params,
-                        group: value ? 'stage' : undefined,
-                      }));
-                    }}
-                  />
-                </div>
-
-                <div className="flex items-center justify-between gap-2">
-                  <div className="flex items-center gap-2">
-                    <Icon name="arrow-switch-vertical-01" />
-                    <span>Ordering</span>
-                  </div>
-
-                  <div className="w-fit flex items-center gap-2">
-                    <Select
-                      size="xxs"
-                      isSearchable={false}
-                      menuWidth="fit-item"
-                      placeholder="Order by"
-                      options={orderByOptions}
-                      value={orderByOptions.find(option => option.value === orderBy) || null}
-                      onChange={value => {
-                        setUrlState(({ desc, asc, ...rest }) => {
-                          if (value.value === desc || value.value === asc) {
-                            return rest;
-                          }
-
-                          return {
-                            ...rest,
-                            desc: value.value,
-                          };
-                        });
-                      }}
-                    />
-
-                    <IconButton
-                      size="xxs"
-                      aria-label="icp"
-                      variant="outline"
-                      icon={<Icon name={desc ? 'arrows-down' : 'arrows-up'} />}
-                      onClick={() => {
-                        setUrlState(({ desc, asc, ...rest }) => {
-                          if (desc && asc) {
-                            return {
-                              ...rest,
-                            };
-                          }
-
-                          if (desc) {
-                            return {
-                              ...rest,
-                              asc: desc,
-                            };
-                          }
-
-                          if (asc) {
-                            return {
-                              ...rest,
-                              desc: asc,
-                            };
-                          }
-
-                          return {
-                            ...rest,
-                            desc: 'inserted_at',
-                          };
-                        });
-                      }}
-                    />
-                  </div>
-                </div>
-              </PopoverContent>
-            </Popover>
             {page.props.max_count > 0 && (
               <Button
                 size="xs"

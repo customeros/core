@@ -97,7 +97,6 @@ defmodule Web.LeadsController do
 
   defp get_filter_by(params) do
     case params do
-      %{"stage" => "readyToBuy"} -> [stage: "ready_to_buy"]
       %{"stage" => stage} -> [stage: stage]
       _ -> nil
     end
@@ -122,7 +121,8 @@ defmodule Web.LeadsController do
   defp get_group_by(params) do
     case params do
       %{"group" => "stage"} -> :stage
-      _ -> nil
+      %{"group" => "none"} -> nil
+      _ -> :stage
     end
   end
 

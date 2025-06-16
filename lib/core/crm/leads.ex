@@ -237,8 +237,11 @@ defmodule Core.Crm.Leads do
 
           data =
             case group_by do
-              :stage -> Enum.group_by(filtered_output, & &1.stage)
-              _ -> filtered_output
+              :stage ->
+                Enum.group_by(filtered_output, & &1.stage)
+
+              _ ->
+                filtered_output
             end
 
           %{

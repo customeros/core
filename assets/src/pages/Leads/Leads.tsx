@@ -33,7 +33,7 @@ const DocumentEditor = lazy(() =>
 export default function Leads({ leads, stage_counts, max_count }: LeadsProps) {
   const [scroll_progress, setScrollProgress] = useState(0);
   const { getUrlState, setUrlState } = useUrlState<UrlState>({ revalidate: ['leads'] });
-  const { viewMode, group, lead, stage: selectedStage } = getUrlState();
+  const { viewMode, group, lead, stage: selectedStage, asc } = getUrlState();
 
   const handleOpenLead = useCallback(
     (lead: { id: string }) => {
@@ -90,11 +90,10 @@ export default function Leads({ leads, stage_counts, max_count }: LeadsProps) {
           <div className="w-full flex">
             <div className="flex-1 flex flex-col overflow-hidden">
               <Pipeline
-                leads={leads}
-                max_count={max_count}
-                stage_counts={stage_counts}
+                maxCount={max_count}
+                stageCounts={stage_counts}
                 onStageClick={handleStageClick}
-                scroll_progress={scroll_progress}
+                scrollProgress={scroll_progress}
               />
               <ScrollAreaRoot>
                 <ScrollAreaViewport
@@ -112,29 +111,41 @@ export default function Leads({ leads, stage_counts, max_count }: LeadsProps) {
                   }}
                 >
                   <div className="">
-                    {group === 'stage' && !Array.isArray(leads) ? (
-                      Object.entries(leads).map(([stage, groupedLeads], index) => (
-                        <div key={stage} className="flex flex-col w-full">
-                          <SegmentedView
-                            isSelected={selectedStage === stage}
-                            count={stage_counts[stage as Stage] || 0}
-                            onClick={() => handleStageClick(stage as Stage)}
-                            handleClearFilter={() => handleStageClick(stage as Stage)}
-                            label={stageOptions.find(s => s.value === stage)?.label || stage}
-                            className={cn(
-                              'sticky top-0 z-30',
-                              index === 0 ? 'mt-0' : '',
-                              lead && 'md:rounded-r-none'
-                            )}
-                            icon={
-                              <Icon
-                                className="text-gray-500"
-                                name={stageOptions.find(s => s.value === stage)?.icon as IconName}
-                              />
-                            }
-                          />
-                        </div>
-                      ))
+                    {(group === 'stage' || !group) && !Array.isArray(leads) ? (
+                      Object.entries(leads)
+                        .sort(sortByStage(!!asc))
+                        .map(([stage, groupedLeads], index) => (
+                          <div key={stage} className="flex flex-col w-full">
+                            <SegmentedView
+                              isSelected={selectedStage === stage}
+                              count={stage_counts[stage as Stage] || 0}
+                              onClick={() => handleStageClick(stage as Stage)}
+                              handleClearFilter={() => handleStageClick(stage as Stage)}
+                              label={stageOptions.find(s => s.value === stage)?.label || stage}
+                              className={cn(
+                                'sticky top-0 z-30',
+                                index === 0 ? 'mt-0' : '',
+                                lead && 'md:rounded-r-none'
+                              )}
+                              icon={
+                                <Icon
+                                  className="text-gray-500"
+                                  name={stageOptions.find(s => s.value === stage)?.icon as IconName}
+                                />
+                              }
+                            />
+                            {Array.isArray(groupedLeads)
+                              ? groupedLeads.map(lead => (
+                                  <LeadItem
+                                    lead={lead}
+                                    key={lead.id}
+                                    handleOpenLead={handleOpenLead}
+                                    handleStageClick={handleStageClick}
+                                  />
+                                ))
+                              : null}
+                          </div>
+                        ))
                     ) : Array.isArray(leads) ? (
                       <div className="flex flex-col w-full">
                         <SegmentedView
@@ -159,7 +170,7 @@ export default function Leads({ leads, stage_counts, max_count }: LeadsProps) {
                             />
                           }
                         />
-                        {(leads as Lead[]).map((lead: Lead) => (
+                        {leads.map(lead => (
                           <LeadItem
                             lead={lead}
                             key={lead.id}
@@ -205,4 +216,16 @@ const EventSubscriber = () => {
   });
 
   return null;
+};
+
+const sortByStage = (asc: boolean) => (a: [string, Lead[]], b: [string, Lead[]]) => {
+  const stageOrder: Record<string, number> = {
+    target: asc ? 4 : 0,
+    education: asc ? 3 : 1,
+    solution: asc ? 2 : 2,
+    evaluation: asc ? 1 : 3,
+    ready_to_buy: asc ? 0 : 4,
+  };
+
+  return stageOrder[a[0]] - stageOrder[b[0]];
 };

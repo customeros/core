@@ -62,7 +62,7 @@ export type UrlState = {
   stage?: Stage;
   viewMode?: 'default' | 'focus';
   pipeline?: 'hidden' | 'visible';
-  group?: 'stage' | 'industry' | 'country';
+  group?: 'stage' | 'industry' | 'country' | 'none';
   asc?: 'inserted_at' | 'name' | 'industry' | 'stage' | 'country';
   desc?: 'inserted_at' | 'name' | 'industry' | 'stage' | 'country';
 };
