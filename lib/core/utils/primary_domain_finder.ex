@@ -162,8 +162,8 @@ defmodule Core.Utils.PrimaryDomainFinder do
     do: @err_cannot_resolve_to_primary_domain
 
   defp is_valid_primary_domain?({true, domain}) do
-    with true <- is_non_empty_domain?(domain),
-         false <- is_suspicious_domain?(domain) do
+    with true <- non_empty_domain?(domain),
+         false <- suspicious_domain?(domain) do
       {:ok, {true, domain}}
     else
       _ -> {:ok, {false, domain}}
@@ -196,10 +196,11 @@ defmodule Core.Utils.PrimaryDomainFinder do
     end
   end
 
-  defp is_non_empty_domain?(""), do: false
-  defp is_non_empty_domain?(_), do: true
+  defp non_empty_domain?(""), do: false
+  defp non_empty_domain?(_), do: true
 
-  defp is_suspicious_domain?(domain) do
+  defp suspicious_domain?(domain)
+       when is_binary(domain) and byte_size(domain) > 0 do
     case parse_domain(domain) do
       {:ok, parsed} -> suspicious_domain?(parsed)
       {:error, _} -> false
