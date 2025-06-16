@@ -32,7 +32,7 @@ defmodule Core.Crm.Companies.CompanyEnrich do
   @err_not_found {:error, "not found"}
   @err_update_failed {:error, "update failed"}
   @err_invalid_request {:error, "invalid request"}
-  @err_image_not_found {:error, "image not found"}
+  @err_image_not_found {:error, :image_not_found}
   @err_empty_ai_response {:error, "empty ai response"}
   @err_scrape_not_needed {:error, "scrape not needed"}
   @err_industry_not_found {:error, "industry not found"}
