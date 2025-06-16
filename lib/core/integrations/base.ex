@@ -29,6 +29,8 @@ defmodule Core.Integrations.Base do
   @type webhook_data :: map()
 
   @callback fetch_companies(provider()) :: {:ok, [company()]} | {:error, term()}
-  @callback fetch_company(provider(), company_id()) :: {:ok, company()} | {:error, term()}
-  @callback handle_webhook(provider(), webhook_data()) :: {:ok, term()} | {:error, term()}
+  @callback fetch_company(provider(), company_id()) ::
+              {:ok, company()} | {:error, term()}
+  @callback handle_webhook(provider(), webhook_data()) ::
+              {:ok, term()} | {:error, term()}
 end

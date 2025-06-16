@@ -65,7 +65,12 @@ defmodule Core.Integrations.Connections do
       {:error, %Ecto.Changeset{}}
   """
   def create_connection(attrs) do
-    attrs = Map.put(attrs, :id, Core.Utils.IdGenerator.generate_id_16(Connection.id_prefix()))
+    attrs =
+      Map.put(
+        attrs,
+        :id,
+        Core.Utils.IdGenerator.generate_id_16(Connection.id_prefix())
+      )
 
     %Connection{}
     |> Connection.changeset(attrs)
@@ -103,7 +108,6 @@ defmodule Core.Integrations.Connections do
   def update_status(%Connection{} = connection, status) do
     update_connection(connection, %{status: status})
   end
-
 
   @doc """
   Deletes a connection.
@@ -158,7 +162,8 @@ defmodule Core.Integrations.Connections do
   """
   def list_connections_needing_refresh do
     now = DateTime.utc_now()
-    refresh_threshold = DateTime.add(now, 3600) # 1 hour before expiry
+    # 1 hour before expiry
+    refresh_threshold = DateTime.add(now, 3600)
 
     Connection
     |> where([c], c.status == :active and c.expires_at <= ^refresh_threshold)

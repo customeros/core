@@ -38,17 +38,17 @@ defmodule Core.Crm.Leads.NewLeadPipeline do
           OpenTelemetry.Ctx.attach(span_ctx)
 
           case new_lead_pipeline(lead_id, tenant_id) do
-            :not_a_company ->
+            {:ok} ->
+              Logger.info(
+                "Successfully completed new lead pipeline for #{lead_id}"
+              )
+
+            {:error, :not_a_company} ->
               OpenTelemetry.Tracer.set_attributes([
                 {"result", :not_a_company}
               ])
 
               Logger.info("Lead_id #{lead_id} is not a company")
-
-            {:ok, _} ->
-              Logger.info(
-                "Successfully completed new lead pipeline for #{lead_id}"
-              )
 
             {:error, reason} ->
               Tracing.error(reason)
@@ -62,6 +62,10 @@ defmodule Core.Crm.Leads.NewLeadPipeline do
         end
       )
     end
+  end
+
+  defp is_applicable_for_icp_fit?(lead) do
+    lead.icp_fit not in [:medium, :strong] and lead.stage != :customer
   end
 
   def new_lead_pipeline(lead_id, tenant_id) do
@@ -78,13 +82,29 @@ defmodule Core.Crm.Leads.NewLeadPipeline do
         tenant_id: tenant_id
       )
 
-      Leads.get_domain_for_lead_company(tenant_id, lead_id)
-      |> analyze_icp_fit()
-      |> brief_writer()
+      with {:ok, lead} <- Leads.get_by_id(tenant_id, lead_id),
+           true <- is_applicable_for_icp_fit?(lead),
+           {:ok, domain} <-
+             Leads.get_domain_for_lead_company(tenant_id, lead_id),
+           {:ok, fit} <- analyze_icp_fit(domain, lead),
+           :ok <- brief_writer(fit, domain, lead) do
+        :ok
+      else
+        false ->
+          Logger.info("Skipping ICP fit analysis - lead not applicable")
+          :ok
+
+        {:error, reason} ->
+          Tracing.error(reason, "New Lead Pipeline failed for #{lead_id}",
+            lead_id: lead_id
+          )
+
+          {:error, reason}
+      end
     end
   end
 
-  defp analyze_icp_fit({:ok, domain, %Leads.Lead{} = lead}) do
+  defp analyze_icp_fit(domain, %Leads.Lead{} = lead) when is_binary(domain) do
     OpenTelemetry.Tracer.with_span "new_lead_pipeline.analyze_icp_fit" do
       OpenTelemetry.Tracer.set_attributes([
         {"lead.id", lead.id},
@@ -92,7 +112,7 @@ defmodule Core.Crm.Leads.NewLeadPipeline do
         {"domain", domain}
       ])
 
-      Logger.metadata(module: __MODULE__, function: :analyze_icp_fit_with_retry)
+      Logger.metadata(module: __MODULE__, function: :analyze_icp_fit)
 
       Logger.info("Analyzing ICP fit",
         lead_id: lead.id,
@@ -113,7 +133,7 @@ defmodule Core.Crm.Leads.NewLeadPipeline do
             {"result", fit}
           ])
 
-          {:ok, fit, domain, lead}
+          {:ok, lead}
 
         {:error, reason} ->
           Tracing.error(
@@ -129,12 +149,9 @@ defmodule Core.Crm.Leads.NewLeadPipeline do
     end
   end
 
-  defp analyze_icp_fit(:not_a_company), do: :not_a_company
+  defp brief_writer(:not_a_fit, _domain, _lead), do: :ok
 
-  defp analyze_icp_fit({:error, reason}),
-    do: {:error, reason}
-
-  defp brief_writer({:ok, fit, domain, %Leads.Lead{} = lead}) do
+  defp brief_writer(fit, domain, %Leads.Lead{} = lead) do
     OpenTelemetry.Tracer.with_span "new_lead_pipeline.brief_writer" do
       OpenTelemetry.Tracer.set_attributes([
         {"lead.id", lead.id},
@@ -154,7 +171,7 @@ defmodule Core.Crm.Leads.NewLeadPipeline do
 
       case BriefWriter.create_brief(lead.tenant_id, lead.id, domain) do
         {:ok, _document} ->
-          {:ok, :brief_created}
+          :ok
 
         {:error, reason} ->
           Tracing.error(reason, "Account brief creation failed",
@@ -167,8 +184,4 @@ defmodule Core.Crm.Leads.NewLeadPipeline do
       end
     end
   end
-
-  defp brief_writer({:ok, :not_a_fit}), do: {:ok, :not_a_fit}
-  defp brief_writer(:not_a_company), do: :not_a_company
-  defp brief_writer({:error, reason}), do: {:error, reason}
 end

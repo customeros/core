@@ -22,7 +22,8 @@ defmodule Core.Integrations.Providers.HubSpot.Company do
   """
   def get_company(%Connection{} = connection, company_id) do
     with {:ok, _} <- Connections.update_status(connection, :active),
-         {:ok, response} <- Client.get(connection, "/crm/v3/objects/companies/#{company_id}") do
+         {:ok, response} <-
+           Client.get(connection, "/crm/v3/objects/companies/#{company_id}") do
       {:ok, response}
     end
   end
@@ -40,7 +41,8 @@ defmodule Core.Integrations.Providers.HubSpot.Company do
   """
   def list_companies(%Connection{} = connection, params \\ %{}) do
     with {:ok, _} <- Connections.update_status(connection, :active),
-         {:ok, response} <- Client.get(connection, "/crm/v3/objects/companies", params) do
+         {:ok, response} <-
+           Client.get(connection, "/crm/v3/objects/companies", params) do
       {:ok, response}
     end
   end

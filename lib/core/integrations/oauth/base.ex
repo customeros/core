@@ -20,7 +20,8 @@ defmodule Core.Integrations.OAuth.Base do
   ## Returns
   - `String.t()` - The authorization URL
   """
-  @callback authorize_url(tenant_id :: String.t(), redirect_uri :: String.t()) :: String.t()
+  @callback authorize_url(tenant_id :: String.t(), redirect_uri :: String.t()) ::
+              String.t()
 
   @doc """
   Exchanges an authorization code for an access token.

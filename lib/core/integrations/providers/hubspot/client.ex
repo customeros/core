@@ -45,7 +45,8 @@ defmodule Core.Integrations.Providers.HubSpot.Client do
     with {:ok, connection} <- ensure_valid_token(connection),
          url = build_url(path, params),
          headers = [{"authorization", "Bearer #{connection.access_token}"}],
-         {:ok, %{status: 200, body: body}} <- Finch.request(:get, url, headers, "", pool: :hubspot) do
+         {:ok, %{status: 200, body: body}} <-
+           Finch.request(:get, url, headers, "", pool: :hubspot) do
       {:ok, Jason.decode!(body)}
     else
       {:ok, %{status: status, body: body}} ->
@@ -84,7 +85,9 @@ defmodule Core.Integrations.Providers.HubSpot.Client do
            {"content-type", "application/json"}
          ],
          {:ok, %{status: status, body: body}} when status in 200..299 <-
-           Finch.request(:post, url, headers, Jason.encode!(body), pool: :hubspot) do
+           Finch.request(:post, url, headers, Jason.encode!(body),
+             pool: :hubspot
+           ) do
       {:ok, Jason.decode!(body)}
     else
       {:ok, %{status: status, body: body}} ->
@@ -123,7 +126,9 @@ defmodule Core.Integrations.Providers.HubSpot.Client do
            {"content-type", "application/json"}
          ],
          {:ok, %{status: status, body: body}} when status in 200..299 <-
-           Finch.request(:put, url, headers, Jason.encode!(body), pool: :hubspot) do
+           Finch.request(:put, url, headers, Jason.encode!(body),
+             pool: :hubspot
+           ) do
       {:ok, Jason.decode!(body)}
     else
       {:ok, %{status: status, body: body}} ->
@@ -183,7 +188,9 @@ defmodule Core.Integrations.Providers.HubSpot.Client do
   defp build_url(path, params) do
     query_string =
       params
-      |> Enum.map(fn {key, value} -> "#{key}=#{URI.encode_www_form(to_string(value))}" end)
+      |> Enum.map(fn {key, value} ->
+        "#{key}=#{URI.encode_www_form(to_string(value))}"
+      end)
       |> Enum.join("&")
 
     url = "#{base_url()}#{path}"

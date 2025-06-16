@@ -36,9 +36,11 @@ defmodule Core.Application do
       ## 3rd party
       {DNSCluster,
        query: Application.get_env(:core, :dns_cluster_query) || :ignore},
-      {Finch, name: Core.Finch, pools: %{
-        default: [size: 10]
-      }}
+      {Finch,
+       name: Core.Finch,
+       pools: %{
+         default: [size: 10]
+       }}
     ]
 
     env = Application.get_env(:core, :app_env, :prod)
