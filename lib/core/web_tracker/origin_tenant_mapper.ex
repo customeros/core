@@ -48,7 +48,9 @@ defmodule Core.WebTracker.OriginTenantMapper do
       {:ok, %{domain: domain, tld: tld}} ->
         root_domain = "#{domain}.#{tld}"
         find_tenant_for_domain(root_domain)
-      {:error, _} -> @err_origin_not_configured
+
+      {:error, _} ->
+        @err_origin_not_configured
     end
   end
 

@@ -44,7 +44,9 @@ defmodule Core.Utils.DomainValidator do
   or
   {:error, "Cannot match: invalid domain"}
   """
-  @spec parse_root_and_subdomain(String.t()) :: {:ok, %{domain: String.t(), tld: String.t(), subdomain: String.t()}} | {:error, String.t()}
+  @spec parse_root_and_subdomain(String.t()) ::
+          {:ok, %{domain: String.t(), tld: String.t(), subdomain: String.t()}}
+          | {:error, String.t()}
   def parse_root_and_subdomain(domain) when is_binary(domain) do
     domain
     |> DomainExtractor.clean_domain()

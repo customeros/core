@@ -105,7 +105,10 @@ defmodule Core.Crm.Companies.CompanyDomainProcessor do
 
   @impl true
   def handle_info(msg, state) do
-    Logger.warning("CompanyDomainProcessor received unexpected message: #{inspect(msg)}")
+    Logger.warning(
+      "CompanyDomainProcessor received unexpected message: #{inspect(msg)}"
+    )
+
     {:noreply, state}
   end
 

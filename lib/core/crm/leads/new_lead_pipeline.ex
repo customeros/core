@@ -64,7 +64,7 @@ defmodule Core.Crm.Leads.NewLeadPipeline do
     end
   end
 
-  defp is_applicable_for_icp_fit?(lead) do
+  defp applicable_for_icp_fit?(lead) do
     lead.icp_fit not in [:medium, :strong] and lead.stage != :customer
   end
 
@@ -83,7 +83,7 @@ defmodule Core.Crm.Leads.NewLeadPipeline do
       )
 
       with {:ok, lead} <- Leads.get_by_id(tenant_id, lead_id),
-           true <- is_applicable_for_icp_fit?(lead),
+           true <- applicable_for_icp_fit?(lead),
            {:ok, domain} <-
              Leads.get_domain_for_lead_company(tenant_id, lead_id),
            {:ok, fit} <- analyze_icp_fit(domain, lead),

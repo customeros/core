@@ -16,7 +16,7 @@ defmodule Core.Integrations.OAuth.TokenManager do
   # 1 second
   @base_delay 1000
   # 30 seconds
-  @max_delay 30000
+  @max_delay 30_000
 
   @doc """
   Ensures a token is valid, refreshing it if necessary.
