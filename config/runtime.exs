@@ -108,7 +108,18 @@ if config_env() == :prod do
   host = get_env.("PHX_HOST", "example.com")
   port = get_env_integer.("PORT", "4000")
 
-  config :core, :dns_cluster_query, get_env.("DNS_CLUSTER_QUERY", nil)
+  nodes =
+    System.get_env("CLUSTER_NODES", "")
+    |> String.split(",", trim: true)
+    |> Enum.map(&String.to_atom/1)
+
+  if length(nodes) > 0 do
+    config :libcluster, :topologies,
+      static: [
+        strategy: Cluster.Strategy.Static,
+        config: [nodes: nodes]
+      ]
+  end
 
   config :core, Web.Endpoint,
     url: [host: host, port: 443, scheme: "https"],
