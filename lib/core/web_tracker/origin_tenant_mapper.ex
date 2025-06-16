@@ -45,7 +45,9 @@ defmodule Core.WebTracker.OriginTenantMapper do
 
   defp check_subdomain_tenant(domain) do
     case Core.Utils.DomainValidator.parse_root_and_subdomain(domain) do
-      {:ok, root_domain, _subdomain} -> find_tenant_for_domain(root_domain)
+      {:ok, %{domain: domain, tld: tld}} ->
+        root_domain = "#{domain}.#{tld}"
+        find_tenant_for_domain(root_domain)
       {:error, _} -> @err_origin_not_configured
     end
   end
