@@ -11,9 +11,9 @@ defmodule Core.WebTracker do
   require Logger
   require OpenTelemetry.Tracer
 
-  alias Core.WebTracker.Sessions
-  alias Core.WebTracker.Events
   alias Core.Crm.Companies
+  alias Core.Crm.Companies.Company
+  alias Core.WebTracker.{Events, Sessions}
   alias Core.Utils.Tracing
 
   @doc """
@@ -309,49 +309,11 @@ defmodule Core.WebTracker do
 
       Logger.info("Found company for domain #{domain}")
 
-      case Companies.get_or_create_by_domain(domain) do
-        {:ok, db_company} ->
-          # Try to update session with company ID, but continue even if it fails
-          _ =
-            case Core.WebTracker.Sessions.set_company_id(
-                   session_id,
-                   db_company.id
-                 ) do
-              {:ok, _session} ->
-                Logger.info(
-                  "Updated session #{session_id} with company ID #{db_company.id}"
-                )
-
-                :ok
-
-              {:error, reason} ->
-                Logger.warning(
-                  "Failed to update session with company ID",
-                  reason: reason
-                )
-
-                :ok
-            end
-
-          case Core.Crm.Leads.get_or_create(tenant, %{
-                 ref_id: db_company.id,
-                 type: :company
-               }) do
-            {:ok, _lead} ->
-              :ok
-
-            {:error, :not_found} ->
-              Tracing.error(:not_found)
-              {:error, :not_found}
-
-            {:error, :domain_matches_tenant} ->
-              OpenTelemetry.Tracer.set_attributes([
-                {"result.lead_creation_result", :domain_matches_tenant}
-              ])
-
-              {:error, :domain_matches_tenant}
-          end
-
+      with {:ok, db_company} <- Companies.get_or_create_by_domain(domain),
+           :ok <- update_session_company(session_id, db_company.id),
+           :ok <- create_or_update_lead(tenant, db_company) do
+        :ok
+      else
         {:error, :no_primary_domain} ->
           Tracing.warning(
             :no_primary_domain,
@@ -405,4 +367,53 @@ defmodule Core.WebTracker do
   defp suspicious_referrer?(referrer) do
     String.match?(String.downcase(referrer), ~r/(porn|xxx|gambling|casino)/)
   end
+
+  # Private functions
+
+  @spec update_session_company(String.t(), String.t()) :: :ok
+  defp update_session_company(session_id, company_id) do
+    case Core.WebTracker.Sessions.set_company_id(session_id, company_id) do
+      {:ok, _session} ->
+        Logger.info(
+          "Updated session #{session_id} with company ID #{company_id}"
+        )
+
+        :ok
+
+      {:error, reason} ->
+        Logger.warning("Failed to update session with company ID",
+          reason: reason
+        )
+
+        :ok
+    end
+  end
+
+  @spec create_or_update_lead(String.t(), Company.t()) ::
+          :ok
+          | {:error, :not_found | :domain_matches_tenant | :invalid_arguments}
+  defp create_or_update_lead(tenant, %Company{} = company)
+       when is_binary(tenant) do
+    case Core.Crm.Leads.get_or_create(tenant, %{
+           ref_id: company.id,
+           type: :company
+         }) do
+      {:ok, _lead} ->
+        :ok
+
+      {:error, :not_found} ->
+        Tracing.error(:not_found)
+        {:error, :not_found}
+
+      {:error, :domain_matches_tenant} ->
+        OpenTelemetry.Tracer.set_attributes([
+          {"result.lead_creation_result", :domain_matches_tenant}
+        ])
+
+        {:error, :domain_matches_tenant}
+    end
+  end
+
+  defp create_or_update_lead(_tenant, _company),
+    do: {:error, :invalid_arguments}
 end

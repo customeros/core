@@ -122,7 +122,7 @@ defmodule Core.Utils.PrimaryDomainFinder do
            update_visited_domains(current_domain, visited) do
       current_domain
       |> primary_domain_check()
-      |> ok(&is_valid_primary_domain?/1)
+      |> ok(&valid_primary_domain?/1)
       |> continue_if_necessary(new_visited_set, redirects_remaining)
     else
       {:error, reason} ->
@@ -156,12 +156,12 @@ defmodule Core.Utils.PrimaryDomainFinder do
     |> ok(&determine_primary_domain_status/1)
   end
 
-  defp is_valid_primary_domain?({false, domain}), do: {:ok, {false, domain}}
+  defp valid_primary_domain?({false, domain}), do: {:ok, {false, domain}}
 
-  defp is_valid_primary_domain?({_, ""}),
+  defp valid_primary_domain?({_, ""}),
     do: @err_cannot_resolve_to_primary_domain
 
-  defp is_valid_primary_domain?({true, domain}) do
+  defp valid_primary_domain?({true, domain}) do
     with true <- non_empty_domain?(domain),
          false <- suspicious_domain?(domain) do
       {:ok, {true, domain}}
