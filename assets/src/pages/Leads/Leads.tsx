@@ -112,31 +112,27 @@ export default function Leads({ leads, stage_counts, max_count }: LeadsProps) {
                   }}
                 >
                   <div className="">
-                    {group === 'stage' && !Array.isArray(leads)
-                      ? Object.entries(leads).map(([stage, groupedLeads], index) => (
-                          <div key={stage} className="flex flex-col w-full">
-                            <SegmentedView
-                              isSelected={selectedStage === stage}
-                              count={stage_counts[stage as Stage] || 0}
-                              label={stageOptions.find(s => s.value === stage)?.label || stage}
-                              onClick={() => {
-                                handleStageClick(stage as Stage);
-                              }}
-                              handleClearFilter={() => {
-                                handleStageClick(stage as Stage);
-                              }}
-                              className={cn(
-                                'sticky top-0 z-30',
-                                index === 0 ? 'mt-0' : '',
-                                lead && 'md:rounded-r-none'
-                              )}
-                              icon={
-                                <Icon
-                                  className="text-gray-500"
-                                  name={stageOptions.find(s => s.value === stage)?.icon as IconName}
-                                />
-                              ))
-                            : null}
+                    {group === 'stage' && !Array.isArray(leads) ? (
+                      Object.entries(leads).map(([stage, groupedLeads], index) => (
+                        <div key={stage} className="flex flex-col w-full">
+                          <SegmentedView
+                            isSelected={selectedStage === stage}
+                            count={stage_counts[stage as Stage] || 0}
+                            onClick={() => handleStageClick(stage as Stage)}
+                            handleClearFilter={() => handleStageClick(stage as Stage)}
+                            label={stageOptions.find(s => s.value === stage)?.label || stage}
+                            className={cn(
+                              'sticky top-0 z-30',
+                              index === 0 ? 'mt-0' : '',
+                              lead && 'md:rounded-r-none'
+                            )}
+                            icon={
+                              <Icon
+                                className="text-gray-500"
+                                name={stageOptions.find(s => s.value === stage)?.icon as IconName}
+                              />
+                            }
+                          />
                         </div>
                       ))
                     ) : Array.isArray(leads) ? (
@@ -144,10 +140,8 @@ export default function Leads({ leads, stage_counts, max_count }: LeadsProps) {
                         <SegmentedView
                           count={max_count || 0}
                           isSelected={!!selectedStage}
+                          handleClearFilter={() => handleStageClick(selectedStage as Stage)}
                           className={cn('sticky top-0 z-30 mt-o', lead && 'md:rounded-r-none')}
-                          handleClearFilter={() => {
-                            handleStageClick(selectedStage as Stage);
-                          }}
                           label={
                             selectedStage
                               ? stageOptions.find(s => s.value === selectedStage)?.label ||
@@ -165,7 +159,7 @@ export default function Leads({ leads, stage_counts, max_count }: LeadsProps) {
                             />
                           }
                         />
-                        {leads.map(lead => (
+                        {(leads as Lead[]).map((lead: Lead) => (
                           <LeadItem
                             lead={lead}
                             key={lead.id}
