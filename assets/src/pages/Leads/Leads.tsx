@@ -7,7 +7,7 @@ import { useUrlState } from 'src/hooks/useUrlState';
 import { Icon, IconName } from 'src/components/Icon';
 import { SegmentedView } from 'src/components/SegmentedView';
 import { LeadUpdatedEvent, useEventsChannel } from 'src/hooks';
-import { Lead, User, Stage, Tenant, UrlState } from 'src/types';
+import { Lead, User, Stage, Tenant, Profile, UrlState } from 'src/types';
 import {
   ScrollAreaRoot,
   ScrollAreaThumb,
@@ -16,8 +16,10 @@ import {
 } from 'src/components/ScrollArea';
 
 import { Header, Pipeline, LeadItem, EmptyState, stageIcons, stageOptions } from './components';
+
 interface LeadsProps {
   tenant: Tenant;
+  profile: Profile;
   max_count: number;
   current_user: User;
   stage_counts: Record<Stage, number>;
