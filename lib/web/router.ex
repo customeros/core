@@ -4,8 +4,8 @@ defmodule Web.Router do
   import Web.UserAuth
 
   pipeline :browser do
-    #    plug :accepts, ["html", "json"] # TODO alexb temporal usage
-    plug :accepts, ["html"]
+    plug :accepts, ["html", "json"] # TODO alexb temporal usage
+    # plug :accepts, ["html"]
     plug :fetch_session
     plug :fetch_live_flash
     plug :put_root_layout, html: {Web.Layouts, :root}
@@ -137,13 +137,13 @@ defmodule Web.Router do
     end
   end
 
-  # Webhook routes (public, but secured with tenant-specific tokens)
-  # scope "/integrations", Web.Integrations do
-  #   pipe_through [:public_api]
+  # Webhook routes
+  scope "/", Web do
+    pipe_through :public_api
 
-  #   # HubSpot webhook endpoint
-  #   post "/hubspot/webhook/:tenant_id", HubspotController, :webhook
-  # end
+    # HubSpot webhook endpoint
+    post "/hubspot/webhook", HubspotWebhookController, :webhook
+  end
 
   # V1 API endpoints
   scope "/v1", Web do

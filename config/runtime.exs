@@ -202,14 +202,15 @@ config :core, :hubspot,
   redirect_uri:
     (fn ->
        base_url =
-         System.get_env("HUBSPOT_REDIRECT_URI", "http://localhost:4000")
+         System.get_env("HUBSPOT_REDIRECT_URI", "https://app.customeros.ai")
 
        base_url = String.trim_trailing(base_url, "/")
        "#{base_url}/hubspot/callback"
      end).(),
   scopes: String.split(System.get_env("HUBSPOT_SCOPES", ""), " "),
   api_base_url: "https://api.hubapi.com",
-  auth_base_url: "https://app.hubspot.com"
+  auth_base_url: "https://app.hubspot.com",
+  app_id: System.get_env("HUBSPOT_APP_ID")
 
 # Validate required HubSpot configuration
 if config_env() == :prod do
