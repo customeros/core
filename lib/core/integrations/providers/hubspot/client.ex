@@ -46,7 +46,8 @@ defmodule Core.Integrations.Providers.HubSpot.Client do
          url = build_url(path, params),
          headers = [{"authorization", "Bearer #{connection.access_token}"}],
          {:ok, %{status: 200, body: body}} <-
-           Finch.request(:get, url, headers, "", pool: :hubspot) do
+           Finch.build(:get, url, headers, "")
+           |> Finch.request(Core.Finch, pool: :hubspot) do
       {:ok, Jason.decode!(body)}
     else
       {:ok, %{status: status, body: body}} ->
@@ -84,10 +85,12 @@ defmodule Core.Integrations.Providers.HubSpot.Client do
            {"authorization", "Bearer #{connection.access_token}"},
            {"content-type", "application/json"}
          ],
+         _ = Logger.debug("[HubSpot POST] URL: #{url}"),
+         _ = Logger.debug("[HubSpot POST] Access Token: #{connection.access_token}"),
+         _ = Logger.debug("[HubSpot POST] Headers: #{inspect(headers)}"),
          {:ok, %{status: status, body: body}} when status in 200..299 <-
-           Finch.request(:post, url, headers, Jason.encode!(body),
-             pool: :hubspot
-           ) do
+           Finch.build(:post, url, headers, Jason.encode!(body))
+           |> Finch.request(Core.Finch, pool: :hubspot) do
       {:ok, Jason.decode!(body)}
     else
       {:ok, %{status: status, body: body}} ->
@@ -126,9 +129,8 @@ defmodule Core.Integrations.Providers.HubSpot.Client do
            {"content-type", "application/json"}
          ],
          {:ok, %{status: status, body: body}} when status in 200..299 <-
-           Finch.request(:put, url, headers, Jason.encode!(body),
-             pool: :hubspot
-           ) do
+           Finch.build(:put, url, headers, Jason.encode!(body))
+           |> Finch.request(Core.Finch, pool: :hubspot) do
       {:ok, Jason.decode!(body)}
     else
       {:ok, %{status: status, body: body}} ->
@@ -163,7 +165,8 @@ defmodule Core.Integrations.Providers.HubSpot.Client do
          url = build_url(path, params),
          headers = [{"authorization", "Bearer #{connection.access_token}"}],
          {:ok, %{status: status, body: body}} when status in 200..299 <-
-           Finch.request(:delete, url, headers, "", pool: :hubspot) do
+           Finch.build(:delete, url, headers, "")
+           |> Finch.request(Core.Finch, pool: :hubspot) do
       {:ok, Jason.decode!(body)}
     else
       {:ok, %{status: status, body: body}} ->

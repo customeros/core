@@ -169,4 +169,21 @@ defmodule Core.Integrations.Connections do
     |> where([c], c.status == :active and c.expires_at <= ^refresh_threshold)
     |> Repo.all()
   end
+
+  @doc """
+  Gets a connection by provider and external_system_id.
+
+  ## Examples
+      iex> get_connection_by_provider_and_external_id(:hubspot, "146363387")
+      {:ok, %Connection{}}
+
+      iex> get_connection_by_provider_and_external_id(:hubspot, "nonexistent")
+      {:error, :not_found}
+  """
+  def get_connection_by_provider_and_external_id(provider, external_system_id) do
+    case Repo.get_by(Connection, provider: provider, external_system_id: external_system_id) do
+      nil -> {:error, :not_found}
+      connection -> {:ok, connection}
+    end
+  end
 end

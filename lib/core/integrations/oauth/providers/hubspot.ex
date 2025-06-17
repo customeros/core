@@ -86,39 +86,39 @@ defmodule Core.Integrations.OAuth.Providers.HubSpot do
 
     case post_token(base_url, params) do
       {:ok, token_data} ->
-        token = Token.new(token_data)
-
-        # Update connection with new tokens and set status back to active
-        case Connections.update_connection(connection, %{
-               access_token: token.access_token,
-               refresh_token: token.refresh_token,
-               expires_at: token.expires_at,
-               scopes: config[:scopes] || [],
-               status: :active,
-               # Clear any previous errors
-               connection_error: nil
-             }) do
-          {:ok, updated} ->
-            Logger.info(
-              "Successfully updated connection with new tokens: #{inspect(updated.id)}"
-            )
-
-            {:ok, updated}
-
+        case Token.new(token_data) do
+          {:ok, token} ->
+            # Update connection with new tokens and set status back to active
+            case Connections.update_connection(connection, %{
+                   access_token: token.access_token,
+                   refresh_token: token.refresh_token,
+                   expires_at: token.expires_at,
+                   scopes: config[:scopes] || [],
+                   status: :active,
+                   # Clear any previous errors
+                   connection_error: nil
+                 }) do
+              {:ok, updated} ->
+                Logger.info(
+                  "Successfully updated connection with new tokens: #{inspect(updated.id)}"
+                )
+                {:ok, updated}
+              {:error, reason} ->
+                Logger.error(
+                  "Failed to update connection with new tokens: #{inspect(reason)}"
+                )
+                # Set status to error but keep the new tokens
+                {:ok, _} =
+                  Connections.update_connection(connection, %{
+                    status: :error,
+                    connection_error:
+                      "Failed to update connection: #{inspect(reason)}"
+                  })
+                {:error, :update_failed}
+            end
           {:error, reason} ->
-            Logger.error(
-              "Failed to update connection with new tokens: #{inspect(reason)}"
-            )
-
-            # Set status to error but keep the new tokens
-            {:ok, _} =
-              Connections.update_connection(connection, %{
-                status: :error,
-                connection_error:
-                  "Failed to update connection: #{inspect(reason)}"
-              })
-
-            {:error, :update_failed}
+            Logger.error("Failed to parse token: #{inspect(reason)}")
+            {:error, reason}
         end
 
       {:error, reason} ->

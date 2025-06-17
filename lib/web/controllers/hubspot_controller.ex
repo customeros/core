@@ -82,6 +82,15 @@ defmodule Web.HubspotController do
                       "Successfully created HubSpot connection: #{inspect(connection, pretty: true)}"
                     )
 
+                    # Register webhook for company updates
+                    webhook_url = config[:webhook_url]
+                    case Core.Integrations.Providers.HubSpot.Webhook.register_company_update_webhook(connection, webhook_url) do
+                      {:ok, resp} ->
+                        Logger.info("Registered HubSpot company update webhook: #{inspect(resp)}")
+                      {:error, reason} ->
+                        Logger.error("Failed to register HubSpot webhook: #{inspect(reason)}")
+                    end
+
                     conn
                     |> put_flash(:success, "Successfully connected to HubSpot")
                     |> redirect(to: ~p"/leads")
@@ -173,6 +182,36 @@ defmodule Web.HubspotController do
         conn
         |> put_flash(:error, "No active HubSpot connection found")
         |> redirect(to: ~p"/leads")
+    end
+  end
+
+  @doc """
+  Handles incoming HubSpot webhooks (e.g., company update events).
+  """
+  def webhook(conn, %{"tenant_id" => tenant_id} = _params) do
+    with {:ok, connection} <- Registry.get_connection(tenant_id, :hubspot),
+         {:ok, webhook_mod} <- Registry.get_webhook(:hubspot),
+         {:ok, body, _conn} <- Plug.Conn.read_body(conn),
+         {:ok, events} <- Jason.decode(body) do
+      # For each event, if it's a company update, fetch and log company details
+      Enum.each(events, fn event ->
+        if event["subscriptionType"] == "company.propertyChange" do
+          case webhook_mod.process_event(connection, event) do
+            {:ok, %{processed: true}} ->
+              Logger.info("Processed HubSpot company update event: #{inspect(event)}")
+            {:error, reason} ->
+              Logger.error("Failed to process HubSpot company update event: #{inspect(reason)}")
+          end
+        end
+      end)
+      send_resp(conn, 200, "ok")
+    else
+      {:error, :not_found} ->
+        Logger.error("No HubSpot connection found for tenant #{tenant_id}")
+        send_resp(conn, 404, "No connection found")
+      {:error, reason} ->
+        Logger.error("Failed to process HubSpot webhook: #{inspect(reason)}")
+        send_resp(conn, 400, "Webhook error")
     end
   end
 end
