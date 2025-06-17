@@ -112,18 +112,28 @@ defmodule Web.Router do
     pipe_through [:browser, :require_authenticated]
 
     get "/", LandingController, :redirect
-    get "/leads", LeadsController, :index
-    get "/leads/download", LeadsController, :download
     get "/icons.svg", IconsController, :index
     get "/favicon/*path", FaviconController, :serve
     get "/welcome", WelcomeController, :index
-    get "/tenants", TenantController, :index
-    post "/tenants/switch", TenantController, :switch
+
+    scope "/leads" do
+      get "/", LeadsController, :index
+      get "/download", LeadsController, :download
+    end
+
+    scope "/tenants" do
+      get "/", TenantController, :index
+      post "/switch", TenantController, :switch
+    end
 
     scope "/hubspot" do
       get "/connect", HubspotController, :connect
       get "/callback", HubspotController, :callback
       get "/disconnect", HubspotController, :disconnect
+    end
+
+    scope "/contacts" do
+      get "/", ContactsController, :index
     end
   end
 
