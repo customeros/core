@@ -1,4 +1,4 @@
-name: Core Deploy
+name: Build Image
 on:
   push:
     tags:
