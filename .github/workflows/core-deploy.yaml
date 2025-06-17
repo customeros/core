@@ -43,6 +43,15 @@ jobs:
           curl -fsSL https://bun.sh/install | bash
           echo "$HOME/.bun/bin" >> $GITHUB_PATH
 
+      - name: Install Janet from source
+        run: |
+          wget https://github.com/janet-lang/janet/releases/download/v1.38.0/janet-v1.38.0-linux-x64.tar.gz
+          tar -xzf janet-v1.38.0-linux-x64.tar.gz
+          cd janet-v1.38.0-linux-x64
+          sudo cp janet /usr/local/bin/
+          sudo chmod +x /usr/local/bin/janet
+          janet -v
+
       - name: Build Phoenix app
         run: |
           ./scripts/runners/build-core.sh ${{ env.APP_PATH }}
@@ -75,10 +84,6 @@ jobs:
           token: ${{ secrets.CLOUD_REPO_KEY }}
           path: cloud
           fetch-depth: 1
-
-      - name: Install Janet
-        run: |
-          sudo apt update && sudo apt install -y janet
 
       - name: Run deploy script
         run: |

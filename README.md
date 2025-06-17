@@ -1,6 +1,6 @@
 # CustomerOS Core
 
-A Phoenix-based application for customer relationship management and business intelligence.
+Qualified opportunity generation
 
 ## Prerequisites
 
