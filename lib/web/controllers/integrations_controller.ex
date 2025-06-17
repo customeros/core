@@ -1,4 +1,4 @@
-defmodule Web.Controllers.Integrations.IntegrationsController do
+defmodule Web.IntegrationsController do
   @moduledoc """
   Controller for managing integrations settings.
 

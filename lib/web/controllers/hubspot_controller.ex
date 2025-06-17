@@ -1,4 +1,4 @@
-defmodule Web.Controllers.Integrations.HubspotController do
+defmodule Web.HubspotController do
   @moduledoc """
   Controller for handling HubSpot integration operations.
 
@@ -21,19 +21,18 @@ defmodule Web.Controllers.Integrations.HubspotController do
   def connect(conn, _params) do
     tenant_id = conn.assigns.current_user.tenant_id
 
-    config = Application.get_env(:core, :hubspot)
-    redirect_uri = config[:redirect_uri]
+    base_url = "#{conn.scheme}://#{get_req_header(conn, "host")}"
+    redirect_uri = "#{base_url}/hubspot/callback"
 
     # Check for existing connection
     case Registry.get_connection(tenant_id, :hubspot) do
       {:ok, _connection} ->
         conn
-        |> put_status(:conflict)
-        |> json(%{
-          status: "error",
-          message:
-            "A HubSpot connection already exists. Please disconnect it first before creating a new one."
-        })
+        |> put_flash(
+          :error,
+          "A HubSpot connection already exists. Please disconnect it first before creating a new one."
+        )
+        |> redirect(to: ~p"/leads")
 
       {:error, :not_found} ->
         case HubSpotOAuth.authorize_url(tenant_id, redirect_uri) do
@@ -52,8 +51,8 @@ defmodule Web.Controllers.Integrations.HubspotController do
   def callback(conn, params) do
     tenant_id = conn.assigns.current_user.tenant_id
 
-    config = Application.get_env(:core, :hubspot)
-    redirect_uri = config[:redirect_uri]
+    base_url = "#{conn.scheme}://#{get_req_header(conn, "host")}"
+    redirect_uri = "#{base_url}/hubspot/callback"
 
     case params do
       %{"code" => code} ->
@@ -74,7 +73,7 @@ defmodule Web.Controllers.Integrations.HubspotController do
                   refresh_token: token.refresh_token,
                   expires_at: token.expires_at,
                   token_type: token.token_type,
-                  scopes: config[:scopes] || []
+                  scopes: Application.get_env(:core, :hubspot)[:scopes] || []
                 }
 
                 case Connections.create_connection(connection_params) do
@@ -84,11 +83,8 @@ defmodule Web.Controllers.Integrations.HubspotController do
                     )
 
                     conn
-                    |> put_status(:ok)
-                    |> json(%{
-                      status: "success",
-                      message: "Successfully connected to HubSpot"
-                    })
+                    |> put_flash(:success, "Successfully connected to HubSpot")
+                    |> redirect(to: ~p"/leads")
 
                   {:error, reason} ->
                     Logger.error(
@@ -96,11 +92,11 @@ defmodule Web.Controllers.Integrations.HubspotController do
                     )
 
                     conn
-                    |> put_status(:internal_server_error)
-                    |> json(%{
-                      status: "error",
-                      message: "Failed to complete HubSpot integration"
-                    })
+                    |> put_flash(
+                      :error,
+                      "Failed to complete HubSpot integration"
+                    )
+                    |> redirect(to: ~p"/leads")
                 end
 
               {:error, reason} ->
@@ -109,11 +105,8 @@ defmodule Web.Controllers.Integrations.HubspotController do
                 )
 
                 conn
-                |> put_status(:internal_server_error)
-                |> json(%{
-                  status: "error",
-                  message: "Failed to complete HubSpot integration"
-                })
+                |> put_flash(:error, "Failed to complete HubSpot integration")
+                |> redirect(to: ~p"/leads")
             end
 
           {:ok, {:error, reason}} ->
@@ -122,11 +115,8 @@ defmodule Web.Controllers.Integrations.HubspotController do
             )
 
             conn
-            |> put_status(:internal_server_error)
-            |> json(%{
-              status: "error",
-              message: "Failed to complete HubSpot integration"
-            })
+            |> put_flash(:error, "Failed to complete HubSpot integration")
+            |> redirect(to: ~p"/leads")
 
           {:error, reason} ->
             Logger.error(
@@ -134,29 +124,23 @@ defmodule Web.Controllers.Integrations.HubspotController do
             )
 
             conn
-            |> put_status(:internal_server_error)
-            |> json(%{
-              status: "error",
-              message: "Failed to complete HubSpot integration"
-            })
+            |> put_flash(:error, "Failed to complete HubSpot integration")
+            |> redirect(to: ~p"/leads")
         end
 
       %{"error" => error, "error_description" => description} ->
         Logger.error("HubSpot OAuth error: #{error} - #{description}")
 
         conn
-        |> put_status(:bad_request)
-        |> json(%{
-          status: "error",
-          message: "HubSpot authorization failed: #{description}"
-        })
+        |> put_flash(:error, "HubSpot authorization failed: #{description}")
+        |> redirect(to: ~p"/leads")
 
       _ ->
         Logger.error("Invalid HubSpot callback params: #{inspect(params)}")
 
         conn
-        |> put_status(:bad_request)
-        |> json(%{status: "error", message: "Invalid HubSpot callback"})
+        |> put_flash(:error, "Invalid HubSpot callback")
+        |> redirect(to: ~p"/leads")
     end
   end
 
@@ -170,12 +154,10 @@ defmodule Web.Controllers.Integrations.HubspotController do
       {:ok, connection} ->
         case Connections.delete_connection(connection) do
           {:ok, _} ->
+            # TODO: Uninstall app from HubSpot
             conn
-            |> put_status(:ok)
-            |> json(%{
-              status: "success",
-              message: "Successfully disconnected from HubSpot"
-            })
+            |> put_flash(:success, "Successfully disconnected from HubSpot")
+            |> redirect(to: ~p"/leads")
 
           {:error, reason} ->
             Logger.error(
@@ -183,20 +165,14 @@ defmodule Web.Controllers.Integrations.HubspotController do
             )
 
             conn
-            |> put_status(:internal_server_error)
-            |> json(%{
-              status: "error",
-              message: "Failed to disconnect from HubSpot"
-            })
+            |> put_flash(:error, "Failed to disconnect from HubSpot")
+            |> redirect(to: ~p"/leads")
         end
 
       {:error, :not_found} ->
         conn
-        |> put_status(:not_found)
-        |> json(%{
-          status: "error",
-          message: "No active HubSpot connection found"
-        })
+        |> put_flash(:error, "No active HubSpot connection found")
+        |> redirect(to: ~p"/leads")
     end
   end
 end

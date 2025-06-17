@@ -119,33 +119,21 @@ defmodule Web.Router do
     get "/welcome", WelcomeController, :index
     get "/tenants", TenantController, :index
     post "/tenants/switch", TenantController, :switch
-    # Test page for integrations, TODO alexb remove below line
-    get "/test/integrations", Controllers.TestController, :index
-  end
 
-  # Integration routes (require authentication)
-  scope "/settings", Web.Controllers do
-    pipe_through [:browser, :require_authenticated]
-
-    # Integration routes
-    scope "/integrations" do
-      # Main integrations page
-      get "/", Integrations.IntegrationsController, :index
-
-      # HubSpot integration routes
-      get "/hubspot/connect", Integrations.HubspotController, :connect
-      get "/hubspot/callback", Integrations.HubspotController, :callback
-      delete "/hubspot/disconnect", Integrations.HubspotController, :disconnect
+    scope "/hubspot" do
+      get "/connect", HubspotController, :connect
+      get "/callback", HubspotController, :callback
+      get "/disconnect", HubspotController, :disconnect
     end
   end
 
   # Webhook routes (public, but secured with tenant-specific tokens)
-  scope "/integrations", Web.Controllers.Integrations do
-    pipe_through [:public_api]
+  # scope "/integrations", Web.Integrations do
+  #   pipe_through [:public_api]
 
-    # HubSpot webhook endpoint
-    post "/hubspot/webhook/:tenant_id", HubspotController, :webhook
-  end
+  #   # HubSpot webhook endpoint
+  #   post "/hubspot/webhook/:tenant_id", HubspotController, :webhook
+  # end
 
   # V1 API endpoints
   scope "/v1", Web do

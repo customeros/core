@@ -6,7 +6,7 @@ import posthog from 'posthog-js';
 import { PageProps } from '@inertiajs/core';
 import { User, Lead, Tenant, IcpProfile } from 'src/types';
 
-import { toastSuccess } from '../components/Toast';
+import { toastError, toastSuccess } from '../components/Toast';
 import { PresenceProvider } from '../providers/PresenceProvider';
 import { PhoenixSocketProvider } from '../providers/SocketProvider';
 
@@ -42,6 +42,10 @@ export const RootLayout = ({ children }: { children: React.ReactNode }) => {
 
       if ('success' in (flash as Flash)) {
         toastSuccess((flash as Flash).success, 'flash-success');
+      }
+
+      if ('error' in (flash as Flash)) {
+        toastError((flash as Flash).error, 'flash-error');
       }
     }
   }, [props.flash]);
