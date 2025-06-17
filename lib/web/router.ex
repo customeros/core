@@ -39,6 +39,11 @@ defmodule Web.Router do
     plug Web.Plugs.CorsPlug
   end
 
+  pipeline :cors_event_api do
+    plug :accepts, ["json"]
+    plug Web.Plugs.EventsCorsPlug
+  end
+
   pipeline :bearer_api do
     plug :accepts, ["json"]
     plug :authenticate_bearer_token
@@ -145,6 +150,11 @@ defmodule Web.Router do
   # V1 API endpoints
   scope "/v1", Web do
     pipe_through :public_api
+  end
+
+  # V1 Event endpoint
+  scope "/v1", Web do
+    pipe_through :cors_event_api
 
     post "/events", WebTrackerController, :create
   end
