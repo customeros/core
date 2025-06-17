@@ -73,9 +73,14 @@ jobs:
         with:
           repository: ${{ env.CLOUD_REPO }}
           token: ${{ secrets.CLOUD_REPO_KEY }}
-          path: cloud-repo
+          path: cloud
           fetch-depth: 1
 
-      - name: Update cloud version
+      - name: Install Janet
         run: |
-          ./scripts/runners/update-cloud.sh ${{ env.APP_NAME }} ${{ env.VERSION }}
+          sudo apt update && sudo apt install -y janet
+
+      - name: Run deploy script
+        run: |
+          cd cloud/core
+          ./deploy.janet ${{ env.VERSION }}
