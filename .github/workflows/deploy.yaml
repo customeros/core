@@ -1,0 +1,80 @@
+name: Deploy
+on:
+  workflow_run:
+    workflows: ["Build Image"]
+    types:
+      - completed
+    branches:
+      - main
+  workflow_dispatch:
+    inputs:
+      version:
+        description: "Version to deploy (e.g., v1.0.0)"
+        required: true
+        type: string
+
+env:
+  APP_NAME: core
+  APP_PATH: .
+  CONTAINERFILE_PATH: ./Containerfile
+  IMAGE_NAME: core
+  REGISTRY: ghcr.io
+  CGO_ENABLED: 0
+  LANG: C.UTF-8
+  LC_ALL: C.UTF-8
+  CLOUD_REPO: customeros/cloud
+
+permissions:
+  contents: write
+  pull-requests: read
+  packages: write
+
+jobs:
+  deploy:
+    runs-on: ubicloud-standard-4
+    if: ${{ github.event.workflow_run.conclusion == 'success' || github.event_name == 'workflow_dispatch' }}
+
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Extract version from tag or input
+        run: |
+          if [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
+            VERSION="${{ github.event.inputs.version }}"
+          else
+            VERSION=$(git describe --tags --exact-match ${{ github.event.workflow_run.head_sha }} 2>/dev/null || echo "")
+            if [ -z "$VERSION" ]; then
+              echo "Could not determine version from workflow_run"
+              exit 1
+            fi
+          fi
+          echo "VERSION=$VERSION" >> $GITHUB_ENV
+          echo "Deploying version: $VERSION"
+
+      - name: Install Janet from source
+        run: |
+          wget https://github.com/janet-lang/janet/releases/download/v1.38.0/janet-v1.38.0-linux-x64.tar.gz
+          tar -xzf janet-v1.38.0-linux-x64.tar.gz
+          cd janet-v1.38.0-linux-x64
+          sudo cp janet /usr/local/bin/
+          sudo chmod +x /usr/local/bin/janet
+          if [ -f jpm ]; then
+            sudo cp jpm /usr/local/bin/
+            sudo chmod +x /usr/local/bin/jpm
+          fi
+          janet -v
+
+      - name: Checkout cloud repo
+        uses: actions/checkout@v4
+        with:
+          repository: ${{ env.CLOUD_REPO }}
+          token: ${{ secrets.CLOUD_REPO_KEY }}
+          path: cloud
+          fetch-depth: 1
+
+      - name: Run deploy script
+        run: |
+          cd cloud/core
+          ./deploy.janet ${{ env.VERSION }}
