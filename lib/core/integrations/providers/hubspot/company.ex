@@ -46,4 +46,29 @@ defmodule Core.Integrations.Providers.HubSpot.Company do
       {:ok, response}
     end
   end
+
+  @doc """
+  Fetches a company from HubSpot by tenant ID and company ID.
+
+  Looks up the HubSpot connection for the given tenant, ensures the token is valid (refreshing if needed),
+  and fetches the company details from HubSpot.
+
+  ## Examples
+
+      iex> get_company_by_tenant("tenant_123", "456")
+      {:ok, %{"id" => "456", ...}}
+
+      iex> get_company_by_tenant("unknown_tenant", "456")
+      {:error, :not_found}
+  """
+  def get_company_by_tenant(tenant_id, company_id) when is_binary(tenant_id) and is_binary(company_id) do
+    case Connections.get_connection(tenant_id, :hubspot) do
+      {:ok, %Connection{} = connection} ->
+        get_company(connection, company_id)
+      {:error, :not_found} ->
+        {:error, :not_found}
+      {:error, reason} ->
+        {:error, reason}
+    end
+  end
 end

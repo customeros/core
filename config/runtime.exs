@@ -199,25 +199,17 @@ config :core, :mailsherpa,
 config :core, :hubspot,
   client_id: System.get_env("HUBSPOT_CLIENT_ID"),
   client_secret: System.get_env("HUBSPOT_CLIENT_SECRET"),
-  redirect_uri:
-    (fn ->
-       base_url =
-         System.get_env("HUBSPOT_REDIRECT_URI", "https://app.customeros.ai")
-
-       base_url = String.trim_trailing(base_url, "/")
-       "#{base_url}/hubspot/callback"
-     end).(),
   scopes: String.split(System.get_env("HUBSPOT_SCOPES", ""), " "),
   api_base_url: "https://api.hubapi.com",
   auth_base_url: "https://app.hubspot.com",
-  app_id: System.get_env("HUBSPOT_APP_ID")
+  app_id: System.get_env("HUBSPOT_APP_ID"),
+  webhook_uri: System.get_env("HUBSPOT_WEBHOOK_URI")
 
 # Validate required HubSpot configuration
 if config_env() == :prod do
   required_env_vars = [
     "HUBSPOT_CLIENT_ID",
-    "HUBSPOT_CLIENT_SECRET",
-    "HUBSPOT_REDIRECT_URI"
+    "HUBSPOT_CLIENT_SECRET"
   ]
 
   Enum.each(required_env_vars, fn var ->
