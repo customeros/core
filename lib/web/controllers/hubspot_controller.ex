@@ -81,16 +81,6 @@ defmodule Web.HubspotController do
                     Logger.info(
                       "Successfully created HubSpot connection: #{inspect(connection, pretty: true)}"
                     )
-
-                    # Register webhook for company updates
-                    webhook_url = config[:webhook_url]
-                    case Core.Integrations.Providers.HubSpot.Webhook.register_company_update_webhook(connection, webhook_url) do
-                      {:ok, resp} ->
-                        Logger.info("Registered HubSpot company update webhook: #{inspect(resp)}")
-                      {:error, reason} ->
-                        Logger.error("Failed to register HubSpot webhook: #{inspect(reason)}")
-                    end
-
                     conn
                     |> put_flash(:success, "Successfully connected to HubSpot")
                     |> redirect(to: ~p"/leads")

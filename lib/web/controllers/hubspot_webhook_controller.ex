@@ -1,37 +1,40 @@
-defmodule Web.Controllers.HubspotWebhookController do
+defmodule Web.HubspotWebhookController do
   use Web, :controller
   require Logger
 
-  alias Core.Integrations.Connections
+  alias Core.Integrations.Providers.HubSpot.Webhook
 
   def webhook(conn, _params) do
-    with {:ok, body, _conn} <- Plug.Conn.read_body(conn),
-         {:ok, events} <- Jason.decode(body) do
-      config = Application.get_env(:core, :hubspot)
-      app_id = config[:app_id]
+    signature = get_req_header(conn, "x-hubspot-signature-v3") |> List.first()
+    timestamp = get_req_header(conn, "x-hubspot-request-timestamp") |> List.first()
+    config = Application.get_env(:core, :hubspot)
+    client_secret = config[:client_secret]
+    method = conn.method |> String.upcase()
+    request_uri = config[:webhook_uri]
+    raw_body = conn.assigns[:raw_body] || ""
 
-      Enum.each(events, fn event ->
-        # a. Validate appId
-        if Map.get(event, "appId") != app_id do
-          Logger.error("[HubSpot Webhook] Unknown appId: #{inspect(event["appId"])}. Ignoring event.")
-        else
-          # b. Find connection by provider and portalId
-          portal_id = to_string(event["portalId"])
-          case Connections.get_connection_by_provider_and_external_id(:hubspot, portal_id) do
-            {:ok, connection} ->
-              Logger.debug("[HubSpot Webhook] Found connection for portalId #{portal_id} (tenant_id: #{connection.tenant_id})")
-              # c. TODO: Handle company by objectId (event["objectId"])
-              :ok
-            {:error, :not_found} ->
-              Logger.error("[HubSpot Webhook] No connection found for portalId #{portal_id}. Ignoring event.")
-          end
-        end
-      end)
-      send_resp(conn, 200, "ok")
+    if is_nil(signature) or is_nil(timestamp) or not Webhook.verify_signature_v3(client_secret, signature, method, request_uri, raw_body, timestamp) do
+      Logger.error("[HubSpotWebhookController] Webhook validation failed: Signature does not match or missing headers")
+      send_resp(conn, 401, "Invalid signature")
     else
-      {:error, reason} ->
-        Logger.error("[HubSpot Webhook] Failed to parse webhook body: #{inspect(reason)}")
-        send_resp(conn, 200, "ok")
+      case Jason.decode(raw_body) do
+        {:ok, events} when is_list(events) ->
+          Enum.each(events, fn event ->
+            case Webhook.process_event_from_webhook(event) do
+              {:ok, _result} -> Logger.info("[HubspotWebhookController] Processed event: #{inspect(event)}")
+              {:error, reason} -> Logger.error("[HubspotWebhookController] Failed to process event: #{inspect(reason)}")
+            end
+          end)
+          send_resp(conn, 200, "ok")
+        {:ok, event} ->
+          case Webhook.process_event_from_webhook(event) do
+            {:ok, _result} -> Logger.info("[HubspotWebhookController] Processed event: #{inspect(event)}")
+            {:error, reason} -> Logger.error("[HubspotWebhookController] Failed to process event: #{inspect(reason)}")
+          end
+          send_resp(conn, 200, "ok")
+        {:error, _} ->
+          send_resp(conn, 400, "Invalid JSON")
+      end
     end
   end
 end

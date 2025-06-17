@@ -137,14 +137,6 @@ defmodule Web.Router do
     end
   end
 
-  # Webhook routes
-  scope "/", Web do
-    pipe_through :public_api
-
-    # HubSpot webhook endpoint
-    post "/hubspot/webhook", HubspotWebhookController, :webhook
-  end
-
   # V1 API endpoints
   scope "/v1", Web do
     pipe_through :public_api
@@ -212,5 +204,12 @@ defmodule Web.Router do
 
     resources "/tokens", ApiTokenController,
       only: [:index, :create, :show, :update, :delete]
+  end
+
+  # Webhook route (restored for controller processing)
+  scope "/hubspot", Web do
+    pipe_through :public_api
+
+    post "/webhook", HubspotWebhookController, :webhook
   end
 end

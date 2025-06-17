@@ -8,6 +8,7 @@ defmodule Core.Integrations.Providers.HubSpot.Client do
 
   alias Core.Integrations.Connection
   alias Core.Integrations.OAuth.TokenManager
+  alias Core.Integrations.Registry
   require Logger
 
   @doc """
@@ -85,9 +86,6 @@ defmodule Core.Integrations.Providers.HubSpot.Client do
            {"authorization", "Bearer #{connection.access_token}"},
            {"content-type", "application/json"}
          ],
-         _ = Logger.debug("[HubSpot POST] URL: #{url}"),
-         _ = Logger.debug("[HubSpot POST] Access Token: #{connection.access_token}"),
-         _ = Logger.debug("[HubSpot POST] Headers: #{inspect(headers)}"),
          {:ok, %{status: status, body: body}} when status in 200..299 <-
            Finch.build(:post, url, headers, Jason.encode!(body))
            |> Finch.request(Core.Finch, pool: :hubspot) do
@@ -184,6 +182,16 @@ defmodule Core.Integrations.Providers.HubSpot.Client do
   defp ensure_valid_token(%Connection{} = connection) do
     case TokenManager.ensure_valid_token(connection) do
       {:ok, refreshed} -> {:ok, refreshed}
+      :refresh_needed ->
+        # Token needs refresh, try to refresh it directly
+        case Registry.get_oauth(connection.provider) do
+          {:ok, oauth} ->
+            case oauth.refresh_token(connection) do
+              {:ok, refreshed} -> {:ok, refreshed}
+              {:error, reason} -> {:error, "Token refresh failed: #{inspect(reason)}"}
+            end
+          {:error, reason} -> {:error, "OAuth provider not found: #{inspect(reason)}"}
+        end
       {:error, reason} -> {:error, "Token refresh failed: #{inspect(reason)}"}
     end
   end
