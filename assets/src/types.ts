@@ -22,6 +22,7 @@ export type Tenant = {
   inserted_at: string;
   workspace_name: string;
   workspace_icon_key: string;
+  webtracker_status: 'available' | 'not_available';
 };
 
 export type Profile = {

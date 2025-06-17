@@ -20,7 +20,6 @@ import {
   ModalPortal,
   ModalOverlay,
   ModalContent,
-  ModalScrollBody,
   ModalCloseButton,
 } from 'src/components/Modal/Modal';
 
@@ -121,28 +120,33 @@ export const Header = () => {
 
             <UserPresence />
 
-            {/* <Button
-              leftIcon={<Icon name="rocket-02" />}
-              colorScheme="primary"
-              size="xs"
-              onClick={() => setIsOpen(true)}
-            >
-              See who's ready to buy
-            </Button> */}
-
-            <Display />
-
-            {page.props.max_count > 0 && (
-              <Button
-                size="xs"
-                colorScheme="gray"
-                leftIcon={<Icon name="download-02" />}
-                onClick={() => {
-                  window.location.href = '/leads/download';
-                }}
-              >
-                Download
-              </Button>
+            {page.props.tenant.webtracker_status === 'not_available' ? (
+              <>
+                <Button
+                  size="xs"
+                  colorScheme="primary"
+                  onClick={() => setIsOpen(true)}
+                  leftIcon={<Icon name="rocket-02" />}
+                >
+                  See who's ready to buy
+                </Button>
+              </>
+            ) : (
+              <>
+                <Display />
+                {page.props.max_count > 0 && (
+                  <Button
+                    size="xs"
+                    colorScheme="gray"
+                    leftIcon={<Icon name="download-02" />}
+                    onClick={() => {
+                      window.location.href = '/leads/download';
+                    }}
+                  >
+                    Download
+                  </Button>
+                )}
+              </>
             )}
           </div>
         </div>
@@ -186,38 +190,38 @@ export const Header = () => {
         <ModalPortal>
           <ModalOverlay />
           <ModalContent placement="top">
-            <ModalScrollBody>
-              <ModalHeader className="font-semibold text-base">See who's ready to buy</ModalHeader>
-              <ModalClose />
-              <ModalBody className="flex flex-col gap-2">
-                <p>
-                  To know where your leads are in their journey and who's ready to buy, let's help
-                  you set up our simple web tracker.
-                </p>
-                <p>
-                  Once set up, we'll automatically fill your pipeline with highly-qualified leads,
-                  enriched with intent signals.
-                </p>
-              </ModalBody>
-              <ModalFooter className="flex justify-between gap-2">
-                <ModalClose asChild>
-                  <Button size="sm" colorScheme="gray" className="w-full">
-                    Cancel
-                  </Button>
-                </ModalClose>
-                <Button
-                  size="sm"
-                  className="w-full"
-                  colorScheme="primary"
-                  onClick={() => {
-                    window.open('https://cal.com/mbrown/20min', '_blank');
-                    setIsOpen(false);
-                  }}
-                >
-                  Book a call
+            <ModalHeader className="font-semibold text-base">
+              See who's ready to buy
+              <ModalCloseButton />
+            </ModalHeader>
+            <ModalBody className="flex flex-col gap-2">
+              <p>
+                To know where your leads are in their journey and who's ready to buy, let's help you
+                set up our simple web tracker.
+              </p>
+              <p>
+                Once set up, we'll automatically fill your pipeline with highly-qualified leads,
+                enriched with intent signals.
+              </p>
+            </ModalBody>
+            <ModalFooter className="flex justify-between gap-2">
+              <ModalClose asChild>
+                <Button size="sm" colorScheme="gray" className="w-full">
+                  Cancel
                 </Button>
-              </ModalFooter>
-            </ModalScrollBody>
+              </ModalClose>
+              <Button
+                size="sm"
+                className="w-full"
+                colorScheme="primary"
+                onClick={() => {
+                  window.open('https://cal.com/mbrown/20min', '_blank');
+                  setIsOpen(false);
+                }}
+              >
+                Book a call
+              </Button>
+            </ModalFooter>
           </ModalContent>
         </ModalPortal>
       </Modal>
