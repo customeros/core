@@ -494,27 +494,16 @@ defmodule Core.Crm.Leads.DailyLeadSummarySender do
     stage_counts =
       Map.new(leads_by_stage, fn {stage, leads} -> {stage, length(leads)} end)
 
-    # Get companies for the last stage that has leads
-    last_stage_with_leads =
-      @stage_order
-      |> Enum.reverse()
-      |> Enum.find(fn stage -> Map.get(stage_counts, stage, 0) > 0 end)
-
-    companies_for_last_stage =
-      case last_stage_with_leads do
-        nil ->
-          []
-
-        stage ->
-          leads_by_stage[stage]
-          |> Enum.map(fn lead -> get_company_name(lead.ref_id) end)
-          |> Enum.take(@max_companies_in_list)
-      end
+    # Get up to 3 companies from the full leads list
+    companies_for_email =
+      assigns.leads
+      |> Enum.map(fn lead -> get_company_name(lead.ref_id) end)
+      |> Enum.take(@max_companies_in_list)
 
     assigns =
       Map.merge(assigns, %{
         stage_counts: stage_counts,
-        companies_for_last_stage: companies_for_last_stage,
+        companies_for_email: companies_for_email,
         base_url: @base_url,
         stage_order: @stage_order
       })
@@ -540,10 +529,10 @@ defmodule Core.Crm.Leads.DailyLeadSummarySender do
 
       <p>A few from today's batch:</p>
 
-      <%= if length(@companies_for_last_stage) > 0 do %>
+      <%= if length(@companies_for_email) > 0 do %>
         <div style="margin: 0.5em 0;">
           <ul style="list-style-type: none; padding-left: 0; margin: 0;">
-            <%= for company <- @companies_for_last_stage do %>
+            <%= for company <- @companies_for_email do %>
               <li style="margin: 0;">• {company}</li>
             <% end %>
           </ul>
