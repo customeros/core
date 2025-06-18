@@ -20,7 +20,7 @@ defmodule Web.ContactsController do
   defp handle_search(_conn, _params) do
   end
 
-  defp search_by_linkedin(conn, linkedin_url) do
+  defp search_by_linkedin(_conn, _linkedin_url) do
     # check if we have in db
     # if not, call scrapin
     # call better contact
