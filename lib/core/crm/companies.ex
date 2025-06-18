@@ -28,7 +28,7 @@ defmodule Core.Crm.Companies do
   alias Core.Utils.PrimaryDomainFinder
   alias Core.Utils.Tracing
 
-  @spec get_or_create_by_domain(any()) ::
+  @spec get_or_create_by_domain(String.t()) ::
           {:ok, Company.t()} | {:error, Ecto.Changeset.t() | String.t()}
   def get_or_create_by_domain(domain) when not is_binary(domain),
     do: {:error, "domain must be a string"}

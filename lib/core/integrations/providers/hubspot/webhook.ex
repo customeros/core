@@ -12,6 +12,7 @@ defmodule Core.Integrations.Providers.HubSpot.Webhook do
   alias Core.Integrations.Connections
   alias Core.Integrations.Providers.HubSpot.Companies
   alias Core.Integrations.Providers.HubSpot.HubSpotCompany
+  alias Core.Utils.Tracing
   require Logger
 
   @type t :: %__MODULE__{
@@ -133,10 +134,14 @@ defmodule Core.Integrations.Providers.HubSpot.Webhook do
       {:ok, %{processed: true}}
   """
   def process_event(%Connection{} = connection, %__MODULE__{} = event) do
-    if company_event?(event) do
+    if company_property_change_event?(event) do
       with {:ok, company} <- Companies.get_company(connection, object_id_string(event)),
-           {:ok, _} <- sync_company(company) do
-        {:ok, %{processed: true}}
+           {:ok, crm_company} <- sync_company(company, connection.tenant_id) do
+        {:ok, %{processed: true, crm_company: crm_company}}
+      else
+        {:error, reason} ->
+          Logger.warning("[HubSpot Webhook] Error syncing company: #{inspect(reason)}")
+          {:error, reason}
       end
     else
       Logger.info("[HubSpot Webhook] Ignoring non-company event: #{event.subscription_type}")
@@ -213,12 +218,24 @@ defmodule Core.Integrations.Providers.HubSpot.Webhook do
     |> Base.encode64()
   end
 
-  defp sync_company(company) do
+  @spec sync_company(map(), String.t()) :: {:ok, %{crm_company: Core.Crm.Companies.Company.t()}} | {:error, any()}
+  defp sync_company(company, tenant_id) do
     hubspot_company = HubSpotCompany.from_hubspot_map(company)
-    # In a real implementation, you would:
-    # 1. Transform the HubSpot company data to your format
-    # 2. Create or update the company in your system
-    # 3. Handle any errors that occur
-    {:ok, hubspot_company}
+    with false <- hubspot_company.archived,
+         domain when is_binary(domain) and domain != "" <- hubspot_company.domain,
+         {:ok, crm_company} <- Core.Crm.Companies.get_or_create_by_domain(domain),
+         {:ok, tenant} <- Core.Auth.Tenants.get_tenant_by_id(tenant_id),
+         {:ok, _lead} <- Core.Crm.Leads.get_or_create(tenant.name, %{ref_id: crm_company.id, type: :company}) do
+      {:ok, %{crm_company: crm_company}}
+    else
+      true -> {:error, :company_archived}
+      false -> {:error, :no_domain}
+      {:error, reason} ->
+        Tracing.error(reason, "Error syncing HubSpot company",
+          company_domain: hubspot_company.domain,
+          external_id: company["id"]
+        )
+        {:error, reason}
+    end
   end
 end
