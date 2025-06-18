@@ -177,6 +177,27 @@ defmodule Core.Integrations.Providers.HubSpot.Client do
     end
   end
 
+  @doc """
+  Revokes a HubSpot OAuth access token via the HubSpot API.
+  Returns :ok on success, {:error, reason} on failure.
+  """
+  def revoke_token(access_token) when is_binary(access_token) do
+    url = "https://api.hubapi.com/oauth/v1/access-tokens/revoke"
+    headers = [{"content-type", "application/json"}]
+    body = Jason.encode!(%{"token" => access_token})
+
+    case Finch.build(:post, url, headers, body) |> Finch.request(Core.Finch) do
+      {:ok, %{status: 200}} ->
+        :ok
+      {:ok, %{status: status, body: resp_body}} ->
+        Logger.error("Failed to revoke HubSpot token: HTTP #{status}: #{resp_body}")
+        {:error, "HTTP #{status}: #{resp_body}"}
+      {:error, reason} ->
+        Logger.error("Failed to revoke HubSpot token: #{inspect(reason)}")
+        {:error, reason}
+    end
+  end
+
   # Private functions
 
   defp ensure_valid_token(%Connection{} = connection) do
