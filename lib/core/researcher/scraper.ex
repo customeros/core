@@ -61,6 +61,10 @@ defmodule Core.Researcher.Scraper do
           Tracing.warning(reason, "Non-scrapeable URL", url: url)
           {:error, reason}
 
+        @err_not_primary_domain ->
+          Tracing.warning("not primary domain", "Skipping scrape", url: url)
+          @err_not_primary_domain
+
         {:error, reason} ->
           Tracing.error(reason, "Invalid URL for scraping", url: url)
           {:error, reason}
@@ -112,6 +116,9 @@ defmodule Core.Researcher.Scraper do
 
         clean_url
       else
+        {:error, :webpage_content_type_not_text_html} ->
+          @err_no_content
+
         {:error, reason} ->
           OpenTelemetry.Tracer.set_attributes([
             {"result", reason}
