@@ -412,6 +412,11 @@ defmodule Core.Crm.Companies.CompanyEnrich do
 
             {:error, reason}
 
+          {:error, :name_empty} ->
+            Tracing.warning(:name_empty, "No name from AI")
+
+            @err_empty_ai_response
+
           {:error, reason} ->
             Tracing.error(reason, "Failed to get name from AI for company",
               company_id: company.id,
