@@ -134,7 +134,7 @@ defmodule Core.Integrations.Providers.HubSpot.Webhook do
   """
   def process_event(%Connection{} = connection, %__MODULE__{} = event) do
     if company_event?(event) do
-      with {:ok, company} <- Compan.get_company(connection, object_id_string(event)),
+      with {:ok, company} <- Companies.get_company(connection, object_id_string(event)),
            {:ok, _} <- sync_company(company) do
         {:ok, %{processed: true}}
       end
