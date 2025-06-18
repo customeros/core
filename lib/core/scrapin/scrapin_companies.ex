@@ -9,6 +9,9 @@ defmodule Core.ScrapinCompanies do
   import Ecto.Query
   alias Core.{Repo, ScrapinCompany, ScrapinCompanyDetails, ScrapinResponseBody}
   alias Core.Utils.{IdGenerator, PrimaryDomainFinder, MapUtils}
+  alias Core.ApiCallLogger.Logger, as: ApiLogger
+
+  @vendor "scrapin"
 
   defp scrapin_api_key, do: Application.get_env(:core, :scrapin)[:scrapin_api_key]
   defp scrapin_base_url, do: Application.get_env(:core, :scrapin)[:scrapin_base_url]
@@ -135,7 +138,7 @@ defmodule Core.ScrapinCompanies do
   defp do_call_scrapin(url, params) do
     query = URI.encode_query(params)
     full_url = url <> "?" <> query
-    case Finch.build(:get, full_url) |> Finch.request(Core.Finch) do
+    case Finch.build(:get, full_url) |> ApiLogger.request(@vendor) do
       {:ok, %{status: 200, body: body}} ->
         case Jason.decode(body) do
           {:ok, map} ->
