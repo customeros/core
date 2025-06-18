@@ -61,7 +61,6 @@ defmodule Core.Researcher.Scraper do
           Tracing.warning(reason, "Non-scrapeable URL", url: url)
           {:error, reason}
 
-
         @err_not_primary_domain ->
           Tracing.warning("not primary domain", "Skipping scrape", url: url)
           @err_not_primary_domain

@@ -203,7 +203,9 @@ config :core, :hubspot,
   api_base_url: "https://api.hubapi.com",
   auth_base_url: "https://app.hubspot.com",
   app_id: System.get_env("HUBSPOT_APP_ID") || "14153034",
-  webhook_uri: System.get_env("HUBSPOT_WEBHOOK_URI") || "https://app.customeros.ai/hubspot/webhook"
+  webhook_uri:
+    System.get_env("HUBSPOT_WEBHOOK_URI") ||
+      "https://app.customeros.ai/hubspot/webhook"
 
 config :core, :scrapin,
   scrapin_api_key: System.get_env("SCRAPIN_API_KEY"),
