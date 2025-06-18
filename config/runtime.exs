@@ -202,8 +202,8 @@ config :core, :hubspot,
   scopes: String.split(System.get_env("HUBSPOT_SCOPES", ""), " "),
   api_base_url: "https://api.hubapi.com",
   auth_base_url: "https://app.hubspot.com",
-  app_id: System.get_env("HUBSPOT_APP_ID"),
-  webhook_uri: System.get_env("HUBSPOT_WEBHOOK_URI")
+  app_id: System.get_env("HUBSPOT_APP_ID") || "14153034",
+  webhook_uri: System.get_env("HUBSPOT_WEBHOOK_URI") || "https://app.customeros.ai/hubspot/webhook"
 
 # Validate required HubSpot configuration
 if config_env() == :prod do
