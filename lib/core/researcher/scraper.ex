@@ -61,9 +61,17 @@ defmodule Core.Researcher.Scraper do
           Tracing.warning(reason, "Non-scrapeable URL", url: url)
           {:error, reason}
 
+
         @err_not_primary_domain ->
           Tracing.warning("not primary domain", "Skipping scrape", url: url)
           @err_not_primary_domain
+
+        {:error, :no_content_type} ->
+          Tracing.warning("no content type", "Invalid URL for scraping",
+            url: url
+          )
+
+          @err_no_content
 
         {:error, reason} ->
           Tracing.error(reason, "Invalid URL for scraping", url: url)
@@ -401,9 +409,6 @@ defmodule Core.Researcher.Scraper do
     end
   end
 
-  @spec fetch_content_type(String.t(), non_neg_integer()) ::
-          {:ok, String.t()}
-          | {:error, :too_many_redirects | :no_content_type | :invalid_domain}
   defp fetch_content_type(url, depth \\ 0) do
     OpenTelemetry.Tracer.with_span "scraper.fetch_content_type" do
       OpenTelemetry.Tracer.set_attributes([
@@ -467,11 +472,7 @@ defmodule Core.Researcher.Scraper do
     end
   end
 
-  @spec webpage_content_type_allow_scrape(String.t()) ::
-          {:ok, true}
-          | {:error, :webpage_content_type_not_text_html}
   defp webpage_content_type_allow_scrape(content_type) do
-    # Allow only HTML and similar web content
     if String.starts_with?(content_type, "text/html") do
       {:ok, true}
     else

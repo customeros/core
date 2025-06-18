@@ -33,9 +33,11 @@ defmodule Core.Crm.Companies.CompanyEnrich do
   @err_update_failed {:error, "update failed"}
   @err_invalid_request {:error, "invalid request"}
   @err_image_not_found {:error, :image_not_found}
+  @err_timeout {:error, "fetch image timed out"}
   @err_empty_ai_response {:error, "empty ai response"}
   @err_scrape_not_needed {:error, "scrape not needed"}
   @err_industry_not_found {:error, :industry_not_found}
+  @err_invalid_homepage {:error, "homepage content invalid"}
   @err_enrichment_not_needed {:error, "enrichment not needed"}
 
   @spec scrape_homepage_start(String.t()) :: {:ok, pid()} | {:error, term()}
@@ -116,6 +118,16 @@ defmodule Core.Crm.Companies.CompanyEnrich do
       case Scraper.scrape_webpage(company.primary_domain) do
         {:ok, %{content: content}} when is_binary(content) ->
           {:ok, content}
+
+        {:error, :webpage_content_type_not_text_html} ->
+          Tracing.warning(
+            "invalid content type",
+            "Failed to scrape homepage for company",
+            company_id: company.id,
+            company_domain: company.primary_domain
+          )
+
+          @err_invalid_homepage
 
         {:error, reason} ->
           Tracing.error(reason, "Failed to scrape homepage for company",
@@ -261,7 +273,9 @@ defmodule Core.Crm.Companies.CompanyEnrich do
             @err_empty_ai_response
 
           {:error, :max_attempts_exceeded} ->
-            Tracing.warning(:max_attempts_exceeded, "Max attempts exceeded for industry enrichment",
+            Tracing.warning(
+              :max_attempts_exceeded,
+              "Max attempts exceeded for industry enrichment",
               company_id: company.id
             )
 
@@ -397,6 +411,11 @@ defmodule Core.Crm.Companies.CompanyEnrich do
             )
 
             {:error, reason}
+
+          {:error, :name_empty} ->
+            Tracing.warning(:name_empty, "No name from AI")
+
+            @err_empty_ai_response
 
           {:error, reason} ->
             Tracing.error(reason, "Failed to get name from AI for company",
@@ -617,6 +636,13 @@ defmodule Core.Crm.Companies.CompanyEnrich do
         )
 
         @err_image_not_found
+
+      {:error, :timeout} ->
+        Tracing.warning("timeout", "Fetching company icon timed out",
+          company_id: company.id
+        )
+
+        @err_timeout
 
       {:error, reason} ->
         Tracing.error(reason, "Failed to download icon for company",

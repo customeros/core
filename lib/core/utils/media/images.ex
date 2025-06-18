@@ -16,6 +16,9 @@ defmodule Core.Utils.Media.Images do
 
   require Logger
 
+  @err_timeout {:error, :timeout}
+  @err_not_found {:error, :image_not_found}
+
   @type storage_opts :: %{
           optional(:generate_name) => boolean(),
           optional(:path) => String.t()
@@ -51,8 +54,6 @@ defmodule Core.Utils.Media.Images do
       iex> download_and_store("https://example.com/image.jpg", %{generate_name: true, path: "images/avatars/"})
       {:ok, "images/avatars/abc123def456.jpg"}
   """
-  @spec download_and_store(String.t(), storage_opts()) ::
-          {:ok, String.t()} | {:error, term()}
   def download_and_store(url, opts \\ %{}) do
     with {:ok, image_data} <- download_image(url),
          content_type <- get_content_type(url) |> handle_content_type(url) do
@@ -64,18 +65,19 @@ defmodule Core.Utils.Media.Images do
   Downloads an image from a URL.
   Returns {:ok, binary_data} or {:error, reason}
   """
-  @spec download_image(String.t()) ::
-          {:ok, binary()} | {:error, :image_not_found} | {:error, String.t()}
   def download_image(url) do
     case Finch.build(:get, url, [], []) |> Finch.request(Core.Finch) do
       {:ok, %{status: 200, body: body}} ->
         {:ok, body}
 
       {:ok, %{status: 404}} ->
-        {:error, :image_not_found}
+        @err_not_found
 
       {:ok, %{status: status}} ->
         {:error, "HTTP request failed with status #{status}"}
+
+      {:error, %Mint.TransportError{reason: :timeout}} ->
+        @err_timeout
 
       {:error, reason} ->
         {:error, "HTTP request failed: #{inspect(reason)}"}
@@ -91,8 +93,6 @@ defmodule Core.Utils.Media.Images do
     * `:generate_name` - If true, generates a random name for the file while preserving extension
     * `:path` - The path prefix where the image should be stored (e.g. "companies" or "users/avatars")
   """
-  @spec store_image(binary(), String.t(), String.t(), storage_opts()) ::
-          {:ok, String.t()} | {:error, term()}
   def store_image(image_data, content_type, original_url, opts \\ %{}) do
     path =
       case Map.get(opts, :path, "") do
