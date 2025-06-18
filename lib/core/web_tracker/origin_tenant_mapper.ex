@@ -14,7 +14,8 @@ defmodule Core.WebTracker.OriginTenantMapper do
     "infinity.co" => "infinityco",
     "nuso.cloud" => "nusocloud",
     "nusocloud.eu" => "nusocloud",
-    "customeros.ai" => "customerosai"
+    "customeros.ai" => "customerosai",
+    "shapeshift.co.za" => "shapeshiftcoza"
   }
 
   @doc """
