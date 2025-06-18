@@ -157,9 +157,17 @@ defmodule Core.ScrapinCompanies do
 
   defp extract_domain(nil), do: {:ok, nil}
   defp extract_domain(website_url) when is_binary(website_url) do
-    case PrimaryDomainFinder.get_primary_domain(website_url) do
-      {:ok, domain} when is_binary(domain) -> {:ok, domain}
-      _ -> {:ok, nil}
+    case Core.Utils.DomainExtractor.extract_base_domain(website_url) do
+      {:ok, website_domain} ->
+        case PrimaryDomainFinder.get_primary_domain(website_domain) do
+          {:ok, domain} when is_binary(domain) -> {:ok, domain}
+          _ -> {:ok, nil}
+        end
+      _ ->
+        case PrimaryDomainFinder.get_primary_domain(website_url) do
+          {:ok, domain} when is_binary(domain) -> {:ok, domain}
+          _ -> {:ok, nil}
+        end
     end
   end
 end
