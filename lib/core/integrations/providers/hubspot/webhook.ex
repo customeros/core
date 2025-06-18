@@ -10,7 +10,8 @@ defmodule Core.Integrations.Providers.HubSpot.Webhook do
 
   alias Core.Integrations.Connection
   alias Core.Integrations.Connections
-  alias Core.Integrations.Providers.HubSpot.Company
+  alias Core.Integrations.Providers.HubSpot.Companies
+  alias Core.Integrations.Providers.HubSpot.HubSpotCompany
   require Logger
 
   @type t :: %__MODULE__{
@@ -43,40 +44,6 @@ defmodule Core.Integrations.Providers.HubSpot.Webhook do
     :subscription_type
   ]
 
-  @doc """
-  Creates a HubSpotEvent struct from a raw event map.
-
-  ## Examples
-
-      iex> HubSpotEvent.new(%{
-      ...>   "appId" => 14153034,
-      ...>   "attemptNumber" => 7,
-      ...>   "changeSource" => "CRM_UI",
-      ...>   "eventId" => 429763373,
-      ...>   "objectId" => 173686420716,
-      ...>   "occurredAt" => 1750172241192,
-      ...>   "portalId" => 146363387,
-      ...>   "propertyName" => "city",
-      ...>   "propertyValue" => "test54",
-      ...>   "sourceId" => "userId:29511261",
-      ...>   "subscriptionId" => 3787651,
-      ...>   "subscriptionType" => "company.propertyChange"
-      ...> })
-      %HubSpotEvent{
-        app_id: 14153034,
-        attempt_number: 7,
-        change_source: "CRM_UI",
-        event_id: 429763373,
-        object_id: 173686420716,
-        occurred_at: 1750172241192,
-        portal_id: 146363387,
-        property_name: "city",
-        property_value: "test54",
-        source_id: "userId:29511261",
-        subscription_id: 3787651,
-        subscription_type: "company.propertyChange"
-      }
-  """
   def new(event_map) when is_map(event_map) do
     %__MODULE__{
       app_id: event_map["appId"],
@@ -101,12 +68,17 @@ defmodule Core.Integrations.Providers.HubSpot.Webhook do
 
       iex> HubSpotEvent.company_event?(%HubSpotEvent{subscription_type: "company.propertyChange"})
       true
-
-      iex> HubSpotEvent.company_event?(%HubSpotEvent{subscription_type: "contact.creation"})
-      false
   """
   def company_event?(%__MODULE__{subscription_type: subscription_type}) do
     String.starts_with?(subscription_type, "company.")
+  end
+
+  def company_property_change_event?(%__MODULE__{subscription_type: subscription_type}) do
+    subscription_type == "company.propertyChange"
+  end
+
+  def company_creation_event?(%__MODULE__{subscription_type: subscription_type}) do
+    subscription_type == "company.creation"
   end
 
   @doc """
@@ -145,9 +117,9 @@ defmodule Core.Integrations.Providers.HubSpot.Webhook do
       {:error, :invalid_signature}
   """
   def verify_webhook(%Connection{} = connection, signature, payload) do
-    expected = generate_signature(payload, connection.access_token)
+    expected_signature = generate_signature(payload, connection.access_token)
 
-    if Plug.Crypto.secure_compare(signature, expected),
+    if Plug.Crypto.secure_compare(signature, expected_signature),
       do: {:ok, true},
       else: {:error, :invalid_signature}
   end
@@ -162,8 +134,7 @@ defmodule Core.Integrations.Providers.HubSpot.Webhook do
   """
   def process_event(%Connection{} = connection, %__MODULE__{} = event) do
     if company_event?(event) do
-      with {:ok, _} <- Connections.update_status(connection, :active),
-           {:ok, company} <- Company.get_company(connection, object_id_string(event)),
+      with {:ok, company} <- Compan.get_company(connection, object_id_string(event)),
            {:ok, _} <- sync_company(company) do
         {:ok, %{processed: true}}
       end
@@ -229,7 +200,7 @@ defmodule Core.Integrations.Providers.HubSpot.Webhook do
     event_struct = new(event)
     portal_id = portal_id_string(event_struct)
 
-    case Core.Integrations.Connections.get_connection_by_provider_and_external_id(:hubspot, portal_id) do
+    case Connections.get_connection_by_provider_and_external_id(:hubspot, portal_id) do
       {:ok, connection} -> process_event(connection, event_struct)
       {:error, :not_found} -> {:error, :connection_not_found}
     end
@@ -243,10 +214,11 @@ defmodule Core.Integrations.Providers.HubSpot.Webhook do
   end
 
   defp sync_company(company) do
+    hubspot_company = HubSpotCompany.from_hubspot_map(company)
     # In a real implementation, you would:
     # 1. Transform the HubSpot company data to your format
     # 2. Create or update the company in your system
     # 3. Handle any errors that occur
-    {:ok, company}
+    {:ok, hubspot_company}
   end
 end
