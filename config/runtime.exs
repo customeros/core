@@ -74,7 +74,7 @@ config :logger,
   backends: [{LoggerFileBackend, :info_log}]
 
 config :logger, :info_log,
-  path: "/app/logs/app.log",
+  path: "/tmp/logs/app.log",
   level: :info,
   format: "$time $metadata[$level] $message\n",
   metadata: [:request_id, :user_id]
