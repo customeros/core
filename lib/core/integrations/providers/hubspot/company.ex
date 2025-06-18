@@ -1,74 +1,34 @@
-defmodule Core.Integrations.Providers.HubSpot.Company do
-  @moduledoc """
-  HubSpot company integration.
+defmodule Core.Integrations.Providers.HubSpot.HubSpotCompany do
+  @moduledoc "Struct for a HubSpot company object"
 
-  This module handles the synchronization of companies from HubSpot to our system.
-  It provides functions for:
-  - Fetching companies from HubSpot
-  - Syncing company data between systems
-  """
-
-  alias Core.Integrations.Providers.HubSpot.Client
-  alias Core.Integrations.Connection
-  alias Core.Integrations.Connections
-
-  @doc """
-  Fetches a company from HubSpot by ID.
-
-  ## Examples
-
-      iex> get_company(connection, "123")
-      {:ok, %{"id" => "123", "properties" => %{"name" => "Acme Inc"}}}
-  """
-  def get_company(%Connection{} = connection, company_id) do
-    with {:ok, _} <- Connections.update_status(connection, :active),
-         {:ok, response} <-
-           Client.get(connection, "/crm/v3/objects/companies/#{company_id}") do
-      {:ok, response}
-    end
-  end
+  defstruct [
+    :id,
+    :archived,
+    :created_at,
+    :updated_at,
+    :name,
+    :domain,
+    :hs_object_id,
+    :createdate,
+    :hs_lastmodifieddate,
+    :raw_properties
+  ]
 
   @doc """
-  Lists companies from HubSpot.
-
-  ## Examples
-
-      iex> list_companies(connection)
-      {:ok, %{"results" => [...]}}
-
-      iex> list_companies(connection, %{limit: 10, after: "123"})
-      {:ok, %{"results" => [...]}}
+  Maps a raw HubSpot company map to a HubSpotCompany struct.
   """
-  def list_companies(%Connection{} = connection, params \\ %{}) do
-    with {:ok, _} <- Connections.update_status(connection, :active),
-         {:ok, response} <-
-           Client.get(connection, "/crm/v3/objects/companies", params) do
-      {:ok, response}
-    end
-  end
-
-  @doc """
-  Fetches a company from HubSpot by tenant ID and company ID.
-
-  Looks up the HubSpot connection for the given tenant, ensures the token is valid (refreshing if needed),
-  and fetches the company details from HubSpot.
-
-  ## Examples
-
-      iex> get_company_by_tenant("tenant_123", "456")
-      {:ok, %{"id" => "456", ...}}
-
-      iex> get_company_by_tenant("unknown_tenant", "456")
-      {:error, :not_found}
-  """
-  def get_company_by_tenant(tenant_id, company_id) when is_binary(tenant_id) and is_binary(company_id) do
-    case Connections.get_connection(tenant_id, :hubspot) do
-      {:ok, %Connection{} = connection} ->
-        get_company(connection, company_id)
-      {:error, :not_found} ->
-        {:error, :not_found}
-      {:error, reason} ->
-        {:error, reason}
-    end
+  def from_hubspot_map(%{"id" => id, "archived" => archived, "createdAt" => created_at, "updatedAt" => updated_at, "properties" => props}) do
+    %__MODULE__{
+      id: id,
+      archived: archived,
+      created_at: created_at,
+      updated_at: updated_at,
+      name: Map.get(props, "name"),
+      domain: Map.get(props, "domain"),
+      hs_object_id: Map.get(props, "hs_object_id"),
+      createdate: Map.get(props, "createdate"),
+      hs_lastmodifieddate: Map.get(props, "hs_lastmodifieddate"),
+      raw_properties: props
+    }
   end
 end

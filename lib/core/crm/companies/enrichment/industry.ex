@@ -71,7 +71,7 @@ defmodule Core.Crm.Companies.Enrichment.Industry do
   @spec identify(input(), [String.t()], non_neg_integer()) ::
           {:ok, String.t()} | {:error, term()}
   defp identify(_input, _blacklist, 0) do
-    Tracing.error(
+    Tracing.warning(
       :max_attempts_exceeded,
       "Maximum retry attempts exceeded for industry identification"
     )

@@ -88,7 +88,9 @@ defmodule Core.Integrations.OAuth.Providers.HubSpot do
       {:ok, token_data} ->
         case Token.new(token_data) do
           {:ok, token} ->
-            # Update connection with new tokens and set status back to active
+            # Update connection with new tokens and set status to active temporarily
+            # Note: This indicates token refresh success, but API health will be verified
+            # by actual API operations (like Company.get_company/2)
             case Connections.update_connection(connection, %{
                    access_token: token.access_token,
                    refresh_token: token.refresh_token,
@@ -100,7 +102,8 @@ defmodule Core.Integrations.OAuth.Providers.HubSpot do
                  }) do
               {:ok, updated} ->
                 Logger.info(
-                  "Successfully updated connection with new tokens: #{inspect(updated.id)}"
+                  "Token refresh successful for connection #{inspect(updated.id)}. " <>
+                  "API health will be verified on next operation."
                 )
                 {:ok, updated}
               {:error, reason} ->

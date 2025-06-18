@@ -35,7 +35,7 @@ defmodule Core.Crm.Companies.CompanyEnrich do
   @err_image_not_found {:error, :image_not_found}
   @err_empty_ai_response {:error, "empty ai response"}
   @err_scrape_not_needed {:error, "scrape not needed"}
-  @err_industry_not_found {:error, "industry not found"}
+  @err_industry_not_found {:error, :industry_not_found}
   @err_enrichment_not_needed {:error, "enrichment not needed"}
 
   @spec scrape_homepage_start(String.t()) :: {:ok, pid()} | {:error, term()}
@@ -259,6 +259,13 @@ defmodule Core.Crm.Companies.CompanyEnrich do
             )
 
             @err_empty_ai_response
+
+          {:error, :max_attempts_exceeded} ->
+            Tracing.warning(:max_attempts_exceeded, "Max attempts exceeded for industry enrichment",
+              company_id: company.id
+            )
+
+            @err_industry_not_found
 
           {:error, reason} ->
             Tracing.error(reason, "Failed to get industry code from AI",
