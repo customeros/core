@@ -63,7 +63,7 @@ if otel_endpoint do
     resource: [
       service: [
         name: otel_service_name,
-        version: "0.1.81"
+        version: "0.1.82"
       ]
     ]
 
@@ -83,17 +83,28 @@ if otel_endpoint do
       }
     ]
 
-  # Configure logger for OTEL log forwarding
+  # Configure logger for OTEL log forwarding with modern format
   config :logger,
     backends: [:console, OpenTelemetry.Logger.Handler]
 
-  config :logger, OpenTelemetry.Logger.Handler, level: :info
+  config :logger, OpenTelemetry.Logger.Handler,
+    level: :info,
+    # Use modern OTLP format
+    config: %{
+      exporter: %{
+        module: :opentelemetry_exporter,
+        config: %{
+          otlp_endpoint: otel_endpoint,
+          otlp_protocol: :http_protobuf
+        }
+      }
+    }
 else
   # Fallback if no OTEL endpoint is configured
   config :opentelemetry, processors: []
 end
 
-# Default logger configuration with OTEL formatter
+# Default logger configuration
 config :logger, :default_handler,
   config: %{
     formatter: {OpenTelemetry.Logger.Formatter, []}
