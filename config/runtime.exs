@@ -55,19 +55,49 @@ config :core, :analytics,
 config :core, :support, atlas_app_id: get_env.("ATLAS_APP_ID", nil)
 
 # OpenTelemetry configuration
-config :opentelemetry,
-       :processors,
-       if(System.get_env("OTEL_EXPORTER_OTLP_ENDPOINT"),
-         do: [
-           otel_batch_processor: %{
-             exporter: {
-               :opentelemetry_exporter,
-               %{endpoints: [System.get_env("OTEL_EXPORTER_OTLP_ENDPOINT")]}
-             }
-           }
-         ],
-         else: []
-       )
+otel_endpoint = System.get_env("OTEL_EXPORTER_OTLP_ENDPOINT")
+otel_service_name = System.get_env("OTEL_SERVICE_NAME", "core")
+
+if otel_endpoint do
+  config :opentelemetry,
+    resource: [
+      service: [
+        name: otel_service_name,
+        version: "0.1.81"
+      ]
+    ]
+
+  config :opentelemetry_exporter,
+    otlp_protocol: :http_protobuf,
+    otlp_endpoint: otel_endpoint,
+    otlp_headers: []
+
+  # Configure OTEL processors for traces
+  config :opentelemetry,
+    processors: [
+      otel_batch_processor: %{
+        exporter: {
+          :opentelemetry_exporter,
+          %{endpoints: [otel_endpoint]}
+        }
+      }
+    ]
+
+  # Configure logger for OTEL log forwarding
+  config :logger,
+    backends: [:console, OpenTelemetry.Logger.Handler]
+
+  config :logger, OpenTelemetry.Logger.Handler, level: :info
+else
+  # Fallback if no OTEL endpoint is configured
+  config :opentelemetry, processors: []
+end
+
+# Default logger configuration with OTEL formatter
+config :logger, :default_handler,
+  config: %{
+    formatter: {OpenTelemetry.Logger.Formatter, []}
+  }
 
 # IPData and Snitcher configuration
 config :core, :ipdata,
@@ -209,7 +239,8 @@ config :core, :hubspot,
 
 config :core, :scrapin,
   scrapin_api_key: System.get_env("SCRAPIN_API_KEY"),
-  scrapin_base_url: System.get_env("SCRAPIN_BASE_URL") || "https://api.scrapin.io"
+  scrapin_base_url:
+    System.get_env("SCRAPIN_BASE_URL") || "https://api.scrapin.io"
 
 # Validate required HubSpot configuration
 if config_env() == :prod do
