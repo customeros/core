@@ -162,7 +162,8 @@ defmodule Core.Crm.Companies.CompanyEnrich do
       enrich_icon_task(company_id),
       enrich_name_task(company_id),
       enrich_industry_task(company_id),
-      enrich_country_task(company_id)
+      enrich_country_task(company_id),
+      enrich_business_model_task(company_id)
     ]
     |> Enum.each(fn
       {:ok, _pid} ->
@@ -723,6 +724,98 @@ defmodule Core.Crm.Companies.CompanyEnrich do
     {:error, reason}
   end
 
+  @spec enrich_business_model_task(String.t()) ::
+          {:ok, pid()} | {:error, term()}
+  def enrich_business_model_task(company_id) do
+    OpenTelemetry.Tracer.with_span "company_enrich.enrich_business_model_task" do
+      current_ctx = OpenTelemetry.Ctx.get_current()
+
+      Task.Supervisor.start_child(Core.TaskSupervisor, fn ->
+        OpenTelemetry.Ctx.attach(current_ctx)
+        enrich_business_model(company_id)
+      end)
+    end
+  end
+
+  def enrich_business_model(company_id) do
+    OpenTelemetry.Tracer.with_span "company_enrich.enrich_business_model" do
+      OpenTelemetry.Tracer.set_attributes([{"company.id", company_id}])
+
+      with {:ok, company} <-
+             fetch_company_for_enrichment(company_id, "business_model"),
+           :ok <- validate_business_model_eligibility(company),
+           :ok <- mark_business_model_attempt(company_id),
+           {:ok, business_model} <- get_business_model_from_ai(company),
+           :ok <- update_company_business_model(company_id, business_model) do
+        :ok
+      else
+        {:error, reason} ->
+          handle_enrichment_error(company_id, reason, "business_model")
+      end
+    end
+  end
+
+  defp validate_business_model_eligibility(company) do
+    if should_enrich_business_model?(company),
+      do: :ok,
+      else: @err_enrichment_not_needed
+  end
+
+  defp mark_business_model_attempt(company_id) do
+    case Repo.update_all(
+           from(c in Company, where: c.id == ^company_id),
+           set: [business_model_enrich_attempt_at: DateTime.utc_now()],
+           inc: [business_model_enrichment_attempts: 1]
+         ) do
+      {0, _} ->
+        Tracing.error(
+          :update_failed,
+          "Failed to mark business model enrichment attempt for company",
+          company_id: company_id
+        )
+
+        @err_update_failed
+
+      {_count, _} ->
+        :ok
+    end
+  end
+
+  defp get_business_model_from_ai(company) do
+    case get_homepage_content(company.primary_domain) do
+      {:ok, homepage_content} ->
+        case Enrichment.BusinessModel.identify_business_model(
+               company.primary_domain,
+               homepage_content
+             ) do
+          {:ok, business_model} -> {:ok, business_model}
+          {:error, reason} -> {:error, reason}
+        end
+
+      {:error, reason} ->
+        {:error, reason}
+    end
+  end
+
+  defp update_company_business_model(company_id, business_model) do
+    case Repo.update_all(
+           from(c in Company, where: c.id == ^company_id),
+           set: [business_model: business_model]
+         ) do
+      {0, _} ->
+        Tracing.error(
+          :update_failed,
+          "Failed to update business model for company",
+          company_id: company_id
+        )
+
+        @err_update_failed
+
+      {_count, _} ->
+        :ok
+    end
+  end
+
   # Private helper methods
   @spec should_enrich_industry?(Company.t()) :: boolean()
   defp should_enrich_industry?(%Company{} = company) do
@@ -807,6 +900,37 @@ defmodule Core.Crm.Companies.CompanyEnrich do
   end
 
   defp should_enrich_country?(_), do: false
+
+  @spec should_enrich_business_model?(Company.t()) :: boolean()
+  defp should_enrich_business_model?(%Company{} = company) do
+    OpenTelemetry.Tracer.with_span "company_enrich.should_enrich_business_model?" do
+      OpenTelemetry.Tracer.set_attributes([
+        {"company.id", company.id},
+        {"company.domain", company.primary_domain}
+      ])
+
+      case company.homepage_scraped do
+        true ->
+          result =
+            is_nil(company.business_model) or company.business_model == ""
+
+          OpenTelemetry.Tracer.set_attributes([
+            {"result", result}
+          ])
+
+          result
+
+        false ->
+          OpenTelemetry.Tracer.set_attributes([
+            {"result", "false"}
+          ])
+
+          false
+      end
+    end
+  end
+
+  defp should_enrich_business_model?(_), do: false
 
   @spec should_enrich_icon?(Company.t()) :: boolean()
   defp should_enrich_icon?(%Company{} = company) do

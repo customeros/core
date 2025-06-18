@@ -69,6 +69,9 @@ defmodule Core.Crm.Companies.CompanyEnricher do
           {_, num_companies_for_homepage_scrape} =
             enrich_companies_homepage_scrape()
 
+          {_, num_companies_for_business_model_enrichment} =
+            enrich_companies_business_model()
+
           # Release the lock after processing
           CronLocks.release_lock(:cron_company_enricher, lock_uuid)
 
@@ -78,7 +81,9 @@ defmodule Core.Crm.Companies.CompanyEnricher do
                  num_companies_for_name_enrichment == @default_batch_size or
                  num_companies_for_country_enrichment == @default_batch_size or
                  num_companies_for_industry_enrichment == @default_batch_size or
-                 num_companies_for_homepage_scrape == @default_batch_size do
+                 num_companies_for_homepage_scrape == @default_batch_size or
+                 num_companies_for_business_model_enrichment ==
+                   @default_batch_size do
               @default_interval_ms
             else
               @long_interval_ms
@@ -243,6 +248,66 @@ defmodule Core.Crm.Companies.CompanyEnricher do
     )
     |> where([c], c.inserted_at < ^minutes_ago_10)
     |> order_by([c], asc_nulls_first: c.industry_enrich_attempt_at)
+    |> limit(^batch_size)
+    |> Repo.all()
+  end
+
+  def enrich_companies_business_model() do
+    OpenTelemetry.Tracer.with_span "company_enricher.enrich_companies_business_model" do
+      companies_for_business_model_enrichment =
+        fetch_companies_for_business_model_enrichment(@default_batch_size)
+
+      OpenTelemetry.Tracer.set_attributes([
+        {"companies.found", length(companies_for_business_model_enrichment)},
+        {"batch.size", @default_batch_size}
+      ])
+
+      # Enrich each company's business model
+      Enum.each(
+        companies_for_business_model_enrichment,
+        &enrich_company_business_model/1
+      )
+
+      {:ok, length(companies_for_business_model_enrichment)}
+    end
+  end
+
+  defp enrich_company_business_model(company) do
+    OpenTelemetry.Tracer.with_span "company_enricher.enrich_company_business_model" do
+      OpenTelemetry.Tracer.set_attributes([
+        {"company.id", company.id},
+        {"company.domain", company.primary_domain}
+      ])
+
+      case CompanyEnrich.enrich_business_model(company.id) do
+        :ok ->
+          Tracing.ok()
+          :ok
+
+        {:error, reason} ->
+          Tracing.error(reason)
+
+          {:error, reason}
+      end
+    end
+  end
+
+  defp fetch_companies_for_business_model_enrichment(batch_size) do
+    hours_ago_24 = DateTime.add(DateTime.utc_now(), -24 * 60 * 60)
+    minutes_ago_10 = DateTime.add(DateTime.utc_now(), -10 * 60)
+    max_attempts = 5
+
+    Company
+    |> where([c], is_nil(c.business_model))
+    |> where([c], c.homepage_scraped == true)
+    |> where([c], c.business_model_enrichment_attempts < ^max_attempts)
+    |> where(
+      [c],
+      is_nil(c.business_model_enrich_attempt_at) or
+        c.business_model_enrich_attempt_at < ^hours_ago_24
+    )
+    |> where([c], c.inserted_at < ^minutes_ago_10)
+    |> order_by([c], asc_nulls_first: c.business_model_enrich_attempt_at)
     |> limit(^batch_size)
     |> Repo.all()
   end
