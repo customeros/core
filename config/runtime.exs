@@ -54,57 +54,31 @@ config :core, :analytics,
 # Support configuration
 config :core, :support, atlas_app_id: get_env.("ATLAS_APP_ID", nil)
 
-# OpenTelemetry configuration
-otel_endpoint = System.get_env("OTEL_EXPORTER_OTLP_ENDPOINT")
-otel_service_name = System.get_env("OTEL_SERVICE_NAME", "core")
+# OpenTelemetry configuration (traces only - keep it simple)
+config :opentelemetry,
+       :processors,
+       if(System.get_env("OTEL_EXPORTER_OTLP_ENDPOINT"),
+         do: [
+           otel_batch_processor: %{
+             exporter: {
+               :opentelemetry_exporter,
+               %{endpoints: [System.get_env("OTEL_EXPORTER_OTLP_ENDPOINT")]}
+             }
+           }
+         ],
+         else: []
+       )
 
-if otel_endpoint do
-  config :opentelemetry,
-    resource: [
-      service: [
-        name: otel_service_name,
-        version: "0.1.82"
-      ]
-    ]
+# File-based logging configuration
+config :logger,
+  backends: [{LoggerFileBackend, :info_log}]
 
-  config :opentelemetry_exporter,
-    otlp_protocol: :http_protobuf,
-    otlp_endpoint: otel_endpoint,
-    otlp_headers: []
+config :logger, :info_log,
+  path: "/app/logs/app.log",
+  level: :info,
+  format: "$time $metadata[$level] $message\n",
+  metadata: [:request_id, :user_id]
 
-  # Configure OTEL processors for traces
-  config :opentelemetry,
-    processors: [
-      otel_batch_processor: %{
-        exporter: {
-          :opentelemetry_exporter,
-          %{endpoints: [otel_endpoint]}
-        }
-      }
-    ]
-
-  # Configure logger for OTEL log forwarding with modern format
-  config :logger,
-    backends: [:console, OpenTelemetry.Logger.Handler]
-
-  config :logger, OpenTelemetry.Logger.Handler,
-    level: :info,
-    # Use modern OTLP format
-    config: %{
-      exporter: %{
-        module: :opentelemetry_exporter,
-        config: %{
-          otlp_endpoint: otel_endpoint,
-          otlp_protocol: :http_protobuf
-        }
-      }
-    }
-else
-  # Fallback if no OTEL endpoint is configured
-  config :opentelemetry, processors: []
-end
-
-# Default logger configuration
 config :logger, :default_handler,
   config: %{
     formatter: {OpenTelemetry.Logger.Formatter, []}
