@@ -1,19 +1,46 @@
-defmodule Core.Researcher.BriefWriter.PromptBuilder do
+defmodule Core.Researcher.BriefWriter.AccountResearcher do
   @moduledoc """
-  Constructs prompts for generating detailed account briefs for potential customers.
-
-  This module is responsible for building and formatting prompts that help create
-  comprehensive account briefs. These briefs provide deep insights into potential
-  customers, including their business model, pain points, and strategic context,
-  to enable high-value, relevant conversations.
+  Generates an account overview for a given lead, tailored to a specific tenant's value proposition.
   """
-
   alias Core.Ai
+  alias Core.Utils.TaskAwaiter
+  alias Core.Researcher.Webpages
+  alias Core.Researcher.IcpProfiles
+  alias Core.Utils.MarkdownValidator
+
+  @max_tokens 2056
   @model :claude_sonnet
   @model_temperature 0.3
-  @max_tokens 2056
+  @timeout 60_000
 
-  def build_request(system_prompt, prompt) do
+  def account_overview(tenant_id, lead_domain) do
+    with {:ok, icp} <- IcpProfiles.get_by_tenant_id(tenant_id),
+         {:ok, pages} <-
+           Webpages.get_business_pages_by_domain(lead_domain, limit: 8),
+         request <- build_request(lead_domain, icp, pages),
+         {:ok, overview} <- generate_account_overview(request),
+         {:ok, validated_overview} <-
+           MarkdownValidator.validate_and_clean(overview) do
+      {:ok, validated_overview}
+    else
+      {:error, reason} ->
+        {:error, reason}
+    end
+  end
+
+  defp build_request(domain, icp, business_pages) do
+    {system_prompt, prompt} =
+      build_prompts(domain, business_pages, icp)
+
+    build_ai_request(system_prompt, prompt)
+  end
+
+  defp generate_account_overview(request) do
+    task = Ai.ask_supervised(request)
+    TaskAwaiter.await(task, @timeout)
+  end
+
+  def build_ai_request(system_prompt, prompt) do
     Ai.Request.new(prompt,
       model: @model,
       system_prompt: system_prompt,
@@ -24,11 +51,18 @@ defmodule Core.Researcher.BriefWriter.PromptBuilder do
 
   def build_prompts(domain, business_pages, icp) do
     system_prompt = """
-      I will provide you with my ideal customer profile and qualifying criteria.  I will also provide you details about a company that matches my ideal company profile that I want to engage.  Your job is to help me write an account brief that gives me everything I need to know to start a relevant, high value conversation with this company that helps them solve a real business problem they are likely to have.
+      I will provide you with my ideal customer profile and qualifying criteria.  I will also provide you details about a company that matches my ideal company profile that I want to engage.  Your job is to help me produce an account brief that gives me everything I need to know to start a relevant, high value conversation with this company that helps them solve a real business problem they are likely to have.  Please produce a brief with only these specific sections:
+      - Company overview
+      - Key services
+      - ICP Fit analysis
+      - Current business context & compelling events
+      - Likely pain points
+      - Strategic value drivers
+
       IMPORTANT:  Your brief must be returned in valid markdown format only!
 
       What Makes a Great Account Brief: Quality Standards
-    A great brief tells a story that makes the prospect feel like you already understand their business better than most vendors who contact them.
+    A great brief tells a story that makes the prospect feel like you already understand their business better than 99% of vendors who contact them.
 
     Company Overview Section
 
