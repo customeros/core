@@ -283,7 +283,7 @@ defmodule Core.Crm.Companies.CompanyEnrich do
             @err_industry_not_found
 
           {:error, reason} ->
-            Tracing.error(reason, "Failed to get industry code from AI",
+            Tracing.error(reason, "Failed to get industry NAICS code from AI",
               company_id: company.id,
               company_domain: company.primary_domain
             )
