@@ -1,4 +1,5 @@
 defmodule Core.Logger.SignozLogger do
+  alias Core.Logger.ApiLogger
   @behaviour :gen_event
 
   # Handle when called with {module, opts} tuple
@@ -84,15 +85,20 @@ defmodule Core.Logger.SignozLogger do
     }
 
     Task.start(fn ->
-      Finch.build(
-        :post,
-        state.endpoint,
-        [
-          {"Content-Type", "application/json"}
-        ],
-        Jason.encode!(payload)
-      )
-      |> Finch.request(Core.Finch)
+      try do
+        Finch.build(
+          :post,
+          state.endpoint,
+          [
+            {"Content-Type", "application/json"}
+          ],
+          Jason.encode!(payload)
+        )
+        |> ApiLogger.request("signoz")
+      rescue
+        error ->
+          IO.puts("SignozLogger error: #{inspect(error)}")
+      end
     end)
   end
 
