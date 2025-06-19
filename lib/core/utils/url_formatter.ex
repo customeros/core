@@ -29,6 +29,35 @@ defmodule Core.Utils.UrlFormatter do
   def to_https(_), do: @err_invalid_url
 
   @doc """
+  Returns an https://www. version of the url provided
+  """
+  def to_https_www(input) when is_binary(input) and byte_size(input) > 0 do
+    input = String.trim(input)
+
+    cond do
+      String.starts_with?(input, "https://www.") ->
+        {:ok, input}
+
+      String.starts_with?(input, "http://www.") ->
+        {:ok, String.replace_prefix(input, "http://www.", "https://www.")}
+
+      String.starts_with?(input, "https://") ->
+        {:ok, String.replace_prefix(input, "https://", "https://www.")}
+
+      String.starts_with?(input, "http://") ->
+        {:ok, String.replace_prefix(input, "http://", "https://www.")}
+
+      true ->
+        {:ok, "https://www.#{input}"}
+    end
+  end
+
+  def to_https_www({:ok, url}), do: to_https(url)
+  def to_https_www(""), do: @err_url_not_provided
+  def to_https_www(nil), do: @err_url_not_provided
+  def to_https_www(_), do: @err_invalid_url
+
+  @doc """
   Strips query parameters from a URL and returns both the base URL and the query parameters.
 
   ## Examples
