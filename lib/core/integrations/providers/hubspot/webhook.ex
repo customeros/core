@@ -13,12 +13,6 @@ defmodule Core.Integrations.Providers.HubSpot.Webhook do
   alias Core.Integrations.Connection
   alias Core.Integrations.Connections
   alias Core.Integrations.Providers.HubSpot.Companies
-  alias Core.Integrations.Providers.HubSpot.HubSpotCompany
-  alias Core.Utils.Tracing
-
-  @customer_property_names ["customer_status", "type"]
-  @customer_property_value "customer"
-  @additional_properties ["name", "domain"] ++ @customer_property_names
 
   @type t :: %__MODULE__{
           app_id: integer(),
@@ -132,7 +126,7 @@ defmodule Core.Integrations.Providers.HubSpot.Webhook do
     Companies.get_company_with_properties(
       connection,
       company_id,
-      @additional_properties
+      Companies.additional_properties()
     )
   end
 
@@ -168,7 +162,8 @@ defmodule Core.Integrations.Providers.HubSpot.Webhook do
       if company_event?(event) do
         with {:ok, company} <-
                get_company_with_properties(connection, object_id_string(event)),
-             {:ok, crm_company} <- sync_company(company, connection.tenant_id) do
+             {:ok, crm_company} <-
+               Companies.sync_company(company, connection.tenant_id) do
           {:ok, %{processed: true, crm_company: crm_company}}
         else
           {:error, reason} ->
@@ -241,85 +236,5 @@ defmodule Core.Integrations.Providers.HubSpot.Webhook do
   defp generate_signature(payload, client_secret) do
     :crypto.mac(:hmac, :sha256, client_secret, payload)
     |> Base.encode64()
-  end
-
-  @spec sync_company(map(), String.t()) ::
-          {:ok, %{crm_company: Core.Crm.Companies.Company.t()}}
-          | {:error, any()}
-  defp sync_company(company, tenant_id) do
-    OpenTelemetry.Tracer.with_span "hubspot.webhook.sync_company" do
-      hubspot_company = HubSpotCompany.from_hubspot_map(company)
-      is_customer = customer_type?(hubspot_company)
-
-      with false <- hubspot_company.archived,
-           domain when is_binary(domain) and domain != "" <-
-             hubspot_company.domain,
-           {:ok, crm_company} <-
-             Core.Crm.Companies.get_or_create_by_domain(domain),
-           {:ok, tenant} <- Core.Auth.Tenants.get_tenant_by_id(tenant_id),
-           {:ok, lead} <-
-             get_or_create_lead_with_stage(
-               tenant.name,
-               crm_company.id,
-               is_customer
-             ),
-           {:ok, _updated_lead} <-
-             update_lead_stage_for_customer(lead, is_customer) do
-        {:ok, %{crm_company: crm_company}}
-      else
-        true ->
-          {:error, :company_archived}
-
-        false ->
-          {:error, :no_domain}
-
-        {:error, reason} ->
-          Tracing.error(reason, "Error syncing HubSpot company",
-            company_domain: hubspot_company.domain,
-            external_id: company["id"]
-          )
-
-          {:error, reason}
-      end
-    end
-  end
-
-  defp customer_type?(%HubSpotCompany{raw_properties: raw_properties}) do
-    Enum.any?(@customer_property_names, fn property_name ->
-      case Map.get(raw_properties, property_name) do
-        value when is_binary(value) ->
-          String.downcase(value) == @customer_property_value
-
-        _ ->
-          false
-      end
-    end)
-  end
-
-  defp get_or_create_lead_with_stage(tenant_name, company_id, is_customer) do
-    lead_attrs = %{ref_id: company_id, type: :company}
-
-    lead_attrs =
-      if is_customer do
-        Map.put(lead_attrs, :stage, :customer)
-      else
-        lead_attrs
-      end
-
-    Core.Crm.Leads.get_or_create(tenant_name, lead_attrs)
-  end
-
-  defp update_lead_stage_for_customer(
-         %Core.Crm.Leads.Lead{} = lead,
-         is_customer
-       ) do
-    if is_customer and lead.stage != :customer do
-      case Core.Crm.Leads.update_lead(lead, %{stage: :customer}) do
-        {:ok, updated_lead} -> {:ok, updated_lead}
-        {:error, reason} -> {:error, reason}
-      end
-    else
-      {:ok, lead}
-    end
   end
 end

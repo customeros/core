@@ -82,6 +82,25 @@ defmodule Web.HubspotController do
                       "Successfully created HubSpot connection: #{inspect(connection, pretty: true)}"
                     )
 
+                    # Start async sync of all companies as fire-and-forget
+                    Task.start(fn ->
+                      Logger.info(
+                        "[HubSpot Controller] Starting async sync of all companies for connection #{connection.id}"
+                      )
+
+                      case Core.Integrations.Providers.HubSpot.Companies.sync_all_companies(connection) do
+                        {:ok, result} ->
+                          Logger.info(
+                            "[HubSpot Controller] Completed async sync of all companies: #{inspect(result)}"
+                          )
+
+                        {:error, reason} ->
+                          Logger.error(
+                            "[HubSpot Controller] Failed async sync of all companies: #{inspect(reason)}"
+                          )
+                      end
+                    end)
+
                     conn
                     |> put_flash(:success, "Successfully connected to HubSpot")
                     |> redirect(to: ~p"/leads")

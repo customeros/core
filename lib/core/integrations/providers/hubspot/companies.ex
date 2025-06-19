@@ -9,28 +9,43 @@ defmodule Core.Integrations.Providers.HubSpot.Companies do
   """
 
   require Logger
+  require OpenTelemetry.Tracer
   alias Core.Integrations.Providers.HubSpot.Client
   alias Core.Integrations.Connection
   alias Core.Integrations.Connections
+  alias Core.Integrations.Providers.HubSpot.HubSpotCompany
+  alias Core.Utils.Tracing
+
+  @customer_property_names ["customer_status", "type"]
+  @customer_property_value "customer"
+  @additional_properties ["name", "domain"] ++ @customer_property_names
+
+  def additional_properties do
+    @additional_properties
+  end
 
   @doc """
   Lists companies from HubSpot.
 
   ## Examples
 
-      iex> list_companies(connection)
+      iex> list_hubspot_companies(connection)
       {:ok, %{"results" => [...]}}
 
-      iex> list_companies(connection, %{limit: 10, after: "123"})
+      iex> list_hubspot_companies(connection, %{limit: 10, after: "123"})
       {:ok, %{"results" => [...]}}
   """
-  def list_companies(%Connection{} = connection, params \\ %{}) do
+  def list_hubspot_companies(%Connection{} = connection, params \\ %{}) do
     Logger.debug(
       "[HubSpot Company] Listing companies for connection #{connection.id} with params: #{inspect(params)}"
     )
 
     with {:ok, response} <-
            Client.get(connection, "/crm/v3/objects/companies", params) do
+      dbg("================================================")
+      dbg(params)
+      dbg("================================================")
+      dbg(response)
       # API call succeeded - connection is healthy, update status to active
       case Connections.update_status(connection, :active) do
         {:ok, _} ->
@@ -202,6 +217,210 @@ defmodule Core.Integrations.Providers.HubSpot.Companies do
               "[HubSpot Company] Failed to update connection status to error: #{inspect(update_reason)}"
             )
         end
+
+        {:error, reason}
+    end
+  end
+
+  @spec sync_company(map(), String.t()) ::
+          {:ok, %{crm_company: Core.Crm.Companies.Company.t()}}
+          | {:error, any()}
+  def sync_company(company, tenant_id) do
+    OpenTelemetry.Tracer.with_span "hubspot.companies.sync_company" do
+      hubspot_company = HubSpotCompany.from_hubspot_map(company)
+      is_customer = customer_type?(hubspot_company)
+
+      with false <- hubspot_company.archived,
+           domain when is_binary(domain) and domain != "" <-
+             hubspot_company.domain,
+           {:ok, crm_company} <-
+             Core.Crm.Companies.get_or_create_by_domain(domain),
+           {:ok, tenant} <- Core.Auth.Tenants.get_tenant_by_id(tenant_id),
+           {:ok, lead} <-
+             get_or_create_lead_with_stage(
+               tenant.name,
+               crm_company.id,
+               is_customer
+             ),
+           {:ok, _updated_lead} <-
+             update_lead_stage_for_customer(lead, is_customer) do
+        {:ok, %{crm_company: crm_company}}
+      else
+        true ->
+          {:error, :company_archived}
+
+        false ->
+          {:error, :no_domain}
+
+        {:error, reason} ->
+          Tracing.error(reason, "Error syncing HubSpot company",
+            company_domain: hubspot_company.domain,
+            external_id: company["id"]
+          )
+
+          {:error, reason}
+      end
+    end
+  end
+
+  defp customer_type?(%HubSpotCompany{raw_properties: raw_properties}) do
+    Enum.any?(@customer_property_names, fn property_name ->
+      case Map.get(raw_properties, property_name) do
+        value when is_binary(value) ->
+          String.downcase(value) == @customer_property_value
+
+        _ ->
+          false
+      end
+    end)
+  end
+
+  defp get_or_create_lead_with_stage(tenant_name, company_id, is_customer) do
+    lead_attrs = %{ref_id: company_id, type: :company}
+
+    lead_attrs =
+      if is_customer do
+        Map.put(lead_attrs, :stage, :customer)
+      else
+        lead_attrs
+      end
+
+    Core.Crm.Leads.get_or_create(tenant_name, lead_attrs)
+  end
+
+  defp update_lead_stage_for_customer(
+         %Core.Crm.Leads.Lead{} = lead,
+         is_customer
+       ) do
+    if is_customer and lead.stage != :customer do
+      case Core.Crm.Leads.update_lead(lead, %{stage: :customer}) do
+        {:ok, updated_lead} -> {:ok, updated_lead}
+        {:error, reason} -> {:error, reason}
+      end
+    else
+      {:ok, lead}
+    end
+  end
+
+  @doc """
+  Syncs all companies from HubSpot with pagination.
+
+  Fetches companies page by page, gets detailed information for each company,
+  and syncs them to the CRM system.
+
+  ## Examples
+
+      iex> sync_all_companies(connection)
+      {:ok, %{total_synced: 150, total_pages: 3}}
+
+      iex> sync_all_companies(connection, %{limit: 50})
+      {:ok, %{total_synced: 75, total_pages: 2}}
+  """
+  def sync_all_companies(%Connection{} = connection, params \\ %{}) do
+    OpenTelemetry.Tracer.with_span "hubspot.companies.sync_all_companies" do
+      default_params = %{limit: 100}
+      sync_params = Map.merge(default_params, params)
+
+      Logger.info(
+        "[HubSpot Company] Starting sync of all companies for connection #{connection.id} with params: #{inspect(sync_params)}"
+      )
+
+      do_sync_all_companies(connection, sync_params, 0, 0)
+    end
+  end
+
+  defp do_sync_all_companies(connection, params, total_synced, total_pages) do
+    OpenTelemetry.Tracer.with_span "hubspot.companies.do_sync_all_companies" do
+      case list_hubspot_companies(connection, params) do
+        {:ok, %{"results" => companies} = response} ->
+          Logger.info(
+            "[HubSpot Company] Processing page #{total_pages + 1} with #{length(companies)} companies"
+          )
+
+          # Process each company in the current page
+          {synced_count, errors} = process_companies_page(connection, companies)
+
+          updated_total_synced = total_synced + synced_count
+          updated_total_pages = total_pages + 1
+
+          # Log any errors that occurred during processing
+          if length(errors) > 0 do
+            Logger.warning(
+              "[HubSpot Company] Encountered #{length(errors)} errors while processing page #{updated_total_pages}: #{inspect(errors)}"
+            )
+          end
+
+          # Check if there are more pages to process
+          paging = Map.get(response, "paging", %{})
+
+          case Map.get(paging, "next", %{}) do
+            %{"after" => after_cursor} when is_binary(after_cursor) ->
+              # Continue with next page
+              next_params = Map.put(params, :after, after_cursor)
+
+              do_sync_all_companies(
+                connection,
+                next_params,
+                updated_total_synced,
+                updated_total_pages
+              )
+
+            _ ->
+              # No more pages, we're done
+              Logger.info(
+                "[HubSpot Company] Completed sync of all companies. Total synced: #{updated_total_synced}, Total pages: #{updated_total_pages}"
+              )
+
+              {:ok,
+               %{
+                 total_synced: updated_total_synced,
+                 total_pages: updated_total_pages
+               }}
+          end
+
+        {:error, reason} ->
+          Logger.error(
+            "[HubSpot Company] Error listing companies during sync: #{inspect(reason)}"
+          )
+
+          {:error, reason}
+      end
+    end
+  end
+
+  defp process_companies_page(connection, companies) do
+    Enum.reduce(companies, {0, []}, fn company, {synced_count, errors} ->
+      case sync_single_company(connection, company) do
+        {:ok, _} ->
+          {synced_count + 1, errors}
+
+        {:error, reason} ->
+          {synced_count, [reason | errors]}
+      end
+    end)
+  end
+
+  defp sync_single_company(connection, company) do
+    company_id = company["id"]
+
+    with {:ok, detailed_company} <-
+           get_company_with_properties(
+             connection,
+             company_id,
+             additional_properties()
+           ),
+         {:ok, crm_company} <-
+           sync_company(detailed_company, connection.tenant_id) do
+      Logger.debug(
+        "[HubSpot Company] Successfully synced company #{company_id} (#{crm_company.crm_company.name})"
+      )
+
+      {:ok, crm_company}
+    else
+      {:error, reason} ->
+        Logger.warning(
+          "[HubSpot Company] Failed to sync company #{company_id}: #{inspect(reason)}"
+        )
 
         {:error, reason}
     end
