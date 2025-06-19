@@ -181,7 +181,10 @@ defmodule Core.Integrations.Connections do
       {:error, :not_found}
   """
   def get_connection_by_provider_and_external_id(provider, external_system_id) do
-    case Repo.get_by(Connection, provider: provider, external_system_id: external_system_id) do
+    case Repo.get_by(Connection,
+           provider: provider,
+           external_system_id: external_system_id
+         ) do
       nil -> {:error, :not_found}
       connection -> {:ok, connection}
     end

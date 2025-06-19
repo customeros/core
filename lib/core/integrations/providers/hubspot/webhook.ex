@@ -8,12 +8,17 @@ defmodule Core.Integrations.Providers.HubSpot.Webhook do
   - Data synchronization
   """
 
+  require OpenTelemetry.Tracer
+  require Logger
   alias Core.Integrations.Connection
   alias Core.Integrations.Connections
   alias Core.Integrations.Providers.HubSpot.Companies
   alias Core.Integrations.Providers.HubSpot.HubSpotCompany
   alias Core.Utils.Tracing
-  require Logger
+
+  @customer_property_names ["customer_status", "type"]
+  @customer_property_value "customer"
+  @additional_properties ["name", "domain"] ++ @customer_property_names
 
   @type t :: %__MODULE__{
           app_id: integer(),
@@ -21,6 +26,7 @@ defmodule Core.Integrations.Providers.HubSpot.Webhook do
           change_source: String.t(),
           event_id: integer(),
           object_id: integer(),
+          object_type_id: String.t(),
           occurred_at: integer(),
           portal_id: integer(),
           property_name: String.t() | nil,
@@ -36,6 +42,7 @@ defmodule Core.Integrations.Providers.HubSpot.Webhook do
     :change_source,
     :event_id,
     :object_id,
+    :object_type_id,
     :occurred_at,
     :portal_id,
     :property_name,
@@ -52,6 +59,7 @@ defmodule Core.Integrations.Providers.HubSpot.Webhook do
       change_source: event_map["changeSource"],
       event_id: event_map["eventId"],
       object_id: event_map["objectId"],
+      object_type_id: event_map["objectTypeId"],
       occurred_at: event_map["occurredAt"],
       portal_id: event_map["portalId"],
       property_name: event_map["propertyName"],
@@ -62,24 +70,30 @@ defmodule Core.Integrations.Providers.HubSpot.Webhook do
     }
   end
 
-  @doc """
-  Checks if the event is a company-related event.
-
-  ## Examples
-
-      iex> HubSpotEvent.company_event?(%HubSpotEvent{subscription_type: "company.propertyChange"})
-      true
-  """
-  def company_event?(%__MODULE__{subscription_type: subscription_type}) do
-    String.starts_with?(subscription_type, "company.")
+  def company_event?(event) do
+    company_property_change_event?(event) ||
+      company_creation_event?(event) ||
+      (object_property_change_event?(event) && company_object_event?(event))
   end
 
-  def company_property_change_event?(%__MODULE__{subscription_type: subscription_type}) do
+  def company_property_change_event?(%__MODULE__{
+        subscription_type: subscription_type
+      }) do
     subscription_type == "company.propertyChange"
   end
 
   def company_creation_event?(%__MODULE__{subscription_type: subscription_type}) do
     subscription_type == "company.creation"
+  end
+
+  def object_property_change_event?(%__MODULE__{
+        subscription_type: subscription_type
+      }) do
+    subscription_type == "object.propertyChange"
+  end
+
+  def company_object_event?(%__MODULE__{object_type_id: object_type_id}) do
+    object_type_id == "0-2"
   end
 
   @doc """
@@ -104,6 +118,22 @@ defmodule Core.Integrations.Providers.HubSpot.Webhook do
   """
   def portal_id_string(%__MODULE__{portal_id: portal_id}) do
     to_string(portal_id)
+  end
+
+  @doc """
+  Fetches a company from HubSpot with additional properties.
+
+  ## Examples
+
+      iex> get_company_with_properties(connection, "123")
+      {:ok, %{"id" => "123", "properties" => %{"name" => "Acme Inc", "domain" => "acme.com"}}}
+  """
+  def get_company_with_properties(%Connection{} = connection, company_id) do
+    Companies.get_company_with_properties(
+      connection,
+      company_id,
+      @additional_properties
+    )
   end
 
   @doc """
@@ -134,44 +164,27 @@ defmodule Core.Integrations.Providers.HubSpot.Webhook do
       {:ok, %{processed: true}}
   """
   def process_event(%Connection{} = connection, %__MODULE__{} = event) do
-    if company_property_change_event?(event) do
-      with {:ok, company} <- Companies.get_company(connection, object_id_string(event)),
-           {:ok, crm_company} <- sync_company(company, connection.tenant_id) do
-        {:ok, %{processed: true, crm_company: crm_company}}
+    OpenTelemetry.Tracer.with_span "hubspot.webhook.process_event" do
+      if company_event?(event) do
+        with {:ok, company} <-
+               get_company_with_properties(connection, object_id_string(event)),
+             {:ok, crm_company} <- sync_company(company, connection.tenant_id) do
+          {:ok, %{processed: true, crm_company: crm_company}}
+        else
+          {:error, reason} ->
+            Logger.warning(
+              "[HubSpot Webhook] Error syncing company: #{inspect(reason)}"
+            )
+
+            {:error, reason}
+        end
       else
-        {:error, reason} ->
-          Logger.warning("[HubSpot Webhook] Error syncing company: #{inspect(reason)}")
-          {:error, reason}
-      end
-    else
-      Logger.info("[HubSpot Webhook] Ignoring non-company event: #{event.subscription_type}")
-      {:ok, %{ignored: true, reason: "Non-company event"}}
-    end
-  end
+        Logger.info(
+          "[HubSpot Webhook] Ignoring non-company event: #{event.subscription_type}"
+        )
 
-  @doc """
-  Verifies the v3 signature and processes the event if valid.
-  """
-  def verify_and_process(signature, timestamp, client_secret, raw_body, event, method, request_uri) do
-    base_string = "#{timestamp}#{method}#{request_uri}#{raw_body}"
-    expected_signature =
-      :crypto.mac(:hmac, :sha256, client_secret, base_string)
-      |> Base.encode16(case: :lower)
-
-    if Plug.Crypto.secure_compare(signature, expected_signature) do
-      portal_id = to_string(event["portalId"])
-      case Core.Integrations.Connections.get_connection_by_provider_and_external_id(:hubspot, portal_id) do
-        {:ok, connection} ->
-          Logger.info("[HubSpot Webhook] Signature valid. Found connection for portalId #{portal_id} (tenant_id: #{connection.tenant_id})")
-          # TODO: Handle company by objectId (event["objectId"])
-          :ok
-        {:error, :not_found} ->
-          Logger.error("[HubSpot Webhook] Signature valid but no connection found for portalId #{portal_id}. Ignoring event.")
-          :ok
+        {:ok, %{ignored: true, reason: "Non-company event"}}
       end
-    else
-      Logger.error("[HubSpot Webhook] Signature mismatch: received=#{inspect(signature)}, expected=#{inspect(expected_signature)}")
-      {:error, :invalid_signature}
     end
   end
 
@@ -189,11 +202,20 @@ defmodule Core.Integrations.Providers.HubSpot.Webhook do
   ## Returns
     - true if the signature is valid, false otherwise
   """
-  def verify_signature_v3(client_secret, signature, method, request_uri, raw_body, timestamp) do
+  def verify_signature_v3(
+        client_secret,
+        signature,
+        method,
+        request_uri,
+        raw_body,
+        timestamp
+      ) do
     base_string = "#{method}#{request_uri}#{raw_body}#{timestamp}"
+
     expected =
       :crypto.mac(:hmac, :sha256, client_secret, base_string)
       |> Base.encode64()
+
     Plug.Crypto.secure_compare(signature, expected)
   end
 
@@ -205,7 +227,10 @@ defmodule Core.Integrations.Providers.HubSpot.Webhook do
     event_struct = new(event)
     portal_id = portal_id_string(event_struct)
 
-    case Connections.get_connection_by_provider_and_external_id(:hubspot, portal_id) do
+    case Connections.get_connection_by_provider_and_external_id(
+           :hubspot,
+           portal_id
+         ) do
       {:ok, connection} -> process_event(connection, event_struct)
       {:error, :not_found} -> {:error, :connection_not_found}
     end
@@ -218,24 +243,83 @@ defmodule Core.Integrations.Providers.HubSpot.Webhook do
     |> Base.encode64()
   end
 
-  @spec sync_company(map(), String.t()) :: {:ok, %{crm_company: Core.Crm.Companies.Company.t()}} | {:error, any()}
+  @spec sync_company(map(), String.t()) ::
+          {:ok, %{crm_company: Core.Crm.Companies.Company.t()}}
+          | {:error, any()}
   defp sync_company(company, tenant_id) do
-    hubspot_company = HubSpotCompany.from_hubspot_map(company)
-    with false <- hubspot_company.archived,
-         domain when is_binary(domain) and domain != "" <- hubspot_company.domain,
-         {:ok, crm_company} <- Core.Crm.Companies.get_or_create_by_domain(domain),
-         {:ok, tenant} <- Core.Auth.Tenants.get_tenant_by_id(tenant_id),
-         {:ok, _lead} <- Core.Crm.Leads.get_or_create(tenant.name, %{ref_id: crm_company.id, type: :company}) do
-      {:ok, %{crm_company: crm_company}}
+    OpenTelemetry.Tracer.with_span "hubspot.webhook.sync_company" do
+      hubspot_company = HubSpotCompany.from_hubspot_map(company)
+      is_customer = customer_type?(hubspot_company)
+
+      with false <- hubspot_company.archived,
+           domain when is_binary(domain) and domain != "" <-
+             hubspot_company.domain,
+           {:ok, crm_company} <-
+             Core.Crm.Companies.get_or_create_by_domain(domain),
+           {:ok, tenant} <- Core.Auth.Tenants.get_tenant_by_id(tenant_id),
+           {:ok, lead} <-
+             get_or_create_lead_with_stage(
+               tenant.name,
+               crm_company.id,
+               is_customer
+             ),
+           {:ok, _updated_lead} <-
+             update_lead_stage_for_customer(lead, is_customer) do
+        {:ok, %{crm_company: crm_company}}
+      else
+        true ->
+          {:error, :company_archived}
+
+        false ->
+          {:error, :no_domain}
+
+        {:error, reason} ->
+          Tracing.error(reason, "Error syncing HubSpot company",
+            company_domain: hubspot_company.domain,
+            external_id: company["id"]
+          )
+
+          {:error, reason}
+      end
+    end
+  end
+
+  defp customer_type?(%HubSpotCompany{raw_properties: raw_properties}) do
+    Enum.any?(@customer_property_names, fn property_name ->
+      case Map.get(raw_properties, property_name) do
+        value when is_binary(value) ->
+          String.downcase(value) == @customer_property_value
+
+        _ ->
+          false
+      end
+    end)
+  end
+
+  defp get_or_create_lead_with_stage(tenant_name, company_id, is_customer) do
+    lead_attrs = %{ref_id: company_id, type: :company}
+
+    lead_attrs =
+      if is_customer do
+        Map.put(lead_attrs, :stage, :customer)
+      else
+        lead_attrs
+      end
+
+    Core.Crm.Leads.get_or_create(tenant_name, lead_attrs)
+  end
+
+  defp update_lead_stage_for_customer(
+         %Core.Crm.Leads.Lead{} = lead,
+         is_customer
+       ) do
+    if is_customer and lead.stage != :customer do
+      case Core.Crm.Leads.update_lead(lead, %{stage: :customer}) do
+        {:ok, updated_lead} -> {:ok, updated_lead}
+        {:error, reason} -> {:error, reason}
+      end
     else
-      true -> {:error, :company_archived}
-      false -> {:error, :no_domain}
-      {:error, reason} ->
-        Tracing.error(reason, "Error syncing HubSpot company",
-          company_domain: hubspot_company.domain,
-          external_id: company["id"]
-        )
-        {:error, reason}
+      {:ok, lead}
     end
   end
 end

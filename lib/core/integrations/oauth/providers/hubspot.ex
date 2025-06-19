@@ -103,13 +103,16 @@ defmodule Core.Integrations.OAuth.Providers.HubSpot do
               {:ok, updated} ->
                 Logger.info(
                   "Token refresh successful for connection #{inspect(updated.id)}. " <>
-                  "API health will be verified on next operation."
+                    "API health will be verified on next operation."
                 )
+
                 {:ok, updated}
+
               {:error, reason} ->
                 Logger.error(
                   "Failed to update connection with new tokens: #{inspect(reason)}"
                 )
+
                 # Set status to error but keep the new tokens
                 {:ok, _} =
                   Connections.update_connection(connection, %{
@@ -117,8 +120,10 @@ defmodule Core.Integrations.OAuth.Providers.HubSpot do
                     connection_error:
                       "Failed to update connection: #{inspect(reason)}"
                   })
+
                 {:error, :update_failed}
             end
+
           {:error, reason} ->
             Logger.error("Failed to parse token: #{inspect(reason)}")
             {:error, reason}
