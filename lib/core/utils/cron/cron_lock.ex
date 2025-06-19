@@ -13,6 +13,7 @@ defmodule Core.Utils.Cron.CronLock do
   @cron_names [
     :cron_company_domain_processor,
     :cron_company_enricher,
+    :cron_company_scrapin_enricher,
     :cron_session_closer,
     :cron_icp_fit_evaluator,
     :cron_daily_lead_summary_sender

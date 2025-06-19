@@ -24,6 +24,7 @@ defmodule Core.Application do
       Core.Auth.Users.ColorManager,
       Core.Repo,
       Core.Crm.Companies.CompanyEnricher,
+      Core.Crm.Companies.CompanyScrapinEnricher,
       Core.Crm.Companies.CompanyDomainProcessor,
       Core.Crm.Leads.IcpFitEvaluator,
       Core.Crm.Leads.DailyLeadSummarySender,
