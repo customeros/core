@@ -158,8 +158,8 @@ defmodule Core.Crm.Companies.CompanyScrapinEnrich do
 
   defp update_country_code(company, scrapin_company_details) do
     cond do
-      # Only update if country_a2 is not set and country enrichment attempts >= 2
-      is_nil(company.country_a2) && company.country_enrichment_attempts >= 2 ->
+      # Only update if country_a2 is not set and country enrichment attempts > 2
+      is_nil(company.country_a2) && company.country_enrichment_attempts > 2 ->
         country_code = get_country_code_from_headquarter(scrapin_company_details.headquarter)
 
         if country_code && String.length(country_code) == 2 do
@@ -228,8 +228,8 @@ defmodule Core.Crm.Companies.CompanyScrapinEnrich do
 
   defp update_company_name(company, scrapin_company_details) do
     cond do
-      # Only update if company name is empty/nil and name attempts >= 2
-      (is_nil(company.name) || company.name == "") && company.name_enrichment_attempts >= 2 ->
+      # Only update if company name is empty/nil and name attempts > 2
+      (is_nil(company.name) || company.name == "") && company.name_enrichment_attempts > 2 ->
         company_name = scrapin_company_details.name
 
         if company_name && company_name != "" do
