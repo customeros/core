@@ -69,25 +69,31 @@ config :opentelemetry,
          else: []
        )
 
-signoz_endpoint =
-  System.get_env("SIGNOZ_ENDPOINT", "http://10.0.16.2:4318/v1/logs")
-
+# Logger configuration with conditional Signoz backend
+signoz_endpoint = System.get_env("SIGNOZ_ENDPOINT")
 service_name = System.get_env("OTEL_SERVICE_NAME", "core")
 environment = System.get_env("ENVIRONMENT", "production")
 
+# Only add SignozLogger if endpoint is configured and not empty
+backends = [:console]
+
+if signoz_endpoint && signoz_endpoint != "" do
+  backends = backends ++ [Core.Logger.SignozLogger]
+end
+
 config :logger,
-  backends: [:console, Core.Logger.SignozLogger]
+  backends: backends,
+  handle_otp_reports: true,
+  handle_sasl_reports: true
 
-config :logger, Core.Logger.SignozLogger,
-  endpoint: signoz_endpoint,
-  service_name: service_name,
-  env: environment,
-  level: :info
-
-config :logger, :default_handler,
-  config: %{
-    formatter: {OpenTelemetry.Logger.Formatter, []}
-  }
+# Only configure SignozLogger if endpoint exists
+if signoz_endpoint && signoz_endpoint != "" do
+  config :logger, Core.Logger.SignozLogger,
+    endpoint: signoz_endpoint,
+    service_name: service_name,
+    env: environment,
+    level: :info
+end
 
 # IPData and Snitcher configuration
 config :core, :ipdata,

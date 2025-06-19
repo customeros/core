@@ -1,8 +1,14 @@
 defmodule Core.Logger.SignozLogger do
   @behaviour :gen_event
 
+  # Handle when called with {module, opts} tuple
   def init({__MODULE__, opts}) do
     {:ok, configure(opts)}
+  end
+
+  # Handle when called with just the module name (no opts)
+  def init(__MODULE__) do
+    {:ok, configure([])}
   end
 
   def handle_event({level, _gl, {Logger, msg, ts, md}}, state) do
@@ -101,8 +107,34 @@ defmodule Core.Logger.SignozLogger do
     |> Enum.map(fn {key, value} ->
       %{
         "key" => to_string(key),
-        "value" => %{"stringValue" => to_string(value)}
+        "value" => %{"stringValue" => safe_to_string(value)}
       }
     end)
+  end
+
+  defp safe_to_string(value) when is_pid(value), do: inspect(value)
+  defp safe_to_string(value) when is_reference(value), do: inspect(value)
+  defp safe_to_string(value) when is_port(value), do: inspect(value)
+  defp safe_to_string(value) when is_function(value), do: inspect(value)
+  defp safe_to_string(value) when is_map(value), do: inspect(value)
+  defp safe_to_string(value) when is_tuple(value), do: inspect(value)
+
+  defp safe_to_string(value) when is_list(value) do
+    # Handle lists that might contain complex data
+    case Enum.all?(value, &is_integer/1) and List.ascii_printable?(value) do
+      # It's a charlist/string
+      true -> to_string(value)
+      # It's a regular list with complex data
+      false -> inspect(value)
+    end
+  end
+
+  defp safe_to_string(value) do
+    # Fallback: try to_string first, if it fails use inspect
+    try do
+      to_string(value)
+    rescue
+      Protocol.UndefinedError -> inspect(value)
+    end
   end
 end
