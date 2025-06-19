@@ -30,6 +30,7 @@ defmodule Core.Utils.PrimaryDomainFinder do
 
   @err_empty_domain {:error, "empty domain"}
   @err_invalid_domain {:error, "invalid domain"}
+  @err_invalid_ssl {:error, "ssl certificate error"}
   @err_dns_lookup_failed {:error, "dns lookup failed"}
   @err_circular_domain {:error, "circular domain reference"}
   @err_cannot_resolve_to_primary_domain {:error,
@@ -82,6 +83,9 @@ defmodule Core.Utils.PrimaryDomainFinder do
 
           {:ok, primary_domain}
 
+        @err_invalid_ssl ->
+          check_www(domain)
+
         {:error, _reason} ->
           Retry.with_delay(
             fn -> try_get_primary_domain_https(domain) end,
@@ -94,6 +98,19 @@ defmodule Core.Utils.PrimaryDomainFinder do
   def get_primary_domain(""), do: @err_empty_domain
   def get_primary_domain(nil), do: @err_empty_domain
   def get_primary_domain(_), do: @err_invalid_domain
+
+  defp check_www(domain) do
+    result =
+      domain
+      |> ok(&safe_clean_domain/1)
+      |> ok(&UrlFormatter.to_https_www/1)
+      |> ok(&check_domain_redirects/1)
+
+    case result do
+      {:ok, :no_redirect} -> {:ok, domain}
+      _ -> @err_cannot_resolve_to_primary_domain
+    end
+  end
 
   defp try_get_primary_domain(domain) do
     with {:ok, clean_domain} <- safe_clean_domain(domain) do
@@ -311,6 +328,21 @@ defmodule Core.Utils.PrimaryDomainFinder do
 
       {:ok, {false, ""}} ->
         {:ok, {:no_redirects, domain, root, subdomain}}
+
+      {:error, reason} ->
+        {:error, reason}
+    end
+  end
+
+  defp check_domain_redirects(url) do
+    Logger.info("Checking url redirects for #{url}")
+
+    case DomainIO.test_redirect(url) do
+      {:ok, {:redirect, _headers}} ->
+        {:ok, :redirect}
+
+      {:ok, {:no_redirect}} ->
+        {:ok, :no_redirect}
 
       {:error, reason} ->
         {:error, reason}
