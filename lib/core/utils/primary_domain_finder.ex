@@ -334,7 +334,7 @@ defmodule Core.Utils.PrimaryDomainFinder do
     end
   end
 
-  defp check_domain_redirects(url) do
+  defp check_domain_redirects(url) when is_binary(url) do
     Logger.info("Checking url redirects for #{url}")
 
     case DomainIO.test_redirect(url) do
