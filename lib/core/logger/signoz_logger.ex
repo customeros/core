@@ -86,7 +86,7 @@ defmodule Core.Logger.SignozLogger do
         ],
         Jason.encode!(payload)
       )
-      |> Finch.request(MyApp.Finch)
+      |> Finch.request(Core.Finch)
     end)
   end
 
