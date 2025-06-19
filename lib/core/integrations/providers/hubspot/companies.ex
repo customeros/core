@@ -318,7 +318,7 @@ defmodule Core.Integrations.Providers.HubSpot.Companies do
   """
   def sync_all_companies(%Connection{} = connection, params \\ %{}) do
     OpenTelemetry.Tracer.with_span "hubspot.companies.sync_all_companies" do
-      default_params = %{limit: 100}
+      default_params = %{limit: 10}
       sync_params = Map.merge(default_params, params)
 
       Logger.info(
