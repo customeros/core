@@ -42,10 +42,6 @@ defmodule Core.Integrations.Providers.HubSpot.Companies do
 
     with {:ok, response} <-
            Client.get(connection, "/crm/v3/objects/companies", params) do
-      dbg("================================================")
-      dbg(params)
-      dbg("================================================")
-      dbg(response)
       # API call succeeded - connection is healthy, update status to active
       case Connections.update_status(connection, :active) do
         {:ok, _} ->
