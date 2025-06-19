@@ -35,6 +35,25 @@ defmodule Core.ScrapinCompanies do
     do_scrapin(:company_profile, linkedin_url)
   end
 
+  @doc """
+  Get latest cached company data by domain.
+  Returns {:ok, %ScrapinCompanyDetails{}} or {:error, :not_found}.
+  """
+  def get_company_data_by_domain(domain) when is_binary(domain) do
+    latest = get_latest_by_domain(domain)
+
+    case latest do
+      %ScrapinCompany{company_found: true} = record ->
+        parse_company_from_record(record)
+
+      %ScrapinCompany{company_found: false} ->
+        {:error, :not_found}
+
+      nil ->
+        {:error, :not_found}
+    end
+  end
+
   # --- Private helpers ---
 
   defp do_scrapin(flow, request_param) do
@@ -105,6 +124,14 @@ defmodule Core.ScrapinCompanies do
   defp get_latest_by_param(request_param) do
     ScrapinCompany
     |> where([s], s.request_param == ^request_param)
+    |> order_by([s], desc: s.inserted_at)
+    |> limit(1)
+    |> Repo.one()
+  end
+
+  defp get_latest_by_domain(domain) do
+    ScrapinCompany
+    |> where([s], s.domain == ^domain)
     |> order_by([s], desc: s.inserted_at)
     |> limit(1)
     |> Repo.one()

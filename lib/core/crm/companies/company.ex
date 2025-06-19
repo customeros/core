@@ -37,6 +37,7 @@ defmodule Core.Crm.Companies.Company do
     field(:country_enrich_attempt_at, :utc_datetime)
     field(:icon_enrich_attempt_at, :utc_datetime)
     field(:business_model_enrich_attempt_at, :utc_datetime)
+    field(:scrapin_enrich_attempt_at, :utc_datetime)
 
     # Enrichment attempt counters
     field(:domain_scrape_attempts, :integer, default: 0)
@@ -45,6 +46,7 @@ defmodule Core.Crm.Companies.Company do
     field(:country_enrichment_attempts, :integer, default: 0)
     field(:icon_enrichment_attempts, :integer, default: 0)
     field(:business_model_enrichment_attempts, :integer, default: 0)
+    field(:scrapin_enrichment_attempts, :integer, default: 0)
 
     # LinkedIn fields
     field(:linkedin_id, :string)
@@ -80,6 +82,7 @@ defmodule Core.Crm.Companies.Company do
           country_enrich_attempt_at: DateTime.t() | nil,
           icon_enrich_attempt_at: DateTime.t() | nil,
           business_model_enrich_attempt_at: DateTime.t() | nil,
+          scrapin_enrich_attempt_at: DateTime.t() | nil,
           # Enrichment attempt counters
           domain_scrape_attempts: integer(),
           industry_enrichment_attempts: integer(),
@@ -87,6 +90,7 @@ defmodule Core.Crm.Companies.Company do
           country_enrichment_attempts: integer(),
           icon_enrichment_attempts: integer(),
           business_model_enrichment_attempts: integer(),
+          scrapin_enrichment_attempts: integer(),
           # LinkedIn fields
           linkedin_id: String.t() | nil,
           linkedin_alias: String.t() | nil,
@@ -121,12 +125,14 @@ defmodule Core.Crm.Companies.Company do
       :country_enrich_attempt_at,
       :icon_enrich_attempt_at,
       :business_model_enrich_attempt_at,
+      :scrapin_enrich_attempt_at,
       :domain_scrape_attempts,
       :industry_enrichment_attempts,
       :name_enrichment_attempts,
       :country_enrichment_attempts,
       :icon_enrichment_attempts,
       :business_model_enrichment_attempts,
+      :scrapin_enrichment_attempts,
       :linkedin_id,
       :linkedin_alias,
       :homepage_content,
