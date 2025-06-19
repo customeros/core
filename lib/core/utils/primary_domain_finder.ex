@@ -36,7 +36,7 @@ defmodule Core.Utils.PrimaryDomainFinder do
                                          "cannot resolve to primary domain"}
 
   # Configuration constants
-  @max_retries 5
+  @max_retries 3
   @max_redirects 3
 
   @doc """

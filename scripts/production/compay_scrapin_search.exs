@@ -23,12 +23,9 @@ defmodule EnrichDetailsScrapin do
     field :company_found, :boolean
     field :created_at, :utc_datetime
     field :updated_at, :utc_datetime
-    # ... other fields omitted for brevity
   end
 end
 
-# --- Configure OpenlineRepo ---
-# You may want to use ENV vars in production. For now, hardcode for script use.
 openline_db_url =
   System.get_env("OPENLINE_DB_URL") ||
     "ecto://postgres:postgres@localhost/openline"
@@ -55,12 +52,17 @@ defmodule ScrapinCompanyMigrator do
 
     source_records =
       EnrichDetailsScrapin
-      |> where([e], e.flow == "COMPANY_SEARCH" and e.success == true and e.company_found == true and (is_nil(e.ported) or e.ported == false))
+      |> where([e], e.flow in ["COMPANY_SEARCH", "COMPANY_PROFILE"] and e.success == true and e.company_found == true and (is_nil(e.ported) or e.ported == false))
       |> order_by([e], desc: e.created_at)
       |> limit(^quantity)
       |> OpenlineRepo.all()
 
-    Enum.each(source_records, fn record ->
+    Logger.info("Found #{length(source_records)} records to process")
+
+    Enum.with_index(source_records, 1)
+    |> Enum.each(fn {record, index} ->
+      Logger.debug("__________Processing record #{index} of #{length(source_records)}")
+
       param1 = record.param1
 
       exists =
@@ -119,7 +121,7 @@ defmodule ScrapinCompanyMigrator do
       end
     end)
 
-    IO.puts("Migration complete. Processed #{length(source_records)} record(s).")
+    Logger.info("Migration complete. Processed #{length(source_records)} record(s).")
   end
 end
 
