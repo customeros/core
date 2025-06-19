@@ -13,13 +13,13 @@ defmodule Core.ScrapinCompany do
   @id_regex ~r/^#{@id_prefix}_[a-z0-9]{21}$/
 
   schema "scrapin_companies" do
-    field :linkedin_id, :string
-    field :linkedin_alias, :string
-    field :domain, :string
-    field :request_param, :string
-    field :data, :string
-    field :success, :boolean, default: false
-    field :company_found, :boolean, default: false
+    field(:linkedin_id, :string)
+    field(:linkedin_alias, :string)
+    field(:domain, :string)
+    field(:request_param, :string)
+    field(:data, :string)
+    field(:success, :boolean, default: false)
+    field(:company_found, :boolean, default: false)
 
     timestamps(type: :utc_datetime)
   end

@@ -4,7 +4,8 @@ defmodule Web.Router do
   import Web.UserAuth
 
   pipeline :browser do
-    plug :accepts, ["html", "json"] # TODO alexb temporal usage
+    # TODO alexb temporal usage
+    plug :accepts, ["html", "json"]
     # plug :accepts, ["html"]
     plug :fetch_session
     plug :fetch_live_flash

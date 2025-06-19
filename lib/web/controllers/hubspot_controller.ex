@@ -81,6 +81,7 @@ defmodule Web.HubspotController do
                     Logger.info(
                       "Successfully created HubSpot connection: #{inspect(connection, pretty: true)}"
                     )
+
                     conn
                     |> put_flash(:success, "Successfully connected to HubSpot")
                     |> redirect(to: ~p"/leads")
@@ -152,12 +153,20 @@ defmodule Web.HubspotController do
     case Connections.get_connection(tenant_id, :hubspot) do
       {:ok, connection} ->
         # Revoke the token from HubSpot before deleting the connection
-        case Core.Integrations.Providers.HubSpot.Client.revoke_token(connection.access_token) do
+        case Core.Integrations.Providers.HubSpot.Client.revoke_token(
+               connection.access_token
+             ) do
           :ok ->
-            Logger.info("Successfully revoked HubSpot token for tenant #{tenant_id}")
+            Logger.info(
+              "Successfully revoked HubSpot token for tenant #{tenant_id}"
+            )
+
           {:error, reason} ->
-            Logger.error("Failed to revoke HubSpot token for tenant #{tenant_id}: #{inspect(reason)}")
+            Logger.error(
+              "Failed to revoke HubSpot token for tenant #{tenant_id}: #{inspect(reason)}"
+            )
         end
+
         case Connections.delete_connection(connection) do
           {:ok, _} ->
             conn
@@ -180,5 +189,4 @@ defmodule Web.HubspotController do
         |> redirect(to: ~p"/leads")
     end
   end
-
 end

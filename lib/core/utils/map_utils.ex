@@ -41,7 +41,10 @@ defmodule Core.Utils.MapUtils do
   defp transform_value(value), do: value
 
   defp transform_value_snake(%{} = value), do: to_snake_case_map(value)
-  defp transform_value_snake([head | tail]), do: [transform_value_snake(head) | transform_value_snake(tail)]
+
+  defp transform_value_snake([head | tail]),
+    do: [transform_value_snake(head) | transform_value_snake(tail)]
+
   defp transform_value_snake([]), do: []
   defp transform_value_snake(value), do: value
 end

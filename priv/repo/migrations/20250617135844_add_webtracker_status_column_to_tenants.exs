@@ -3,9 +3,7 @@ defmodule Core.Repo.Migrations.AddWebtrackerStatusColumnToTenants do
 
   def up do
     # Create the enum type
-    execute(
-      "CREATE TYPE webtracker_status AS ENUM ('available', 'not_available')"
-    )
+    execute("CREATE TYPE webtracker_status AS ENUM ('available', 'not_available')")
 
     # Add the column with a default value
     alter table(:tenants) do

@@ -189,9 +189,14 @@ defmodule Core.Integrations.Providers.HubSpot.Client do
     case Finch.build(:post, url, headers, body) |> Finch.request(Core.Finch) do
       {:ok, %{status: 200}} ->
         :ok
+
       {:ok, %{status: status, body: resp_body}} ->
-        Logger.error("Failed to revoke HubSpot token: HTTP #{status}: #{resp_body}")
+        Logger.error(
+          "Failed to revoke HubSpot token: HTTP #{status}: #{resp_body}"
+        )
+
         {:error, "HTTP #{status}: #{resp_body}"}
+
       {:error, reason} ->
         Logger.error("Failed to revoke HubSpot token: #{inspect(reason)}")
         {:error, reason}
@@ -202,18 +207,27 @@ defmodule Core.Integrations.Providers.HubSpot.Client do
 
   defp ensure_valid_token(%Connection{} = connection) do
     case TokenManager.ensure_valid_token(connection) do
-      {:ok, refreshed} -> {:ok, refreshed}
+      {:ok, refreshed} ->
+        {:ok, refreshed}
+
       :refresh_needed ->
         # Token needs refresh, try to refresh it directly
         case Registry.get_oauth(connection.provider) do
           {:ok, oauth} ->
             case oauth.refresh_token(connection) do
-              {:ok, refreshed} -> {:ok, refreshed}
-              {:error, reason} -> {:error, "Token refresh failed: #{inspect(reason)}"}
+              {:ok, refreshed} ->
+                {:ok, refreshed}
+
+              {:error, reason} ->
+                {:error, "Token refresh failed: #{inspect(reason)}"}
             end
-          {:error, reason} -> {:error, "OAuth provider not found: #{inspect(reason)}"}
+
+          {:error, reason} ->
+            {:error, "OAuth provider not found: #{inspect(reason)}"}
         end
-      {:error, reason} -> {:error, "Token refresh failed: #{inspect(reason)}"}
+
+      {:error, reason} ->
+        {:error, "Token refresh failed: #{inspect(reason)}"}
     end
   end
 

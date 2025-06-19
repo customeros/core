@@ -344,7 +344,7 @@ defmodule Core.Crm.Leads do
                 true -> {:error, :domain_matches_tenant}
               end
 
-            lead ->
+            {:ok, lead} ->
               {:ok, lead}
           end
       end

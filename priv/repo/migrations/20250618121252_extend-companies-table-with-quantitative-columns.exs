@@ -3,9 +3,7 @@ defmodule Core.Repo.Migrations.ExtendCompaniesTableWithQuantitativeColumns do
 
   def up do
     # Create the business_model enum type
-    execute(
-      "CREATE TYPE business_model AS ENUM ('B2B', 'B2C', 'B2B2C', 'Hybrid')"
-    )
+    execute("CREATE TYPE business_model AS ENUM ('B2B', 'B2C', 'B2B2C', 'Hybrid')")
 
     alter table(:companies) do
       add(:technologies_used, {:array, :string}, default: [])
