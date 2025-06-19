@@ -1,4 +1,4 @@
-defmodule Core.ApiCallLogger.Schema do
+defmodule Core.Logger.ApiLog do
   @moduledoc """
   Schema for logging API calls to external services.
   """

@@ -9,12 +9,15 @@ defmodule Core.ScrapinCompanies do
   import Ecto.Query
   alias Core.{Repo, ScrapinCompany, ScrapinCompanyDetails, ScrapinResponseBody}
   alias Core.Utils.{IdGenerator, PrimaryDomainFinder, MapUtils}
-  alias Core.ApiCallLogger.Logger, as: ApiLogger
+  alias Core.Logger.ApiLogger, as: ApiLogger
 
   @vendor "scrapin"
 
-  defp scrapin_api_key, do: Application.get_env(:core, :scrapin)[:scrapin_api_key]
-  defp scrapin_base_url, do: Application.get_env(:core, :scrapin)[:scrapin_base_url]
+  defp scrapin_api_key,
+    do: Application.get_env(:core, :scrapin)[:scrapin_api_key]
+
+  defp scrapin_base_url,
+    do: Application.get_env(:core, :scrapin)[:scrapin_base_url]
 
   @doc """
   Search for a company by domain using ScrapIn.
@@ -36,6 +39,7 @@ defmodule Core.ScrapinCompanies do
 
   defp do_scrapin(flow, request_param) do
     latest = get_latest_by_param(request_param)
+
     cond do
       latest && latest.company_found ->
         parse_company_from_record(latest)
@@ -51,9 +55,11 @@ defmodule Core.ScrapinCompanies do
               nil -> nil
               map when is_map(map) -> struct(ScrapinCompanyDetails, map)
             end
+
           case company_struct do
             %ScrapinCompanyDetails{} = company ->
               {:ok, domain} = extract_domain(company.website_url)
+
               record_attrs = %{
                 id: IdGenerator.generate_id_21(ScrapinCompany.id_prefix()),
                 linkedin_id: company.linked_in_id,
@@ -64,11 +70,13 @@ defmodule Core.ScrapinCompanies do
                 success: true,
                 company_found: true
               }
+
               %ScrapinCompany{}
               |> ScrapinCompany.changeset(record_attrs)
               |> Repo.insert()
 
               {:ok, company}
+
             nil ->
               record_attrs = %{
                 id: IdGenerator.generate_id_21(ScrapinCompany.id_prefix()),
@@ -77,11 +85,13 @@ defmodule Core.ScrapinCompanies do
                 success: true,
                 company_found: false
               }
+
               %ScrapinCompany{}
               |> ScrapinCompany.changeset(record_attrs)
               |> Repo.insert()
 
               {:error, :not_found}
+
             _other ->
               {:error, :not_found}
           end
@@ -100,14 +110,19 @@ defmodule Core.ScrapinCompanies do
     |> Repo.one()
   end
 
-  defp parse_company_from_record(%ScrapinCompany{data: data}) when is_binary(data) do
+  defp parse_company_from_record(%ScrapinCompany{data: data})
+       when is_binary(data) do
     with {:ok, decoded} <- Jason.decode(data, keys: :atoms),
          %{} = map <- MapUtils.to_snake_case_map(decoded) do
       response_struct = struct(ScrapinResponseBody, map)
+
       company_struct =
         case response_struct.company do
-          nil -> nil
-          company_map when is_map(company_map) -> struct(ScrapinCompanyDetails, company_map)
+          nil ->
+            nil
+
+          company_map when is_map(company_map) ->
+            struct(ScrapinCompanyDetails, company_map)
         end
 
       response_struct = %{response_struct | company: company_struct}
@@ -115,6 +130,7 @@ defmodule Core.ScrapinCompanies do
       case response_struct do
         %ScrapinResponseBody{company: %ScrapinCompanyDetails{} = company} ->
           {:ok, company}
+
         _ ->
           {:error, :not_found}
       end
@@ -129,6 +145,7 @@ defmodule Core.ScrapinCompanies do
     params = %{apikey: scrapin_api_key(), domain: domain}
     do_call_scrapin(url, params)
   end
+
   defp call_scrapin(:company_profile, linkedin_url) do
     url = "#{scrapin_base_url()}/enrichment/company"
     params = %{apikey: scrapin_api_key(), linkedInUrl: linkedin_url}
@@ -138,24 +155,30 @@ defmodule Core.ScrapinCompanies do
   defp do_call_scrapin(url, params) do
     query = URI.encode_query(params)
     full_url = url <> "?" <> query
+
     case Finch.build(:get, full_url) |> ApiLogger.request(@vendor) do
       {:ok, %{status: 200, body: body}} ->
         case Jason.decode(body) do
           {:ok, map} ->
             {:ok, struct(ScrapinResponseBody, MapUtils.to_snake_case_map(map))}
+
           _ ->
             {:error, :invalid_response}
         end
+
       {:ok, %{status: status}} when status in 400..499 ->
         {:error, :not_found}
+
       {:ok, %{status: status}} ->
         {:error, {:http_error, status}}
+
       {:error, reason} ->
         {:error, reason}
     end
   end
 
   defp extract_domain(nil), do: {:ok, nil}
+
   defp extract_domain(website_url) when is_binary(website_url) do
     case Core.Utils.DomainExtractor.extract_base_domain(website_url) do
       {:ok, website_domain} ->
@@ -163,6 +186,7 @@ defmodule Core.ScrapinCompanies do
           {:ok, domain} when is_binary(domain) -> {:ok, domain}
           _ -> {:ok, nil}
         end
+
       _ ->
         case PrimaryDomainFinder.get_primary_domain(website_url) do
           {:ok, domain} when is_binary(domain) -> {:ok, domain}

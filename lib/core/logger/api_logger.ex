@@ -1,4 +1,4 @@
-defmodule Core.ApiCallLogger.Logger do
+defmodule Core.Logger.ApiLogger do
   @moduledoc """
   Handles logging of external API calls made with Finch.
   Includes OpenTelemetry tracing for all requests.
@@ -6,10 +6,11 @@ defmodule Core.ApiCallLogger.Logger do
 
   require Logger
   require OpenTelemetry.Tracer
+
   alias Core.Repo
-  alias Core.ApiCallLogger.Schema
-  alias Core.Utils.IdGenerator
+  alias Core.Logger.ApiLog
   alias Core.Utils.Tracing
+  alias Core.Utils.IdGenerator
 
   @type vendor :: String.t()
 
@@ -132,7 +133,7 @@ defmodule Core.ApiCallLogger.Logger do
     duration_ms = System.convert_time_unit(duration, :native, :millisecond)
 
     attrs = %{
-      id: IdGenerator.generate_id_21(Schema.id_prefix()),
+      id: IdGenerator.generate_id_21(ApiLog.id_prefix()),
       vendor: vendor,
       method: request.method,
       url: construct_url(request),
@@ -143,8 +144,8 @@ defmodule Core.ApiCallLogger.Logger do
     }
 
     Task.start(fn ->
-      %Schema{}
-      |> Schema.changeset(attrs)
+      %ApiLog{}
+      |> ApiLog.changeset(attrs)
       |> Repo.insert()
       |> case do
         {:ok, _log} ->
@@ -161,7 +162,7 @@ defmodule Core.ApiCallLogger.Logger do
     duration_ms = System.convert_time_unit(duration, :native, :millisecond)
 
     attrs = %{
-      id: IdGenerator.generate_id_21(Schema.id_prefix()),
+      id: IdGenerator.generate_id_21(ApiLog.id_prefix()),
       vendor: vendor,
       method: request.method,
       url: construct_url(request),
@@ -171,8 +172,8 @@ defmodule Core.ApiCallLogger.Logger do
     }
 
     Task.start(fn ->
-      %Schema{}
-      |> Schema.changeset(attrs)
+      %ApiLog{}
+      |> ApiLog.changeset(attrs)
       |> Repo.insert()
       |> case do
         {:ok, _log} ->

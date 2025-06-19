@@ -18,7 +18,7 @@ defmodule Core.WebTracker.IpIdentifier do
   require Logger
   require OpenTelemetry.Tracer
 
-  alias Core.ApiCallLogger.Logger, as: ApiLogger
+  alias Core.Logger.ApiLogger, as: ApiLogger
   alias Core.WebTracker.IpIdentifier.SnitcherPayload
   alias Core.WebTracker.IpIdentifier.IpIntelligence
   alias Core.Repo

@@ -5,7 +5,7 @@ defmodule Core.WebTracker.BotDetector do
   """
   require Logger
 
-  alias Core.ApiCallLogger.Logger, as: ApiLogger
+  alias Core.Logger.ApiLogger, as: ApiLogger
 
   @vendor "ipdata"
 
