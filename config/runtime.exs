@@ -54,7 +54,7 @@ config :core, :analytics,
 # Support configuration
 config :core, :support, atlas_app_id: get_env.("ATLAS_APP_ID", nil)
 
-# OpenTelemetry configuration (traces only - keep it simple)
+# OpenTelemetry configuration (traces only)
 config :opentelemetry,
        :processors,
        if(System.get_env("OTEL_EXPORTER_OTLP_ENDPOINT"),
@@ -69,15 +69,20 @@ config :opentelemetry,
          else: []
        )
 
-# File-based logging configuration
-config :logger,
-  backends: [{LoggerFileBackend, :info_log}]
+signoz_endpoint =
+  System.get_env("SIGNOZ_ENDPOINT", "http://10.0.16.2:4318/v1/logs")
 
-config :logger, :info_log,
-  path: "/tmp/logs/app.log",
-  level: :info,
-  format: "$time $metadata[$level] $message\n",
-  metadata: [:request_id, :user_id]
+service_name = System.get_env("OTEL_SERVICE_NAME", "core")
+environment = System.get_env("ENVIRONMENT", "production")
+
+config :logger,
+  backends: [:console, Core.Logger.SignozLogger]
+
+config :logger, Core.Logger.SignozLogger,
+  endpoint: signoz_endpoint,
+  service_name: service_name,
+  env: environment,
+  level: :info
 
 config :logger, :default_handler,
   config: %{
