@@ -139,9 +139,7 @@ defmodule Core.Researcher.BriefWriter.EngagementProfiler do
   defp get_unique_page_visits(events) do
     unique_visits =
       events
-      |> Enum.flat_map(fn item ->
-        if item.href, do: [UrlFormatter.get_base_url(item.href)], else: []
-      end)
+      |> Enum.map(&UrlFormatter.get_base_url/1)
       |> Enum.uniq()
 
     {:ok, unique_visits}
