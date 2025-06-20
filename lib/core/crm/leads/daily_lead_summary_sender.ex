@@ -350,8 +350,9 @@ defmodule Core.Crm.Leads.DailyLeadSummarySender do
           " | " <> String.pad_leading(to_string(count), max_count_length)
       end)
 
-    # Combine all parts
-    [header, separator | rows] |> Enum.join("\n")
+    # Combine all parts and wrap in code block for consistent monospace font
+    table_content = [header, separator | rows] |> Enum.join("\n")
+    "```\n#{table_content}\n```"
   end
 
   defp deliver_lead_summary(to, subject, html_body, text_body) do
