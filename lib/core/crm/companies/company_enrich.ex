@@ -139,6 +139,14 @@ defmodule Core.Crm.Companies.CompanyEnrich do
 
           @err_invalid_homepage
 
+        {:error, :unprocessable} ->
+          Tracing.warning(
+            :unprocessable,
+            "Content is unprocessable, url: #{company.primary_domain}"
+          )
+
+          @err_invalid_homepage
+
         {:error, reason} ->
           Tracing.error(reason, "Failed to scrape homepage for company",
             company_id: company.id,
