@@ -64,7 +64,7 @@ defmodule Core.MixProject do
       {:earmark, "~> 1.4"},
       {:ecto_psql_extras, "~> 0.8"},
       {:ecto_sql, "~> 3.12"},
-      {:floki, "~> 0.37.1"},
+      {:floki, "~> 0.38.0"},
       {:finch, "~> 0.19"},
       {:gnat, "~> 1.10"},
       {:grpc, "~> 0.10.1"},
