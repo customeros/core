@@ -139,7 +139,20 @@ defmodule Core.Researcher.BriefWriter.EngagementProfiler do
   defp get_unique_page_visits(events) do
     unique_visits =
       events
-      |> Enum.map(&UrlFormatter.get_base_url/1)
+      |> Enum.map(fn item ->
+        url =
+          case item do
+            url when is_binary(url) -> url
+            %{href: href} -> href
+            _ -> nil
+          end
+
+        case url && UrlFormatter.get_base_url(url) do
+          {:ok, base_url} -> base_url
+          _ -> nil
+        end
+      end)
+      |> Enum.reject(&is_nil/1)
       |> Enum.uniq()
 
     {:ok, unique_visits}
