@@ -4,10 +4,11 @@ defmodule Core.Researcher.Scraper.Jina do
   """
   require Logger
 
+  @err_timeout {:error, :timeout}
   @err_invalid_url {:error, :invalid_url}
   @err_url_not_provided {:error, :url_not_provided}
-  @err_empty_response {:error, "empty API response"}
   @err_ratelimit_exceeded {:error, :rate_limit_exceeded}
+  @err_empty_response {:error, "empty API response"}
   @err_api_key_not_set {:error, "Jina API key not set"}
   @err_api_path_not_set {:error, "Jina API path not set"}
 
@@ -62,6 +63,9 @@ defmodule Core.Researcher.Scraper.Jina do
          ) do
       {:ok, response} ->
         response
+
+      {:error, %Mint.TransportError{reason: :timeout}} ->
+        @err_timeout
 
       {:error, reason} ->
         err = "Jina API request failed: #{inspect(reason)}"
