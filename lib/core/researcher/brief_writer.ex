@@ -21,12 +21,12 @@ defmodule Core.Researcher.BriefWriter do
   # alias Core.Researcher.BriefWriter.EngagementProfiler
 
   def create_brief(tenant_id, lead_id, lead_domain) do
-    with {:ok, account_overview} <-
-           AccountResearcher.account_overview(tenant_id, lead_domain) do
-      # {:ok, engagement_summary} <-
-      #   EngagementProfiler.engagement_summary(tenant_id, lead_id) do
-      save_document(lead_id, account_overview)
-    else
+    case AccountResearcher.account_overview(tenant_id, lead_domain) do
+      {:ok, account_overview} ->
+        # {:ok, engagement_summary} <-
+        #   EngagementProfiler.engagement_summary(tenant_id, lead_id) do
+        save_document(lead_id, account_overview)
+
       {:error, reason} ->
         {:error, reason}
     end

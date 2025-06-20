@@ -36,29 +36,29 @@ defmodule Core.Integrations.Providers.HubSpot.Companies do
       {:ok, %{"results" => [...]}}
   """
   def list_hubspot_companies(%Connection{} = connection, params \\ %{}) do
-    Logger.debug(
+    Logger.info(
       "[HubSpot Company] Listing companies for connection #{connection.id} with params: #{inspect(params)}"
     )
 
-    with {:ok, response} <-
-           Client.get(connection, "/crm/v3/objects/companies", params) do
-      # API call succeeded - connection is healthy, update status to active
-      case Connections.update_status(connection, :active) do
-        {:ok, _} ->
-          Logger.debug(
-            "[HubSpot Company] Successfully listed companies and updated connection status to active"
-          )
+    case Client.get(connection, "/crm/v3/objects/companies", params) do
+      {:ok, response} ->
+        # API call succeeded - connection is healthy, update status to active
+        case Connections.update_status(connection, :active) do
+          {:ok, _} ->
+            Logger.debug(
+              "[HubSpot Company] Successfully listed companies and updated connection status to active"
+            )
 
-          {:ok, response}
+            {:ok, response}
 
-        {:error, reason} ->
-          Logger.warning(
-            "[HubSpot Company] Listed companies but failed to update connection status: #{inspect(reason)}"
-          )
+          {:error, reason} ->
+            Logger.warning(
+              "[HubSpot Company] Listed companies but failed to update connection status: #{inspect(reason)}"
+            )
 
-          {:ok, response}
-      end
-    else
+            {:ok, response}
+        end
+
       {:error, reason} ->
         Logger.error(
           "[HubSpot Company] Error listing companies: #{inspect(reason)}"
@@ -118,25 +118,25 @@ defmodule Core.Integrations.Providers.HubSpot.Companies do
       {:ok, %{"id" => "123", "properties" => %{"name" => "Acme Inc"}}}
   """
   def get_company(%Connection{} = connection, company_id) do
-    with {:ok, response} <-
-           Client.get(connection, "/crm/v3/objects/companies/#{company_id}") do
-      # API call succeeded - connection is healthy, update status to active
-      case Connections.update_status(connection, :active) do
-        {:ok, _} ->
-          Logger.info(
-            "[HubSpot Company] Successfully fetched company #{company_id} and updated connection status to active"
-          )
+    case Client.get(connection, "/crm/v3/objects/companies/#{company_id}") do
+      {:ok, response} ->
+        # API call succeeded - connection is healthy, update status to active
+        case Connections.update_status(connection, :active) do
+          {:ok, _} ->
+            Logger.info(
+              "[HubSpot Company] Successfully fetched company #{company_id} and updated connection status to active"
+            )
 
-          {:ok, response}
+            {:ok, response}
 
-        {:error, reason} ->
-          Logger.warning(
-            "[HubSpot Company] Fetched company #{company_id} but failed to update connection status: #{inspect(reason)}"
-          )
+          {:error, reason} ->
+            Logger.warning(
+              "[HubSpot Company] Fetched company #{company_id} but failed to update connection status: #{inspect(reason)}"
+            )
 
-          {:ok, response}
-      end
-    else
+            {:ok, response}
+        end
+
       {:error, reason} ->
         Logger.error(
           "[HubSpot Company] Error fetching company #{company_id}: #{inspect(reason)}"
