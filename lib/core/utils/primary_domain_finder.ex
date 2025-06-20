@@ -28,6 +28,7 @@ defmodule Core.Utils.PrimaryDomainFinder do
     DomainValidator
   }
 
+  @err_domain_not_reachable {:error, :domain_not_reachable}
   @err_empty_domain {:error, "empty domain"}
   @err_invalid_domain {:error, "invalid domain"}
   @err_invalid_ssl {:error, "ssl certificate error"}
@@ -312,7 +313,7 @@ defmodule Core.Utils.PrimaryDomainFinder do
         {:ok, {domain, root, subdomain}}
 
       {:ok, false} ->
-        @err_invalid_domain
+        @err_domain_not_reachable
 
       {:error, reason} ->
         {:error, reason}
