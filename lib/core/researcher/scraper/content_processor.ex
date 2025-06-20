@@ -26,8 +26,6 @@ defmodule Core.Researcher.Scraper.ContentProcessor do
 
   @err_not_utf8 {:error, "content not utf-8"}
   @err_content_invalid {:error, "invalid content"}
-  @err_summary_timeout {:error, "summary generation timed out"}
-  @err_summary_crashed {:error, "summary generation crashed"}
 
   def process_scraped_content(url, content) do
     content
