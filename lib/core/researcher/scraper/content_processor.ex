@@ -19,6 +19,7 @@ defmodule Core.Researcher.Scraper.ContentProcessor do
   require OpenTelemetry.Tracer
   alias Core.Researcher.Webpages
   alias Core.Utils.Tracing
+  alias Core.Utils.TaskAwaiter
 
   # 1 min
   @default_timeout 60 * 1000
@@ -70,38 +71,14 @@ defmodule Core.Researcher.Scraper.ContentProcessor do
 
       task = Webpages.Summarizer.summarize_webpage_supervised(url, content)
 
-      case Task.yield(task, @default_timeout) do
-        {:ok, {:ok, summary}} ->
+      case TaskAwaiter.await(task, @default_timeout) do
+        {:ok, summary} ->
           {:ok, content, links, summary}
 
-        {:ok, {:error, reason}} ->
-          Tracing.error(reason)
-
-          Logger.error("Webpage summary failed",
-            url: url,
-            reason: reason
-          )
+        {:error, reason} ->
+          Tracing.error(reason, "Webpage summary failed", url: url)
 
           {:ok, content, links, ""}
-
-        {:ok, _unexpected} ->
-          Tracing.error(:unexpected_summary_response)
-          Logger.error("Unexpected summary response", url: url)
-          {:error, :unexpected_summary_response}
-
-        {:exit, reason} ->
-          Tracing.error(reason)
-
-          Logger.error("Webpage summarization crashed",
-            url: url,
-            reason: reason
-          )
-
-          @err_summary_crashed
-
-        nil ->
-          Logger.warning("Webpage summary timed out for #{url}")
-          @err_summary_timeout
       end
     end
   end
