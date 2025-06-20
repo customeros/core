@@ -38,6 +38,11 @@ config :core, :realtime,
   dev_routes: true,
   app_env: :dev
 
+# URL configuration for development
+config :core, :url,
+  scheme: "http",
+  host: System.get_env("PHX_HOST", "localhost:4000")
+
 # Development logger configuration
 config :logger,
   backends: [:console]

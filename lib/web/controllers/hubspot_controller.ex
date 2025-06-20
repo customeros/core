@@ -21,8 +21,7 @@ defmodule Web.HubspotController do
   def connect(conn, _params) do
     tenant_id = conn.assigns.current_user.tenant_id
 
-    base_url = "#{conn.scheme}://#{get_req_header(conn, "host")}"
-    redirect_uri = "#{base_url}/hubspot/callback"
+    redirect_uri = append_to_base_url("/hubspot/callback")
 
     # Check for existing connection
     case Registry.get_connection(tenant_id, :hubspot) do
@@ -51,8 +50,7 @@ defmodule Web.HubspotController do
   def callback(conn, params) do
     tenant_id = conn.assigns.current_user.tenant_id
 
-    base_url = "#{conn.scheme}://#{get_req_header(conn, "host")}"
-    redirect_uri = "#{base_url}/hubspot/callback"
+    redirect_uri = append_to_base_url("/hubspot/callback")
 
     case params do
       %{"code" => code} ->
@@ -209,5 +207,17 @@ defmodule Web.HubspotController do
         |> put_flash(:error, "No active HubSpot connection found")
         |> redirect(to: ~p"/leads")
     end
+  end
+
+  # Private functions
+
+  defp append_to_base_url(path) when is_binary(path) do
+    scheme = Application.get_env(:core, :url)[:scheme] || "http"
+    host = Application.get_env(:core, :url)[:host] || "localhost:4000"
+
+    # Ensure path starts with /
+    path = if String.starts_with?(path, "/"), do: path, else: "/#{path}"
+
+    "#{scheme}://#{host}#{path}"
   end
 end

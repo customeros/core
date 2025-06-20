@@ -154,6 +154,11 @@ if config_env() == :prod do
       port: port
     ],
     secret_key_base: secret_key_base
+
+  # URL configuration for production
+  config :core, :url,
+    scheme: "https",
+    host: host
 end
 
 # Jina configuration

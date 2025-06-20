@@ -6,6 +6,11 @@ config :core, Web.Endpoint,
     "https://app.customeros.ai"
   ]
 
+# URL configuration for production
+config :core, :url,
+  scheme: "https",
+  host: System.get_env("PHX_HOST", "app.customeros.ai")
+
 config :logger,
   backends: [:console, Core.Notifications.CrashMonitor],
   level: :warning
