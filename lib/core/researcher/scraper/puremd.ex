@@ -5,10 +5,11 @@ defmodule Core.Researcher.Scraper.Puremd do
 
   require Logger
 
+  @err_timeout {:error, :timeout}
   @err_invalid_url {:error, :invalid_url}
   @err_url_not_provided {:error, :url_not_provided}
-  @err_empty_response {:error, "empty API response"}
   @err_ratelimit_exceeded {:error, :rate_limit_exceeded}
+  @err_empty_response {:error, "empty API response"}
   @err_api_key_not_set {:error, "PureMD API key not set"}
   @err_api_path_not_set {:error, "PureMD API path not set"}
 
@@ -32,6 +33,9 @@ defmodule Core.Researcher.Scraper.Puremd do
          {:ok, response} <- make_request(request_url, config.api_key) do
       handle_response(response)
     else
+      {:error, %Mint.TransportError{reason: :timeout}} ->
+        @err_timeout
+
       {:error, reason} -> {:error, reason}
     end
   end

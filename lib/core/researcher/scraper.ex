@@ -245,21 +245,9 @@ defmodule Core.Researcher.Scraper do
     {:error, err}
   end
 
-  defp handle_fetch_error(reason, url) when is_binary(reason) do
-    Logger.error("Failed to scrape #{url}", url: url, reason: reason)
-    Tracing.error(reason)
-    {:error, reason}
-  end
-
   defp handle_fetch_error(reason, url) do
-    Logger.error("Failed to scrape #{url}",
-      url: url,
-      reason: "#{inspect(reason)}"
-    )
-
-    Tracing.error(reason)
-    err = "Error: #{inspect(reason)}"
-    {:error, err}
+    Tracing.error(reason, "Failed to scrape #{url}", url: url)
+    {:error, reason}
   end
 
   defp try_jina(url) do
