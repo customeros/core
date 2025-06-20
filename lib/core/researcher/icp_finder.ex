@@ -8,6 +8,7 @@ defmodule Core.Researcher.IcpFinder do
   alias Core.Crm.Companies
   alias Core.Researcher.IcpProfiles
   alias Core.Researcher.IcpFinder.PromptBuilder
+  alias Core.Utils.TaskAwaiter
 
   # 2 mins
   @icp_finder_timeout 2 * 60 * 1000
@@ -55,8 +56,8 @@ defmodule Core.Researcher.IcpFinder do
       |> PromptBuilder.build_request()
       |> Ai.ask_supervised()
 
-    case Task.yield(task, @icp_finder_timeout) do
-      {:ok, {:ok, answer}} ->
+    case TaskAwaiter.await(task, @icp_finder_timeout) do
+      {:ok, answer} ->
         with {:ok, companies} <- parse_companies(answer),
              created_companies <-
                Enum.map(companies, fn company ->
@@ -74,14 +75,7 @@ defmodule Core.Researcher.IcpFinder do
           {:error, reason} -> {:error, reason}
         end
 
-      {:ok, {:error, reason}} ->
-        {:error, reason}
-
-      nil ->
-        Task.shutdown(task)
-        {:error, :ai_timeout}
-
-      {:exit, reason} ->
+      {:error, reason} ->
         {:error, reason}
     end
   end

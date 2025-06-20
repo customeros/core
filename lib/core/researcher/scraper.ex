@@ -26,6 +26,7 @@ defmodule Core.Researcher.Scraper do
   alias Core.Utils.DomainExtractor
   alias Core.Utils.UrlFormatter
   alias Core.Utils.Tracing
+  alias Core.Utils.TaskAwaiter
   alias Core.Researcher.Scraper.ContentProcessor
   alias Core.Researcher.Scraper.Jina
   alias Core.Researcher.Scraper.Puremd
@@ -213,10 +214,9 @@ defmodule Core.Researcher.Scraper do
   defp classify_content({:ok, content}, url) do
     OpenTelemetry.Tracer.with_span "scraper.classify_content" do
       task = Classifier.classify_content_supervised(url, content)
-      results = Task.yield(task, @scraper_timeout)
 
-      case results do
-        {:ok, {:ok, classification}} ->
+      case TaskAwaiter.await(task, @scraper_timeout) do
+        {:ok, classification} ->
           Webpages.update_classification(url, classification)
 
           {:ok,
@@ -224,17 +224,9 @@ defmodule Core.Researcher.Scraper do
              content: content
            }}
 
-        {:ok, {:error, reason}} ->
+        {:error, reason} ->
           Tracing.error(reason)
           {:error, reason}
-
-        {:exit, reason} ->
-          Tracing.error(reason)
-          {:error, reason}
-
-        nil ->
-          Tracing.error(:timeout)
-          {:error, :timeout}
       end
     end
   end
@@ -334,21 +326,17 @@ defmodule Core.Researcher.Scraper do
   end
 
   defp await_scraped_webpage(url, task, timeout, task_name) do
-    case Task.yield(task, timeout) do
-      {:ok, {:ok, content}} when is_binary(content) ->
+    case TaskAwaiter.await(task, timeout) do
+      {:ok, content} when is_binary(content) ->
         validate_content(content)
-
-      {:ok, {:error, reason}} ->
-        {:error, reason}
 
       {:ok, _unexpected} ->
         @err_unexpected_response
 
-      nil ->
-        Task.shutdown(task)
+      {:error, :timeout} ->
         @err_webscraper_timed_out
 
-      {:exit, reason} ->
+      {:error, reason} ->
         Logger.error("#{task_name} crashed for #{url}: #{inspect(reason)}")
         {:error, reason}
     end
