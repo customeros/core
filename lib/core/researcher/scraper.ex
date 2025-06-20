@@ -337,7 +337,7 @@ defmodule Core.Researcher.Scraper do
         @err_webscraper_timed_out
 
       {:error, reason} ->
-        Logger.error("#{task_name} crashed for #{url}: #{inspect(reason)}")
+        Logger.error("#{task_name} failed for #{url}: #{inspect(reason)}")
         {:error, reason}
     end
   end

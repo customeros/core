@@ -91,15 +91,17 @@ defmodule Core.Researcher.BriefWriter.EngagementProfiler do
   defp get_page_visits(sessions) do
     Logger.info("Getting page visits info")
 
-    with {:ok, page_visits} <- get_page_visit_history(sessions) do
-      webpages =
-        page_visits
-        |> Enum.map(&get_webpage_or_log_error/1)
-        |> Enum.reject(&is_nil/1)
+    case get_page_visit_history(sessions) do
+      {:ok, page_visits} ->
+        webpages =
+          page_visits
+          |> Enum.map(&get_webpage_or_log_error/1)
+          |> Enum.reject(&is_nil/1)
 
-      {:ok, webpages}
-    else
-      {:error, reason} -> {:error, reason}
+        {:ok, webpages}
+
+      {:error, reason} ->
+        {:error, reason}
     end
   end
 
