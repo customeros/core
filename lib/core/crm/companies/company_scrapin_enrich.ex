@@ -275,29 +275,27 @@ defmodule Core.Crm.Companies.CompanyScrapinEnrich do
   end
 
   defp update_company_name(company, scrapin_company_details) do
-    cond do
-      # Only update if company name is empty/nil and name attempts > 2
-      (is_nil(company.name) || company.name == "") &&
-          company.name_enrichment_attempts > 2 ->
-        company_name = scrapin_company_details.name
+    # Only update if company name is empty/nil and name attempts > 2
+    if (is_nil(company.name) || company.name == "") &&
+         company.name_enrichment_attempts > 2 do
+      company_name = scrapin_company_details.name
 
-        if company_name && company_name != "" do
-          case Repo.update_all(
-                 from(c in Company, where: c.id == ^company.id),
-                 set: [name: company_name]
-               ) do
-            {0, _} ->
-              {:error, :update_failed}
+      if company_name && company_name != "" do
+        case Repo.update_all(
+               from(c in Company, where: c.id == ^company.id),
+               set: [name: company_name]
+             ) do
+          {0, _} ->
+            {:error, :update_failed}
 
-            {_count, _} ->
-              :ok
-          end
-        else
-          :ok
+          {_count, _} ->
+            :ok
         end
-
-      true ->
+      else
         :ok
+      end
+    else
+      :ok
     end
   end
 end
