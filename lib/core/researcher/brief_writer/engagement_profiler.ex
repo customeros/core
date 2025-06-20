@@ -101,9 +101,7 @@ defmodule Core.Researcher.BriefWriter.EngagementProfiler do
         {:ok, webpages}
 
       {:error, reason} ->
-        Logger.error("Failed to get page visits for session",
-          sessions: sessions
-        )
+        Logger.error("Failed to get page visits for sessions", reason: reason)
 
         {:error, reason}
     end
@@ -199,14 +197,14 @@ defmodule Core.Researcher.BriefWriter.EngagementProfiler do
     else
       false ->
         Logger.error("Empty company description",
-          domain: domain
+          company_domain: domain
         )
 
         @err_no_description
 
       {:error, reason} ->
         Logger.error("Failed to get company description",
-          domain: domain
+          company_domain: domain
         )
 
         {:error, reason}
@@ -254,10 +252,10 @@ defmodule Core.Researcher.BriefWriter.EngagementProfiler do
     I will also give you where this company is in the buyer's journey and how many people from the company have engaged. Please produce a brief with ONLY these specific sections:
     - Unique Visitors (only provide the count)
     - Most interested in
-    - Most relevant value proposition  
+    - Most relevant value proposition
     - Engagement depth
 
-    IMPORTANT: Your brief must be returned in valid markdown format only! 
+    IMPORTANT: Your brief must be returned in valid markdown format only!
     - Use ## for section headers
     - Use - for bullet points
     - Do not use * or _ for emphasis unless you ensure they are properly matched
@@ -286,7 +284,7 @@ defmodule Core.Researcher.BriefWriter.EngagementProfiler do
 
   defp format_page_visits(page_visits) do
     page_visits
-    |> Enum.map(fn webpage ->
+    |> Enum.map_join("\n---\n", fn webpage ->
       """
       URL: #{webpage.url}
       Page Topic: #{webpage.primary_topic}
@@ -295,6 +293,5 @@ defmodule Core.Researcher.BriefWriter.EngagementProfiler do
       Key Pain Points: #{Enum.join(webpage.key_pain_points, ", ")}
       """
     end)
-    |> Enum.join("\n---\n")
   end
 end
