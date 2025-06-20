@@ -229,17 +229,21 @@ defmodule Core.Researcher.BriefWriter.EngagementProfiler do
          page_visits
        ) do
     system_prompt = """
-          I will provide you with a company description, a list of all the pages they've visited on my website, and a summary of the contents of each page.  Your job is to help me produce an engagement summary report that contains everything a SDR needs to start a relevant, high value conversation with this company that helps them solve a real business problem they are likely to have.
+    I will provide you with a company description, a list of all the pages they've visited on my website, and a summary of the contents of each page. Your job is to help me produce an engagement summary report that contains everything a SDR needs to start a relevant, high value conversation with this company that helps them solve a real business problem they are likely to have.
 
-          I will also give you where this company is in the buyer's journey and how many people from the company have engaged.  Please produce a brief with only these specific sections:
-          - Most interested in
-          - Most relevant value proposition
-          - Engagement depth
+    I will also give you where this company is in the buyer's journey and how many people from the company have engaged. Please produce a brief with only these specific sections:
+    - Most interested in
+    - Most relevant value proposition  
+    - Engagement depth
 
-          IMPORTANT:  Your brief must be returned in valid markdown format only!
+    IMPORTANT: Your brief must be returned in valid markdown format only! 
+    - Use ## for section headers
+    - Use - for bullet points
+    - Do not use * or _ for emphasis unless you ensure they are properly matched
+    - Keep formatting simple and clean
 
-          What Makes a Great Account Brief: Quality Standards
-        A great brief tells a story that makes the prospect feel like you already understand their business better than 99% of vendors who contact them.
+    What Makes a Great Account Brief: Quality Standards
+    A great brief tells a story that makes the prospect feel like you already understand their business better than 99% of vendors who contact them.
     """
 
     # Format the page visits into a readable string
