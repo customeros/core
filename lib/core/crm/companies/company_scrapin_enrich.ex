@@ -137,29 +137,27 @@ defmodule Core.Crm.Companies.CompanyScrapinEnrich do
   end
 
   defp update_employee_count(company, scrapin_company_details) do
-    cond do
-      # Only update if employee_count is not already set
-      is_nil(company.employee_count) ->
-        employee_count =
-          get_employee_count_from_scrapin(scrapin_company_details)
+    # Only update if employee_count is not already set
+    if is_nil(company.employee_count) do
+      employee_count =
+        get_employee_count_from_scrapin(scrapin_company_details)
 
-        if employee_count && employee_count > 0 do
-          case Repo.update_all(
-                 from(c in Company, where: c.id == ^company.id),
-                 set: [employee_count: employee_count]
-               ) do
-            {0, _} ->
-              {:error, :update_failed}
+      if employee_count && employee_count > 0 do
+        case Repo.update_all(
+               from(c in Company, where: c.id == ^company.id),
+               set: [employee_count: employee_count]
+             ) do
+          {0, _} ->
+            {:error, :update_failed}
 
-            {_count, _} ->
-              :ok
-          end
-        else
-          :ok
+          {_count, _} ->
+            :ok
         end
-
-      true ->
+      else
         :ok
+      end
+    else
+      :ok
     end
   end
 
@@ -181,29 +179,27 @@ defmodule Core.Crm.Companies.CompanyScrapinEnrich do
   end
 
   defp update_country_code(company, scrapin_company_details) do
-    cond do
-      # Only update if country_a2 is not set and country enrichment attempts > 2
-      is_nil(company.country_a2) && company.country_enrichment_attempts > 2 ->
-        country_code =
-          get_country_code_from_headquarter(scrapin_company_details.headquarter)
+    # Only update if country_a2 is not set and country enrichment attempts > 2
+    if is_nil(company.country_a2) && company.country_enrichment_attempts > 2 do
+      country_code =
+        get_country_code_from_headquarter(scrapin_company_details.headquarter)
 
-        if country_code && String.length(country_code) == 2 do
-          case Repo.update_all(
-                 from(c in Company, where: c.id == ^company.id),
-                 set: [country_a2: country_code]
-               ) do
-            {0, _} ->
-              {:error, :update_failed}
+      if country_code && String.length(country_code) == 2 do
+        case Repo.update_all(
+               from(c in Company, where: c.id == ^company.id),
+               set: [country_a2: country_code]
+             ) do
+          {0, _} ->
+            {:error, :update_failed}
 
-            {_count, _} ->
-              :ok
-          end
-        else
-          :ok
+          {_count, _} ->
+            :ok
         end
-
-      true ->
+      else
         :ok
+      end
+    else
+      :ok
     end
   end
 
@@ -216,17 +212,15 @@ defmodule Core.Crm.Companies.CompanyScrapinEnrich do
   defp get_country_code_from_headquarter(_), do: nil
 
   defp update_city_and_region(company, scrapin_company_details) do
-    cond do
-      # Only update if company has a country and headquarter has a country
-      company.country_a2 && scrapin_company_details.headquarter &&
-          scrapin_company_details.headquarter.country ->
-        update_city_and_region_if_countries_match(
-          company,
-          scrapin_company_details
-        )
-
-      true ->
-        :ok
+    # Only update if company has a country and headquarter has a country
+    if company.country_a2 && scrapin_company_details.headquarter &&
+         scrapin_company_details.headquarter.country do
+      update_city_and_region_if_countries_match(
+        company,
+        scrapin_company_details
+      )
+    else
+      :ok
     end
   end
 
