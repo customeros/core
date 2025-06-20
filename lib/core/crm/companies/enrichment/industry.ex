@@ -106,52 +106,10 @@ defmodule Core.Crm.Companies.Enrichment.Industry do
 
       case Task.await(task, @timeout) do
         {:ok, {:ok, response}} ->
-          OpenTelemetry.Tracer.set_attributes([
-            {"ai.response", response}
-          ])
-
-          code = extract_code(response)
-
-          cond do
-            code == "" ->
-              Logger.info("Empty code received from AI")
-              {:error, :empty_ai_response}
-
-            not Industries.valid_code?(code) ->
-              Logger.info(
-                "Invalid code received: #{code}, adding to blacklist and retrying..."
-              )
-
-              identify(input, [code | blacklist], retries_left - 1)
-
-            true ->
-              Tracing.ok()
-              {:ok, code}
-          end
+          process_ai_response(response, input, blacklist, retries_left)
 
         {:ok, response} when is_binary(response) ->
-          OpenTelemetry.Tracer.set_attributes([
-            {"ai.raw.response", response}
-          ])
-
-          code = extract_code(response)
-
-          cond do
-            code == "" ->
-              Logger.info("Empty code received from AI")
-              {:error, :empty_ai_response}
-
-            not Industries.valid_code?(code) ->
-              Logger.info(
-                "Invalid code received: #{code}, adding to blacklist and retrying..."
-              )
-
-              identify(input, [code | blacklist], retries_left - 1)
-
-            true ->
-              Tracing.ok()
-              {:ok, code}
-          end
+          process_ai_response(response, input, blacklist, retries_left)
 
         {:ok, {:error, {:http_error, reason}}} ->
           Tracing.error(reason)
@@ -174,6 +132,31 @@ defmodule Core.Crm.Companies.Enrichment.Industry do
           Tracing.error(:ai_timeout)
           {:error, :ai_timeout}
       end
+    end
+  end
+
+  defp process_ai_response(response, input, blacklist, retries_left) do
+    OpenTelemetry.Tracer.set_attributes([
+      {"ai.response", response}
+    ])
+
+    code = extract_code(response)
+
+    cond do
+      code == "" ->
+        Logger.info("Empty code received from AI")
+        {:error, :empty_ai_response}
+
+      not Industries.valid_code?(code) ->
+        Logger.info(
+          "Invalid code received: #{code}, adding to blacklist and retrying..."
+        )
+
+        identify(input, [code | blacklist], retries_left - 1)
+
+      true ->
+        Tracing.ok()
+        {:ok, code}
     end
   end
 
