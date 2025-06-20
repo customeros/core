@@ -320,6 +320,12 @@ defmodule Core.WebTracker do
             "No primary domain found for #{domain}"
           )
 
+        {:error, :domain_not_reachable} ->
+          Tracing.warning(
+            :domain_not_reachable,
+            "Domain not reachable: #{domain}"
+          )
+
         {:error, reason} ->
           Tracing.error(reason, "Company not created from webTracker",
             company_domain: domain
