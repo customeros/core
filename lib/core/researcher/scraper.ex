@@ -35,6 +35,7 @@ defmodule Core.Researcher.Scraper do
   @scraper_timeout 60 * 1000
 
   @err_no_content {:error, :no_content}
+  @err_timeout {:error, :timeout}
   @err_invalid_url {:error, :invalid_url}
   @err_unprocessable {:error, :unprocessable}
   @err_url_not_provided {:error, :url_not_provided}
@@ -57,20 +58,21 @@ defmodule Core.Researcher.Scraper do
       Logger.metadata(module: __MODULE__, function: :scrape_webpage)
 
       case validate_url(url) do
-        {:error, reason} when reason in [:should_not_scrape] ->
-          Tracing.warning(reason, "Non-scrapeable URL", url: url)
-          {:error, reason}
+        {:error, :should_not_scrape} ->
+          Tracing.warning(:should_not_scrape, "Non-scrapeable URL", url: url)
+          {:error, :should_not_scrape}
 
         @err_not_primary_domain ->
           Tracing.warning("not primary domain", "Skipping scrape", url: url)
           @err_not_primary_domain
 
-        {:error, :no_content_type} ->
-          Tracing.warning("no content type", "Invalid URL for scraping",
-            url: url
-          )
-
+        @err_no_content ->
+          Tracing.warning(:no_content, "No valid content available by url content type", url: url)
           @err_no_content
+
+        @err_timeout ->
+          Tracing.warning(:timeout, "URL validation timed out", url: url)
+          @err_timeout
 
         {:error, reason} ->
           Tracing.error(reason, "Invalid URL for scraping", url: url)
@@ -125,6 +127,17 @@ defmodule Core.Researcher.Scraper do
       else
         {:error, :webpage_content_type_not_text_html} ->
           @err_no_content
+
+        {:error, :no_content_type} ->
+          @err_no_content
+
+        {:error, %Mint.TransportError{reason: :timeout}} ->
+          OpenTelemetry.Tracer.set_attributes([
+            {"result", "timeout"}
+          ])
+
+          Logger.info("#{url} validation timed out")
+          {:error, :timeout}
 
         {:error, reason} ->
           OpenTelemetry.Tracer.set_attributes([
