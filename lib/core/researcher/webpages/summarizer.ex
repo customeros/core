@@ -46,7 +46,7 @@ defmodule Core.Researcher.Webpages.Summarizer do
 
     case TaskAwaiter.await(task, @timeout) do
       {:ok, answer} ->
-        answer
+        {:ok, answer}
 
       {:error, :timeout} ->
         @err_timeout
