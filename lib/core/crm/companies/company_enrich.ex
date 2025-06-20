@@ -119,10 +119,20 @@ defmodule Core.Crm.Companies.CompanyEnrich do
         {:ok, %{content: content}} when is_binary(content) ->
           {:ok, content}
 
-        {:error, :webpage_content_type_not_text_html} ->
+        {:error, :err_no_content} ->
           Tracing.warning(
-            "invalid content type",
-            "Failed to scrape homepage for company",
+            :no_content,
+            "No valid content available by url content type",
+            company_id: company.id,
+            company_domain: company.primary_domain
+          )
+
+          @err_invalid_homepage
+
+        {:error, :timeout} ->
+          Tracing.warning(
+            :timeout,
+            "URL validation timed out",
             company_id: company.id,
             company_domain: company.primary_domain
           )
