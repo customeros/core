@@ -178,24 +178,25 @@ defmodule Core.Integrations.Providers.HubSpot.Companies do
     url =
       "/crm/v3/objects/companies/#{company_id}?properties=#{properties_param}"
 
-    with {:ok, response} <- Client.get(connection, url) do
-      # API call succeeded - connection is healthy, update status to active
-      case Connections.update_status(connection, :active) do
-        {:ok, _} ->
-          Logger.info(
-            "[HubSpot Company] Successfully fetched company #{company_id} with properties #{properties_param} and updated connection status to active"
-          )
+    case Client.get(connection, url) do
+      {:ok, response} ->
+        # API call succeeded - connection is healthy, update status to active
+        case Connections.update_status(connection, :active) do
+          {:ok, _} ->
+            Logger.info(
+              "[HubSpot Company] Successfully fetched company #{company_id} with properties #{properties_param} and updated connection status to active"
+            )
 
-          {:ok, response}
+            {:ok, response}
 
-        {:error, reason} ->
-          Logger.warning(
-            "[HubSpot Company] Fetched company #{company_id} but failed to update connection status: #{inspect(reason)}"
-          )
+          {:error, reason} ->
+            Logger.warning(
+              "[HubSpot Company] Fetched company #{company_id} but failed to update connection status: #{inspect(reason)}"
+            )
 
-          {:ok, response}
-      end
-    else
+            {:ok, response}
+        end
+
       {:error, reason} ->
         Logger.error(
           "[HubSpot Company] Error fetching company #{company_id} with properties #{properties_param}: #{inspect(reason)}"

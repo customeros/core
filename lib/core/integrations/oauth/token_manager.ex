@@ -39,6 +39,9 @@ defmodule Core.Integrations.OAuth.TokenManager do
          {:ok, oauth} <- Registry.get_oauth(connection.provider),
          {:ok, refreshed} <- refresh_with_retry(oauth, connection, 0) do
       {:ok, refreshed}
+    else
+      error ->
+        error
     end
   end
 

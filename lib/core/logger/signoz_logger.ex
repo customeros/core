@@ -1,4 +1,37 @@
 defmodule Core.Logger.SignozLogger do
+  @moduledoc """
+  A Logger backend that sends log messages to SignOz observability platform.
+
+  This module implements the `:gen_event` behaviour to integrate with Elixir's Logger
+  system and forwards log messages to SignOz via HTTP POST requests.
+
+  ## Configuration
+
+  The logger can be configured with the following options:
+
+  - `:env` - Environment name (default: "production")
+  - `:endpoint` - SignOz endpoint URL (default: "http://10.0.16.2:4318/v1/logs")
+  - `:service_name` - Service name for identification (default: "core")
+
+  ## Usage
+
+  Add this backend to your Logger configuration:
+
+      config :logger,
+        backends: [:console, {Logger.Backends.SignozLogger, [
+          env: "production",
+          endpoint: "http://your-signoz-instance:4318/v1/logs",
+          service_name: "my-app"
+        ]}]
+
+  ## Log Format
+
+  Logs are sent to SignOz in OpenTelemetry format with:
+  - Resource attributes (service name, version, environment)
+  - Log level mapping to OpenTelemetry severity levels
+  - Metadata converted to attributes
+  - Timestamp in nanoseconds
+  """
   alias Core.Logger.ApiLogger
   @behaviour :gen_event
 

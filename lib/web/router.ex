@@ -4,9 +4,7 @@ defmodule Web.Router do
   import Web.UserAuth
 
   pipeline :browser do
-    # TODO alexb temporal usage
-    plug :accepts, ["html", "json"]
-    # plug :accepts, ["html"]
+    plug :accepts, ["html"]
     plug :fetch_session
     plug :fetch_live_flash
     plug :put_root_layout, html: {Web.Layouts, :root}
