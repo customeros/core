@@ -41,6 +41,30 @@ defmodule Core.Utils.PrimaryDomainFinder do
   @max_retries 3
   @max_redirects 3
 
+  # Known URL shorteners that should be treated as invalid domains
+  @url_shorteners [
+    "linktr.ee",
+    "bit.ly",
+    "tinyurl.com",
+    "goo.gl",
+    "t.co",
+    "is.gd",
+    "v.gd",
+    "ow.ly",
+    "buff.ly",
+    "adf.ly",
+    "sh.st",
+    "shorturl.at",
+    "rb.gy",
+    "cutt.ly",
+    "short.to",
+    "tiny.cc",
+    "short.ly",
+    "snip.ly",
+    "shorturl.com",
+    "tiny.one"
+  ]
+
   @doc """
   Checks if a domain is a primary domain.
 
@@ -290,7 +314,7 @@ defmodule Core.Utils.PrimaryDomainFinder do
     case DomainValidator.valid_domain?(domain) do
       true ->
         case parse_domain(domain) do
-          {:ok, {root, _subdomain}} when root == "linktr.ee" ->
+          {:ok, {root, _subdomain}} when root in @url_shorteners ->
             @err_invalid_domain
 
           {:ok, {root, subdomain}} ->
