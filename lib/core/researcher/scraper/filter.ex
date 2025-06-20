@@ -148,7 +148,11 @@ defmodule Researcher.Scraper.Filter do
       "privacy",
       "legal",
       "cookies",
-      "gdpr"
+      "gdpr",
+
+      # Careers
+      "careers",
+      "jobs"
     ]
 
     path_segments = String.split(path, "/", trim: true)
