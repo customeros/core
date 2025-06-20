@@ -142,5 +142,4 @@ defmodule Core.Crm.Companies.CompanyScrapinEnricher do
     |> limit(^batch_size)
     |> Repo.all()
   end
-
 end

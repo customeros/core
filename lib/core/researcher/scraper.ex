@@ -67,7 +67,12 @@ defmodule Core.Researcher.Scraper do
           @err_not_primary_domain
 
         @err_no_content ->
-          Tracing.warning(:no_content, "No valid content available by url content type", url: url)
+          Tracing.warning(
+            :no_content,
+            "No valid content available by url content type",
+            url: url
+          )
+
           @err_no_content
 
         @err_timeout ->
@@ -431,7 +436,8 @@ defmodule Core.Researcher.Scraper do
       if depth > 5 do
         {:error, :too_many_redirects}
       else
-        case Finch.build(:get, url) |> Finch.request(Core.Finch, receive_timeout: 30_000) do
+        case Finch.build(:get, url)
+             |> Finch.request(Core.Finch, receive_timeout: 30_000) do
           {:ok, %Finch.Response{headers: headers, status: status, body: _body}} ->
             content_type =
               Enum.find_value(headers, fn
