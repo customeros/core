@@ -17,16 +17,17 @@ defmodule Core.Researcher.IcpFitEvaluator do
   """
 
   require OpenTelemetry.Tracer
-  alias Core.Utils.TaskAwaiter
+
   alias Core.Ai
-  alias Core.Researcher.IcpFitEvaluator.PromptBuilder
-  alias Core.Researcher.IcpFitEvaluator.Validator
-  alias Core.Researcher.Crawler
-  alias Core.Researcher.IcpProfiles
-  alias Core.Researcher.Webpages
-  alias Core.Utils.PrimaryDomainFinder
   alias Core.Crm.Leads
   alias Core.Utils.Tracing
+  alias Core.Utils.TaskAwaiter
+  alias Core.Researcher.Crawler
+  alias Core.Researcher.Webpages
+  alias Core.Researcher.IcpProfiles
+  alias Core.Utils.PrimaryDomainFinder
+  alias Core.Researcher.IcpFitEvaluator.Validator
+  alias Core.Researcher.IcpFitEvaluator.PromptBuilder
 
   # 5 mins
   @crawl_timeout 5 * 60 * 1000
