@@ -180,6 +180,17 @@ defmodule Core.Researcher.BriefWriter.EngagementProfiler do
     end
   end
 
+  defp get_company_description(domain) do
+    with {:ok, url} <- UrlFormatter.to_https(domain),
+         {:ok, homepage} <- Webpages.get_by_url(url),
+         true <- byte_size(homepage.summary) > 0 do
+      {:ok, homepage.summary}
+    else
+      false -> @err_no_description
+      {:error, reason} -> {:error, reason}
+    end
+  end
+
   defp generate_engagement_summary(
          company_name,
          company_description,
@@ -208,17 +219,6 @@ defmodule Core.Researcher.BriefWriter.EngagementProfiler do
     TaskAwaiter.await(task, @timeout)
   end
 
-  defp get_company_description(domain) do
-    with {:ok, url} <- UrlFormatter.to_https(domain),
-         {:ok, homepage} <- Webpages.get_by_url(url),
-         true <- byte_size(homepage.summary) > 0 do
-      {:ok, homepage.summary}
-    else
-      false -> @err_no_description
-      {:error, reason} -> {:error, reason}
-    end
-  end
-
   defp build_prompts(
          company_name,
          company_description,
@@ -240,15 +240,32 @@ defmodule Core.Researcher.BriefWriter.EngagementProfiler do
         A great brief tells a story that makes the prospect feel like you already understand their business better than 99% of vendors who contact them.
     """
 
+    # Format the page visits into a readable string
+    formatted_page_visits = format_page_visits(page_visits)
+
     prompt = """
           Company Name: #{company_name}
           Company Overview: #{company_description}
           Count of Unique People who have engaged: #{visitor_count}
           Current Buyer's Journey Stage: #{lead_stage}
 
-          Page Visit Information: #{page_visits}
+          Page Visit Information: #{formatted_page_visits}
     """
 
     {system_prompt, prompt}
+  end
+
+  defp format_page_visits(page_visits) do
+    page_visits
+    |> Enum.map(fn webpage ->
+      """
+      URL: #{webpage.url}
+      Page Topic: #{webpage.primary_topic}
+      Summary: #{webpage.summary}
+      Value Proposition: #{webpage.value_proposition}
+      Key Pain Points: #{Enum.join(webpage.key_pain_points, ", ")}
+      """
+    end)
+    |> Enum.join("\n---\n")
   end
 end
