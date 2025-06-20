@@ -14,6 +14,7 @@ defmodule Core.WebTracker.SessionAnalyzer do
   alias Core.Researcher.Scraper
   alias Core.WebTracker.Sessions
   alias Core.Auth.Tenants
+  alias Core.Utils.TaskAwaiter
 
   @analysis_timeout 60 * 1000
 
@@ -227,13 +228,10 @@ defmodule Core.WebTracker.SessionAnalyzer do
 
   defp analyze_content(url, content) do
     task = Webpages.IntentProfiler.profile_intent_supervised(url, content)
-    results = Task.yield(task, @analysis_timeout)
 
-    case results do
-      {:ok, {:ok, intent}} -> {:ok, intent}
-      {:ok, {:error, reason}} -> {:error, reason}
-      {:exit, reason} -> {:error, reason}
-      nil -> {:error, :timeout}
+    case TaskAwaiter.await(task, @analysis_timeout) do
+      {:ok, intent} -> {:ok, intent}
+      {:error, reason} -> {:error, reason}
     end
   end
 

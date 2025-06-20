@@ -23,10 +23,18 @@ defmodule Core.Utils.TaskAwaiter do
 
   def await(task, timeout) do
     case Task.yield(task, timeout) do
-      {:ok, {:ok, response}} -> {:ok, response}
-      {:ok, {:error, reason}} -> {:error, reason}
-      {:exit, reason} -> {:error, reason}
-      nil -> @err_timeout
+      {:ok, {:ok, response}} ->
+        {:ok, response}
+
+      {:ok, {:error, reason}} ->
+        {:error, reason}
+
+      {:exit, reason} ->
+        {:error, reason}
+
+      nil ->
+        Task.shutdown(task)
+        @err_timeout
     end
   end
 end

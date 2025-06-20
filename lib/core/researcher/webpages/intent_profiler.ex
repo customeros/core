@@ -4,6 +4,7 @@ defmodule Core.Researcher.Webpages.IntentProfiler do
   """
   alias Core.Ai
   alias Core.Utils.Tracing
+  alias Core.Utils.TaskAwaiter
   require Logger
 
   @model :claude_sonnet
@@ -49,22 +50,15 @@ defmodule Core.Researcher.Webpages.IntentProfiler do
 
     task = Ai.ask_supervised(request)
 
-    case Task.yield(task, @timeout) do
-      {:ok, {:ok, answer}} ->
+    case TaskAwaiter.await(task, @timeout) do
+      {:ok, answer} ->
         case parse_and_validate_response(answer) do
           {:ok, profile_intent} -> {:ok, profile_intent}
           {:error, reason} -> {:error, reason}
         end
 
-      {:ok, {:error, reason}} ->
+      {:error, reason} ->
         {:error, reason}
-
-      {:exit, reason} ->
-        {:error, reason}
-
-      nil ->
-        Task.shutdown(task)
-        {:error, :timeout}
     end
   end
 

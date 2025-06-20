@@ -12,6 +12,7 @@ defmodule Core.Researcher.Webpages.Summarizer do
   """
 
   alias Core.Ai
+  alias Core.Utils.TaskAwaiter
 
   @model :gemini_flash
   @model_temperature 0.2
@@ -43,16 +44,15 @@ defmodule Core.Researcher.Webpages.Summarizer do
 
     task = Ai.ask_supervised(request)
 
-    case Task.yield(task, @timeout) do
+    case TaskAwaiter.await(task, @timeout) do
       {:ok, answer} ->
         answer
 
-      {:exit, reason} ->
-        {:error, reason}
-
-      nil ->
-        Task.shutdown(task)
+      {:error, :timeout} ->
         @err_timeout
+
+      {:error, reason} ->
+        {:error, reason}
     end
   end
 

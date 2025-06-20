@@ -3,6 +3,7 @@ defmodule Core.Researcher.Webpages.Classifier do
   Classifies webpage content using AI.
   """
   alias Core.Ai
+  alias Core.Utils.TaskAwaiter
   require Logger
 
   @model :gemini_pro
@@ -40,22 +41,15 @@ defmodule Core.Researcher.Webpages.Classifier do
 
     task = Ai.ask_supervised(request)
 
-    case Task.yield(task, @timeout) do
-      {:ok, {:ok, answer}} ->
+    case TaskAwaiter.await(task, @timeout) do
+      {:ok, answer} ->
         case parse_and_validate_response(answer) do
           {:ok, classification} -> {:ok, classification}
           {:error, reason} -> {:error, reason}
         end
 
-      {:ok, {:error, reason}} ->
+      {:error, reason} ->
         {:error, reason}
-
-      {:exit, reason} ->
-        {:error, reason}
-
-      nil ->
-        Task.shutdown(task)
-        {:error, :timeout}
     end
   end
 
