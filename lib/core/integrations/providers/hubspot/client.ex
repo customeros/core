@@ -234,10 +234,9 @@ defmodule Core.Integrations.Providers.HubSpot.Client do
   defp build_url(path, params) do
     query_string =
       params
-      |> Enum.map(fn {key, value} ->
+      |> Enum.map_join("&", fn {key, value} ->
         "#{key}=#{URI.encode_www_form(to_string(value))}"
       end)
-      |> Enum.join("&")
 
     url = "#{base_url()}#{path}"
     if query_string == "", do: url, else: "#{url}?#{query_string}"

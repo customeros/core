@@ -135,13 +135,13 @@ defmodule Core.Utils.PrimaryDomainFinder do
       "Following domain chain: #{current_domain}, visited: #{inspect(MapSet.to_list(visited))}, redirects remaining: #{redirects_remaining}"
     )
 
-    with {:ok, new_visited_set} <-
-           update_visited_domains(current_domain, visited) do
-      current_domain
-      |> primary_domain_check()
-      |> ok(&valid_primary_domain?/1)
-      |> continue_if_necessary(new_visited_set, redirects_remaining)
-    else
+    case update_visited_domains(current_domain, visited) do
+      {:ok, new_visited_set} ->
+        current_domain
+        |> primary_domain_check()
+        |> ok(&valid_primary_domain?/1)
+        |> continue_if_necessary(new_visited_set, redirects_remaining)
+
       {:error, reason} ->
         {:error, reason}
     end

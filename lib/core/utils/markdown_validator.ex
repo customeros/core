@@ -47,6 +47,8 @@ defmodule Core.Utils.MarkdownValidator do
          :ok <- validate_emphasis(text),
          :ok <- validate_lists(text) do
       :ok
+    else
+      error -> error
     end
   end
 
