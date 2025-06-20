@@ -11,6 +11,7 @@ defmodule Core.Crm.Companies.Enrichment.BusinessModel do
   require OpenTelemetry.Tracer
   alias Core.Ai
   alias Core.Utils.Tracing
+  alias Core.Utils.TaskAwaiter
 
   @timeout 30 * 1000
   @model_gemini :gemini_flash
@@ -46,8 +47,8 @@ defmodule Core.Crm.Companies.Enrichment.BusinessModel do
 
       task = Ai.ask_supervised(request)
 
-      case Task.yield(task, @timeout) do
-        {:ok, {:ok, response}} ->
+      case TaskAwaiter.await(task, @timeout) do
+        {:ok, response} ->
           OpenTelemetry.Tracer.set_attributes([
             {"ai.raw.response", response}
           ])
@@ -62,7 +63,7 @@ defmodule Core.Crm.Companies.Enrichment.BusinessModel do
             _ -> {:ok, nil}
           end
 
-        {:ok, {:error, reason}} ->
+        {:error, reason} ->
           OpenTelemetry.Tracer.set_attributes([
             {"ai.error.reason", reason}
           ])

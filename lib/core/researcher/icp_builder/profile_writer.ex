@@ -19,13 +19,12 @@ defmodule Core.Researcher.IcpBuilder.ProfileWriter do
   alias Core.Researcher.IcpBuilder.ProfileValidator
   alias Core.Researcher.Webpages
   alias Core.Ai
+  alias Core.Utils.TaskAwaiter
 
   @model :claude_sonnet
   @model_temperature 0.2
   @max_tokens 2048
   @timeout 60 * 1000
-
-  @err_task_timeout {:error, :task_timeout}
 
   def generate_icp(domain) when is_binary(domain) do
     with {:ok, pages} <-
@@ -43,19 +42,12 @@ defmodule Core.Researcher.IcpBuilder.ProfileWriter do
   defp ask_ai_for_icp(request) do
     task = Ai.ask_supervised(request)
 
-    case Task.yield(task, @timeout) do
-      {:ok, {:ok, answer}} ->
+    case TaskAwaiter.await(task, @timeout) do
+      {:ok, answer} ->
         ProfileValidator.validate_and_parse(answer)
 
-      {:ok, {:error, reason}} ->
+      {:error, reason} ->
         {:error, reason}
-
-      {:exit, reason} ->
-        {:error, reason}
-
-      nil ->
-        Task.shutdown(task)
-        @err_task_timeout
     end
   end
 
