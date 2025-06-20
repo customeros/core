@@ -101,6 +101,10 @@ defmodule Core.Researcher.BriefWriter.EngagementProfiler do
         {:ok, webpages}
 
       {:error, reason} ->
+        Logger.error("Failed to get page visits for session",
+          sessions: sessions
+        )
+
         {:error, reason}
     end
   end
@@ -178,6 +182,11 @@ defmodule Core.Researcher.BriefWriter.EngagementProfiler do
       {:ok, sessions}
     else
       {:error, reason} ->
+        Logger.error("Failed to lookup sessions for lead",
+          tenant_id: tenant_id,
+          company_id: company_id
+        )
+
         {:error, reason}
     end
   end
@@ -188,8 +197,19 @@ defmodule Core.Researcher.BriefWriter.EngagementProfiler do
          true <- byte_size(homepage.summary) > 0 do
       {:ok, homepage.summary}
     else
-      false -> @err_no_description
-      {:error, reason} -> {:error, reason}
+      false ->
+        Logger.error("Empty company description",
+          domain: domain
+        )
+
+        @err_no_description
+
+      {:error, reason} ->
+        Logger.error("Failed to get company description",
+          domain: domain
+        )
+
+        {:error, reason}
     end
   end
 
