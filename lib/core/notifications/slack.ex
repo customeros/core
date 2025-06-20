@@ -457,8 +457,28 @@ defmodule Core.Notifications.Slack do
          module_function,
          metadata
        ) do
-    metadata = if is_list(metadata), do: Map.new(metadata), else: metadata
+    metadata = normalize_metadata(metadata)
+    custom_metadata = filter_system_metadata(metadata)
 
+    fields =
+      build_error_fields(
+        error_type,
+        error_message,
+        module_function,
+        custom_metadata
+      )
+
+    blocks = build_error_blocks(fields, stacktrace)
+    message = %{blocks: blocks}
+
+    send_error_message_safely(webhook_url, message)
+  end
+
+  defp normalize_metadata(metadata) do
+    if is_list(metadata), do: Map.new(metadata), else: metadata
+  end
+
+  defp filter_system_metadata(metadata) do
     system_keys = [
       :module,
       :function,
@@ -475,57 +495,69 @@ defmodule Core.Notifications.Slack do
       :otel_trace_flags
     ]
 
-    custom_metadata =
-      metadata
-      |> Enum.sort_by(fn {k, _v} -> k end)
-      |> Enum.reject(fn {k, _v} -> k in system_keys end)
-      |> Enum.into(%{})
+    metadata
+    |> Enum.sort_by(fn {k, _v} -> k end)
+    |> Enum.reject(fn {k, _v} -> k in system_keys end)
+    |> Enum.into(%{})
+  end
 
-    fields = [
+  defp build_error_fields(
+         error_type,
+         error_message,
+         module_function,
+         custom_metadata
+       ) do
+    base_fields = [
       %{
         type: "mrkdwn",
         text: "*Error Type:*\n`#{error_type}`"
       },
       %{
         type: "mrkdwn",
-        text:
-          "*Message:*\n```#{String.slice(error_message, 0, 200)}#{if String.length(error_message) > 200, do: "...", else: ""}```"
+        text: "*Message:*\n```#{truncate_message(error_message)}```"
       }
     ]
 
-    # Add module/function if provided
-    fields =
-      if module_function do
-        fields ++
-          [
-            %{
-              type: "mrkdwn",
-              text: "*Location:*\n`#{module_function}`"
-            }
-          ]
-      else
-        fields
-      end
+    fields = add_module_function_field(base_fields, module_function)
+    add_metadata_field(fields, custom_metadata)
+  end
 
-    # Add metadata if present
-    fields =
-      if custom_metadata && map_size(custom_metadata) > 0 do
-        metadata_lines =
-          Enum.map_join(custom_metadata, "\n", fn {k, v} -> "*#{k}:* #{v}" end)
+  defp truncate_message(message) do
+    truncated = String.slice(message, 0, 200)
+    if String.length(message) > 200, do: truncated <> "...", else: truncated
+  end
 
-        fields ++
-          [
-            %{
-              type: "mrkdwn",
-              text: "*Metadata:*\n" <> metadata_lines
-            }
-          ]
-      else
-        fields
-      end
+  defp add_module_function_field(fields, nil), do: fields
 
-    # Build the blocks with warning styling
-    blocks = [
+  defp add_module_function_field(fields, module_function) do
+    fields ++
+      [
+        %{
+          type: "mrkdwn",
+          text: "*Location:*\n`#{module_function}`"
+        }
+      ]
+  end
+
+  defp add_metadata_field(fields, custom_metadata) do
+    if custom_metadata && map_size(custom_metadata) > 0 do
+      metadata_lines =
+        Enum.map_join(custom_metadata, "\n", fn {k, v} -> "*#{k}:* #{v}" end)
+
+      fields ++
+        [
+          %{
+            type: "mrkdwn",
+            text: "*Metadata:*\n" <> metadata_lines
+          }
+        ]
+    else
+      fields
+    end
+  end
+
+  defp build_error_blocks(fields, stacktrace) do
+    base_blocks = [
       %{
         type: "header",
         text: %{
@@ -550,32 +582,34 @@ defmodule Core.Notifications.Slack do
       }
     ]
 
-    # Add stacktrace section if provided
-    blocks =
-      if stacktrace && stacktrace != "" do
-        stacktrace_preview = String.slice(stacktrace, 0, 800)
+    add_stacktrace_block(base_blocks, stacktrace)
+  end
 
-        stacktrace_text =
-          if String.length(stacktrace) > 800,
-            do: stacktrace_preview <> "...",
-            else: stacktrace_preview
+  defp add_stacktrace_block(blocks, stacktrace) do
+    if stacktrace && stacktrace != "" do
+      stacktrace_preview = String.slice(stacktrace, 0, 800)
 
-        blocks ++
-          [
-            %{
-              type: "section",
-              text: %{
-                type: "mrkdwn",
-                text: "*Stacktrace:*\n```#{stacktrace_text}```"
-              }
+      stacktrace_text =
+        if String.length(stacktrace) > 800,
+          do: stacktrace_preview <> "...",
+          else: stacktrace_preview
+
+      blocks ++
+        [
+          %{
+            type: "section",
+            text: %{
+              type: "mrkdwn",
+              text: "*Stacktrace:*\n```#{stacktrace_text}```"
             }
-          ]
-      else
-        blocks
-      end
+          }
+        ]
+    else
+      blocks
+    end
+  end
 
-    message = %{blocks: blocks}
-
+  defp send_error_message_safely(webhook_url, message) do
     try do
       case send_message(webhook_url, message) do
         :ok ->
