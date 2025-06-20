@@ -131,7 +131,7 @@ defmodule Core.Researcher.Scraper do
         {:error, :no_content_type} ->
           @err_no_content
 
-        {:error, %Mint.TransportError{reason: :timeout}} ->
+        {:error, :timeout} ->
           OpenTelemetry.Tracer.set_attributes([
             {"result", "timeout"}
           ])
@@ -431,7 +431,7 @@ defmodule Core.Researcher.Scraper do
       if depth > 5 do
         {:error, :too_many_redirects}
       else
-        case Finch.build(:get, url) |> Finch.request(Core.Finch) do
+        case Finch.build(:get, url) |> Finch.request(Core.Finch, receive_timeout: 30_000) do
           {:ok, %Finch.Response{headers: headers, status: status, body: _body}} ->
             content_type =
               Enum.find_value(headers, fn
@@ -476,6 +476,9 @@ defmodule Core.Researcher.Scraper do
               true ->
                 {:ok, content_type}
             end
+
+          {:error, %Mint.TransportError{reason: :timeout}} ->
+            {:error, :timeout}
 
           {:error, reason} ->
             {:error, reason}
