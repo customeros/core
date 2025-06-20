@@ -55,3 +55,8 @@ config :core, :slack, enabled: false, webhook_url: "https://dummy-url.com"
 config :mime, :types, %{
   "application/json" => ["json"]
 }
+
+# URL configuration for test
+config :core, :url,
+  scheme: "http",
+  host: "localhost:4002"
