@@ -220,33 +220,47 @@ defmodule Core.Crm.Companies.CompanyScrapinEnrich do
       # Only update if company has a country and headquarter has a country
       company.country_a2 && scrapin_company_details.headquarter &&
           scrapin_company_details.headquarter.country ->
-        headquarter_country = scrapin_company_details.headquarter.country
-
-        # Check if countries match (case insensitive)
-        if String.downcase(company.country_a2) ==
-             String.downcase(headquarter_country) do
-          updates = get_city_region_updates(scrapin_company_details.headquarter)
-
-          if length(updates) > 0 do
-            case Repo.update_all(
-                   from(c in Company, where: c.id == ^company.id),
-                   set: updates
-                 ) do
-              {0, _} ->
-                {:error, :update_failed}
-
-              {_count, _} ->
-                :ok
-            end
-          else
-            :ok
-          end
-        else
-          :ok
-        end
+        update_city_and_region_if_countries_match(
+          company,
+          scrapin_company_details
+        )
 
       true ->
         :ok
+    end
+  end
+
+  defp update_city_and_region_if_countries_match(
+         company,
+         scrapin_company_details
+       ) do
+    headquarter_country = scrapin_company_details.headquarter.country
+
+    # Check if countries match (case insensitive)
+    if String.downcase(company.country_a2) ==
+         String.downcase(headquarter_country) do
+      perform_city_region_update(company, scrapin_company_details.headquarter)
+    else
+      :ok
+    end
+  end
+
+  defp perform_city_region_update(company, headquarter) do
+    updates = get_city_region_updates(headquarter)
+
+    if length(updates) > 0 do
+      case Repo.update_all(
+             from(c in Company, where: c.id == ^company.id),
+             set: updates
+           ) do
+        {0, _} ->
+          {:error, :update_failed}
+
+        {_count, _} ->
+          :ok
+      end
+    else
+      :ok
     end
   end
 
