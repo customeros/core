@@ -66,20 +66,20 @@ defmodule Core.Utils.PrimaryDomainFinder do
   ]
 
   @doc """
-  Checks if a domain is a primary domain.
-
-  A primary domain must meet several criteria:
-  - Valid TLD and domain format
-  - Accessible via HTTP/HTTPS
-  - Has DNS A/AAAA and MX records
-  - No CNAME record (not an alias)
-  - No external redirects
-  - Is the root domain (no subdomain)
+  Checks if a domain is a primary domain. It checks if current domain is redirecting to the primary domain.
   """
   def primary_domain?(domain) do
-    case primary_domain_check(domain) do
-      {:ok, {is_primary, _domain}} -> is_primary
-      _ -> false
+    case get_primary_domain(domain) do
+      {:ok, primary_domain} ->
+        if DomainExtractor.extract_base_domain(primary_domain) ==
+             DomainExtractor.extract_base_domain(domain) do
+          true
+        else
+          false
+        end
+
+      _ ->
+        false
     end
   end
 

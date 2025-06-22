@@ -341,7 +341,7 @@ defmodule Core.Crm.Leads.DailyLeadSummarySender do
 
     separator =
       String.duplicate("-", max_name_length) <>
-        "-+-" <> String.duplicate("-", max_count_length)
+        "-+-" <> String.duplicate("-", max(max_count_length, 5))
 
     # Format rows
     rows =
