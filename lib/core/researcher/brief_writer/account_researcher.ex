@@ -2,6 +2,8 @@ defmodule Core.Researcher.BriefWriter.AccountResearcher do
   @moduledoc """
   Generates an account overview for a given lead, tailored to a specific tenant's value proposition.
   """
+  require Logger
+
   alias Core.Ai
   alias Core.Utils.TaskAwaiter
   alias Core.Researcher.Webpages
@@ -24,6 +26,11 @@ defmodule Core.Researcher.BriefWriter.AccountResearcher do
       {:ok, validated_overview}
     else
       {:error, reason} ->
+        Logger.error("Failed to generate account overview: #{inspect(reason)}",
+          tenant_id: tenant_id,
+          domain: lead_domain
+        )
+
         {:error, reason}
     end
   end
@@ -63,6 +70,7 @@ defmodule Core.Researcher.BriefWriter.AccountResearcher do
 
       What Makes a Great Account Brief: Quality Standards
     A great brief tells a story that makes the prospect feel like you already understand their business better than 99% of vendors who contact them.
+    A great brief is direct and to the point.
 
     Company Overview Section
 
