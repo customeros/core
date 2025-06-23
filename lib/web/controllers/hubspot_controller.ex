@@ -74,7 +74,8 @@ defmodule Web.HubspotController do
   defp handle_successful_oauth(conn, code, redirect_uri, tenant_id) do
     with {:ok, token} <- exchange_code_for_token(code, redirect_uri),
          {:ok, hub_id} <- get_hubspot_portal_id(token),
-         {:ok, connection} <- create_hubspot_connection(token, hub_id, tenant_id) do
+         {:ok, connection} <-
+           create_hubspot_connection(token, hub_id, tenant_id) do
       start_async_company_sync(connection)
 
       conn
@@ -82,7 +83,9 @@ defmodule Web.HubspotController do
       |> redirect(to: ~p"/leads")
     else
       {:error, reason} ->
-        Logger.error("Failed to complete HubSpot integration: #{inspect(reason)}")
+        Logger.error(
+          "Failed to complete HubSpot integration: #{inspect(reason)}"
+        )
 
         conn
         |> put_flash(:error, "Failed to complete HubSpot integration")
@@ -135,6 +138,7 @@ defmodule Web.HubspotController do
         Logger.info(
           "Successfully created HubSpot connection: #{inspect(connection, pretty: true)}"
         )
+
         {:ok, connection}
 
       {:error, reason} ->
@@ -149,7 +153,9 @@ defmodule Web.HubspotController do
         "[HubSpot Controller] Starting async sync of all companies for connection #{connection.id}"
       )
 
-      case Core.Integrations.Providers.HubSpot.Companies.sync_all_companies(connection.id) do
+      case Core.Integrations.Providers.HubSpot.Companies.sync_all_companies(
+             connection.id
+           ) do
         {:ok, result} ->
           Logger.info(
             "[HubSpot Controller] Completed async sync of all companies: #{inspect(result)}"
