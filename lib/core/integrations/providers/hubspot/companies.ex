@@ -367,7 +367,7 @@ defmodule Core.Integrations.Providers.HubSpot.Companies do
             "[HubSpot Company] Starting sync of all companies for connection #{connection.id} with params: #{inspect(sync_params)}"
           )
 
-          do_sync_companies(connection, sync_params, 0, 0, false)
+          do_sync_companies(connection, sync_params, 0, 0, true)
         else
           Logger.error(
             "[HubSpot Company] Connection #{connection.id} is not a HubSpot connection (provider: #{connection.provider})"

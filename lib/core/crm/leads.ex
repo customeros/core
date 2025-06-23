@@ -330,15 +330,33 @@ defmodule Core.Crm.Leads do
             {:error, :not_found} ->
               with {:ok, company} <- Companies.get_by_id(attrs.ref_id),
                    false <- company.primary_domain == tenant.domain do
-                %Lead{}
-                |> Lead.changeset(%{
-                  tenant_id: tenant.id,
-                  ref_id: attrs.ref_id,
-                  type: attrs.type,
-                  stage: Map.get(attrs, :stage, :pending)
-                })
-                |> Repo.insert()
-                |> tap(fn {:ok, result} -> after_insert_start(result) end)
+                case %Lead{}
+                     |> Lead.changeset(%{
+                       tenant_id: tenant.id,
+                       ref_id: attrs.ref_id,
+                       type: attrs.type,
+                       stage: Map.get(attrs, :stage, :pending)
+                     })
+                     |> Repo.insert() do
+                  {:ok, lead} ->
+                    after_insert_start(lead)
+                    {:ok, lead}
+
+                  {:error, %Ecto.Changeset{errors: errors}} ->
+                    # Check if this is a unique constraint violation
+                    if has_unique_constraint_error?(errors) do
+                      # Lead already exists, fetch it
+                      case get_by_ref_id(tenant.id, attrs.ref_id) do
+                        {:ok, existing_lead} -> {:ok, existing_lead}
+                        {:error, reason} -> {:error, reason}
+                      end
+                    else
+                      {:error, :validation_failed}
+                    end
+
+                  {:error, reason} ->
+                    {:error, reason}
+                end
               else
                 {:error, :not_found} -> {:error, :not_found}
                 true -> {:error, :domain_matches_tenant}
@@ -615,6 +633,13 @@ defmodule Core.Crm.Leads do
   defp get_stage_counts(leads) do
     Enum.reduce(leads, %{}, fn lead, acc ->
       Map.update(acc, lead.stage, 1, &(&1 + 1))
+    end)
+  end
+
+  defp has_unique_constraint_error?(errors) do
+    Enum.any?(errors, fn
+      {_, {"has already been taken", _}} -> true
+      _ -> false
     end)
   end
 end
