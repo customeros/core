@@ -12,4 +12,3 @@
 
 # Execute SQL files using the repo directly
 Core.Repo.query!(File.read!("priv/repo/seeds/companies.sql"))
-# Core.Repo.query!(File.read!("priv/repo/seeds/scraped_webpages.sql"))
