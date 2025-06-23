@@ -328,8 +328,8 @@ defmodule Core.Integrations.Providers.HubSpot.Companies do
       {:ok, %Connection{} = connection} ->
         # Check if connection is of HubSpot type
         if connection.provider == :hubspot do
-          default_params = %{limit: 10}
-          sync_params = Map.merge(default_params, params)
+          # Only set defaults for parameters that aren't already provided
+          sync_params = Map.merge(%{limit: 10}, params)
 
           Logger.info(
             "[HubSpot Company] Starting sync of all companies for connection #{connection.id} with params: #{inspect(sync_params)}"
