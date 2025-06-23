@@ -241,9 +241,10 @@ defmodule Core.Integrations.Providers.HubSpot.Companies do
 
       is_customer = customer_type?(hubspot_company)
 
-      with false <- hubspot_company.archived,
-           domain when is_binary(domain) and domain != "" <-
-             hubspot_company.domain,
+      with {:archived, false} <- {:archived, hubspot_company.archived},
+           {:is_customer, true} <- {:is_customer, is_customer},
+           {:domain, domain} when is_binary(domain) and domain != "" <-
+             {:domain, hubspot_company.domain},
            {:ok, crm_company} <-
              Core.Crm.Companies.get_or_create_by_domain(domain),
            {:ok, tenant} <- Core.Auth.Tenants.get_tenant_by_id(tenant_id),
@@ -257,11 +258,17 @@ defmodule Core.Integrations.Providers.HubSpot.Companies do
              update_lead_stage_for_customer(lead, is_customer) do
         {:ok, %{crm_company: crm_company}}
       else
-        true ->
+        {:archived, true} ->
           {:error, :company_archived}
 
-        false ->
+        {:is_customer, false} ->
+          {:error, :not_customer}
+
+        {:domain, domain} when is_nil(domain) or domain == "" ->
           {:error, :no_domain}
+
+        {:domain, domain} when not is_binary(domain) ->
+          {:error, :invalid_domain_format}
 
         {:error, :domain_not_reachable} ->
           Tracing.warning(:domain_not_reachable, "Domain not reachable")
@@ -319,7 +326,9 @@ defmodule Core.Integrations.Providers.HubSpot.Companies do
 
     lead_attrs =
       if is_customer do
-        Map.put(lead_attrs, :stage, :customer)
+        lead_attrs
+        |> Map.put(:stage, :customer)
+        |> Map.put(:icp_fit, :strong)
       else
         lead_attrs
       end
