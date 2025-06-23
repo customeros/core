@@ -5,6 +5,24 @@ defmodule Web.HubspotWebhookController do
   alias Core.Integrations.Providers.HubSpot.Webhook
 
   def webhook(conn, _params) do
+    with {:ok, _} <- validate_webhook_signature(conn),
+         {:ok, events} <- parse_webhook_body(conn) do
+      process_webhook_events(events)
+      send_resp(conn, 200, "ok")
+    else
+      {:error, :invalid_signature} ->
+        Logger.error(
+          "[HubSpotWebhookController] Webhook validation failed: Signature does not match or missing headers"
+        )
+
+        send_resp(conn, 401, "Invalid signature")
+
+      {:error, :invalid_json} ->
+        send_resp(conn, 400, "Invalid JSON")
+    end
+  end
+
+  defp validate_webhook_signature(conn) do
     signature = get_req_header(conn, "x-hubspot-signature-v3") |> List.first()
 
     timestamp =
@@ -25,48 +43,37 @@ defmodule Web.HubspotWebhookController do
            raw_body,
            timestamp
          ) do
-      Logger.error(
-        "[HubSpotWebhookController] Webhook validation failed: Signature does not match or missing headers"
-      )
-
-      send_resp(conn, 401, "Invalid signature")
+      {:error, :invalid_signature}
     else
-      case Jason.decode(raw_body) do
-        {:ok, events} when is_list(events) ->
-          Enum.each(events, fn event ->
-            case Webhook.process_event_from_webhook(event) do
-              {:ok, _result} ->
-                Logger.info(
-                  "[HubspotWebhookController] Processed event: #{inspect(event)}"
-                )
+      {:ok, raw_body}
+    end
+  end
 
-              {:error, reason} ->
-                Logger.error(
-                  "[HubspotWebhookController] Failed to process event: #{inspect(reason)}"
-                )
-            end
-          end)
+  defp parse_webhook_body(conn) do
+    raw_body = conn.assigns[:raw_body] || ""
 
-          send_resp(conn, 200, "ok")
+    case Jason.decode(raw_body) do
+      {:ok, events} when is_list(events) -> {:ok, events}
+      {:ok, event} -> {:ok, [event]}
+      {:error, _} -> {:error, :invalid_json}
+    end
+  end
 
-        {:ok, event} ->
-          case Webhook.process_event_from_webhook(event) do
-            {:ok, _result} ->
-              Logger.info(
-                "[HubspotWebhookController] Processed event: #{inspect(event)}"
-              )
+  defp process_webhook_events(events) do
+    Enum.each(events, &process_single_event/1)
+  end
 
-            {:error, reason} ->
-              Logger.error(
-                "[HubspotWebhookController] Failed to process event: #{inspect(reason)}"
-              )
-          end
+  defp process_single_event(event) do
+    case Webhook.process_event_from_webhook(event) do
+      {:ok, _result} ->
+        Logger.info(
+          "[HubspotWebhookController] Processed event: #{inspect(event)}"
+        )
 
-          send_resp(conn, 200, "ok")
-
-        {:error, _} ->
-          send_resp(conn, 400, "Invalid JSON")
-      end
+      {:error, reason} ->
+        Logger.error(
+          "[HubspotWebhookController] Failed to process event: #{inspect(reason)}"
+        )
     end
   end
 end
