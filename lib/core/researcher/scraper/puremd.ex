@@ -36,7 +36,8 @@ defmodule Core.Researcher.Scraper.Puremd do
       {:error, %Mint.TransportError{reason: :timeout}} ->
         @err_timeout
 
-      {:error, reason} -> {:error, reason}
+      {:error, reason} ->
+        {:error, reason}
     end
   end
 

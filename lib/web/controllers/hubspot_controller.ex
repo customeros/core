@@ -49,103 +49,11 @@ defmodule Web.HubspotController do
   """
   def callback(conn, params) do
     tenant_id = conn.assigns.current_user.tenant_id
-
     redirect_uri = append_to_base_url("/hubspot/callback")
 
     case params do
       %{"code" => code} ->
-        case HubSpotOAuth.exchange_code(code, redirect_uri) do
-          {:ok, {:ok, %Core.Integrations.OAuth.Token{} = token}} ->
-            # Get HubSpot portal ID from the token info
-            case HubSpotOAuth.get_portal_info(token.access_token) do
-              {:ok, hub_id} ->
-                Logger.info("Got HubSpot portal ID: #{hub_id}")
-
-                # Extract token fields into a map for connection creation
-                connection_params = %{
-                  tenant_id: tenant_id,
-                  provider: :hubspot,
-                  status: :active,
-                  external_system_id: to_string(hub_id),
-                  access_token: token.access_token,
-                  refresh_token: token.refresh_token,
-                  expires_at: token.expires_at,
-                  token_type: token.token_type,
-                  scopes: Application.get_env(:core, :hubspot)[:scopes] || []
-                }
-
-                case Connections.create_connection(connection_params) do
-                  {:ok, connection} ->
-                    Logger.info(
-                      "Successfully created HubSpot connection: #{inspect(connection, pretty: true)}"
-                    )
-
-                    # Start async sync of all companies as fire-and-forget
-                    Task.start(fn ->
-                      Logger.info(
-                        "[HubSpot Controller] Starting async sync of all companies for connection #{connection.id}"
-                      )
-
-                      case Core.Integrations.Providers.HubSpot.Companies.sync_all_companies(
-                             connection
-                           ) do
-                        {:ok, result} ->
-                          Logger.info(
-                            "[HubSpot Controller] Completed async sync of all companies: #{inspect(result)}"
-                          )
-
-                        {:error, reason} ->
-                          Logger.error(
-                            "[HubSpot Controller] Failed async sync of all companies: #{inspect(reason)}"
-                          )
-                      end
-                    end)
-
-                    conn
-                    |> put_flash(:success, "Successfully connected to HubSpot")
-                    |> redirect(to: ~p"/leads")
-
-                  {:error, reason} ->
-                    Logger.error(
-                      "Failed to create HubSpot connection: #{inspect(reason)}"
-                    )
-
-                    conn
-                    |> put_flash(
-                      :error,
-                      "Failed to complete HubSpot integration"
-                    )
-                    |> redirect(to: ~p"/leads")
-                end
-
-              {:error, reason} ->
-                Logger.error(
-                  "Failed to get HubSpot portal ID: #{inspect(reason)}"
-                )
-
-                conn
-                |> put_flash(:error, "Failed to complete HubSpot integration")
-                |> redirect(to: ~p"/leads")
-            end
-
-          {:ok, {:error, reason}} ->
-            Logger.error(
-              "Failed to exchange code for token: #{inspect(reason)}"
-            )
-
-            conn
-            |> put_flash(:error, "Failed to complete HubSpot integration")
-            |> redirect(to: ~p"/leads")
-
-          {:error, reason} ->
-            Logger.error(
-              "Failed to exchange code for token: #{inspect(reason)}"
-            )
-
-            conn
-            |> put_flash(:error, "Failed to complete HubSpot integration")
-            |> redirect(to: ~p"/leads")
-        end
+        handle_successful_oauth(conn, code, redirect_uri, tenant_id)
 
       %{"error" => error, "error_description" => description} ->
         Logger.error("HubSpot OAuth error: #{error} - #{description}")
@@ -161,6 +69,98 @@ defmodule Web.HubspotController do
         |> put_flash(:error, "Invalid HubSpot callback")
         |> redirect(to: ~p"/leads")
     end
+  end
+
+  defp handle_successful_oauth(conn, code, redirect_uri, tenant_id) do
+    with {:ok, token} <- exchange_code_for_token(code, redirect_uri),
+         {:ok, hub_id} <- get_hubspot_portal_id(token),
+         {:ok, connection} <- create_hubspot_connection(token, hub_id, tenant_id) do
+      start_async_company_sync(connection)
+
+      conn
+      |> put_flash(:success, "Successfully connected to HubSpot")
+      |> redirect(to: ~p"/leads")
+    else
+      {:error, reason} ->
+        Logger.error("Failed to complete HubSpot integration: #{inspect(reason)}")
+
+        conn
+        |> put_flash(:error, "Failed to complete HubSpot integration")
+        |> redirect(to: ~p"/leads")
+    end
+  end
+
+  defp exchange_code_for_token(code, redirect_uri) do
+    case HubSpotOAuth.exchange_code(code, redirect_uri) do
+      {:ok, {:ok, %Core.Integrations.OAuth.Token{} = token}} ->
+        {:ok, token}
+
+      {:ok, {:error, reason}} ->
+        Logger.error("Failed to exchange code for token: #{inspect(reason)}")
+        {:error, :token_exchange_failed}
+
+      {:error, reason} ->
+        Logger.error("Failed to exchange code for token: #{inspect(reason)}")
+        {:error, :token_exchange_failed}
+    end
+  end
+
+  defp get_hubspot_portal_id(token) do
+    case HubSpotOAuth.get_portal_info(token.access_token) do
+      {:ok, hub_id} ->
+        Logger.info("Got HubSpot portal ID: #{hub_id}")
+        {:ok, hub_id}
+
+      {:error, reason} ->
+        Logger.error("Failed to get HubSpot portal ID: #{inspect(reason)}")
+        {:error, :portal_info_failed}
+    end
+  end
+
+  defp create_hubspot_connection(token, hub_id, tenant_id) do
+    connection_params = %{
+      tenant_id: tenant_id,
+      provider: :hubspot,
+      status: :active,
+      external_system_id: to_string(hub_id),
+      access_token: token.access_token,
+      refresh_token: token.refresh_token,
+      expires_at: token.expires_at,
+      token_type: token.token_type,
+      scopes: Application.get_env(:core, :hubspot)[:scopes] || []
+    }
+
+    case Connections.create_connection(connection_params) do
+      {:ok, connection} ->
+        Logger.info(
+          "Successfully created HubSpot connection: #{inspect(connection, pretty: true)}"
+        )
+        {:ok, connection}
+
+      {:error, reason} ->
+        Logger.error("Failed to create HubSpot connection: #{inspect(reason)}")
+        {:error, :connection_creation_failed}
+    end
+  end
+
+  defp start_async_company_sync(connection) do
+    Task.start(fn ->
+      Logger.info(
+        "[HubSpot Controller] Starting async sync of all companies for connection #{connection.id}"
+      )
+
+      case Core.Integrations.Providers.HubSpot.Companies.sync_all_companies(connection) do
+        {:ok, result} ->
+          Logger.info(
+            "[HubSpot Controller] Completed async sync of all companies: #{inspect(result)}"
+          )
+
+        {:error, reason} ->
+          Logger.error(
+            "[HubSpot Controller] Failed async sync of all companies: #{inspect(reason)}"
+          )
+      end
+    end)
   end
 
   @doc """
