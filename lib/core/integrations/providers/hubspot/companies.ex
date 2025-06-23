@@ -223,7 +223,7 @@ defmodule Core.Integrations.Providers.HubSpot.Companies do
           {:ok, %{crm_company: Core.Crm.Companies.Company.t()}}
           | {:error, any()}
   def sync_company(company, tenant_id) do
-    OpenTelemetry.Tracer.with_span("hubspot.companies.sync_company") do
+    OpenTelemetry.Tracer.with_span "hubspot.companies.sync_company" do
       hubspot_company = HubSpotCompany.from_hubspot_map(company)
 
       OpenTelemetry.Tracer.set_attributes([
@@ -231,8 +231,10 @@ defmodule Core.Integrations.Providers.HubSpot.Companies do
         {"hubspot_company.name", hubspot_company.name},
         {"hubspot_company.domain", hubspot_company.domain},
         {"hubspot_company.archived", hubspot_company.archived},
-        {"hubspot_company.customer_status", Map.get(hubspot_company.raw_properties, "customer_status")},
-        {"hubspot_company.type", Map.get(hubspot_company.raw_properties, "type")}
+        {"hubspot_company.customer_status",
+         Map.get(hubspot_company.raw_properties, "customer_status")},
+        {"hubspot_company.type",
+         Map.get(hubspot_company.raw_properties, "type")}
       ])
 
       is_customer = customer_type?(hubspot_company)
@@ -263,6 +265,14 @@ defmodule Core.Integrations.Providers.HubSpot.Companies do
           Tracing.warning(:domain_not_reachable, "Domain not reachable")
           {:error, :domain_not_reachable}
 
+        {:error, :cannot_resolve_url} ->
+          Tracing.warning(
+            :cannot_resolve_url,
+            "Cannot resolve url #{hubspot_company.domain}"
+          )
+
+          {:error, :cannot_resolve_url}
+
         {:error, reason} ->
           Tracing.error(reason, "Error syncing HubSpot company",
             company_domain: hubspot_company.domain,
@@ -272,7 +282,11 @@ defmodule Core.Integrations.Providers.HubSpot.Companies do
           {:error, reason}
 
         unexpected ->
-          Tracing.error(:unexpected_error, "Unexpected error in sync_company: #{inspect(unexpected)}")
+          Tracing.error(
+            :unexpected_error,
+            "Unexpected error in sync_company: #{inspect(unexpected)}"
+          )
+
           {:error, :unexpected_error}
       end
     end
@@ -368,7 +382,8 @@ defmodule Core.Integrations.Providers.HubSpot.Companies do
          total_pages
        ) do
     OpenTelemetry.Ctx.clear_current()
-    OpenTelemetry.Tracer.with_span("hubspot.companies.do_sync_companies") do
+
+    OpenTelemetry.Tracer.with_span "hubspot.companies.do_sync_companies" do
       OpenTelemetry.Tracer.set_attributes([
         {"total_synced", total_synced},
         {"total_pages", total_pages},
