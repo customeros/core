@@ -47,6 +47,13 @@ defmodule Core.Integrations.Connections do
     end
   end
 
+  def get_connection_by_id(id) do
+    case Repo.get(Connection, id) do
+      nil -> {:error, :not_found}
+      connection -> {:ok, connection}
+    end
+  end
+
   @doc """
   Creates a new integration connection.
 

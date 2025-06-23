@@ -149,7 +149,7 @@ defmodule Web.HubspotController do
         "[HubSpot Controller] Starting async sync of all companies for connection #{connection.id}"
       )
 
-      case Core.Integrations.Providers.HubSpot.Companies.sync_all_companies(connection) do
+      case Core.Integrations.Providers.HubSpot.Companies.sync_all_companies(connection.id) do
         {:ok, result} ->
           Logger.info(
             "[HubSpot Controller] Completed async sync of all companies: #{inspect(result)}"
