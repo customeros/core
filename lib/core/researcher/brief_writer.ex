@@ -26,7 +26,12 @@ defmodule Core.Researcher.BriefWriter do
            AccountResearcher.account_overview(tenant_id, lead_domain),
          {:ok, engagement_summary} <-
            EngagementProfiler.engagement_summary(tenant_id, lead_id) do
-      create_and_save_document(lead_id, account_overview, engagement_summary)
+      create_and_save_document(
+        tenant_id,
+        lead_id,
+        account_overview,
+        engagement_summary
+      )
     else
       {:error, reason} ->
         Logger.error("Account Brief failed: #{inspect(reason)}",
@@ -39,20 +44,25 @@ defmodule Core.Researcher.BriefWriter do
     end
   end
 
-  defp create_and_save_document(lead_id, account_overview, engagement_summary) do
+  defp create_and_save_document(
+         tenant_id,
+         lead_id,
+         account_overview,
+         engagement_summary
+       ) do
     document = build_document(account_overview, engagement_summary)
-    save_document(lead_id, document)
+    save_document(tenant_id, lead_id, document)
   end
 
   defp build_document(account_overview, engagement_summary) do
     account_overview <> "\n" <> engagement_summary
   end
 
-  defp save_document(lead, brief) do
+  defp save_document(tenant_id, lead_id, brief) do
     doc =
       Documents.Document.new_account_brief(
-        lead.tenant_id,
-        lead.id,
+        tenant_id,
+        lead_id,
         brief
       )
 
