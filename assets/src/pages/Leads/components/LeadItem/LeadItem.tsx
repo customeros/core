@@ -26,7 +26,7 @@ export const LeadItem = ({ lead, handleOpenLead, handleStageClick }: LeadItemPro
         isSelected && 'bg-gray-50'
       )}
     >
-      <div className={cn('ml-6', (group === 'stage' || !group) && 'hidden')}>
+      <div className={cn('ml-6 size-6', (group === 'stage' || !group) && 'hidden')}>
         <Icon
           name={stageIcons[lead.stage] as IconName}
           className="size-[14px] text-gray-500 hover:text-primary-700 transition-colors cursor-pointer"
@@ -44,7 +44,7 @@ export const LeadItem = ({ lead, handleOpenLead, handleStageClick }: LeadItemPro
       >
         {lead.icon ? (
           <div
-            className="relative cursor-pointer"
+            className="relative cursor-pointer size-6 flex"
             onClick={() => {
               handleOpenLead(lead);
             }}
@@ -65,7 +65,7 @@ export const LeadItem = ({ lead, handleOpenLead, handleStageClick }: LeadItemPro
             )}
           </div>
         ) : (
-          <div className="relative size-6 flex items-center justify-center border border-gray-200 rounded flex-shrink-0">
+          <div className="relative size-6 flex items-center justify-center border border-gray-200 rounded flex-shrink-0 cursor-pointer">
             <Icon
               name="building-06"
               onClick={() => {
@@ -108,7 +108,7 @@ export const LeadItem = ({ lead, handleOpenLead, handleStageClick }: LeadItemPro
           window.open(`https://${lead.domain}`, '_blank');
         }}
         className={cn(
-          'text-right cursor-pointer hover:underline min-w-0 flex-1 md:flex-none md:flex-shrink-0 bg-white px-2 py-1 group-hover:bg-gray-50',
+          'text-right cursor-pointer hover:underline min-w-0 flex-1 md:flex-none md:flex-shrink-0 bg-white px-2 py-1 group-hover:bg-gray-50 truncate',
           isSelected && 'bg-gray-50'
         )}
       >

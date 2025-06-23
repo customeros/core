@@ -90,7 +90,9 @@ export const Header = () => {
                 ) : (
                   <div className="size-6 rounded-full bg-[url('/images/customeros.png')] bg-cover bg-center" />
                 )}
-                <h1 className="text-sm font-medium">{workspaceName || 'CustomerOS'}</h1>
+                <h1 className="text-sm font-medium truncate max-w-[100px]">
+                  {workspaceName || 'CustomerOS'}
+                </h1>
               </div>
             </TenantSwitcher>
             <IconButton
@@ -107,8 +109,14 @@ export const Header = () => {
           </div>
 
           <div className="flex items-center gap-2">
-            <Tooltip label="Invite team">
-              <div onClick={() => setInviteTeam(true)}>
+            <Tooltip
+              label="Invite team"
+              className=" hidden sm:flex md:flex lg:flex xl:flex 2xl:flex"
+            >
+              <div
+                onClick={() => setInviteTeam(true)}
+                className="hidden sm:flex md:flex lg:flex xl:flex 2xl:flex"
+              >
                 <Avatar
                   size="xs"
                   variant="circle"
@@ -126,9 +134,9 @@ export const Header = () => {
                   size="xs"
                   colorScheme="primary"
                   onClick={() => setIsOpen(true)}
-                  leftIcon={<Icon name="rocket-02" />}
+                  leftIcon={<Icon name="lock-01" />}
                 >
-                  See who's ready to buy
+                  Unlock buyers
                 </Button>
               </>
             ) : (

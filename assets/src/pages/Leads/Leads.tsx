@@ -99,7 +99,7 @@ export default function Leads({ leads, stage_counts, max_count }: LeadsProps) {
               />
               <ScrollAreaRoot>
                 <ScrollAreaViewport
-                  className="absolute"
+                  className="absolute [&>div]:!block "
                   onScroll={e => {
                     startTransition(() => {
                       if (e.target instanceof HTMLElement) {
@@ -151,10 +151,10 @@ export default function Leads({ leads, stage_counts, max_count }: LeadsProps) {
                     ) : Array.isArray(leads) ? (
                       <div className="flex flex-col w-full">
                         <SegmentedView
-                          count={max_count || 0}
                           isSelected={!!selectedStage}
                           handleClearFilter={() => handleStageClick(selectedStage as Stage)}
                           className={cn('sticky top-0 z-30 mt-o', lead && 'md:rounded-r-none')}
+                          count={selectedStage ? stage_counts[selectedStage] || 0 : max_count || 0}
                           label={
                             selectedStage
                               ? stageOptions.find(s => s.value === selectedStage)?.label ||
