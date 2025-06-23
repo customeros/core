@@ -112,7 +112,7 @@ export default function Leads({ leads, stage_counts, max_count }: LeadsProps) {
                     });
                   }}
                 >
-                  <div className="">
+                  <div>
                     {(group === 'stage' || !group) && !Array.isArray(leads) ? (
                       Object.entries(leads)
                         .sort(sortByStage(!!asc))
@@ -126,7 +126,7 @@ export default function Leads({ leads, stage_counts, max_count }: LeadsProps) {
                               label={stageOptions.find(s => s.value === stage)?.label || stage}
                               className={cn(
                                 'sticky top-0 z-30',
-                                index === 0 ? 'mt-0' : '',
+                                index === 0 ? 'mt-1.5' : '',
                                 lead && 'md:rounded-r-none'
                               )}
                               icon={
@@ -222,11 +222,12 @@ const EventSubscriber = () => {
 
 const sortByStage = (asc: boolean) => (a: [string, Lead[]], b: [string, Lead[]]) => {
   const stageOrder: Record<string, number> = {
-    target: asc ? 4 : 0,
-    education: asc ? 3 : 1,
-    solution: asc ? 2 : 2,
-    evaluation: asc ? 1 : 3,
-    ready_to_buy: asc ? 0 : 4,
+    target: asc ? 5 : 0,
+    education: asc ? 4 : 1,
+    solution: asc ? 3 : 2,
+    evaluation: asc ? 2 : 3,
+    ready_to_buy: asc ? 1 : 4,
+    customer: asc ? 0 : 5,
   };
 
   return stageOrder[a[0]] - stageOrder[b[0]];
