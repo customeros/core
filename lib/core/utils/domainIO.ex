@@ -6,7 +6,7 @@ defmodule Core.Utils.DomainIO do
   alias Finch.Response
   require Logger
 
-  @err_cannot_resolve_url {:error, "url does not resolve"}
+  @err_cannot_resolve_url {:error, :cannot_resolve_url}
   @err_empty_url {:error, "url is empty"}
   @err_invalid_url {:error, "invalid url"}
   @err_ssl_error {:error, "ssl certificate error"}
