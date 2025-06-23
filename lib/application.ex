@@ -28,6 +28,7 @@ defmodule Core.Application do
       Core.Crm.Companies.CompanyDomainProcessor,
       Core.Crm.Leads.IcpFitEvaluator,
       Core.Crm.Leads.DailyLeadSummarySender,
+      Core.Integrations.Providers.HubSpot.CompaniesSyncJob,
       Core.WebTracker.SessionCloser,
       Core.Crm.Industries,
       Web.Endpoint,
