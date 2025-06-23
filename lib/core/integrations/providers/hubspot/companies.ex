@@ -341,7 +341,7 @@ defmodule Core.Integrations.Providers.HubSpot.Companies do
          is_customer
        ) do
     if is_customer and lead.stage != :customer do
-      case Core.Crm.Leads.update_lead(lead, %{stage: :customer}) do
+      case Core.Crm.Leads.update_lead(lead, %{stage: :customer, icp_fit: :strong}) do
         {:ok, updated_lead} -> {:ok, updated_lead}
         {:error, reason} -> {:error, reason}
       end
