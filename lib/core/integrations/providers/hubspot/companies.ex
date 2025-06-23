@@ -223,12 +223,16 @@ defmodule Core.Integrations.Providers.HubSpot.Companies do
           {:ok, %{crm_company: Core.Crm.Companies.Company.t()}}
           | {:error, any()}
   def sync_company(company, tenant_id) do
-    OpenTelemetry.Tracer.with_span "hubspot.companies.sync_company" do
+    OpenTelemetry.Tracer.with_span("hubspot.companies.sync_company") do
       hubspot_company = HubSpotCompany.from_hubspot_map(company)
 
       OpenTelemetry.Tracer.set_attributes([
-        "hubspot_company",
-        hubspot_company
+        {"hubspot_company.id", hubspot_company.id},
+        {"hubspot_company.name", hubspot_company.name},
+        {"hubspot_company.domain", hubspot_company.domain},
+        {"hubspot_company.archived", hubspot_company.archived},
+        {"hubspot_company.customer_status", Map.get(hubspot_company.raw_properties, "customer_status")},
+        {"hubspot_company.type", Map.get(hubspot_company.raw_properties, "type")}
       ])
 
       is_customer = customer_type?(hubspot_company)
@@ -266,6 +270,10 @@ defmodule Core.Integrations.Providers.HubSpot.Companies do
           )
 
           {:error, reason}
+
+        unexpected ->
+          Tracing.error(:unexpected_error, "Unexpected error in sync_company: #{inspect(unexpected)}")
+          {:error, :unexpected_error}
       end
     end
   end
@@ -359,13 +367,14 @@ defmodule Core.Integrations.Providers.HubSpot.Companies do
          total_synced,
          total_pages
        ) do
-    OpenTelemetry.Tracer.with_span "hubspot.companies.do_sync_companies" do
+    OpenTelemetry.Ctx.clear_current()
+    OpenTelemetry.Tracer.with_span("hubspot.companies.do_sync_companies") do
       OpenTelemetry.Tracer.set_attributes([
         {"total_synced", total_synced},
         {"total_pages", total_pages},
         {"tenant.id", connection.tenant_id},
         {"connection.id", connection.id},
-        {"params", params}
+        {"params", "#{inspect(params)}"}
       ])
 
       case list_hubspot_companies(connection, params) do
