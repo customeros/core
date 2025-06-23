@@ -5,10 +5,12 @@ defmodule Core.Researcher.IcpFinder do
   alias Core.Ai
   alias Core.Crm.Leads
   alias Core.Auth.Tenants
-  alias Core.Crm.Companies
+  alias Core.Utils.TaskAwaiter
   alias Core.Researcher.IcpProfiles
   alias Core.Researcher.IcpFinder.PromptBuilder
-  alias Core.Utils.TaskAwaiter
+  alias Core.Researcher.IcpFinder.CompaniesQueryInput
+  alias Core.Researcher.IcpFinder.QueryBuilder
+  alias Core.Researcher.IcpFinder.TopicsAndIndustriesInput
 
   # 2 mins
   @icp_finder_timeout 2 * 60 * 1000
@@ -52,25 +54,62 @@ defmodule Core.Researcher.IcpFinder do
       ) do
     task =
       profile
-      |> PromptBuilder.build_prompts()
+      |> PromptBuilder.build_companies_filter_values_prompt()
       |> PromptBuilder.build_request()
       |> Ai.ask_supervised()
 
     case TaskAwaiter.await(task, @icp_finder_timeout) do
-      {:ok, answer} ->
-        with {:ok, companies} <- parse_companies(answer),
-             created_companies <-
-               Enum.map(companies, fn company ->
-                 Companies.get_or_create_by_domain(company)
-               end),
-             leads <-
-               Enum.map(created_companies, fn {:ok, company} ->
-                 Leads.get_or_create(tenant.name, %{
-                   ref_id: company.id,
-                   type: :company
-                 })
-               end) do
-          {:ok, leads}
+      {:ok, {:ok, answer}} ->
+        with {:ok, %CompaniesQueryInput{} = input} <- parse_answear(answer),
+             result <- QueryBuilder.get_industry_and_topic_values(input),
+             {:ok, %TopicsAndIndustriesInput{} = topics_and_industries} <-
+               parse_topics_and_industries_answear(result) do
+          second_task =
+            profile
+            |> PromptBuilder.build_scraped_webpages_distinct_data_prompt(
+              topics_and_industries
+            )
+            |> PromptBuilder.build_request()
+            |> Ai.ask_supervised()
+
+          case Task.yield(second_task, @icp_finder_timeout) do
+            {:ok, {:ok, second_answer}} ->
+              # Parse the second AI response and get matching companies
+              case parse_topics_and_industries_selection(second_answer) do
+                {:ok, selected_topics_and_industries} ->
+                  companies =
+                    QueryBuilder.find_matching_companies(
+                      input,
+                      selected_topics_and_industries
+                    )
+
+                  leads =
+                    Enum.map(companies, fn %{id: id, primary_domain: _} ->
+                      case Leads.get_or_create(tenant.name, %{
+                             ref_id: id,
+                             type: :company
+                           }) do
+                        {:ok, lead} -> lead
+                        {:error, reason} -> {:error, reason}
+                      end
+                    end)
+
+                  {:ok, leads}
+
+                {:error, reason} ->
+                  {:error, reason}
+              end
+
+            {:ok, {:error, reason}} ->
+              {:error, reason}
+
+            nil ->
+              Task.shutdown(second_task)
+              {:error, :ai_timeout}
+
+            {:exit, reason} ->
+              {:error, reason}
+          end
         else
           {:error, reason} -> {:error, reason}
         end
@@ -80,11 +119,24 @@ defmodule Core.Researcher.IcpFinder do
     end
   end
 
-  defp parse_companies(response) do
-    case Jason.decode(response) do
-      {:ok, %{"companies" => companies}} when is_list(companies) ->
-        parsed_companies = Enum.map(companies, &parse_company/1)
-        {:ok, parsed_companies}
+  defp parse_answear(answer) do
+    case Jason.decode(answer) do
+      {:ok,
+       %{
+         "business_model" => business_model,
+         "industry" => industry,
+         "country_a2" => country_a2,
+         "employee_count" => employee_count,
+         "employee_count_operator" => employee_count_operator
+       }} ->
+        {:ok,
+         %CompaniesQueryInput{
+           business_model: String.to_atom(business_model),
+           industry: industry,
+           country_a2: country_a2,
+           employee_count: employee_count,
+           employee_count_operator: employee_count_operator
+         }}
 
       {:ok, _} ->
         {:error, :invalid_response_format}
@@ -94,7 +146,44 @@ defmodule Core.Researcher.IcpFinder do
     end
   end
 
-  defp parse_company(company) do
-    company["domain"]
+  defp parse_topics_and_industries_answear(values) when is_list(values) do
+    {:ok,
+     Enum.reduce(values, %TopicsAndIndustriesInput{}, fn value, acc ->
+       case value do
+         %{source: "primary_topic"} ->
+           Map.put(acc, :topics, [value.value | acc.topics] |> Enum.uniq())
+
+         %{source: "industry_vertical"} ->
+           Map.put(
+             acc,
+             :industry_verticals,
+             [value.value | acc.industry_verticals] |> Enum.uniq()
+           )
+
+         _ ->
+           acc
+       end
+     end)}
+  end
+
+  defp parse_topics_and_industries_answear(_) do
+    {:error, :invalid_response_format}
+  end
+
+  defp parse_topics_and_industries_selection(answer) do
+    case Jason.decode(answer) do
+      {:ok, %{"topics" => topics, "industry_verticals" => industry_verticals}} ->
+        {:ok,
+         %TopicsAndIndustriesInput{
+           topics: topics,
+           industry_verticals: industry_verticals
+         }}
+
+      {:ok, _} ->
+        {:error, :invalid_response_format}
+
+      {:error, reason} ->
+        {:error, reason}
+    end
   end
 end
