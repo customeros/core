@@ -20,7 +20,7 @@ export const Pipeline = ({
   onStageClick,
 }: PipelineProps) => {
   const { getUrlState } = useUrlState<UrlState>();
-  const { pipeline, stage: selectedStage, group } = getUrlState();
+  const { pipeline, stage: selectedStage, group, lead } = getUrlState();
 
   const getHeight = (count: number) => {
     return scrollProgress < 0.2 ? `${count ? (count / maxCount) * 100 + 10 : 20}px` : '20px';
@@ -84,11 +84,15 @@ export const Pipeline = ({
                     group === 'stage' && 'animate-fadeOut w-0 opacity-0'
                   )}
                 />
-                <span>
+                <span className={cn(lead && 'truncate max-w-[70px]')}>
                   {stage.label}
-                  <span className="mx-1">•</span>
+                  {!lead && (
+                    <>
+                      <span className="mx-1">•</span>
+                      <span>{count}</span>
+                    </>
+                  )}
                 </span>
-                <span>{count}</span>
               </div>
             </div>
           );

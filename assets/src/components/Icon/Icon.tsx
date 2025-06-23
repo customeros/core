@@ -51,7 +51,8 @@ export type IconName =
   | 'arrows-down'
   | 'arrows-up'
   | 'layers-three-01'
-  | 'activity-heart';
+  | 'activity-heart'
+  | 'lock-01';
 
 export const Icon = ({
   name,

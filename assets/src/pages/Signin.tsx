@@ -75,7 +75,7 @@ export default function Signin() {
                           />
                           <p
                             className={cn(
-                              'text-error-500 text-xs h-[0px] transition-all mt-0',
+                              'text-error-500  h-[0px] transition-all mt-0 text-base',
                               errors.email?.length && 'h-[13px] mt-1'
                             )}
                           >

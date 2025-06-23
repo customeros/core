@@ -18,7 +18,12 @@ export const ScrollAreaRoot = forwardRef<HTMLDivElement, ScrollAreaRootProps>(
 export type ScrollAreaViewportProps = RadixScrollArea.ScrollAreaViewportProps;
 export const ScrollAreaViewport = forwardRef<HTMLDivElement, ScrollAreaViewportProps>(
   ({ className, ...props }, ref) => (
-    <RadixScrollArea.Viewport ref={ref} className={clsx('h-full w-full', className)} {...props} />
+    <RadixScrollArea.Viewport
+      ref={ref}
+      style={{ display: 'flex !important' }}
+      className={clsx('h-full w-full', className)}
+      {...props}
+    />
   )
 );
 
