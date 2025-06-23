@@ -225,6 +225,12 @@ defmodule Core.Integrations.Providers.HubSpot.Companies do
   def sync_company(company, tenant_id) do
     OpenTelemetry.Tracer.with_span "hubspot.companies.sync_company" do
       hubspot_company = HubSpotCompany.from_hubspot_map(company)
+
+      OpenTelemetry.Tracer.set_attributes([
+        "hubspot_company",
+        hubspot_company
+      ])
+
       is_customer = customer_type?(hubspot_company)
 
       with false <- hubspot_company.archived,
@@ -307,27 +313,53 @@ defmodule Core.Integrations.Providers.HubSpot.Companies do
 
   ## Examples
 
-      iex> sync_all_companies(connection)
+      iex> sync_all_companies(connection_id)
       {:ok, %{total_synced: 150, total_pages: 3}}
 
-      iex> sync_all_companies(connection, %{limit: 50})
+      iex> sync_all_companies(connection_id, %{limit: 50})
       {:ok, %{total_synced: 75, total_pages: 2}}
   """
-  def sync_all_companies(%Connection{} = connection, params \\ %{}) do
-    OpenTelemetry.Tracer.with_span "hubspot.companies.sync_all_companies" do
-      default_params = %{limit: 10}
-      sync_params = Map.merge(default_params, params)
+  def sync_all_companies(connection_id, params \\ %{}) do
+    case Connections.get_connection_by_id(connection_id) do
+      {:ok, %Connection{} = connection} ->
+        # Check if connection is of HubSpot type
+        if connection.provider == :hubspot do
+          default_params = %{limit: 10}
+          sync_params = Map.merge(default_params, params)
 
-      Logger.info(
-        "[HubSpot Company] Starting sync of all companies for connection #{connection.id} with params: #{inspect(sync_params)}"
-      )
+          Logger.info(
+            "[HubSpot Company] Starting sync of all companies for connection #{connection.id} with params: #{inspect(sync_params)}"
+          )
 
-      do_sync_all_companies(connection, sync_params, 0, 0)
+          do_sync_companies(connection, sync_params, 0, 0)
+        else
+          Logger.error(
+            "[HubSpot Company] Connection #{connection.id} is not a HubSpot connection (provider: #{connection.provider})"
+          )
+          {:error, :invalid_provider}
+        end
+
+      {:error, reason} ->
+        Logger.error("[HubSpot Company] Failed to get connection #{connection_id}: #{inspect(reason)}")
+        {:error, reason}
     end
   end
 
-  defp do_sync_all_companies(connection, params, total_synced, total_pages) do
-    OpenTelemetry.Tracer.with_span "hubspot.companies.do_sync_all_companies" do
+  defp do_sync_companies(
+         %Connection{} = connection,
+         params,
+         total_synced,
+         total_pages
+       ) do
+    OpenTelemetry.Tracer.with_span "hubspot.companies.do_sync_companies" do
+      OpenTelemetry.Tracer.set_attributes([
+        {"total_synced", total_synced},
+        {"total_pages", total_pages},
+        {"tenant.id", connection.tenant_id},
+        {"connection.id", connection.id},
+        {"params", params}
+      ])
+
       case list_hubspot_companies(connection, params) do
         {:ok, %{"results" => companies} = response} ->
           Logger.info(
@@ -355,7 +387,7 @@ defmodule Core.Integrations.Providers.HubSpot.Companies do
               # Continue with next page
               next_params = Map.put(params, :after, after_cursor)
 
-              do_sync_all_companies(
+              do_sync_companies(
                 connection,
                 next_params,
                 updated_total_synced,
