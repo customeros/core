@@ -255,6 +255,10 @@ defmodule Core.Integrations.Providers.HubSpot.Companies do
         false ->
           {:error, :no_domain}
 
+        {:error, :domain_not_reachable} ->
+          Tracing.warning(:domain_not_reachable, "Domain not reachable")
+          {:error, :domain_not_reachable}
+
         {:error, reason} ->
           Tracing.error(reason, "Error syncing HubSpot company",
             company_domain: hubspot_company.domain,
@@ -336,11 +340,15 @@ defmodule Core.Integrations.Providers.HubSpot.Companies do
           Logger.error(
             "[HubSpot Company] Connection #{connection.id} is not a HubSpot connection (provider: #{connection.provider})"
           )
+
           {:error, :invalid_provider}
         end
 
       {:error, reason} ->
-        Logger.error("[HubSpot Company] Failed to get connection #{connection_id}: #{inspect(reason)}")
+        Logger.error(
+          "[HubSpot Company] Failed to get connection #{connection_id}: #{inspect(reason)}"
+        )
+
         {:error, reason}
     end
   end
