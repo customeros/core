@@ -50,7 +50,8 @@ export type IconName =
   | 'arrow-switch-vertical-01'
   | 'arrows-down'
   | 'arrows-up'
-  | 'layers-three-01';
+  | 'layers-three-01'
+  | 'activity-heart';
 
 export const Icon = ({
   name,
