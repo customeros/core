@@ -151,9 +151,9 @@ defmodule Core.Crm.Companies.CompanyEnrich do
           Tracing.warning(
             :not_primary_domain,
             "Not primary domain, url: #{company.primary_domain}"
-            )
+          )
 
-            @err_invalid_homepage
+          @err_invalid_homepage
 
         {:error, reason} ->
           Tracing.error(reason, "Failed to scrape homepage for company",

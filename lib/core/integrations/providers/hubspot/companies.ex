@@ -237,6 +237,8 @@ defmodule Core.Integrations.Providers.HubSpot.Companies do
          Map.get(hubspot_company.raw_properties, "type")}
       ])
 
+      Logger.info("[HubSpot Company] Data: #{inspect(hubspot_company)}")
+
       is_customer = customer_type?(hubspot_company)
 
       with false <- hubspot_company.archived,
@@ -272,6 +274,14 @@ defmodule Core.Integrations.Providers.HubSpot.Companies do
           )
 
           {:error, :cannot_resolve_url}
+
+        {:error, :cannot_resolve_to_primary_domain} ->
+          Tracing.warning(
+            :cannot_resolve_to_primary_domain,
+            "Cannot resolve to primary domain #{hubspot_company.domain}"
+          )
+
+          {:error, :cannot_resolve_to_primary_domain}
 
         {:error, reason} ->
           Tracing.error(reason, "Error syncing HubSpot company",
@@ -357,7 +367,7 @@ defmodule Core.Integrations.Providers.HubSpot.Companies do
             "[HubSpot Company] Starting sync of all companies for connection #{connection.id} with params: #{inspect(sync_params)}"
           )
 
-          do_sync_companies(connection, sync_params, 0, 0)
+          do_sync_companies(connection, sync_params, 0, 0, false)
         else
           Logger.error(
             "[HubSpot Company] Connection #{connection.id} is not a HubSpot connection (provider: #{connection.provider})"
@@ -379,9 +389,10 @@ defmodule Core.Integrations.Providers.HubSpot.Companies do
          %Connection{} = connection,
          params,
          total_synced,
-         total_pages
+         total_pages,
+         recursive?
        ) do
-    OpenTelemetry.Ctx.clear_current()
+    OpenTelemetry.Ctx.clear()
 
     OpenTelemetry.Tracer.with_span "hubspot.companies.do_sync_companies" do
       OpenTelemetry.Tracer.set_attributes([
@@ -417,14 +428,27 @@ defmodule Core.Integrations.Providers.HubSpot.Companies do
           case Map.get(paging, "next", %{}) do
             %{"after" => after_cursor} when is_binary(after_cursor) ->
               # Continue with next page
+              Logger.info(
+                "[HubSpot Company] Next page after cursor: #{after_cursor}"
+              )
+
               next_params = Map.put(params, :after, after_cursor)
 
-              do_sync_companies(
-                connection,
-                next_params,
-                updated_total_synced,
-                updated_total_pages
-              )
+              if recursive? do
+                do_sync_companies(
+                  connection,
+                  next_params,
+                  updated_total_synced,
+                  updated_total_pages,
+                  true
+                )
+              else
+                {:ok,
+                 %{
+                   total_synced: updated_total_synced,
+                   total_pages: updated_total_pages
+                 }}
+              end
 
             _ ->
               # No more pages, we're done
