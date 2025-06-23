@@ -34,7 +34,8 @@ defmodule Core.Utils.PrimaryDomainFinder do
   @err_invalid_ssl {:error, "ssl certificate error"}
   @err_dns_lookup_failed {:error, "dns lookup failed"}
   @err_circular_domain {:error, "circular domain reference"}
-  @err_cannot_resolve_to_primary_domain {:error, :cannot_resolve_to_primary_domain}
+  @err_cannot_resolve_to_primary_domain {:error,
+                                         :cannot_resolve_to_primary_domain}
 
   # Configuration constants
   @max_retries 3

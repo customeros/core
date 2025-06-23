@@ -23,22 +23,23 @@ defmodule Core.Researcher.IcpFitEvaluator.PromptBuilder do
   end
 
   def build_prompts(domain, business_pages, icp) do
-    homepage_summary = case Scraper.scrape_webpage(domain) do
-      {:ok, homepage} ->
-        case homepage do
-          %{summary: summary} when is_binary(summary) ->
-            summary
+    homepage_summary =
+      case Scraper.scrape_webpage(domain) do
+        {:ok, homepage} ->
+          case homepage do
+            %{summary: summary} when is_binary(summary) ->
+              summary
 
-          %{content: content} ->
-            String.slice(content, 0, 1000) <> "..."
+            %{content: content} ->
+              String.slice(content, 0, 1000) <> "..."
 
-          _ ->
-            "No homepage content available"
-        end
+            _ ->
+              "No homepage content available"
+          end
 
-      {:error, _reason} ->
-        "Unable to scrape homepage content"
-    end
+        {:error, _reason} ->
+          "Unable to scrape homepage content"
+      end
 
     system_prompt = """
       I will provide you with a B2B company and relevant context from their website.  I will also provide you with a description of my business, my ideal customer profile and qualifying criteria.  Your job is to determine how well the company matches my ideal customer profile.  Valid response values are "strong", "moderate", "not a fit".  Please only return one of these three values.

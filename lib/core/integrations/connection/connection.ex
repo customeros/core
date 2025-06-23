@@ -39,6 +39,8 @@ defmodule Core.Integrations.Connection do
           expires_at: DateTime.t(),
           scopes: [String.t()] | nil,
           connection_error: String.t() | nil,
+          company_sync_after: String.t() | nil,
+          company_sync_completed: boolean(),
           inserted_at: DateTime.t(),
           updated_at: DateTime.t()
         }
@@ -65,6 +67,9 @@ defmodule Core.Integrations.Connection do
     field(:scopes, {:array, :string})
     field(:connection_error, :string)
 
+    field(:company_sync_after, :string)
+    field(:company_sync_completed, :boolean)
+
     timestamps(type: :utc_datetime)
   end
 
@@ -86,7 +91,9 @@ defmodule Core.Integrations.Connection do
       :token_type,
       :expires_at,
       :scopes,
-      :connection_error
+      :connection_error,
+      :company_sync_after,
+      :company_sync_completed
     ])
     |> validate_required([
       :id,
