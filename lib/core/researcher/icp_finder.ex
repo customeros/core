@@ -59,7 +59,7 @@ defmodule Core.Researcher.IcpFinder do
       |> Ai.ask_supervised()
 
     case TaskAwaiter.await(task, @icp_finder_timeout) do
-      {:ok, {:ok, answer}} ->
+      {:ok, answer} ->
         with {:ok, %CompaniesQueryInput{} = input} <- parse_answear(answer),
              result <- QueryBuilder.get_industry_and_topic_values(input),
              {:ok, %TopicsAndIndustriesInput{} = topics_and_industries} <-
@@ -72,8 +72,8 @@ defmodule Core.Researcher.IcpFinder do
             |> PromptBuilder.build_request()
             |> Ai.ask_supervised()
 
-          case Task.yield(second_task, @icp_finder_timeout) do
-            {:ok, {:ok, second_answer}} ->
+          case TaskAwaiter.await(second_task, @icp_finder_timeout) do
+            {:ok, second_answer} ->
               # Parse the second AI response and get matching companies
               case parse_topics_and_industries_selection(second_answer) do
                 {:ok, selected_topics_and_industries} ->
@@ -100,14 +100,7 @@ defmodule Core.Researcher.IcpFinder do
                   {:error, reason}
               end
 
-            {:ok, {:error, reason}} ->
-              {:error, reason}
-
-            nil ->
-              Task.shutdown(second_task)
-              {:error, :ai_timeout}
-
-            {:exit, reason} ->
+            {:error, reason} ->
               {:error, reason}
           end
         else
