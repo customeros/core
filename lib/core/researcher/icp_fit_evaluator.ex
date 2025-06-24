@@ -99,7 +99,7 @@ defmodule Core.Researcher.IcpFitEvaluator do
           Leads.update_lead(lead, %{icp_fit: :moderate, stage: :target})
 
         :not_a_fit ->
-          Leads.update_lead(lead, %{stage: :not_a_fit})
+          Leads.update_lead(lead, %{icp_fit: :not_a_fit, stage: :not_a_fit})
       end
     end
   end

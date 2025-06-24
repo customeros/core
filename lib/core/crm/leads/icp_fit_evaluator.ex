@@ -152,7 +152,7 @@ defmodule Core.Crm.Leads.IcpFitEvaluator do
     Lead
     |> where([l], l.type == :company)
     |> where([l], is_nil(l.icp_fit))
-    |> where([l], l.stage != :not_a_fit)
+    |> where([l], l.stage != :not_a_fit) # TODO alexb remove condition
     |> where([l], l.icp_fit_evaluation_attempts < ^max_attempts)
     |> where(
       [l],
