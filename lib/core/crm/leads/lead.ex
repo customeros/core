@@ -23,7 +23,7 @@ defmodule Core.Crm.Leads.Lead do
           | :ready_to_buy
           | :customer
           | :not_a_fit
-  @type icp_fit :: :strong | :moderate | :not_a_fit,
+  @type icp_fit :: :strong | :moderate | :not_a_fit
   @type t :: %__MODULE__{
           id: String.t(),
           tenant_id: String.t(),
