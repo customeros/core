@@ -70,6 +70,11 @@ defmodule Web.HubspotWebhookController do
           "[HubspotWebhookController] Processed event: #{inspect(event)}"
         )
 
+      {:error, :not_customer} ->
+        Logger.info(
+          "[HubspotWebhookController] Not a customer: #{inspect(event)}"
+        )
+
       {:error, reason} ->
         Logger.error(
           "[HubspotWebhookController] Failed to process event: #{inspect(reason)}"
