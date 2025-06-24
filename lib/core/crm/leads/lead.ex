@@ -23,7 +23,7 @@ defmodule Core.Crm.Leads.Lead do
           | :ready_to_buy
           | :customer
           | :not_a_fit
-  @type icp_fit :: :strong | :moderate
+  @type icp_fit :: :strong | :moderate | :not_a_fit,
   @type t :: %__MODULE__{
           id: String.t(),
           tenant_id: String.t(),
@@ -43,7 +43,7 @@ defmodule Core.Crm.Leads.Lead do
     field(:tenant_id, :string)
     field(:ref_id, :string)
     field(:type, Ecto.Enum, values: [:contact, :company])
-    field(:icp_fit, Ecto.Enum, values: [:strong, :moderate])
+    field(:icp_fit, Ecto.Enum, values: [:strong, :moderate, :not_a_fit])
 
     field(:stage, Ecto.Enum,
       values: [
