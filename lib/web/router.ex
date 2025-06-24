@@ -211,4 +211,10 @@ defmodule Web.Router do
 
     post "/webhook", HubspotWebhookController, :webhook
   end
+
+  scope "/", Web do
+    pipe_through :browser
+
+    match :*, "/*path", FallbackController, :not_found
+  end
 end
