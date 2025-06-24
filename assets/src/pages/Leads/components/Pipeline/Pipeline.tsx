@@ -89,7 +89,7 @@ export const Pipeline = ({
                     group === 'stage' && 'animate-fadeOut w-0 opacity-0'
                   )}
                 />
-                <span className={cn(lead && 'truncate max-w-[100px]')}>
+                <span className={cn(lead && 'truncate max-w-[70px]')}>
                   {stage.label}
                   {!lead && (
                     <>
