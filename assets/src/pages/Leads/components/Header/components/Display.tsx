@@ -8,7 +8,7 @@ import { IconButton } from 'src/components/IconButton';
 import { Popover, PopoverContent, PopoverTrigger } from 'src/components/Popover';
 
 const orderByOptions = [
-  { label: 'Created', value: 'inserted_at' },
+  { label: 'Updated', value: 'inserted_at' },
   { label: 'Name', value: 'name' },
   { label: 'Industry', value: 'industry' },
   { label: 'Stage', value: 'stage' },
