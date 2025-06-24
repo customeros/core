@@ -18,6 +18,7 @@ defmodule Core.Crm.Leads.NewLeadPipeline do
 
   require Logger
   require OpenTelemetry.Tracer
+
   alias Core.Crm.Leads
   alias Core.Researcher.BriefWriter
   alias Core.Researcher.IcpFitEvaluator
@@ -65,7 +66,7 @@ defmodule Core.Crm.Leads.NewLeadPipeline do
   end
 
   defp applicable_for_icp_fit?(lead) do
-    lead.icp_fit not in [:medium, :strong] and lead.stage != :customer
+    lead.icp_fit not in [:moderate, :strong] and lead.stage != :customer
   end
 
   def new_lead_pipeline(lead_id, tenant_id, callback \\ nil) do
