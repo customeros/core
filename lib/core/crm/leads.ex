@@ -201,7 +201,7 @@ defmodule Core.Crm.Leads do
       query_leads_view()
       |> where([l], l.tenant_id == ^tenant_id)
       |> where([l], l.type == :company)
-      |> where([l], l.stage not in [:not_a_fit, :pending]) # TODO alexb remove not a fit
+      |> where([l], l.stage not in [:pending])
       |> where([l], not is_nil(l.stage))
       |> where([l], not is_nil(l.icp_fit))
       |> where([l], l.icp_fit != :not_a_fit)
@@ -436,7 +436,7 @@ defmodule Core.Crm.Leads do
 
     Lead
     |> where([l], l.inserted_at < ^thirty_minutes_ago)
-    |> where([l], l.stage not in [:pending, :not_a_fit])
+    |> where([l], l.stage not in [:pending])
     |> where([l], l.icp_fit in [:strong, :moderate])
     |> join(:left, [l], rd in "refs_documents", on: rd.ref_id == l.id)
     |> where([l, rd], is_nil(rd.ref_id))

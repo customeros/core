@@ -22,7 +22,6 @@ defmodule Core.Crm.Leads.Lead do
           | :evaluation
           | :ready_to_buy
           | :customer
-          | :not_a_fit
   @type icp_fit :: :strong | :moderate | :not_a_fit
   @type t :: %__MODULE__{
           id: String.t(),
@@ -53,7 +52,6 @@ defmodule Core.Crm.Leads.Lead do
         :solution,
         :evaluation,
         :ready_to_buy,
-        :not_a_fit,
         :customer
       ],
       default: :pending
