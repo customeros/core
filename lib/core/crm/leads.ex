@@ -202,6 +202,7 @@ defmodule Core.Crm.Leads do
       |> where([l], l.tenant_id == ^tenant_id)
       |> where([l], l.type == :company)
       |> where([l], l.stage not in [:not_a_fit, :pending])
+      |> where([l], not is_nil(l.icp_fit))
       |> order(order_by)
       |> Repo.all()
       |> then(fn
