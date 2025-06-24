@@ -15,6 +15,15 @@ defmodule Web.Channels.EventsChannel do
   use Web, :channel
   require Logger
 
+  @event_types [
+    :login,
+    :logout,
+    :view_document,
+    :download_document,
+    :set_up_tracker,
+    :book_a_call
+  ]
+
   @impl true
   def join("events:" <> tenant_id, _payload, socket) do
     Logger.info("joined events channel :: #{tenant_id}")
@@ -32,8 +41,14 @@ defmodule Web.Channels.EventsChannel do
   end
 
   @impl true
-  def handle_in("event", %{"event" => event}, socket) do
-    broadcast!(socket, "event", %{event: event})
+  def handle_in(
+        "event",
+        %{"event" => %{"user_id" => user_id, "type" => type}},
+        socket
+      ) do
+    # Save the event in the DB
+    Core.Stats.register_event_start(user_id, String.to_atom(type))
+    broadcast!(socket, "event", %{event: %{user_id: user_id, type: type}})
     {:reply, :ok, socket}
   end
 

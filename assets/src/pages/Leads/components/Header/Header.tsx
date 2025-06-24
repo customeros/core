@@ -10,7 +10,7 @@ import { Tooltip } from 'src/components/Tooltip';
 import { toastSuccess } from 'src/components/Toast';
 import { IconButton } from 'src/components/IconButton';
 import { Lead, User, Tenant, Profile } from 'src/types';
-import { useEventsChannel, LeadCreatedEvent } from 'src/hooks';
+import { useChannel, useEventsChannel, LeadCreatedEvent } from 'src/hooks';
 import {
   Modal,
   ModalBody,
@@ -38,6 +38,8 @@ export const Header = () => {
       current_user: User;
     }
   >();
+  const { channel } = useChannel(`events:${page.props.tenant.id}`);
+
   const [isOpen, setIsOpen] = useState(false);
   const [displayProfile, setDisplayProfile] = useState(false);
   const [inviteTeam, setInviteTeam] = useState(false);
@@ -133,8 +135,13 @@ export const Header = () => {
                 <Button
                   size="xs"
                   colorScheme="primary"
-                  onClick={() => setIsOpen(true)}
                   leftIcon={<Icon name="lock-01" />}
+                  onClick={() => {
+                    setIsOpen(true);
+                    channel?.push('event', {
+                      event: { user_id: page.props.current_user.id, type: 'set_up_tracker' },
+                    });
+                  }}
                 >
                   Unlock buyers
                 </Button>
@@ -225,6 +232,9 @@ export const Header = () => {
                 onClick={() => {
                   window.open('https://cal.com/mbrown/20min', '_blank');
                   setIsOpen(false);
+                  channel?.push('event', {
+                    event: { user_id: page.props.current_user.id, type: 'book_a_call' },
+                  });
                 }}
               >
                 Book a call

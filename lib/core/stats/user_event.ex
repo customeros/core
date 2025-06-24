@@ -17,7 +17,14 @@ defmodule Core.Stats.UserEvent do
   use Ecto.Schema
   import Ecto.Changeset
 
-  @event_types [:login, :logout, :view_document, :download_document]
+  @event_types [
+    :login,
+    :logout,
+    :view_document,
+    :download_document,
+    :set_up_tracker,
+    :book_a_call
+  ]
 
   schema "user_events" do
     field(:user_id, :string)
