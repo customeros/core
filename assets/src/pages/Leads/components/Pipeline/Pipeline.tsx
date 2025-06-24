@@ -30,6 +30,8 @@ export const Pipeline = ({
     return null;
   }
 
+  const customerIndex = stageOptions.findIndex(stage => stage.value === 'customer');
+
   return (
     <div
       className={cn(
@@ -72,7 +74,10 @@ export const Pipeline = ({
                   index === stageOptions.length - 1 &&
                   (count - prevCount > 5 ? 'rounded-r-xs' : 'rounded-r-md'),
                 selectedStage === stage.value && 'bg-primary-200',
-                count === 0 && 'cursor-not-allowed hover:bg-primary-100'
+                count === 0 && 'cursor-not-allowed hover:bg-primary-100',
+                count === 0 &&
+                  index === stageOptions.slice(0, customerIndex).length - 1 &&
+                  'rounded-r-xs'
               )}
             >
               <div className="flex text-center text-primary-700 select-none items-center">
@@ -84,7 +89,7 @@ export const Pipeline = ({
                     group === 'stage' && 'animate-fadeOut w-0 opacity-0'
                   )}
                 />
-                <span className={cn(lead && 'truncate max-w-[70px]')}>
+                <span className={cn(lead && 'truncate max-w-[100px]')}>
                   {stage.label}
                   {!lead && (
                     <>
