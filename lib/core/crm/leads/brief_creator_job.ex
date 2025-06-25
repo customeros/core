@@ -21,10 +21,10 @@ defmodule Core.Crm.Leads.BriefCreator do
   alias Core.Utils.Cron.CronLock
 
   # Constants
-  # 10 minutes in milliseconds
-  @default_interval 10 * 60 * 1000
+  # 5 minutes in milliseconds
+  @default_interval 5 * 60 * 1000
   # Number of leads to process in each batch
-  @default_batch_size 5
+  @default_batch_size 10
   # Duration in minutes after which a lock is considered stuck
   @stuck_lock_duration_minutes 30
 

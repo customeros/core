@@ -154,10 +154,10 @@ defmodule Core.Crm.Leads.NewLeadPipeline do
   defp brief_writer(fit, domain, %Leads.Lead{} = lead) do
     OpenTelemetry.Tracer.with_span "new_lead_pipeline.brief_writer" do
       OpenTelemetry.Tracer.set_attributes([
-        {"lead.id", lead.id},
-        {"tenant.id", lead.tenant_id},
-        {"domain", domain},
-        {"icp_fit", fit}
+        {"param.lead.id", lead.id},
+        {"param.tenant.id", lead.tenant_id},
+        {"param.domain", domain},
+        {"param.icp_fit", fit}
       ])
 
       Logger.metadata(module: __MODULE__, function: :brief_writer)
@@ -172,6 +172,11 @@ defmodule Core.Crm.Leads.NewLeadPipeline do
       case BriefWriter.create_brief(lead.tenant_id, lead.id, domain) do
         {:ok, _document} ->
           :ok
+
+        {:error, :closed_sessions_not_found} ->
+          Tracing.warning(:not_found, "Sessions data not ready for brief creation")
+
+          {:error, :closed_sessions_not_found}
 
         {:error, reason} ->
           Tracing.error(reason, "Account brief creation failed",
