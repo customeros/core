@@ -8,8 +8,8 @@ import { stageIcons } from '../util';
 
 interface LeadItemProps {
   lead: Lead;
-  handleOpenLead: (lead: { id: string }) => void;
   handleStageClick: (stage: Stage | null) => void;
+  handleOpenLead: (lead: { id: string; stage: Stage }) => void;
 }
 
 export const LeadItem = ({ lead, handleOpenLead, handleStageClick }: LeadItemProps) => {
@@ -17,6 +17,7 @@ export const LeadItem = ({ lead, handleOpenLead, handleStageClick }: LeadItemPro
   const { lead: selectedLead, group, stage: selectedStage } = getUrlState();
 
   const isSelected = selectedLead === lead.id;
+  const isCustomer = lead.stage === 'customer';
 
   return (
     <div
@@ -44,9 +45,9 @@ export const LeadItem = ({ lead, handleOpenLead, handleStageClick }: LeadItemPro
       >
         {lead.icon ? (
           <div
-            className="relative cursor-pointer size-6 flex"
+            className={cn('relative size-6 flex', isCustomer ? 'cursor-default' : 'cursor-pointer')}
             onClick={() => {
-              handleOpenLead(lead);
+              handleOpenLead({ id: lead.id, stage: lead.stage });
             }}
           >
             <img
@@ -65,11 +66,16 @@ export const LeadItem = ({ lead, handleOpenLead, handleStageClick }: LeadItemPro
             )}
           </div>
         ) : (
-          <div className="relative size-6 flex items-center justify-center border border-gray-200 rounded flex-shrink-0 cursor-pointer">
+          <div
+            className={cn(
+              'relative size-6 flex items-center justify-center border border-gray-200 rounded flex-shrink-0',
+              isCustomer ? 'cursor-default' : 'cursor-pointer'
+            )}
+          >
             <Icon
               name="building-06"
               onClick={() => {
-                handleOpenLead(lead);
+                handleOpenLead({ id: lead.id, stage: lead.stage });
               }}
             />
             {lead?.icp_fit === 'strong' && (
@@ -82,10 +88,13 @@ export const LeadItem = ({ lead, handleOpenLead, handleStageClick }: LeadItemPro
           </div>
         )}
         <p
-          className="py-2 px-2 cursor-pointer font-medium truncate"
           onClick={() => {
-            handleOpenLead(lead);
+            handleOpenLead({ id: lead.id, stage: lead.stage });
           }}
+          className={cn(
+            'py-2 px-2 font-medium truncate',
+            isCustomer ? 'cursor-default' : 'cursor-pointer'
+          )}
         >
           {lead.name || 'Unnamed'}
         </p>
