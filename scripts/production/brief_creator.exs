@@ -11,7 +11,7 @@ defmodule BriefCreator do
   def run_all(limit \\ 10) do
     Logger.info("Starting document creation process for leads without briefs")
 
-    case Leads.get_icp_fits_without_brief_docs(limit) do
+    case get_icp_fits_without_brief_docs(limit) do
       {:error, :not_found} ->
         Logger.info("No leads found that need brief documents")
 
@@ -85,6 +85,25 @@ defmodule BriefCreator do
           Logger.info("Skipping document creation as document(s) already exist")
       end
     end
+  end
+
+  def get_icp_fits_without_brief_docs(limit \\ 10) do
+    thirty_minutes_ago = DateTime.add(DateTime.utc_now(), -30 * 60)
+
+    Lead
+    |> where([l], l.inserted_at < ^thirty_minutes_ago)
+    |> where([l], l.stage not in [:pending, :customer])
+    |> where([l], not is_nil(l.stage))
+    |> where([l], l.icp_fit in [:strong, :moderate])
+    |> join(:left, [l], rd in "refs_documents", on: rd.ref_id == l.id)
+    |> where([l, rd], is_nil(rd.ref_id))
+    |> order_by([l], desc: l.inserted_at)
+    |> limit(^limit)
+    |> Repo.all()
+    |> then(fn
+      [] -> {:error, :not_found}
+      leads -> {:ok, leads}
+    end)
   end
 end
 

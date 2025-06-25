@@ -27,7 +27,8 @@ defmodule Core.Ai.Gemini.Ask do
   @content_type_header "content-type"
 
   # Retry configuration constants
-  @initial_retry_interval 2_000 # 2 seconds in milliseconds
+  # 2 seconds in milliseconds
+  @initial_retry_interval 2_000
   @retry_backoff_factor 1.5
   @max_retries 3
   @model_overloaded_message "The model is overloaded. Please try again later."
@@ -95,15 +96,22 @@ defmodule Core.Ai.Gemini.Ask do
       {:ok, response} ->
         {:ok, response}
 
-      {_, {:api_error, @model_overloaded_message}} when attempt <= @max_retries ->
+      {_, {:api_error, @model_overloaded_message}}
+      when attempt <= @max_retries ->
         retry_interval = calculate_retry_interval(attempt)
-        Logger.info("Gemini API model overloaded, retrying in #{retry_interval}ms (attempt #{attempt}/#{@max_retries})")
+
+        Logger.info(
+          "Gemini API model overloaded, retrying in #{retry_interval}ms (attempt #{attempt}/#{@max_retries})"
+        )
 
         Process.sleep(retry_interval)
         execute_with_retry(req_body, config, attempt + 1)
 
       {_, {:api_error, @model_overloaded_message}} ->
-        Logger.error("Gemini API model overloaded after #{@max_retries} retries, giving up")
+        Logger.error(
+          "Gemini API model overloaded after #{@max_retries} retries, giving up"
+        )
+
         {:error, {:api_error, @model_overloaded_message}}
 
       {:error, reason} ->
@@ -112,7 +120,7 @@ defmodule Core.Ai.Gemini.Ask do
   end
 
   defp calculate_retry_interval(attempt) do
-    @initial_retry_interval * :math.pow(@retry_backoff_factor, attempt - 1)
+    (@initial_retry_interval * :math.pow(@retry_backoff_factor, attempt - 1))
     |> round()
   end
 

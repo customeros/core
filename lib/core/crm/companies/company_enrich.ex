@@ -653,7 +653,8 @@ defmodule Core.Crm.Companies.CompanyEnrich do
         {:ok, image_data}
 
       {:error, :image_not_found} ->
-        Tracing.warning(:image_not_found,
+        Tracing.warning(
+          :image_not_found,
           "Icon not found for company #{company.id} (domain: #{company.primary_domain})"
         )
 
@@ -661,6 +662,7 @@ defmodule Core.Crm.Companies.CompanyEnrich do
 
       {:error, :timeout} ->
         Tracing.warning(:timeout, "Fetching company icon timed out")
+
         if company.icon_enrichment_attempts >= 2 do
           download_company_logo(company)
         else
@@ -669,6 +671,7 @@ defmodule Core.Crm.Companies.CompanyEnrich do
 
       {:error, "HTTP request failed with status 500"} ->
         Tracing.warning(:http_error, "HTTP request failed with status 500")
+
         if company.icon_enrichment_attempts >= 2 do
           download_company_logo(company)
         else
@@ -698,7 +701,8 @@ defmodule Core.Crm.Companies.CompanyEnrich do
         {:ok, image_data}
 
       {:error, :image_not_found} ->
-        Tracing.warning(:image_not_found,
+        Tracing.warning(
+          :image_not_found,
           "Logo not found for company #{company.id} (domain: #{company.primary_domain})"
         )
 
