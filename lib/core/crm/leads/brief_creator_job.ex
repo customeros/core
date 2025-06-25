@@ -58,16 +58,23 @@ defmodule Core.Crm.Leads.BriefCreator do
 
       case CronLocks.acquire_lock(:cron_brief_creator, lock_uuid) do
         %CronLock{} ->
-          leads = fetch_leads_without_briefs()
+          case fetch_leads_without_briefs() do
+            {:ok, leads} ->
+              OpenTelemetry.Tracer.set_attributes([
+                {"leads.count", length(leads)}
+              ])
 
-          OpenTelemetry.Tracer.set_attributes([
-            {"batch_size", @default_batch_size},
-            {"leads.count", length(leads)}
-          ])
+              Enum.each(leads, fn lead ->
+                process_lead(lead)
+              end)
 
-          Enum.each(leads, fn lead ->
-            process_lead(lead)
-          end)
+            {:error, :not_found} ->
+              OpenTelemetry.Tracer.set_attributes([
+                {"leads.count", 0}
+              ])
+
+              Logger.info("No leads found for brief creation")
+          end
 
           CronLocks.release_lock(:cron_brief_creator, lock_uuid)
 
@@ -149,7 +156,9 @@ defmodule Core.Crm.Leads.BriefCreator do
                 "Found #{length(documents)} existing document(s) for lead #{lead.ref_id}"
               )
 
-              Logger.info("Skipping document creation as document(s) already exist")
+              Logger.info(
+                "Skipping document creation as document(s) already exist"
+              )
           end
 
         {:error, :update_failed} ->
