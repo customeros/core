@@ -33,6 +33,10 @@ defmodule Core.Researcher.BriefWriter do
         engagement_summary
       )
     else
+      {:error, :closed_sessions_not_found} ->
+        Tracing.warning(:closed_sessions_not_found, "Closed sessions not available, skipping brief creation")
+        {:error, :closed_sessions_not_found}
+
       {:error, reason} ->
         Logger.error("Account Brief failed: #{inspect(reason)}",
           tenant_id: tenant_id,
