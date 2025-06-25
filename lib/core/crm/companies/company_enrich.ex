@@ -640,51 +640,87 @@ defmodule Core.Crm.Companies.CompanyEnrich do
     end
   end
 
-  defp download_company_icon(company) do
+  defp download_company_icon(%Company{} = company) do
     brandfetch_client_id =
       Application.get_env(:core, :brandfetch)[:client_id] ||
         raise "BRANDFETCH_CLIENT_ID is not configured"
 
     brandfetch_url =
-      "https://cdn.brandfetch.io/#{company.primary_domain}/fallback/404/w/400/h/400?c=#{brandfetch_client_id}"
+      "https://cdn.brandfetch.io/#{company.primary_domain}/fallback/404/w/400?c=#{brandfetch_client_id}"
 
     case Images.download_image(brandfetch_url) do
       {:ok, image_data} ->
-        Tracing.ok()
-        {:ok, {image_data, brandfetch_url}}
+        {:ok, image_data}
 
       {:error, :image_not_found} ->
-        OpenTelemetry.Tracer.set_attributes([
-          {"result.cause", :image_not_found}
-        ])
-
-        Logger.warning(
+        Tracing.warning(:image_not_found,
           "Icon not found for company #{company.id} (domain: #{company.primary_domain})"
         )
 
         @err_image_not_found
 
       {:error, :timeout} ->
-        Tracing.warning("timeout", "Fetching company icon timed out",
-          company_id: company.id
-        )
+        Tracing.warning(:timeout, "Fetching company icon timed out")
 
         @err_timeout
 
+      {:error, "HTTP request failed with status 500"} ->
+        Tracing.warning(:http_error, "HTTP request failed with status 500")
+        if company.icon_enrichment_attempts >= 2 do
+          download_company_logo(company)
+        else
+          @err_image_not_found
+        end
+
       {:error, reason} ->
         Tracing.error(reason, "Failed to download icon for company",
-          company_id: company.id
+          company_id: company.id,
+          company_domain: company.primary_domain
         )
 
         {:error, reason}
     end
   end
 
-  defp store_company_icon({image_data, brandfetch_url}, company_id) do
+  defp download_company_logo(%Company{} = company) do
+    brandfetch_client_id =
+      Application.get_env(:core, :brandfetch)[:client_id] ||
+        raise "BRANDFETCH_CLIENT_ID is not configured"
+
+    brandfetch_url =
+      "https://cdn.brandfetch.io/#{company.primary_domain}/fallback/404/w/400/logo?c=#{brandfetch_client_id}"
+
+    case Images.download_image(brandfetch_url) do
+      {:ok, image_data} ->
+        {:ok, image_data}
+
+      {:error, :image_not_found} ->
+        Tracing.warning(:image_not_found,
+          "Logo not found for company #{company.id} (domain: #{company.primary_domain})"
+        )
+
+        @err_image_not_found
+
+      {:error, :timeout} ->
+        Tracing.warning(:timeout, "Fetching company logo timed out")
+
+        @err_timeout
+
+      {:error, reason} ->
+        Tracing.error(reason, "Failed to download logo for company",
+          company_id: company.id,
+          company_domain: company.primary_domain
+        )
+
+        {:error, reason}
+    end
+  end
+
+  defp store_company_icon(image_data, company_id) do
     case Images.store_image(
            image_data,
            "image/jpeg",
-           brandfetch_url,
+           "",
            %{generate_name: true, path: "_companies"}
          ) do
       {:ok, storage_key} ->
