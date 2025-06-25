@@ -666,7 +666,6 @@ defmodule Core.Crm.Companies.CompanyEnrich do
         else
           @err_timeout
         end
-        @err_timeout
 
       {:error, "HTTP request failed with status 500"} ->
         Tracing.warning(:http_error, "HTTP request failed with status 500")
