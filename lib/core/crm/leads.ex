@@ -338,7 +338,8 @@ defmodule Core.Crm.Leads do
                        tenant_id: tenant.id,
                        ref_id: attrs.ref_id,
                        type: attrs.type,
-                       stage: Map.get(attrs, :stage, :pending)
+                       stage: Map.get(attrs, :stage, :pending),
+                       icp_fit: Map.get(attrs, :icp_fit)
                      })
                      |> Repo.insert() do
                   {:ok, lead} ->
