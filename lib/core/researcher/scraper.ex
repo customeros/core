@@ -70,7 +70,7 @@ defmodule Core.Researcher.Scraper do
         @err_no_content ->
           Tracing.warning(
             :no_content,
-            "No valid content available by url content type",
+            "No valid content / content type available by url: #{url}",
             url: url
           )
 
@@ -402,19 +402,28 @@ defmodule Core.Researcher.Scraper do
     end
   end
 
-  defp fetch_content_type(url, depth \\ 0) do
+  def fetch_content_type(
+        url,
+        depth \\ 0,
+        visited \\ MapSet.new(),
+        last_know_content_type \\ nil
+      ) do
     OpenTelemetry.Tracer.with_span "scraper.fetch_content_type" do
       OpenTelemetry.Tracer.set_attributes([
-        {"url", url},
-        {"depth", depth}
+        {"param.url", url},
+        {"param.depth", depth},
+        {"param.visited", visited},
+        {"param.last_know_content_type", last_know_content_type}
       ])
 
-      if depth > 5 do
+      if depth > 10 do
         {:error, :too_many_redirects}
       else
         case Finch.build(:get, url)
              |> Finch.request(Core.Finch, receive_timeout: 30_000) do
-          {:ok, %Finch.Response{headers: headers, status: status, body: _body}} ->
+          {:ok, %Finch.Response{headers: headers, status: status}} ->
+            OpenTelemetry.Tracer.set_attributes([{"result.status", status}])
+
             content_type =
               Enum.find_value(headers, fn
                 {"content-type", ct} -> ct
@@ -445,7 +454,30 @@ defmodule Core.Researcher.Scraper do
                     location
                   end
 
-                fetch_content_type(next_url, depth + 1)
+                # If redirect points to a previously visited URL, stop and return content-type from current response
+                if MapSet.member?(visited, next_url) do
+                  cond do
+                    not is_nil(content_type) and content_type != "" ->
+                      {:ok, content_type}
+
+                    not is_nil(last_know_content_type) and
+                        last_know_content_type != "" ->
+                      {:ok, last_know_content_type}
+
+                    true ->
+                      {:error, :no_content_type}
+                  end
+                else
+                  fetch_content_type(
+                    next_url,
+                    depth + 1,
+                    MapSet.put(visited, url),
+                    if(content_type == "" or is_nil(content_type),
+                      do: last_know_content_type,
+                      else: content_type
+                    )
+                  )
+                end
 
               is_nil(content_type) ->
                 {:error, :no_content_type}
