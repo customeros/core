@@ -17,7 +17,8 @@ defmodule Core.Utils.Cron.CronLock do
     :cron_session_closer,
     :cron_icp_fit_evaluator,
     :cron_daily_lead_summary_sender,
-    :cron_hubspot_company_sync
+    :cron_hubspot_company_sync,
+    :cron_brief_creator
   ]
 
   @type cron_name :: unquote(Enum.reduce(@cron_names, &{:|, [], [&1, &2]}))

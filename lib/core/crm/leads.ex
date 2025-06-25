@@ -420,35 +420,24 @@ defmodule Core.Crm.Leads do
     end
   end
 
-  @doc """
-  Get ICP fits without brief docs.
+  def mark_brief_create_attempt(lead_id) do
+    case Repo.update_all(
+           from(l in Lead, where: l.id == ^lead_id),
+           set: [brief_create_attempt_at: DateTime.utc_now()],
+           inc: [brief_create_attempts: 1]
+         ) do
+      {0, _} ->
+        Tracing.error(
+          :update_failed,
+          "Failed to mark attempt for lead #{lead_id}",
+          lead_id: lead_id
+        )
 
-  Example:
+        {:error, :update_failed}
 
-  ```elixir
-  {:ok, leads} = Leads.get_icp_fits_without_brief_docs()
-  {:error, :not_found} = Leads.get_icp_fits_without_brief_docs()
-  ```
-  """
-  @spec get_icp_fits_without_brief_docs(limit :: integer()) ::
-          {:ok, [Lead.t()]} | {:error, :not_found}
-  def get_icp_fits_without_brief_docs(limit \\ 10) do
-    thirty_minutes_ago = DateTime.add(DateTime.utc_now(), -30 * 60)
-
-    Lead
-    |> where([l], l.inserted_at < ^thirty_minutes_ago)
-    |> where([l], l.stage not in [:pending, :customer])
-    |> where([l], not is_nil(l.stage))
-    |> where([l], l.icp_fit in [:strong, :moderate])
-    |> join(:left, [l], rd in "refs_documents", on: rd.ref_id == l.id)
-    |> where([l, rd], is_nil(rd.ref_id))
-    |> order_by([l], desc: l.inserted_at)
-    |> limit(^limit)
-    |> Repo.all()
-    |> then(fn
-      [] -> {:error, :not_found}
-      leads -> {:ok, leads}
-    end)
+      {_count, _} ->
+        :ok
+    end
   end
 
   # Private functions
