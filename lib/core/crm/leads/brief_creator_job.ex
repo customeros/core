@@ -37,7 +37,7 @@ defmodule Core.Crm.Leads.BriefCreator do
     if crons_enabled do
       GenServer.start_link(__MODULE__, %{}, name: __MODULE__)
     else
-      Logger.info("Stage evaluator is disabled (crons disabled)")
+      Logger.info("Brief creator is disabled (crons disabled)")
       :ignore
     end
   end
