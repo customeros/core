@@ -88,5 +88,5 @@ defmodule BriefCreator do
   end
 end
 
-# Run the script with default limit of 10
-BriefCreator.run_all(200)
+# Run the script
+BriefCreator.run_all(5)

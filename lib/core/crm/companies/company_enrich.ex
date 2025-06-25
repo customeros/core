@@ -661,7 +661,11 @@ defmodule Core.Crm.Companies.CompanyEnrich do
 
       {:error, :timeout} ->
         Tracing.warning(:timeout, "Fetching company icon timed out")
-
+        if company.icon_enrichment_attempts >= 2 do
+          download_company_logo(company)
+        else
+          @err_timeout
+        end
         @err_timeout
 
       {:error, "HTTP request failed with status 500"} ->

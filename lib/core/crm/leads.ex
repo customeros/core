@@ -437,10 +437,12 @@ defmodule Core.Crm.Leads do
 
     Lead
     |> where([l], l.inserted_at < ^thirty_minutes_ago)
-    |> where([l], l.stage not in [:pending])
+    |> where([l], l.stage not in [:pending, :customer])
+    |> where([l], not is_nil(l.stage))
     |> where([l], l.icp_fit in [:strong, :moderate])
     |> join(:left, [l], rd in "refs_documents", on: rd.ref_id == l.id)
     |> where([l, rd], is_nil(rd.ref_id))
+    |> order_by([l], desc: l.inserted_at)
     |> limit(^limit)
     |> Repo.all()
     |> then(fn
