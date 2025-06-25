@@ -38,7 +38,9 @@ export default function Leads({ leads, stage_counts, max_count }: LeadsProps) {
   const { viewMode, group, lead, stage: selectedStage, asc } = getUrlState();
 
   const handleOpenLead = useCallback(
-    (lead: { id: string }) => {
+    (lead: { id: string; stage: Stage }) => {
+      if (lead.stage === 'customer') return;
+
       setUrlState(({ lead: currentLead, ...rest }) => {
         if (lead.id === currentLead) {
           return {
