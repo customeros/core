@@ -164,7 +164,8 @@ defmodule Core.Auth.Users.User do
 
           put_change(changeset, :tenant_name, tenant_name)
         else
-          {:error, _} -> add_error(changeset, :email, "invalid email domain")
+          {:error, _} ->
+            add_error(changeset, :email, "This domain appears to be invalid")
         end
 
       _ ->
@@ -182,7 +183,7 @@ defmodule Core.Auth.Users.User do
             put_change(changeset, :domain, domain)
 
           _ ->
-            add_error(changeset, :email, "invalid email domain")
+            add_error(changeset, :email, "This domain appears to be invalid")
         end
 
       _ ->
