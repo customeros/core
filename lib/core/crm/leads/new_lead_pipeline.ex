@@ -174,7 +174,10 @@ defmodule Core.Crm.Leads.NewLeadPipeline do
           :ok
 
         {:error, :closed_sessions_not_found} ->
-          Tracing.warning(:not_found, "Sessions data not ready for brief creation")
+          Tracing.warning(
+            :not_found,
+            "Sessions data not ready for brief creation"
+          )
 
           {:error, :closed_sessions_not_found}
 
