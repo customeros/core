@@ -96,7 +96,7 @@ defmodule Core.WebTracker.Sessions do
     )
     |> Repo.all()
     |> then(fn
-      [] -> {:error, :not_found}
+      [] -> {:error, :closed_sessions_not_found}
       sessions -> {:ok, sessions}
     end)
   end
