@@ -27,18 +27,26 @@ defmodule Core.WebTracker.IpIdentifier do
 
   @vendor "snitcher"
 
-  def identify_ip(ip) when is_binary(ip) and byte_size(ip) > 0 do
+  def identify_ip(ip, default_domain \\ nil)
+
+  def identify_ip(ip, default_domain)
+      when is_binary(ip) and byte_size(ip) > 0 do
     with {:ok, config} <- get_config(),
          {:ok, response} <- make_request(config, ip),
          {:ok, snitcher_response} <- parse_response(response) do
-      update_ip_intelligence_with_snitcher_response(ip, snitcher_response)
+      update_ip_intelligence_with_snitcher_response(
+        ip,
+        snitcher_response,
+        default_domain
+      )
+
       {:ok, snitcher_response}
     else
       {:error, reason} -> {:error, reason}
     end
   end
 
-  def identify_ip(_), do: {:error, "IP address must be a string"}
+  def identify_ip(_, _), do: {:error, "IP address must be a string"}
 
   defp make_request(config, ip) do
     url = "#{config.api_url}/company/find?ip=#{ip}"
@@ -92,18 +100,26 @@ defmodule Core.WebTracker.IpIdentifier do
     end
   end
 
-  defp update_ip_intelligence_with_snitcher_response(_ip, %{company: nil}),
+  defp update_ip_intelligence_with_snitcher_response(_ip, %{company: nil}, _),
     do: :ok
 
-  defp update_ip_intelligence_with_snitcher_response(ip, %{
-         company: %{domain: company_domain},
-         domain: domain
-       })
+  defp update_ip_intelligence_with_snitcher_response(
+         ip,
+         %{
+           company: %{domain: company_domain},
+           domain: domain
+         },
+         default_domain
+       )
        when is_binary(company_domain) do
     OpenTelemetry.Tracer.with_span "ip_identifier.update_ip_intelligence_with_snitcher_response" do
       attrs = %{
-        domain: domain,
-        domain_source: :snitcher,
+        domain: domain || default_domain,
+        domain_source:
+          case domain do
+            nil -> :snitcher
+            _ -> :tracker
+          end,
         updated_at: DateTime.utc_now() |> DateTime.truncate(:second)
       }
 
@@ -162,6 +178,4 @@ defmodule Core.WebTracker.IpIdentifier do
       end
     end
   end
-
-  defp update_ip_intelligence_with_snitcher_response(_, _), do: :ok
 end

@@ -77,11 +77,21 @@ defmodule Core.Utils.Tracing do
   # Private functions
 
   defp to_reason_string(reason) do
-    try do
-      to_string(reason)
-    rescue
-      Protocol.UndefinedError ->
+    case reason do
+      reason when is_binary(reason) ->
+        reason
+
+      reason when is_list(reason) ->
+        # Handle lists (like Ecto changeset errors) by inspecting them
         inspect(reason)
+
+      reason ->
+        try do
+          to_string(reason)
+        rescue
+          Protocol.UndefinedError ->
+            inspect(reason)
+        end
     end
   end
 end

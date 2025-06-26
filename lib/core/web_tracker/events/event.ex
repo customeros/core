@@ -5,13 +5,14 @@ defmodule Core.WebTracker.Events.Event do
 
   use Ecto.Schema
   import Ecto.Changeset
+  alias Core.WebTracker.OriginTenantMapper
+  alias Core.Utils.IdGenerator
 
   @primary_key {:id, :string, autogenerate: false}
   @foreign_key_type :string
 
   # Constants
   @id_prefix "wevnt"
-  @id_regex ~r/^#{@id_prefix}_[a-z0-9]{21}$/
 
   # Known event types
   @event_types [:page_view, :page_exit, :click, :identify]
@@ -39,6 +40,7 @@ defmodule Core.WebTracker.Events.Event do
     field(:language, :string)
     field(:cookies_enabled, :boolean)
     field(:screen_resolution, :string)
+    field(:with_new_session, :boolean, virtual: true)
 
     timestamps(type: :utc_datetime)
   end
@@ -65,7 +67,8 @@ defmodule Core.WebTracker.Events.Event do
           cookies_enabled: boolean() | nil,
           screen_resolution: String.t() | nil,
           inserted_at: DateTime.t(),
-          updated_at: DateTime.t()
+          updated_at: DateTime.t(),
+          with_new_session: boolean() | nil
         }
 
   @doc """
@@ -79,14 +82,10 @@ defmodule Core.WebTracker.Events.Event do
   def changeset(event, attrs) do
     event
     |> cast(attrs, [
-      :id,
-      :tenant,
-      :session_id,
       :ip,
       :visitor_id,
       :event_type,
       :event_data,
-      :timestamp,
       :href,
       :origin,
       :search,
@@ -96,9 +95,109 @@ defmodule Core.WebTracker.Events.Event do
       :user_agent,
       :language,
       :cookies_enabled,
-      :screen_resolution
+      :screen_resolution,
+      :with_new_session
     ])
-    |> validate_required([:id, :tenant, :session_id])
-    |> validate_format(:id, @id_regex)
+    |> validate_required([
+      :ip,
+      :visitor_id,
+      :event_type,
+      :event_data,
+      :href,
+      :origin,
+      :user_agent
+    ])
+    |> put_id(attrs)
+    |> put_tenant(attrs)
+    |> put_timestamp(attrs)
+    |> validate_bot()
+    |> validate_suspicious_referrer()
+  end
+
+  def put_tenant(changeset, attrs) do
+    case OriginTenantMapper.get_tenant_for_origin(attrs[:origin]) do
+      {:ok, tenant} ->
+        put_change(changeset, :tenant, tenant)
+
+      {:error, _} ->
+        put_change(changeset, :tenant, nil)
+        add_error(changeset, :origin, "Invalid origin")
+    end
+  end
+
+  def put_id(changeset, attrs) do
+    if is_nil(attrs[:id]) do
+      put_change(changeset, :id, IdGenerator.generate_id_21(id_prefix()))
+    else
+      changeset
+    end
+  end
+
+  def put_timestamp(changeset, attrs) do
+    if is_nil(attrs[:timestamp]) do
+      put_change(changeset, :timestamp, DateTime.utc_now())
+    else
+      changeset
+    end
+  end
+
+  @doc """
+  Validates that the request is not from a bot based on user agent.
+  """
+  def validate_bot(changeset) do
+    user_agent = get_field(changeset, :user_agent)
+
+    case user_agent do
+      nil ->
+        add_error(changeset, :user_agent, "User agent is required")
+
+      "" ->
+        add_error(changeset, :user_agent, "User agent cannot be empty")
+
+      ua when is_binary(ua) ->
+        if bot_user_agent?(ua) do
+          add_error(changeset, :user_agent, "Bot requests are not allowed")
+        else
+          changeset
+        end
+
+      _ ->
+        add_error(changeset, :user_agent, "Invalid user agent format")
+    end
+  end
+
+  @doc """
+  Validates that the referrer is not suspicious.
+  """
+  def validate_suspicious_referrer(changeset) do
+    referrer = get_field(changeset, :referrer)
+
+    case referrer do
+      nil ->
+        changeset
+
+      "" ->
+        changeset
+
+      ref when is_binary(ref) ->
+        if suspicious_referrer?(ref) do
+          add_error(changeset, :referrer, "Suspicious referrer detected")
+        else
+          changeset
+        end
+
+      _ ->
+        add_error(changeset, :referrer, "Invalid referrer format")
+    end
+  end
+
+  ## Private Validation Helpers ##
+
+  defp bot_user_agent?(user_agent) do
+    String.match?(String.downcase(user_agent), ~r/(bot|crawler|spider)/)
+  end
+
+  defp suspicious_referrer?(referrer) do
+    String.match?(String.downcase(referrer), ~r/(porn|xxx|gambling|casino)/)
   end
 end

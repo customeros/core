@@ -46,8 +46,12 @@ defmodule Core.WebTracker.IPProfiler do
   Gets company information for an IP address using Snitcher.
   Returns a typed response with company details if found.
   """
-  @spec get_company_info(String.t()) :: {:ok, map()} | {:error, term()}
-  def get_company_info(ip) when is_binary(ip) do
+  @spec get_company_info(String.t(), String.t() | nil) ::
+          {:ok, map()} | {:error, term()}
+  def get_company_info(ip, default_domain \\ nil)
+
+  def get_company_info(ip, default_domain)
+      when is_binary(ip) do
     case IpIntelligence.get_domain_by_ip(ip) do
       {:ok, domain} ->
         {:ok,
@@ -58,11 +62,11 @@ defmodule Core.WebTracker.IPProfiler do
          }}
 
       {:error, _} ->
-        IpIdentifier.identify_ip(ip)
+        IpIdentifier.identify_ip(ip, default_domain)
     end
   end
 
-  def get_company_info(_), do: {:error, "IP address must be a string"}
+  def get_company_info(_, _), do: {:error, "IP address must be a string"}
 
   # Private functions
 
