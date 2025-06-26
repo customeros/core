@@ -127,11 +127,11 @@ defmodule Core.Crm.Leads.IcpFitEvaluator do
           end
 
         {:error, :update_failed} ->
-          Logger.error("Failed to mark ICP fit attempt for lead: #{lead.id}",
-            reason: :update_failed
+          Tracing.error("Failed to mark ICP fit attempt",
+            reason: :update_failed,
+            lead_id: lead.id,
           )
-
-          Tracing.error(:update_failed)
+          {:error, :update_failed}
       end
     end
   end

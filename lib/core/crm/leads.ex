@@ -15,6 +15,7 @@ defmodule Core.Crm.Leads do
   alias Core.Utils.Media.Images
   alias Core.Utils.Tracing
   alias Core.Crm.Leads.LeadNotifier
+  alias Core.Crm.Leads.NewLeadPipeline
 
   @type order_by ::
           [desc: :inserted_at]
@@ -310,20 +311,21 @@ defmodule Core.Crm.Leads do
   Example:
 
   ```elixir
-  {:ok, lead} = Leads.get_or_create("tenant_id", %{ref_id: "ref_id", type: :company})
-  {:error, :not_found} = Leads.get_or_create("tenant_id", %{ref_id: "ref_id", type: :company})
-  {:error, :domain_matches_tenant} = Leads.get_or_create("tenant_id", %{ref_id: "ref_id", type: :company})
+  {:ok, lead} = Leads.get_or_create("tenant_name", %{ref_id: "ref_id", type: :company})
+  {:ok, lead} = Leads.get_or_create("tenant_name", %{ref_id: "ref_id", type: :company}, &my_callback/1)
+  {:error, :not_found} = Leads.get_or_create("tenant_name", %{ref_id: "ref_id", type: :company})
+  {:error, :domain_matches_tenant} = Leads.get_or_create("tenant_name", %{ref_id: "ref_id", type: :company})
   ```
   """
-  @spec get_or_create(tenant :: String.t(), attrs :: map()) ::
+  @spec get_or_create(tenant_name :: String.t(), attrs :: map(), callback :: (Lead.t() -> any()) | nil) ::
           {:ok, Lead.t()} | {:error, :not_found | :domain_matches_tenant}
-  def get_or_create(tenant, attrs) do
+  def get_or_create(tenant_name, attrs, callback \\ nil) do
     OpenTelemetry.Tracer.with_span "leads.get_or_create" do
       OpenTelemetry.Tracer.set_attributes([
-        {"tenant", tenant}
+        {"param.tenant.name", tenant_name}
       ])
 
-      case Tenants.get_tenant_by_name(tenant) do
+      case Tenants.get_tenant_by_name(tenant_name) do
         {:error, :not_found} ->
           Tracing.error(:not_found)
           {:error, :not_found}
@@ -343,7 +345,7 @@ defmodule Core.Crm.Leads do
                      })
                      |> Repo.insert() do
                   {:ok, lead} ->
-                    after_insert_start(lead)
+                    after_insert_start(lead, callback)
                     {:ok, lead}
 
                   {:error, %Ecto.Changeset{errors: errors}} ->
@@ -442,12 +444,12 @@ defmodule Core.Crm.Leads do
 
   # Private functions
 
-  defp after_insert_start(result) do
+  defp after_insert_start(result, callback) do
     Task.start(fn ->
       LeadNotifier.notify_lead_created(result)
     end)
 
-    Core.Crm.Leads.NewLeadPipeline.start(result.id, result.tenant_id)
+    Core.Crm.Leads.NewLeadPipeline.start(result.id, result.tenant_id, callback)
   end
 
   defp fetch_lead(%LeadContext{} = ctx) do

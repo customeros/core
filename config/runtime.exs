@@ -243,7 +243,10 @@ config :core, :scrapin,
   scrapin_base_url:
     System.get_env("SCRAPIN_BASE_URL") || "https://api.scrapin.io"
 
-# Validate required HubSpot configuration
+config :core, :customeros,
+  customeros_tenant_name: System.get_env("CUSTOMEROS_TENANT_NAME") || "customerosai"
+
+# Validate required configuration
 if config_env() == :prod do
   required_env_vars = [
     "HUBSPOT_CLIENT_ID",

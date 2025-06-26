@@ -13,6 +13,9 @@ defmodule Core.Auth.Users do
 
   alias Core.Auth.Users.{User, UserToken, UserNotifier}
   alias Core.Auth.Tenants
+  alias Core.Crm.Companies
+  alias Core.Crm.Leads
+  alias Application
 
   ## Database getters
 
@@ -74,13 +77,14 @@ defmodule Core.Auth.Users do
   def register_user(attrs) do
     OpenTelemetry.Tracer.with_span "users.register_user" do
       OpenTelemetry.Tracer.set_attributes([
-        {"user.email", Map.get(attrs, :email)}
+        {"param.user.email", Map.get(attrs, :email)}
       ])
 
       %User{}
       |> User.registration_changeset(attrs)
       |> User.extract_tenant_name_from_email()
       |> User.extract_domain_from_email()
+      |> maybe_create_customeros_lead()
       |> create_tenant_if_not_exists()
       |> Repo.insert()
       |> deliver_slack_notification()
@@ -94,13 +98,58 @@ defmodule Core.Auth.Users do
         tenant_name = get_change(changeset, :tenant_name)
 
         case Tenants.get_or_create_tenant(tenant_name, domain) do
-          {:ok, tenant_id} ->
-            put_change(changeset, :tenant_id, tenant_id)
+          {:ok, tenant} ->
+            put_change(changeset, :tenant_id, tenant.id)
 
           {:error, reason} ->
-            Tracing.error(reason)
-            Logger.error("Failed to register user: #{inspect(reason)}")
-            changeset
+            Tracing.error("Failed to register user: #{inspect(reason)}")
+            add_error(changeset, :email, "Failed to create tenant: #{inspect(reason)}")
+        end
+
+      _ ->
+        changeset
+    end
+  end
+
+  defp maybe_create_customeros_lead(changeset) do
+    case changeset do
+      %{errors: []} ->
+        domain = get_change(changeset, :domain)
+        email = get_change(changeset, :email)
+        # Get company by domain (already created in previous step)
+        case Companies.get_by_domain(domain) do
+          {:ok, company} ->
+            customeros_tenant_name = Application.get_env(:core, :customeros)[:customeros_tenant_name]
+            lead_attrs = %{ref_id: company.id, type: :company}
+
+            # Define callback function for when ICP evaluation is complete
+            callback = fn _lead ->
+              retry_registration_after_icp_evaluation(email)
+            end
+
+            case Leads.get_or_create(customeros_tenant_name, lead_attrs, callback) do
+              {:ok, lead} ->
+                case lead.icp_fit do
+                  :not_a_fit ->
+                    add_error(changeset, :lead, :not_a_fit)
+                  :moderate ->
+                    changeset
+                  :strong ->
+                    changeset
+                  nil ->
+                    # Lead is still being evaluated asynchronously
+                    # Return special error for FE to handle
+                    add_error(changeset, :lead, :lead_still_evaluating)
+                end
+
+              {:error, reason} ->
+                Tracing.error("Failed to create lead for company #{company.id}: #{inspect(reason)}")
+                add_error(changeset, :lead, "Failed to create lead: #{inspect(reason)}")
+            end
+
+          {:error, reason} ->
+            Tracing.error("Failed to get company for domain #{domain}: #{inspect(reason)}")
+            add_error(changeset, :lead, "Failed to get company: #{inspect(reason)}")
         end
 
       _ ->
@@ -331,6 +380,31 @@ defmodule Core.Auth.Users do
       |> where([u], u.tenant_id == ^tenant_id)
       |> where([u], not is_nil(u.confirmed_at))
       |> Repo.all()
+    end
+  end
+
+  def retry_registration_after_icp_evaluation(email) do
+    case get_user_by_email(email) do
+      nil ->
+        # User doesn't exist yet, run full registration
+        register_user(%{email: email})
+
+      %User{} = user ->
+        # User exists, check if they're confirmed
+        if is_nil(user.confirmed_at) do
+          # User exists but not confirmed, confirm them
+          confirm_user(user)
+        else
+          # User already exists and confirmed
+          {:ok, user}
+        end
+    end
+  end
+
+  defp extract_domain_from_email(email) do
+    case String.split(email, "@") do
+      [_, domain] -> domain
+      _ -> nil
     end
   end
 end
