@@ -115,7 +115,10 @@ defmodule Core.Utils.DomainIO do
             |> String.to_charlist()
             |> establish_connection(port)
           else
-            Logger.debug("Domain #{domain} contains invalid characters for TCP connection")
+            Logger.debug(
+              "Domain #{domain} contains invalid characters for TCP connection"
+            )
+
             false
           end
         end)
@@ -150,10 +153,10 @@ defmodule Core.Utils.DomainIO do
     |> Enum.all?(fn char ->
       # Allow ASCII letters, digits, hyphens, and dots
       (char >= ?a and char <= ?z) or
-      (char >= ?A and char <= ?Z) or
-      (char >= ?0 and char <= ?9) or
-      char == ?- or
-      char == ?.
+        (char >= ?A and char <= ?Z) or
+        (char >= ?0 and char <= ?9) or
+        char == ?- or
+        char == ?.
     end)
   end
 
