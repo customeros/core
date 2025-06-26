@@ -17,6 +17,7 @@ defmodule Core.Researcher.BriefWriter do
   """
   require Logger
 
+  alias Core.Utils.Tracing
   alias Core.Crm.Documents
   alias Core.Researcher.BriefWriter.AccountResearcher
   alias Core.Researcher.BriefWriter.EngagementProfiler

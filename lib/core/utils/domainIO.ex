@@ -110,9 +110,14 @@ defmodule Core.Utils.DomainIO do
       result =
         [80, 443]
         |> Enum.any?(fn port ->
-          domain
-          |> String.to_charlist()
-          |> establish_connection(port)
+          if valid_domain_for_tcp?(domain) do
+            domain
+            |> String.to_charlist()
+            |> establish_connection(port)
+          else
+            Logger.debug("Domain #{domain} contains invalid characters for TCP connection")
+            false
+          end
         end)
 
       {:ok, result}
@@ -136,4 +141,21 @@ defmodule Core.Utils.DomainIO do
         false
     end
   end
+
+  # Check if domain contains only ASCII characters valid for TCP connections
+  defp valid_domain_for_tcp?(domain) when is_binary(domain) do
+    # Check if all characters are ASCII (0-127) and valid for hostnames
+    domain
+    |> String.to_charlist()
+    |> Enum.all?(fn char ->
+      # Allow ASCII letters, digits, hyphens, and dots
+      (char >= ?a and char <= ?z) or
+      (char >= ?A and char <= ?Z) or
+      (char >= ?0 and char <= ?9) or
+      char == ?- or
+      char == ?.
+    end)
+  end
+
+  defp valid_domain_for_tcp?(_), do: false
 end
