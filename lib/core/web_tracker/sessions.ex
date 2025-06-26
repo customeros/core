@@ -102,8 +102,8 @@ defmodule Core.WebTracker.Sessions do
       {:ok, event, ip_data} ->
         create_session_with_ip_data(event, ip_data)
 
-      {:error, _reason, message} ->
-        {:error, message}
+      {:error, reason} ->
+        {:error, reason}
     end
   end
 
@@ -112,14 +112,13 @@ defmodule Core.WebTracker.Sessions do
     case IPProfiler.get_ip_data(event.ip) do
       {:ok, ip_data} ->
         if ip_data.is_threat do
-          {:error, :forbidden, "IP is a threat"}
+          {:error, :ip_is_threat}
         else
           {:ok, event, ip_data}
         end
 
       {:error, reason} ->
-        {:error, :internal_server_error,
-         "Failed to get IP data: #{inspect(reason)}"}
+        {:error, reason}
     end
   end
 

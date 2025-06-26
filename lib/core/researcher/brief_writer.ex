@@ -35,7 +35,11 @@ defmodule Core.Researcher.BriefWriter do
       )
     else
       {:error, :closed_sessions_not_found} ->
-        Tracing.warning(:closed_sessions_not_found, "Closed sessions not available, skipping brief creation")
+        Tracing.warning(
+          :closed_sessions_not_found,
+          "Closed sessions not available, skipping brief creation"
+        )
+
         {:error, :closed_sessions_not_found}
 
       {:error, reason} ->
