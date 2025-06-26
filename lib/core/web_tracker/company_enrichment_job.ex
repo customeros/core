@@ -114,7 +114,7 @@ defmodule Core.WebTracker.CompanyEnrichmentJob do
       with {:ok, db_company} <- Companies.get_or_create_by_domain(domain),
            {:ok, _session} <-
              Sessions.set_company_id(event.session_id, db_company.id),
-           :ok <-
+           {:ok, _lead} <-
              Leads.get_or_create(event.tenant, %{
                type: :company,
                ref_id: db_company.id
