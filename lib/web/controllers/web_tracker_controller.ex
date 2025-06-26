@@ -3,133 +3,55 @@ defmodule Web.WebTrackerController do
   require Logger
   require OpenTelemetry.Tracer
 
-  alias Core.WebTracker
   alias Core.WebTracker.OriginValidator
   alias Core.WebTracker.OriginTenantMapper
-  alias Core.WebTracker.WebTracker.Event
-  alias Core.Utils.Tracing
+  alias Core.WebTracker.Events
 
   plug Web.Plugs.ValidateWebTrackerHeaders when action in [:create]
 
-  @spec create(Plug.Conn.t(), map()) :: Plug.Conn.t()
   def create(conn, params) do
-    OpenTelemetry.Tracer.with_span "web_tracker.create_event" do
-      # Add request attributes to the span
-      OpenTelemetry.Tracer.set_attributes([
-        {"http.method", "POST"},
-        {"http.route", "/v1/events"},
-        {"http.target", "/v1/events"},
-        {"http.event.visitor.id", Map.get(params, "visitorId")},
-        {"http.event.type", Map.get(params, "eventType")},
-        {"http.header.origin", conn.assigns.origin},
-        {"http.header.referer", conn.assigns.referer},
-        {"http.header.user-agent", conn.assigns.user_agent}
-      ])
+    # Early validation of origin and visitor_id
+    with :ok <- validate_origin(params["origin"]),
+         {:ok, _} <- validate_visitor_id(params["visitorId"]) do
+      case Events.create(params) do
+        {:ok, _event} ->
+          conn
+          |> put_status(:accepted)
+          |> json(%{accepted: true})
 
-      # Header values used only for validation
-      header_origin = conn.assigns.origin
-      header_user_agent = conn.assigns.user_agent
-      header_referrer = conn.assigns.referer
+        {:error, changeset} ->
+          errors =
+            changeset.errors
+            |> Enum.map(fn {field, {message, _opts}} -> {field, message} end)
+            |> Enum.into(%{})
 
-      visitor_id = Map.get(params, "visitorId")
-
-      # If referrer is not provided in the body, use the header value
-      params =
-        if Map.get(params, "referrer") in [nil, ""] do
-          Map.put(params, "referrer", header_referrer)
-        else
-          params
-        end
-
-      with {:ok, visitor_id} <- validate_visitor_id(visitor_id),
-           :ok <- validate_origin(header_origin),
-           {:ok, tenant} <-
-             OriginTenantMapper.get_tenant_for_origin(header_origin),
-           :ok <- WebTracker.check_bot(header_user_agent),
-           :ok <- WebTracker.check_suspicious(header_referrer),
-           # Create event params with body values
-           {:ok, event_params} <-
-             Event.new(
-               Map.merge(params, %{
-                 "tenant" => tenant,
-                 "visitor_id" => visitor_id
-               })
-             ) do
-        case WebTracker.process_new_event(event_params) do
-          {:ok, result} ->
-            Tracing.ok()
-
-            conn
-            |> put_status(:accepted)
-            |> json(%{accepted: true, session_id: result.session_id})
-
-          {:error, :forbidden, _message} ->
-            Tracing.error(:forbidden)
-
-            conn
-            |> put_status(:forbidden)
-            |> json(%{error: "forbidden", details: "request blocked"})
-
-          {:error, :bad_request, message} ->
-            Tracing.error(:bad_request)
-
-            conn
-            |> put_status(:bad_request)
-            |> json(%{error: "bad_request", details: message})
-
-          {:error, _status, _message} ->
-            Tracing.error(:internal_server_error)
-
-            conn
-            |> put_status(:internal_server_error)
-            |> json(%{
-              error: "internal_server_error",
-              details: "something went wrong"
-            })
-        end
-      else
-        {:error, :missing_visitor_id} ->
-          Tracing.error(:missing_visitor_id)
+          status = determine_error_status(errors)
 
           conn
-          |> put_status(:bad_request)
-          |> json(%{error: "bad_request", details: "missing visitor_id"})
-
-        {:error, :bot} ->
-          Tracing.error("bot_detected")
-
-          conn
-          |> put_status(:forbidden)
-          |> json(%{error: "forbidden", details: "bot detected"})
-
-        {:error, :suspicious} ->
-          Tracing.error("suspicious_referrer")
-
-          conn
-          |> put_status(:forbidden)
-          |> json(%{error: "forbidden", details: "suspicious referrer"})
-
-        {:error, :origin_ignored} ->
-          Tracing.error(:origin_ignored)
-
-          conn
-          |> put_status(:forbidden)
-          |> json(%{error: "forbidden", details: "origin explicitly ignored"})
-
-        {:error, :origin_not_configured} ->
-          Tracing.error(:origin_not_configured)
-
-          conn
-          |> put_status(:forbidden)
-          |> json(%{error: "forbidden", details: "origin not configured"})
-
-        {:error, reason} when is_binary(reason) ->
-          Tracing.error(reason)
-
-          conn
-          |> put_status(:bad_request)
-          |> json(%{error: "bad_request", details: reason})
+          |> put_status(status)
+          |> json(%{error: "bad_request", details: errors})
       end
+    else
+      {:error, :origin_ignored} ->
+        conn
+        |> put_status(:forbidden)
+        |> json(%{error: "forbidden", details: %{origin: "Origin is ignored"}})
+
+      {:error, :origin_not_configured} ->
+        conn
+        |> put_status(:forbidden)
+        |> json(%{
+          error: "forbidden",
+          details: %{origin: "Origin not configured"}
+        })
+
+      {:error, :missing_visitor_id} ->
+        conn
+        |> put_status(:bad_request)
+        |> json(%{
+          error: "bad_request",
+          details: %{visitor_id: "Visitor ID is required"}
+        })
     end
   end
 
@@ -156,4 +78,16 @@ defmodule Web.WebTrackerController do
        do: {:ok, visitor_id}
 
   defp validate_visitor_id(_), do: {:error, :missing_visitor_id}
+
+  @spec determine_error_status(map()) :: :bad_request | :forbidden
+  defp determine_error_status(errors) do
+    # Check if any of the errors are security-related (bot, suspicious referrer)
+    has_security_error =
+      Enum.any?(errors, fn {field, message} ->
+        field in [:user_agent, :referrer] and
+          String.contains?(message, ["bot", "suspicious", "not allowed"])
+      end)
+
+    if has_security_error, do: :forbidden, else: :bad_request
+  end
 end

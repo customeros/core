@@ -9,6 +9,7 @@ defmodule Core.WebTracker.Sessions do
   alias Core.Repo
   alias Core.Utils.IdGenerator
   alias Core.WebTracker.Sessions.Session
+  alias Core.WebTracker.IPProfiler
 
   # Session timeout constants (in minutes)
   @page_exit_timeout_minutes 5
@@ -76,6 +77,100 @@ defmodule Core.WebTracker.Sessions do
   end
 
   @doc """
+  Gets or creates a session for the given event.
+  Returns an existing active session if found, or creates a new one.
+  """
+  @spec get_or_create_session(Core.WebTracker.Events.Event.t()) ::
+          {:ok, Session.t()} | {:error, Ecto.Changeset.t() | String.t()}
+  def get_or_create_session(event) when is_map(event) do
+    case get_active_session(event.tenant, event.visitor_id, event.origin) do
+      nil ->
+        # No active session found, create a new one with IP validation
+        create_new_session_with_ip_validation(event)
+
+      session ->
+        # Active session found, return it
+        {:ok, session}
+    end
+  end
+
+  def get_or_create_session(_), do: {:error, "Invalid event parameter"}
+
+  # Private function to create a new session with IP validation
+  defp create_new_session_with_ip_validation(event) do
+    case validate_ip_safety(event) do
+      {:ok, event, ip_data} ->
+        create_session_with_ip_data(event, ip_data)
+
+      {:error, _reason, message} ->
+        {:error, message}
+    end
+  end
+
+  # Validate IP safety using IP intelligence
+  defp validate_ip_safety(event) when is_map(event) do
+    case IPProfiler.get_ip_data(event.ip) do
+      {:ok, ip_data} ->
+        if ip_data.is_threat do
+          {:error, :forbidden, "IP is a threat"}
+        else
+          {:ok, event, ip_data}
+        end
+
+      {:error, reason} ->
+        {:error, :internal_server_error,
+         "Failed to get IP data: #{inspect(reason)}"}
+    end
+  end
+
+  # Create session with IP data
+  defp create_session_with_ip_data(
+         %{
+           tenant: tenant,
+           visitor_id: visitor_id,
+           origin: origin,
+           ip: ip,
+           event_type: event_type,
+           user_agent: user_agent,
+           language: language,
+           cookies_enabled: cookies_enabled,
+           screen_resolution: screen_resolution,
+           hostname: hostname,
+           pathname: pathname,
+           referrer: referrer
+         },
+         ip_data
+       ) do
+    session_attrs = %{
+      tenant: tenant,
+      visitor_id: visitor_id,
+      origin: origin,
+      ip: ip,
+      city: ip_data.city,
+      region: ip_data.region,
+      country_code: ip_data.country_code,
+      is_mobile: ip_data.is_mobile,
+      active: true,
+      last_event_type: event_type,
+      just_created: true,
+      metadata: %{
+        user_agent: user_agent,
+        language: language,
+        cookies_enabled: cookies_enabled,
+        screen_resolution: screen_resolution,
+        hostname: hostname,
+        pathname: pathname,
+        referrer: referrer
+      }
+    }
+
+    case create(session_attrs) do
+      {:ok, session} -> {:ok, session}
+      {:error, changeset} -> {:error, changeset}
+    end
+  end
+
+  @doc """
   Gets a web session record by the session ID
   """
   def get_session_by_id(session_id) do
@@ -114,6 +209,16 @@ defmodule Core.WebTracker.Sessions do
       updated_at: now
     })
     |> Repo.update()
+  end
+
+  def update_last_event(session_id, event_type) do
+    case get_session_by_id(session_id) do
+      {:ok, session} ->
+        update_last_event(session, event_type)
+
+      {:error, :not_found} ->
+        {:error, :not_found}
+    end
   end
 
   @doc """

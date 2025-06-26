@@ -74,27 +74,6 @@ signoz_endpoint = System.get_env("SIGNOZ_ENDPOINT")
 service_name = System.get_env("OTEL_SERVICE_NAME", "core")
 environment = System.get_env("ENVIRONMENT", "production")
 
-# Only add SignozLogger if endpoint is configured and not empty
-backends = [:console]
-
-if signoz_endpoint && signoz_endpoint != "" do
-  backends = backends ++ [Core.Logger.SignozLogger]
-end
-
-config :logger,
-  backends: backends,
-  handle_otp_reports: true,
-  handle_sasl_reports: true
-
-# Only configure SignozLogger if endpoint exists
-if signoz_endpoint && signoz_endpoint != "" do
-  config :logger, Core.Logger.SignozLogger,
-    endpoint: signoz_endpoint,
-    service_name: service_name,
-    env: environment,
-    level: :info
-end
-
 # IPData and Snitcher configuration
 config :core, :ipdata,
   api_key: get_env.("IPDATA_API_KEY", nil),
@@ -113,6 +92,26 @@ config :core, :ai,
   gemini_api_key: get_env.("GEMINI_API_KEY", nil),
   groq_api_path: "https://api.groq.com/openai/v1/chat/completions",
   groq_api_key: get_env.("GROQ_API_KEY", nil)
+
+# # Only add SignozLogger if endpoint is configured and not empty
+# config :logger,
+#   backends:
+#     [:console] ++
+#       if(signoz_endpoint && signoz_endpoint != "",
+#         do: [Core.Logger.SignozLogger],
+#         else: []
+#       ),
+#   handle_otp_reports: true,
+#   handle_sasl_reports: true
+
+# # Only configure SignozLogger if endpoint exists
+# if signoz_endpoint && signoz_endpoint != "" do
+#   config :logger, Core.Logger.SignozLogger,
+#     endpoint: signoz_endpoint,
+#     service_name: service_name,
+#     env: environment,
+#     level: :warning
+# end
 
 # Production environment specific configuration
 if config_env() == :prod do
