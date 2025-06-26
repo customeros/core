@@ -87,7 +87,7 @@ defmodule Core.Crm.Leads.NewLeadPipeline do
            {:ok, domain} <-
              Leads.get_domain_for_lead_company(tenant_id, lead_id),
            {:ok, fit} <- analyze_icp_fit(domain, lead),
-           :ok <- execute_callback_if_provided(callback, lead),
+           :ok <- execute_callback_if_provided(callback, fit),
            :ok <- brief_writer(fit, domain, lead) do
         :ok
       else
@@ -150,12 +150,11 @@ defmodule Core.Crm.Leads.NewLeadPipeline do
     end
   end
 
-  defp execute_callback_if_provided(callback, lead) when is_function(callback) do
-    Logger.info("Executing callback before brief creation",
-      lead_id: lead.id,
-      tenant_id: lead.tenant_id
-    )
-    callback.(lead)
+  defp execute_callback_if_provided(callback, fit)
+       when is_function(callback) do
+    Logger.info("Executing callback before brief creation")
+
+    callback.(fit)
   end
 
   defp execute_callback_if_provided(_, _), do: :ok

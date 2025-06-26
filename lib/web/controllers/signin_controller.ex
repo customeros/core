@@ -20,7 +20,8 @@ defmodule Web.AuthController do
         conn
         |> assign_prop(:page_title, "Sign In | CustomerOS")
         |> assign_prop(:errors, %{
-          email: Keyword.get(errors, :email, "Something went wrong")
+          email: Keyword.get(errors, :email, "Something went wrong"),
+          lead: Keyword.get(errors, :lead, "Something went wrong")
         })
         |> render_inertia("Signin")
     end

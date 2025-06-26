@@ -244,7 +244,8 @@ config :core, :scrapin,
     System.get_env("SCRAPIN_BASE_URL") || "https://api.scrapin.io"
 
 config :core, :customeros,
-  customeros_tenant_name: System.get_env("CUSTOMEROS_TENANT_NAME") || "customerosai"
+  customeros_tenant_name:
+    System.get_env("CUSTOMEROS_TENANT_NAME") || "customerosai"
 
 # Validate required configuration
 if config_env() == :prod do

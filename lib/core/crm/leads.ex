@@ -15,7 +15,6 @@ defmodule Core.Crm.Leads do
   alias Core.Utils.Media.Images
   alias Core.Utils.Tracing
   alias Core.Crm.Leads.LeadNotifier
-  alias Core.Crm.Leads.NewLeadPipeline
 
   @type order_by ::
           [desc: :inserted_at]
@@ -317,7 +316,11 @@ defmodule Core.Crm.Leads do
   {:error, :domain_matches_tenant} = Leads.get_or_create("tenant_name", %{ref_id: "ref_id", type: :company})
   ```
   """
-  @spec get_or_create(tenant_name :: String.t(), attrs :: map(), callback :: (Lead.t() -> any()) | nil) ::
+  @spec get_or_create(
+          tenant_name :: String.t(),
+          attrs :: map(),
+          callback :: (Lead.t() -> any()) | nil
+        ) ::
           {:ok, Lead.t()} | {:error, :not_found | :domain_matches_tenant}
   def get_or_create(tenant_name, attrs, callback \\ nil) do
     OpenTelemetry.Tracer.with_span "leads.get_or_create" do
