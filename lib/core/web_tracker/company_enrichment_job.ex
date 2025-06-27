@@ -133,7 +133,14 @@ defmodule Core.WebTracker.CompanyEnrichmentJob do
           Tracing.warning(
             :domain_not_reachable,
             "Domain not reachable: #{domain}",
-            domain: domain
+            company_domain: domain
+          )
+
+        {:error, :cannot_resolve_to_primary_domain} ->
+          Tracing.warning(
+            :cannot_resolve_to_primary_domain,
+            "Cannot resolve to primary domain: #{domain}",
+            company_domain: domain
           )
 
         {:error, reason} ->
