@@ -214,6 +214,22 @@ defmodule Core.Auth.Users do
     {:ok, user}
   end
 
+  defp deliver_blocked_user_slack_notification(email) do
+    Task.start(fn ->
+      case Slack.notify_blocked_user(email) do
+        :ok ->
+          :ok
+
+        {:error, reason} ->
+          Logger.error(
+            "Failed to send Slack notification for blocked user #{email}: #{inspect(reason)}"
+          )
+
+          {:error, reason}
+      end
+    end)
+  end
+
   defp deliver_new_user_slack_notification(error) do
     error
   end
@@ -419,19 +435,4 @@ defmodule Core.Auth.Users do
     end
   end
 
-  defp deliver_blocked_user_slack_notification(email) do
-    Task.start(fn ->
-      case Slack.notify_blocked_user(email) do
-        :ok ->
-          :ok
-
-        {:error, reason} ->
-          Logger.error(
-            "Failed to send Slack notification for blocked user #{email}: #{inspect(reason)}"
-          )
-
-          reason
-      end
-    end)
-  end
 end

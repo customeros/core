@@ -198,59 +198,64 @@ defmodule Core.Notifications.Slack do
   def notify_blocked_user(email)
       when is_binary(email) and email != "" do
 
-    domain = Core.Utils.DomainExtractor.extract_domain_from_email(email)
+    case Core.Utils.DomainExtractor.extract_domain_from_email(email) do
+      {:ok, domain} ->
+        case slack_enabled?() do
+          false ->
+            :ok
 
-    case slack_enabled?() do
-      false ->
-        :ok
+          true ->
+            webhook_url = Application.get_env(:core, :slack)[:new_user_webhook_url]
 
-      true ->
-        webhook_url = Application.get_env(:core, :slack)[:new_user_webhook_url]
+            case webhook_url do
+              val when val in [nil, ""] ->
+                Logger.warning("Slack new user webhook URL not configured")
+                {:error, :webhook_not_configured}
 
-        case webhook_url do
-          val when val in [nil, ""] ->
-            Logger.warning("Slack new user webhook URL not configured")
-            {:error, :webhook_not_configured}
-
-          _ ->
-            message = %{
-              blocks: [
-                %{
-                  type: "header",
-                  text: %{
-                    type: "plain_text",
-                    text: "🚫 User Blocked - Not a Fit",
-                    emoji: true
-                  }
-                },
-                %{
-                  type: "section",
-                  fields: [
+              _ ->
+                message = %{
+                  blocks: [
                     %{
-                      type: "mrkdwn",
-                      text: "*Email:*\n#{email}"
+                      type: "header",
+                      text: %{
+                        type: "plain_text",
+                        text: "🚫 User Blocked - Not a Fit",
+                        emoji: true
+                      }
                     },
                     %{
-                      type: "mrkdwn",
-                      text: "*Domain:*\n#{domain}"
-                    }
-                  ]
-                },
-                %{
-                  type: "context",
-                  elements: [
+                      type: "section",
+                      fields: [
+                        %{
+                          type: "mrkdwn",
+                          text: "*Email:*\n#{email}"
+                        },
+                        %{
+                          type: "mrkdwn",
+                          text: "*Domain:*\n#{domain}"
+                        }
+                      ]
+                    },
                     %{
-                      type: "mrkdwn",
-                      text:
-                        "Blocked at: #{DateTime.utc_now() |> Calendar.strftime("%Y-%m-%d %H:%M:%S UTC")}"
+                      type: "context",
+                      elements: [
+                        %{
+                          type: "mrkdwn",
+                          text:
+                            "Blocked at: #{DateTime.utc_now() |> Calendar.strftime("%Y-%m-%d %H:%M:%S UTC")}"
+                        }
+                      ]
                     }
                   ]
                 }
-              ]
-            }
 
-            send_message(webhook_url, message)
+                send_message(webhook_url, message)
+            end
         end
+
+      {:error, reason} ->
+        Logger.error("Failed to extract domain from email #{email}: #{inspect(reason)}")
+        {:error, :invalid_domain}
     end
   end
 
