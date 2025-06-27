@@ -17,9 +17,12 @@ defmodule Core.Researcher.Scraper.ContentProcessor do
   """
   require Logger
   require OpenTelemetry.Tracer
-  alias Core.Researcher.Webpages
+
   alias Core.Utils.Tracing
+  alias Core.Crm.Companies
   alias Core.Utils.TaskAwaiter
+  alias Core.Researcher.Webpages
+  alias Core.Utils.DomainExtractor
 
   # 1 min
   @default_timeout 60 * 1000
@@ -28,14 +31,21 @@ defmodule Core.Researcher.Scraper.ContentProcessor do
   @err_content_invalid {:error, "invalid content"}
 
   def process_scraped_content(url, content) do
-    content
-    |> sanitize_content()
-    |> extract_links()
-    |> summarize_content(url)
-    |> save_to_database(url)
+    with {:ok, clean_content} <- sanitize_content(content),
+         {:ok, links} <- extract_links(clean_content),
+         :ok <- create_companies_from_links(url, links),
+         {:ok, summary} <-
+           summarize_content(url, clean_content) do
+      save_to_database(url, clean_content, links, summary)
+    else
+      {:error, reason} ->
+        Tracing.error(reason, "Process scraped content failed", url: url)
+    end
   end
 
   defp sanitize_content(content) when is_binary(content) do
+    Logger.info("Sanitizing content...")
+
     sanitized =
       content
       |> String.replace(<<0>>, "")
@@ -52,14 +62,26 @@ defmodule Core.Researcher.Scraper.ContentProcessor do
 
   defp sanitize_content(_), do: @err_content_invalid
 
-  defp extract_links({:ok, content}) do
+  defp extract_links(content) do
     links = Webpages.LinkExtractor.extract_links(content)
-    {:ok, content, links}
+    {:ok, links}
   end
 
-  defp extract_links({:error, reason}), do: {:error, reason}
+  defp create_companies_from_links(url, links) do
+    Logger.info("Processing links...",
+      url: url
+    )
 
-  defp summarize_content({:ok, content, links}, url) do
+    base_url = DomainExtractor.extract_base_domain(url)
+
+    links
+    |> Enum.map(&DomainExtractor.extract_base_domain/1)
+    |> Enum.uniq()
+    |> Enum.reject(&(&1 == base_url))
+    |> Enum.each(&Companies.get_or_create_by_domain/1)
+  end
+
+  defp summarize_content(url, content) do
     OpenTelemetry.Tracer.with_span "content_processor.summarize_content" do
       Logger.metadata(module: __MODULE__, function: :summarize_content)
 
@@ -71,19 +93,17 @@ defmodule Core.Researcher.Scraper.ContentProcessor do
 
       case TaskAwaiter.await(task, @default_timeout) do
         {:ok, summary} ->
-          {:ok, content, links, summary}
+          {:ok, summary}
 
         {:error, reason} ->
           Tracing.error(reason, "Webpage summary failed", url: url)
 
-          {:ok, content, links, ""}
+          {:ok, ""}
       end
     end
   end
 
-  defp summarize_content({:error, reason}, _url), do: {:error, reason}
-
-  defp save_to_database({:ok, content, links, summary}, url) do
+  defp save_to_database(url, content, links, summary) do
     OpenTelemetry.Tracer.with_span "content_processor.save_to_database" do
       OpenTelemetry.Tracer.set_attributes([
         {"url", url}
@@ -111,6 +131,4 @@ defmodule Core.Researcher.Scraper.ContentProcessor do
       end
     end
   end
-
-  defp save_to_database({:error, reason}, _url), do: {:error, reason}
 end

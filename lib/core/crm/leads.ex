@@ -90,20 +90,8 @@ defmodule Core.Crm.Leads do
   Get the domain for a lead company.
 
   Returns the domain string if successful, or an error tuple if the lead is not a company or not found.
-
-  Example:
-
-  ```elixir
-  "example.com" = Leads.get_domain_for_lead_company("tenant_id", "lead_id")
-  {:error, :not_a_company} = Leads.get_domain_for_lead_company("tenant_id", "lead_id")
-  {:error, :not_found} = Leads.get_domain_for_lead_company("tenant_id", "lead_id")
-  ```
   """
-  @spec get_domain_for_lead_company(
-          tenant_id :: String.t(),
-          lead_id :: String.t()
-        ) ::
-          String.t() | {:error, :not_a_company | :not_found}
+
   def get_domain_for_lead_company(tenant_id, lead_id) do
     %LeadContext{lead_id: lead_id, tenant_id: tenant_id}
     |> fetch_lead()
@@ -310,20 +298,25 @@ defmodule Core.Crm.Leads do
   Example:
 
   ```elixir
-  {:ok, lead} = Leads.get_or_create("tenant_id", %{ref_id: "ref_id", type: :company})
-  {:error, :not_found} = Leads.get_or_create("tenant_id", %{ref_id: "ref_id", type: :company})
-  {:error, :domain_matches_tenant} = Leads.get_or_create("tenant_id", %{ref_id: "ref_id", type: :company})
+  {:ok, lead} = Leads.get_or_create("tenant_name", %{ref_id: "ref_id", type: :company})
+  {:ok, lead} = Leads.get_or_create("tenant_name", %{ref_id: "ref_id", type: :company}, &my_callback/1)
+  {:error, :not_found} = Leads.get_or_create("tenant_name", %{ref_id: "ref_id", type: :company})
+  {:error, :domain_matches_tenant} = Leads.get_or_create("tenant_name", %{ref_id: "ref_id", type: :company})
   ```
   """
-  @spec get_or_create(tenant :: String.t(), attrs :: map()) ::
+  @spec get_or_create(
+          tenant_name :: String.t(),
+          attrs :: map(),
+          callback :: (Lead.t() -> any()) | nil
+        ) ::
           {:ok, Lead.t()} | {:error, :not_found | :domain_matches_tenant}
-  def get_or_create(tenant, attrs) do
+  def get_or_create(tenant_name, attrs, callback \\ nil) do
     OpenTelemetry.Tracer.with_span "leads.get_or_create" do
       OpenTelemetry.Tracer.set_attributes([
-        {"tenant", tenant}
+        {"param.tenant.name", tenant_name}
       ])
 
-      case Tenants.get_tenant_by_name(tenant) do
+      case Tenants.get_tenant_by_name(tenant_name) do
         {:error, :not_found} ->
           Tracing.error(:not_found)
           {:error, :not_found}
@@ -343,7 +336,7 @@ defmodule Core.Crm.Leads do
                      })
                      |> Repo.insert() do
                   {:ok, lead} ->
-                    after_insert_start(lead)
+                    after_insert_start(lead, callback)
                     {:ok, lead}
 
                   {:error, %Ecto.Changeset{errors: errors}} ->
@@ -442,12 +435,12 @@ defmodule Core.Crm.Leads do
 
   # Private functions
 
-  defp after_insert_start(result) do
+  defp after_insert_start(result, callback) do
     Task.start(fn ->
       LeadNotifier.notify_lead_created(result)
     end)
 
-    Core.Crm.Leads.NewLeadPipeline.start(result.id, result.tenant_id)
+    Core.Crm.Leads.NewLeadPipeline.start(result.id, result.tenant_id, callback)
   end
 
   defp fetch_lead(%LeadContext{} = ctx) do

@@ -35,13 +35,11 @@ defmodule Core.Researcher.Scraper do
   # 60 seconds
   @scraper_timeout 60 * 1000
 
-  @err_no_content {:error, :no_content}
   @err_timeout {:error, :timeout}
+  @err_no_content {:error, :no_content}
   @err_invalid_url {:error, :invalid_url}
   @err_unprocessable {:error, :unprocessable}
   @err_url_not_provided {:error, :url_not_provided}
-  @err_webscraper_timed_out {:error, "webscraper timed out"}
-  @err_unexpected_response {:error, "webscraper returned unexpected response"}
   @err_not_primary_domain {:error, :not_primary_domain}
 
   @type scrape_result :: %{
@@ -267,7 +265,7 @@ defmodule Core.Researcher.Scraper do
           Jina.fetch_page(url)
         end)
 
-      await_scraped_webpage(url, task, @scraper_timeout, "Jina webscraper")
+      TaskAwaiter.await(task, @scraper_timeout)
     end
   end
 
@@ -288,7 +286,7 @@ defmodule Core.Researcher.Scraper do
           Firecrawl.fetch_page(url)
         end)
 
-      await_scraped_webpage(url, task, @scraper_timeout, "Firecrawl webscraper")
+      TaskAwaiter.await(task, @scraper_timeout)
     end
   end
 
@@ -309,24 +307,7 @@ defmodule Core.Researcher.Scraper do
           Puremd.fetch_page(url)
         end)
 
-      await_scraped_webpage(url, task, @scraper_timeout, "PureMD webscraper")
-    end
-  end
-
-  defp await_scraped_webpage(url, task, timeout, task_name) do
-    case TaskAwaiter.await(task, timeout) do
-      {:ok, content} when is_binary(content) ->
-        validate_content(content)
-
-      {:ok, _unexpected} ->
-        @err_unexpected_response
-
-      {:error, :timeout} ->
-        @err_webscraper_timed_out
-
-      {:error, reason} ->
-        Logger.error("#{task_name} failed for #{url}: #{inspect(reason)}")
-        {:error, reason}
+      TaskAwaiter.await(task, @scraper_timeout)
     end
   end
 

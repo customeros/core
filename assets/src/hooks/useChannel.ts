@@ -23,8 +23,8 @@ export const useChannel = (channelName: string) => {
   const { socket, createChannel, channels } = useContext(PhoenixSocketContext);
   const channel = channels.get(channelName);
 
-  const user_id = (page?.props?.current_user as User)?.id ?? '';
-  const username = (page?.props?.current_user as User)?.email;
+  const user_id = (page?.props?.current_user as User)?.id ?? 'anonymous';
+  const username = (page?.props?.current_user as User)?.email ?? 'anonymous';
 
   useEffect(() => {
     if (!socket || !user_id) return;

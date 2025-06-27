@@ -11,9 +11,6 @@ defmodule Core.Utils.Tracing do
   Does nothing if no active span context is present.
   Logs the error message if provided.
   """
-  @spec error(term()) :: :ok
-  @spec error(term(), String.t() | nil) :: :ok
-  @spec error(term(), String.t() | nil, keyword()) :: :ok
   def error(reason, message \\ nil, metadata \\ [])
 
   def error(reason, message, metadata) do

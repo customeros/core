@@ -18,12 +18,13 @@ defmodule Core.Crm.Leads.NewLeadPipeline do
 
   require Logger
   require OpenTelemetry.Tracer
+
   alias Core.Crm.Leads
   alias Core.Researcher.BriefWriter
   alias Core.Researcher.IcpFitEvaluator
   alias Core.Utils.Tracing
 
-  def start(lead_id, tenant_id) do
+  def start(lead_id, tenant_id, callback \\ nil) do
     OpenTelemetry.Tracer.with_span "new_lead_pipeline.start" do
       OpenTelemetry.Tracer.set_attributes([
         {"lead.id", lead_id},
@@ -37,7 +38,7 @@ defmodule Core.Crm.Leads.NewLeadPipeline do
         fn ->
           OpenTelemetry.Ctx.attach(span_ctx)
 
-          case new_lead_pipeline(lead_id, tenant_id) do
+          case new_lead_pipeline(lead_id, tenant_id, callback) do
             :ok ->
               Logger.info(
                 "Successfully completed new lead pipeline for #{lead_id}"
@@ -65,10 +66,10 @@ defmodule Core.Crm.Leads.NewLeadPipeline do
   end
 
   defp applicable_for_icp_fit?(lead) do
-    lead.icp_fit not in [:medium, :strong] and lead.stage != :customer
+    lead.icp_fit not in [:moderate, :strong] and lead.stage != :customer
   end
 
-  def new_lead_pipeline(lead_id, tenant_id) do
+  def new_lead_pipeline(lead_id, tenant_id, callback \\ nil) do
     OpenTelemetry.Tracer.with_span "new_lead_pipeline.new_lead_pipeline" do
       OpenTelemetry.Tracer.set_attributes([
         {"lead.id", lead_id},
@@ -87,6 +88,7 @@ defmodule Core.Crm.Leads.NewLeadPipeline do
            {:ok, domain} <-
              Leads.get_domain_for_lead_company(tenant_id, lead_id),
            {:ok, fit} <- analyze_icp_fit(domain, lead),
+           :ok <- execute_callback_if_provided(callback, fit),
            :ok <- brief_writer(fit, domain, lead) do
         :ok
       else
@@ -148,6 +150,15 @@ defmodule Core.Crm.Leads.NewLeadPipeline do
       end
     end
   end
+
+  defp execute_callback_if_provided(callback, fit)
+       when is_function(callback) do
+    Logger.info("Executing callback before brief creation")
+
+    callback.(fit)
+  end
+
+  defp execute_callback_if_provided(_, _), do: :ok
 
   defp brief_writer(:not_a_fit, _domain, _lead), do: :ok
 

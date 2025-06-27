@@ -2,16 +2,18 @@ defmodule Core.Researcher.Webpages.Classifier do
   @moduledoc """
   Classifies webpage content using AI.
   """
-  alias Core.Ai
-  alias Core.Utils.TaskAwaiter
   require Logger
+
+  alias Core.Ai
+  alias Core.Crm.Companies
+  alias Core.Utils.TaskAwaiter
+  alias Core.Utils.DomainExtractor
+  alias Core.Researcher.Webpages.Classification
 
   @model :gemini_pro
   @model_temperature 0.2
   @max_tokens 1024
   @timeout 45 * 1000
-
-  alias Core.Researcher.Webpages.Classification
 
   def classify_content_supervised(url, content) do
     Task.Supervisor.async(
@@ -82,7 +84,9 @@ defmodule Core.Researcher.Webpages.Classifier do
            validate_list_field(
              json_data["referenced_customers"],
              "referenced_customers"
-           ) do
+           ),
+         :ok <-
+           create_companies_from_urls(json_data["referenced_customer_urls"]) do
       classification = %Classification{
         primary_topic: normalize_string(json_data["primary_topic"]),
         secondary_topics: secondary_topics,
@@ -98,6 +102,17 @@ defmodule Core.Researcher.Webpages.Classifier do
     else
       {:error, reason} -> {:error, reason}
     end
+  end
+
+  defp create_companies_from_urls(urls) do
+    Logger.info("Creating companies from urls...")
+
+    urls
+    |> Enum.map(&DomainExtractor.extract_base_domain/1)
+    |> Enum.uniq()
+    |> Enum.each(&Companies.get_or_create_by_domain/1)
+
+    :ok
   end
 
   defp validate_content_type(nil), do: {:ok, :unknown}
@@ -159,7 +174,6 @@ defmodule Core.Researcher.Webpages.Classifier do
   end
 
   defp validate_list_field(value, _field_name) when is_binary(value) do
-    # Handle case where AI returns a single string instead of array
     if String.trim(value) == "" do
       {:ok, []}
     else
@@ -186,6 +200,7 @@ defmodule Core.Researcher.Webpages.Classifier do
         - The Key Pain Points the content aims to address (1-3 values)
         - The core Value Proposition of the content
         - A list of all Referenced Customers contained within the content.  Only include companies.  No individuals.
+        - A list of all Referenced Customer URLs.
         - Valid content types must match one of the following:
             - article
             - whitepaper
@@ -223,7 +238,13 @@ defmodule Core.Researcher.Webpages.Classifier do
             "Bank of America",
             "Wells Fargo",
             "Capital One"
-          ]
+          ],
+          "referenced_customer_urls": [
+            "chase.com",
+            "bankofamerica.com",
+            "wellsfargo.com",
+            "capitalone.com"
+          ],
         }
         Do not include any text outside the JSON object. Return only a SINGLE classification object (not an array). If you are unable to confidently determine a value, return an empty string.
     """
