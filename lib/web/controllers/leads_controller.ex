@@ -103,18 +103,29 @@ defmodule Web.LeadsController do
   end
 
   defp get_order_by(params) do
+    order_mapping = %{
+      "asc" => %{
+        "stage" => [asc: :stage],
+        "inserted_at" => [asc: :inserted_at],
+        "name" => [asc: :name],
+        "industry" => [asc: :industry],
+        "country" => [asc: :country]
+      },
+      "desc" => %{
+        "stage" => [desc: :stage],
+        "inserted_at" => [desc: :inserted_at],
+        "name" => [desc: :name],
+        "industry" => [desc: :industry],
+        "country" => [desc: :country]
+      }
+    }
+
     case params do
-      %{"asc" => "stage"} -> [asc: :stage]
-      %{"desc" => "stage"} -> [desc: :stage]
-      %{"asc" => "inserted_at"} -> [asc: :inserted_at]
-      %{"desc" => "inserted_at"} -> [desc: :inserted_at]
-      %{"asc" => "name"} -> [asc: :name]
-      %{"desc" => "name"} -> [desc: :name]
-      %{"asc" => "industry"} -> [asc: :industry]
-      %{"desc" => "industry"} -> [desc: :industry]
-      %{"asc" => "country"} -> [asc: :country]
-      %{"desc" => "country"} -> [desc: :country]
-      _ -> [desc: :inserted_at]
+      %{direction => field} when direction in ["asc", "desc"] ->
+        order_mapping[direction][field] || [desc: :inserted_at]
+
+      _ ->
+        [desc: :inserted_at]
     end
   end
 

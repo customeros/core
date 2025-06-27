@@ -7,7 +7,8 @@
         excluded: [~r"/_build/", ~r"/deps/", ~r"/node_modules/"]
       },
       checks: [
-        {Credo.Check.Refactor.Nesting, max_nesting: 3}
+        {Credo.Check.Refactor.Nesting, max_nesting: 3},
+        {Credo.Check.Refactor.CyclomaticComplexity, max_complexity: 11}
       ]
     }
   ]
