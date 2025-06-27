@@ -14,6 +14,7 @@ defmodule Core.Researcher.BriefWriter.EngagementProfiler do
   alias Core.Researcher.Webpages
   alias Core.WebTracker.Sessions
   alias Core.Utils.MarkdownValidator
+  alias Core.Utils.Tracing
   import Core.Utils.Pipeline
 
   @max_tokens 1024
@@ -46,10 +47,14 @@ defmodule Core.Researcher.BriefWriter.EngagementProfiler do
            MarkdownValidator.validate_and_clean(engagement_summary) do
       {:ok, clean_output}
     else
-      {:error, :closed_sessions_not_found}
-        Tracing.warning(:closed_sessions_not_found,
-          "No closed sessions found for lead")
+      {:error, :closed_sessions_not_found} ->
+        Tracing.warning(
+          :closed_sessions_not_found,
+          "No closed sessions found for lead"
+        )
+
         {:error, :closed_sessions_not_found}
+
       {:error, reason} ->
         Logger.error("Failed to generate engagement summary: #{reason}",
           tenant_id: tenant_id,
