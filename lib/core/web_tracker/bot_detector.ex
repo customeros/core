@@ -146,36 +146,7 @@ defmodule Core.WebTracker.BotDetector do
   defp analyze_user_agent_advanced(user_agent)
        when is_binary(user_agent) and user_agent != "" do
     user_agent_lower = String.downcase(user_agent)
-
-    # Check whitelisted user agents first
-    case check_whitelisted_user_agent(user_agent_lower) do
-      {:whitelisted, signals, score} ->
-        {signals, score}
-
-      :not_whitelisted ->
-        # Check trusted search engines
-        case check_trusted_search_engine(user_agent_lower) do
-          {:trusted, signals, score} ->
-            {signals, score}
-
-          :not_trusted ->
-            # Check trusted social media bots
-            case check_trusted_social_media(user_agent_lower) do
-              {:trusted, signals, score} ->
-                {signals, score}
-
-              :not_trusted ->
-                # Check blacklisted user agents
-                case check_blacklisted_user_agent(user_agent_lower) do
-                  {:blacklisted, signals, score} ->
-                    {signals, score}
-
-                  :not_blacklisted ->
-                    analyze_user_agent_patterns(user_agent_lower)
-                end
-            end
-        end
-    end
+    check_user_agent_categories(user_agent_lower)
   end
 
   defp analyze_user_agent_advanced(_),
@@ -187,6 +158,50 @@ defmodule Core.WebTracker.BotDetector do
            weight: 0.8
          }
        ], 0.8}
+
+  defp check_user_agent_categories(user_agent_lower) do
+    # Check whitelisted user agents first
+    case check_whitelisted_user_agent(user_agent_lower) do
+      {:whitelisted, signals, score} ->
+        {signals, score}
+
+      :not_whitelisted ->
+        check_trusted_and_blacklisted(user_agent_lower)
+    end
+  end
+
+  defp check_trusted_and_blacklisted(user_agent_lower) do
+    # Check trusted search engines
+    case check_trusted_search_engine(user_agent_lower) do
+      {:trusted, signals, score} ->
+        {signals, score}
+
+      :not_trusted ->
+        check_social_and_blacklisted(user_agent_lower)
+    end
+  end
+
+  defp check_social_and_blacklisted(user_agent_lower) do
+    # Check trusted social media bots
+    case check_trusted_social_media(user_agent_lower) do
+      {:trusted, signals, score} ->
+        {signals, score}
+
+      :not_trusted ->
+        check_blacklisted_or_patterns(user_agent_lower)
+    end
+  end
+
+  defp check_blacklisted_or_patterns(user_agent_lower) do
+    # Check blacklisted user agents
+    case check_blacklisted_user_agent(user_agent_lower) do
+      {:blacklisted, signals, score} ->
+        {signals, score}
+
+      :not_blacklisted ->
+        analyze_user_agent_patterns(user_agent_lower)
+    end
+  end
 
   defp check_whitelisted_user_agent(user_agent_lower) do
     whitelisted_patterns =
@@ -768,28 +783,40 @@ defmodule Core.WebTracker.BotDetector do
   @spec check_rate_limit(String.t()) :: :ok | {:error, :rate_limited}
   defp check_rate_limit(ip) do
     if BotDetectorConfig.enable_rate_limiting() do
-      key = {:rate_limit, ip}
-      now = DateTime.utc_now()
-
-      case :ets.lookup(:bot_detector_rate_limit, key) do
-        [{^key, count, timestamp}] ->
-          if DateTime.diff(now, timestamp, :second) < 60 do
-            if count >= BotDetectorConfig.max_requests_per_minute() do
-              {:error, :rate_limited}
-            else
-              :ets.insert(:bot_detector_rate_limit, {key, count + 1, timestamp})
-              :ok
-            end
-          else
-            :ets.insert(:bot_detector_rate_limit, {key, 1, now})
-            :ok
-          end
-
-        [] ->
-          :ets.insert(:bot_detector_rate_limit, {key, 1, now})
-          :ok
-      end
+      check_rate_limit_for_ip(ip)
     else
+      :ok
+    end
+  end
+
+  defp check_rate_limit_for_ip(ip) do
+    key = {:rate_limit, ip}
+    now = DateTime.utc_now()
+
+    case :ets.lookup(:bot_detector_rate_limit, key) do
+      [{^key, count, timestamp}] ->
+        check_existing_rate_limit(key, count, timestamp, now)
+
+      [] ->
+        :ets.insert(:bot_detector_rate_limit, {key, 1, now})
+        :ok
+    end
+  end
+
+  defp check_existing_rate_limit(key, count, timestamp, now) do
+    if DateTime.diff(now, timestamp, :second) < 60 do
+      check_rate_limit_count(key, count, timestamp)
+    else
+      :ets.insert(:bot_detector_rate_limit, {key, 1, now})
+      :ok
+    end
+  end
+
+  defp check_rate_limit_count(key, count, timestamp) do
+    if count >= BotDetectorConfig.max_requests_per_minute() do
+      {:error, :rate_limited}
+    else
+      :ets.insert(:bot_detector_rate_limit, {key, count + 1, timestamp})
       :ok
     end
   end
