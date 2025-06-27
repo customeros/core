@@ -6,7 +6,7 @@ import { Lead, User, Tenant } from 'src/types';
 
 import { useChannel } from './useChannel';
 
-type EventType = 'lead_created' | 'lead_updated';
+type EventType = 'lead_created' | 'lead_updated' | 'icp_fit_evaluation_complete';
 
 type Event<K extends EventType = EventType, T extends object = object> = {
   type: K;
@@ -17,10 +17,18 @@ export type LeadCreatedEvent = Event<'lead_created', { id: string; icon_url: str
 
 export type LeadUpdatedEvent = Event<'lead_updated', { id: string }>;
 
-export const useEventsChannel = <E extends Event>(onEvent: (event: E) => void) => {
+export type IcpFitEvaluationCompleteEvent = Event<
+  'icp_fit_evaluation_complete',
+  { is_fit: boolean }
+>;
+
+export const useEventsChannel = <E extends Event>(
+  onEvent: (event: E) => void,
+  channelName?: string
+) => {
   const page = usePage<PageProps & { tenant: Tenant; companies: Lead[]; current_user: User }>();
-  const tenantId = page.props.tenant.id;
-  const { channel } = useChannel(`events:${tenantId}`);
+  const tenantId = page.props.tenant?.id;
+  const { channel } = useChannel(`events:${channelName ?? tenantId}`);
 
   useEffect(() => {
     if (channel) {

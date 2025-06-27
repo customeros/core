@@ -79,37 +79,35 @@ defmodule Core.Auth.Tenants do
     end
   end
 
-  ## Tenant registration
   def create_tenant(name, domain) do
     OpenTelemetry.Tracer.with_span "tenants.create_tenant" do
       OpenTelemetry.Tracer.set_attributes([
-        {"tenant.name", name},
-        {"tenant.domain", domain}
+        {"param.tenant.name", name},
+        {"param.tenant.domain", domain}
       ])
 
       case insert_tenant(name, domain) do
         {:ok, tenant} = result ->
           start_post_creation_tasks(tenant)
-          Tracing.ok()
           result
 
         {:error, _changeset} = error ->
-          Tracing.error(:insert_failed)
+          Tracing.error(:insert_failed, "Failed to insert tenant into DB")
           error
       end
     end
   end
 
-  def get_or_create_tenant(tenant_name, domain) do
-    case get_tenant_by_name(tenant_name) do
+  def get_or_create_tenant(name, domain) do
+    case get_tenant_by_name(name) do
       {:error, :not_found} ->
-        case create_tenant(tenant_name, domain) do
-          {:ok, tenant} -> {:ok, tenant.id}
+        case create_tenant(name, domain) do
+          {:ok, tenant} -> {:ok, tenant}
           error -> error
         end
 
       {:ok, tenant} ->
-        {:ok, tenant.id}
+        {:ok, tenant}
     end
   end
 

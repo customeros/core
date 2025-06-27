@@ -3,14 +3,16 @@ import { useForm } from '@inertiajs/react';
 
 import { cn } from 'src/utils/cn';
 
-import { Input } from '../components/Input';
-import { RootLayout } from '../layouts/Root';
-import { Button } from '../components/Button';
+import { Input } from '../../components/Input';
+import { RootLayout } from '../../layouts/Root';
+import { Button } from '../../components/Button';
+import { IcpFitStatus } from './components/IcpFitStatus';
 
 export default function Signin() {
   const [emailSent, setEmailSent] = useState(false);
   const { data, post, setData, processing, reset, errors } = useForm({
     email: '',
+    lead: '',
   });
 
   const submit = (e: React.FormEvent<HTMLFormElement>) => {
@@ -21,6 +23,14 @@ export default function Signin() {
       },
     });
   };
+
+  if (errors?.lead === 'Lead still evaluating') {
+    return (
+      <RootLayout>
+        <IcpFitStatus email={data.email} />
+      </RootLayout>
+    );
+  }
 
   return (
     <RootLayout>
@@ -75,11 +85,12 @@ export default function Signin() {
                           />
                           <p
                             className={cn(
-                              'text-error-500  h-[0px] transition-all mt-0 text-base',
-                              errors.email?.length && 'h-[13px] mt-1'
+                              'text-error-500  h-[0px] transition-all mt-0 text-[12px]',
+                              errors.email?.length && 'h-[13px] mt-1',
+                              errors.lead?.length && 'h-[13px] mt-1'
                             )}
                           >
-                            {errors.email}
+                            {errors?.lead ? errors?.lead : errors?.email}
                           </p>
                         </div>
                         <Button
