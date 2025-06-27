@@ -146,6 +146,7 @@ defmodule Web.Router do
     pipe_through :cors_event_api
 
     post "/events", WebTrackerController, :create
+    get "/events/bot-detect", WebTrackerController, :bot_detect
   end
 
   # ICP endpoint with CORS

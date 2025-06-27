@@ -57,7 +57,12 @@ defmodule Core.Application do
       end
 
     opts = [strategy: :one_for_one, name: Core.Supervisor]
-    Supervisor.start_link(children, opts)
+    result = Supervisor.start_link(children, opts)
+
+    # Initialize bot detector after supervisor starts
+    Core.WebTracker.BotDetector.init()
+
+    result
   end
 
   defp get_cluster_nodes do

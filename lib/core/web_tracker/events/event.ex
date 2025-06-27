@@ -7,6 +7,7 @@ defmodule Core.WebTracker.Events.Event do
   import Ecto.Changeset
   alias Core.WebTracker.OriginTenantMapper
   alias Core.Utils.IdGenerator
+  alias Core.Utils.Tracing
 
   @primary_key {:id, :string, autogenerate: false}
   @foreign_key_type :string
@@ -146,6 +147,9 @@ defmodule Core.WebTracker.Events.Event do
   """
   def validate_bot(changeset) do
     user_agent = get_field(changeset, :user_agent)
+    ip = get_field(changeset, :ip)
+    origin = get_field(changeset, :origin)
+    referrer = get_field(changeset, :referrer)
 
     case user_agent do
       nil ->
@@ -155,10 +159,31 @@ defmodule Core.WebTracker.Events.Event do
         add_error(changeset, :user_agent, "User agent cannot be empty")
 
       ua when is_binary(ua) ->
-        if bot_user_agent?(ua) do
-          add_error(changeset, :user_agent, "Bot requests are not allowed")
-        else
-          changeset
+        # Use sophisticated bot detection
+        case Core.WebTracker.BotDetector.detect_bot(
+               ua,
+               ip || "",
+               origin || "",
+               referrer || ""
+             ) do
+          {:ok, %{bot: true, confidence: confidence}} ->
+            add_error(
+              changeset,
+              :user_agent,
+              "Bot detected with confidence #{Float.round(confidence, 2)}"
+            )
+
+          {:ok, %{bot: false}} ->
+            changeset
+
+          {:error, reason} ->
+            Tracing.error(reason, "Bot detection failed")
+            # Fall back to simple detection if sophisticated detection fails
+            if bot_user_agent?(ua) do
+              add_error(changeset, :user_agent, "Bot requests are not allowed")
+            else
+              changeset
+            end
         end
 
       _ ->

@@ -6,56 +6,97 @@ defmodule Web.WebTrackerController do
   alias Core.WebTracker.OriginValidator
   alias Core.WebTracker.OriginTenantMapper
   alias Core.WebTracker.Events
+  alias Core.WebTracker.BotDetector
+  alias Core.Utils.Tracing
 
   plug Web.Plugs.ValidateWebTrackerHeaders when action in [:create]
 
   def create(conn, params) do
-    # Early validation of origin and visitor_id
-    with :ok <- validate_origin(params["origin"]),
-         {:ok, _} <- validate_visitor_id(params["visitorId"]) do
-      case Events.create(params) do
-        {:ok, _event} ->
+    OpenTelemetry.Tracer.with_span "web_tracker_controller.create" do
+      # Early validation of origin and visitor_id
+      with :ok <- validate_origin(params["origin"]),
+           {:ok, _} <- validate_visitor_id(params["visitorId"]) do
+        case Events.create(params) do
+          {:ok, _event} ->
+            conn
+            |> put_status(:accepted)
+            |> json(%{accepted: true})
+
+          {:error, changeset} ->
+            errors =
+              changeset.errors
+              |> Enum.map(fn {field, {message, _opts}} -> {field, message} end)
+              |> Enum.into(%{})
+
+            status = determine_error_status(errors)
+
+            conn
+            |> put_status(status)
+            |> json(%{error: "bad_request", details: errors})
+        end
+      else
+        {:error, :origin_ignored} ->
           conn
-          |> put_status(:accepted)
-          |> json(%{accepted: true})
+          |> put_status(:forbidden)
+          |> json(%{
+            error: "forbidden",
+            details: %{origin: "Origin is ignored"}
+          })
 
-        {:error, changeset} ->
-          errors =
-            changeset.errors
-            |> Enum.map(fn {field, {message, _opts}} -> {field, message} end)
-            |> Enum.into(%{})
-
-          status = determine_error_status(errors)
-
+        {:error, :origin_not_configured} ->
           conn
-          |> put_status(status)
-          |> json(%{error: "bad_request", details: errors})
+          |> put_status(:forbidden)
+          |> json(%{
+            error: "forbidden",
+            details: %{origin: "Origin not configured"}
+          })
+
+        {:error, :missing_visitor_id} ->
+          conn
+          |> put_status(:bad_request)
+          |> json(%{
+            error: "bad_request",
+            details: %{visitor_id: "Visitor ID is required"}
+          })
       end
-    else
-      {:error, :origin_ignored} ->
-        conn
-        |> put_status(:forbidden)
-        |> json(%{error: "forbidden", details: %{origin: "Origin is ignored"}})
-
-      {:error, :origin_not_configured} ->
-        conn
-        |> put_status(:forbidden)
-        |> json(%{
-          error: "forbidden",
-          details: %{origin: "Origin not configured"}
-        })
-
-      {:error, :missing_visitor_id} ->
-        conn
-        |> put_status(:bad_request)
-        |> json(%{
-          error: "bad_request",
-          details: %{visitor_id: "Visitor ID is required"}
-        })
     end
   end
 
-  @spec validate_origin(String.t()) :: :ok | {:error, atom()}
+  def bot_detect(conn, _params) do
+    OpenTelemetry.Tracer.with_span "web_tracker_controller.bot_detect" do
+      user_agent = get_req_header(conn, "user-agent") |> List.first() || ""
+      origin = get_req_header(conn, "origin") |> List.first() || ""
+      ip = get_req_header(conn, "ip") |> List.first() || ""
+      referrer = get_req_header(conn, "referrer") |> List.first() || ""
+
+      OpenTelemetry.Tracer.set_attributes([
+        {"http.method", "GET"},
+        {"http.route", "/v1/events/bot-detect"},
+        {"http.header.user-agent", user_agent},
+        {"http.header.origin", origin},
+        {"http.header.ip", ip},
+        {"http.header.referrer", referrer}
+      ])
+
+      # Call our custom bot detection
+      bot_result = BotDetector.detect_bot(user_agent, ip, origin, referrer)
+
+      case bot_result do
+        {:ok, bot_response} ->
+          conn
+          |> put_status(:ok)
+          |> json(bot_response)
+
+        {:error, reason} ->
+          Tracing.error(reason)
+
+          conn
+          |> put_status(:internal_server_error)
+          |> json(%{error: "bot_detection_failed", details: reason})
+      end
+    end
+  end
+
   defp validate_origin(origin) when is_binary(origin) and origin != "" do
     cond do
       OriginValidator.should_ignore_origin?(origin) ->
