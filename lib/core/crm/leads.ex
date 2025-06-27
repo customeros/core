@@ -525,29 +525,50 @@ defmodule Core.Crm.Leads do
       [asc: :stage] ->
         order_by(query, [l], asc: l.stage)
 
-      [direction: field] when direction in [:asc, :desc] and field in [:name, :industry, :country] ->
-        order_by_nullable_field(query, direction, field)
+      [asc: field] when field in [:name, :industry, :country] ->
+        order_by_nullable_field(query, :asc, field)
+
+      [desc: field] when field in [:name, :industry, :country] ->
+        order_by_nullable_field(query, :desc, field)
 
       _ ->
         order_by(query, [l], desc: l.inserted_at)
     end
   end
 
-  defp order_by_nullable_field(query, direction, :name) do
+  defp order_by_nullable_field(query, :asc, :name) do
     order_by(query, [l, c], [
-      {direction, fragment("CASE WHEN ? IS NULL OR ? = '' THEN 1 ELSE 0 END, ?", c.name, c.name, c.name)}
+      asc: fragment("CASE WHEN ? IS NULL OR ? = '' THEN 1 ELSE 0 END, ?", c.name, c.name, c.name)
     ])
   end
 
-  defp order_by_nullable_field(query, direction, :industry) do
+  defp order_by_nullable_field(query, :desc, :name) do
     order_by(query, [l, c], [
-      {direction, fragment("CASE WHEN ? IS NULL OR ? = '' THEN 1 ELSE 0 END, ?", c.industry, c.industry, c.industry)}
+      desc: fragment("CASE WHEN ? IS NULL OR ? = '' THEN 1 ELSE 0 END, ?", c.name, c.name, c.name)
     ])
   end
 
-  defp order_by_nullable_field(query, direction, :country) do
+  defp order_by_nullable_field(query, :asc, :industry) do
     order_by(query, [l, c], [
-      {direction, fragment("CASE WHEN ? IS NULL OR ? = '' THEN 1 ELSE 0 END, ?", c.country_a2, c.country_a2, c.country_a2)}
+      asc: fragment("CASE WHEN ? IS NULL OR ? = '' THEN 1 ELSE 0 END, ?", c.industry, c.industry, c.industry)
+    ])
+  end
+
+  defp order_by_nullable_field(query, :desc, :industry) do
+    order_by(query, [l, c], [
+      desc: fragment("CASE WHEN ? IS NULL OR ? = '' THEN 1 ELSE 0 END, ?", c.industry, c.industry, c.industry)
+    ])
+  end
+
+  defp order_by_nullable_field(query, :asc, :country) do
+    order_by(query, [l, c], [
+      asc: fragment("CASE WHEN ? IS NULL OR ? = '' THEN 1 ELSE 0 END, ?", c.country_a2, c.country_a2, c.country_a2)
+    ])
+  end
+
+  defp order_by_nullable_field(query, :desc, :country) do
+    order_by(query, [l, c], [
+      desc: fragment("CASE WHEN ? IS NULL OR ? = '' THEN 1 ELSE 0 END, ?", c.country_a2, c.country_a2, c.country_a2)
     ])
   end
 
