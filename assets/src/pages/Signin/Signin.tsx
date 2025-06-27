@@ -25,7 +25,6 @@ export default function Signin() {
   };
 
   if (errors?.lead === 'Lead still evaluating') {
-    // if (true) {
     return (
       <RootLayout>
         <IcpFitStatus email={data.email} />
