@@ -59,7 +59,7 @@ export default function Signin() {
         )}
         <form onSubmit={submit} className="flex flex-col items-center gap-4 w-[360px]">
           {emailSent ? (
-            <div className="space-y-2 text-center pt-4 -mt-[60px]">
+            <div className="space-y-2 text-center pt-4 ">
               <p className="font-semibold text-3xl">Check your email</p>
               <p>
                 We've sent you an email with a magic link to{' '}
