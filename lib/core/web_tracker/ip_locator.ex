@@ -1,4 +1,4 @@
-defmodule Core.WebTracker.BotDetector do
+defmodule Core.WebTracker.IpLocator do
   @moduledoc """
   IPData service integration.
   Handles IP address verification and intelligence gathering.

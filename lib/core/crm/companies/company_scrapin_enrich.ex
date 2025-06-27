@@ -72,7 +72,7 @@ defmodule Core.Crm.Companies.CompanyScrapinEnrich do
   end
 
   defp get_scrapin_data_by_primary_domain(company) do
-    case ScrapinCompanies.get_company_data_by_domain(company.primary_domain) do
+    case ScrapinCompanies.search_company_with_scrapin(company.primary_domain) do
       {:ok, scrapin_company_details} ->
         {:ok, scrapin_company_details}
 
