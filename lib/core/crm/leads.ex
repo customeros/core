@@ -90,20 +90,8 @@ defmodule Core.Crm.Leads do
   Get the domain for a lead company.
 
   Returns the domain string if successful, or an error tuple if the lead is not a company or not found.
-
-  Example:
-
-  ```elixir
-  "example.com" = Leads.get_domain_for_lead_company("tenant_id", "lead_id")
-  {:error, :not_a_company} = Leads.get_domain_for_lead_company("tenant_id", "lead_id")
-  {:error, :not_found} = Leads.get_domain_for_lead_company("tenant_id", "lead_id")
-  ```
   """
-  @spec get_domain_for_lead_company(
-          tenant_id :: String.t(),
-          lead_id :: String.t()
-        ) ::
-          String.t() | {:error, :not_a_company | :not_found}
+
   def get_domain_for_lead_company(tenant_id, lead_id) do
     %LeadContext{lead_id: lead_id, tenant_id: tenant_id}
     |> fetch_lead()
