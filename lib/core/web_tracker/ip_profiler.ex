@@ -74,8 +74,8 @@ defmodule Core.WebTracker.IPProfiler do
     ipdata_mod =
       Application.get_env(
         :core,
-        Core.WebTracker.BotDetector,
-        Core.WebTracker.BotDetector
+        Core.WebTracker.IpLocator,
+        Core.WebTracker.IpLocator
       )
 
     case ipdata_mod.verify_ip(ip) do
