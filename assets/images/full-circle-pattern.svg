@@ -1,10 +1,21 @@
-<?xml version="1.0" encoding="UTF-8"?>
-<svg width="424" height="424" viewBox="0 0 424 424" fill="none" xmlns="http://www.w3.org/2000/svg">
-<circle cx="212" cy="212" r="47.5" stroke="#EAECF0"/>
-<circle cx="212" cy="212" r="79.5" stroke="#EAECF0"/>
-<circle cx="212" cy="212" r="111.5" stroke="#EAECF0"/>
-<circle cx="212" cy="212" r="143.5" stroke="#EAECF0"/>
-<circle cx="212" cy="212" r="175.5" stroke="#EAECF0"/>
-<circle cx="212" cy="212" r="207.5" stroke="#EAECF0"/>
-<circle cx="212" cy="212" r="239.5" stroke="#EAECF0"/>
-</svg> 
+<svg width="768" height="739" viewBox="0 0 768 739" fill="none" xmlns="http://www.w3.org/2000/svg">
+<mask id="mask0_9293_1959" style="mask-type:alpha" maskUnits="userSpaceOnUse" x="0" y="-29" width="768" height="768">
+<rect width="768" height="768" transform="translate(0 -29)" fill="url(#paint0_radial_9293_1959)"/>
+</mask>
+<g mask="url(#mask0_9293_1959)">
+<circle cx="384" cy="355" r="47.5" stroke="#EAECF0"/>
+<circle cx="384" cy="355" r="95.5" stroke="#EAECF0"/>
+<circle cx="384" cy="355" r="143.5" stroke="#EAECF0"/>
+<circle cx="384" cy="355" r="191.5" stroke="#EAECF0"/>
+<circle cx="384" cy="355" r="239.5" stroke="#EAECF0"/>
+<circle cx="384" cy="355" r="287.5" stroke="#EAECF0"/>
+<circle cx="384" cy="355" r="335.5" stroke="#EAECF0"/>
+<circle cx="384" cy="355" r="383.5" stroke="#EAECF0"/>
+</g>
+<defs>
+<radialGradient id="paint0_radial_9293_1959" cx="0" cy="0" r="1" gradientUnits="userSpaceOnUse" gradientTransform="translate(384 384) rotate(90) scale(384 384)">
+<stop/>
+<stop offset="1" stop-opacity="0"/>
+</radialGradient>
+</defs>
+</svg>

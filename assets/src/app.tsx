@@ -12,7 +12,7 @@ axios.defaults.withCredentials = true;
 axios.defaults.xsrfHeaderName = 'x-csrf-token';
 
 // Lazy load pages
-const Signin = lazy(() => import('./pages/Signin'));
+const Signin = lazy(() => import('./pages/Signin/Signin'));
 const Welcome = lazy(() => import('./pages/Welcome'));
 const Leads = lazy(() => import('./pages/Leads/Leads'));
 const Document = lazy(() => import('./pages/Document'));
