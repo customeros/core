@@ -27,7 +27,7 @@ export const IcpFitStatus = ({ email }: { email: string }) => {
           <Button
             size="md"
             variant="outline"
-            className="w-full mt-3"
+            className="w-full mt-6"
             onClick={() => router.visit('/')}
           >
             Back home
@@ -44,7 +44,7 @@ export const IcpFitStatus = ({ email }: { email: string }) => {
           <Button
             size="md"
             variant="outline"
-            className="w-full mt-3"
+            className="w-full mt-6"
             onClick={() => window.open('https://cal.com/mbrown/20min', '_blank')}
           >
             Book a call
@@ -69,7 +69,7 @@ export const IcpFitStatus = ({ email }: { email: string }) => {
           <Button
             size="md"
             variant="ghost"
-            className="w-full mt-3"
+            className="w-full mt-6"
             onClick={() => router.visit('/')}
           >
             Back home
@@ -99,27 +99,30 @@ export const IcpFitStatusSkeleton = ({
               src="/images/full-circle-pattern.svg"
               className={cn(
                 'absolute object-contain translate-y-[8px]',
-                isFit === null && 'animate-pulse delay-200'
+                isFit === null && 'animate-ripple delay-200'
               )}
             />
             <img
-              width={44}
-              height={44}
+              width={88}
+              height={88}
               alt="CustomerOS"
               src="/images/logo.svg"
-              className=" z-10 object-contain"
+              className={cn(
+                'z-10 object-contain',
+                isFit === null && 'animate-pulseScale delay-200'
+              )}
             />
           </div>
 
           <img
-            width={100}
+            width={180}
             height={20}
             alt="CustomerOS"
             src="/images/watermark.svg"
-            className=" z-10 object-contain"
+            className="mt-4 z-10 object-contain"
           />
         </div>
-        <div className="relative z-10 flex flex-col items-center justify-start px-6 pb-6 w-full max-w-[768px] min-h-[500px]">
+        <div className="relative z-10 flex flex-col items-center justify-start px-6 pb-6 w-full max-w-[768px] min-h-[500px] mt-6">
           {children}
         </div>
       </div>

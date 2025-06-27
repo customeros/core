@@ -308,7 +308,7 @@
   --color-pink-900: #851651;
   --color-pink-950: #4e0d30;
 
-  --animate-ripple: ripple 1.2s infinite cubic-bezier(0.4, 0, 0.6, 1);
+  --animate-ripple: ripple 2.5s infinite cubic-bezier(0.4, 0, 0.6, 1);
   --animate-spin: spin 2s linear infinite;
   @keyframes ripple {
     0%,
@@ -330,6 +330,16 @@
     }
   }
 
+  --animate-pulseScale: pulseScale 2.5s infinite cubic-bezier(0.4, 0, 0.6, 1);
+  @keyframes pulseScale {
+    0%,
+    100% {
+      transform: scale(1.05);
+    }
+    50% {
+      transform: scale(1.1);
+    }
+  }
   --animate-pulseOpacity: pulseOpacity 1s ease-in-out infinite;
   @keyframes pulseOpacity {
     from {
