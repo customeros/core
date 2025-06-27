@@ -98,7 +98,7 @@ defmodule Core.MixProject do
       {:telemetry_poller, "~> 1.0"},
       {:temp, "~> 0.4"},
       {:y_ex, "~> 0.7"},
-      {:inertia, "~> 2.4.0"},
+      {:inertia, "~> 2.5.0"},
       {:esbuild, "~> 0.9", runtime: Mix.env() == :dev},
       {:tailwind, "~> 0.3", runtime: Mix.env() == :dev},
       {:ex_aws, "~> 2.5"},
