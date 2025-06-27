@@ -52,9 +52,6 @@ defmodule Core.Crm.Companies.Company do
     field(:linkedin_id, :string)
     field(:linkedin_alias, :string)
 
-    # Scraped content
-    # home page
-    field(:homepage_content, :string)
     field(:homepage_scraped, :boolean, default: false)
 
     # Quantitative fields
@@ -91,11 +88,8 @@ defmodule Core.Crm.Companies.Company do
           icon_enrichment_attempts: integer(),
           business_model_enrichment_attempts: integer(),
           scrapin_enrichment_attempts: integer(),
-          # LinkedIn fields
           linkedin_id: String.t() | nil,
           linkedin_alias: String.t() | nil,
-          # Scraped content
-          homepage_content: String.t() | nil,
           homepage_scraped: boolean(),
           # Quantitative fields
           technologies_used: {:array, :string},
@@ -135,7 +129,6 @@ defmodule Core.Crm.Companies.Company do
       :scrapin_enrichment_attempts,
       :linkedin_id,
       :linkedin_alias,
-      :homepage_content,
       :homepage_scraped,
       :technologies_used,
       :city,

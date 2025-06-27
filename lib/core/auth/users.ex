@@ -125,7 +125,8 @@ defmodule Core.Auth.Users do
         customeros_tenant_name =
           Application.get_env(:core, :customeros)[:customeros_tenant_name]
 
-        {:ok, customeros_tenant} = Tenants.get_tenant_by_name(customeros_tenant_name)
+        {:ok, customeros_tenant} =
+          Tenants.get_tenant_by_name(customeros_tenant_name)
 
         if customeros_tenant.domain == domain do
           changeset

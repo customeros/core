@@ -58,7 +58,7 @@ defmodule Core.Crm.Companies.CompanyEnrich do
            :ok <- validate_scrape_eligibility(company),
            :ok <- mark_scrape_attempt(company_id),
            {:ok, content} <- scrape_company_homepage(company),
-           :ok <- set_homepage_scraped(company_id, content) do
+           :ok <- set_homepage_scraped(company_id) do
         trigger_enrichment_tasks(company_id)
         :ok
       else
@@ -166,10 +166,10 @@ defmodule Core.Crm.Companies.CompanyEnrich do
     end
   end
 
-  defp set_homepage_scraped(company_id, content) do
+  defp set_homepage_scraped(company_id) do
     case Repo.update_all(
            from(c in Company, where: c.id == ^company_id),
-           set: [homepage_content: content, homepage_scraped: true]
+           set: [homepage_scraped: true]
          ) do
       {0, _} ->
         Tracing.error(:update_failed, "Failed to update homepage for company",
