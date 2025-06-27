@@ -57,7 +57,7 @@ defmodule Core.Crm.Companies.CompanyEnrich do
       with {:ok, company} <- fetch_company(company_id),
            :ok <- validate_scrape_eligibility(company),
            :ok <- mark_scrape_attempt(company_id),
-           {:ok, content} <- scrape_company_homepage(company),
+           {:ok, _content} <- scrape_company_homepage(company),
            :ok <- set_homepage_scraped(company_id) do
         trigger_enrichment_tasks(company_id)
         :ok

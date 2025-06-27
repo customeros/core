@@ -141,7 +141,7 @@ defmodule Core.Auth.Users do
                 Web.Endpoint.broadcast("events:#{email}", "event", %{
                   type: :icp_fit_evaluation_complete,
                   payload: %{
-                    is_fit: !fit == :not_a_fit
+                    is_fit: fit != :not_a_fit
                   }
                 })
               end
@@ -415,13 +415,6 @@ defmodule Core.Auth.Users do
       |> where([u], u.tenant_id == ^tenant_id)
       |> where([u], not is_nil(u.confirmed_at))
       |> Repo.all()
-    end
-  end
-
-  defp extract_domain_from_email(email) do
-    case String.split(email, "@") do
-      [_, domain] -> domain
-      _ -> nil
     end
   end
 end
