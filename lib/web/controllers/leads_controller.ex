@@ -121,8 +121,11 @@ defmodule Web.LeadsController do
     }
 
     case params do
-      %{direction => field} when direction in ["asc", "desc"] ->
-        order_mapping[direction][field] || [desc: :inserted_at]
+      %{"asc" => field} when field in ["stage", "inserted_at", "name", "industry", "country"] ->
+        order_mapping["asc"][field] || [desc: :inserted_at]
+
+      %{"desc" => field} when field in ["stage", "inserted_at", "name", "industry", "country"] ->
+        order_mapping["desc"][field] || [desc: :inserted_at]
 
       _ ->
         [desc: :inserted_at]
