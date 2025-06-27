@@ -247,7 +247,6 @@ defmodule Core.Crm.Companies.CompanyEnricher do
 
     Company
     |> where([c], is_nil(c.industry_code) or c.industry_code == "")
-    |> where([c], not is_nil(c.homepage_content) and c.homepage_content != "")
     |> where([c], c.homepage_scraped == true)
     |> where([c], c.industry_enrichment_attempts < ^max_attempts)
     |> where(
@@ -364,7 +363,6 @@ defmodule Core.Crm.Companies.CompanyEnricher do
 
     Company
     |> where([c], is_nil(c.name) or c.name == "")
-    |> where([c], not is_nil(c.homepage_content) and c.homepage_content != "")
     |> where([c], c.homepage_scraped == true)
     |> where([c], c.name_enrichment_attempts < ^max_attempts)
     |> where(
@@ -421,7 +419,6 @@ defmodule Core.Crm.Companies.CompanyEnricher do
 
     Company
     |> where([c], is_nil(c.country_a2) or c.country_a2 == "")
-    |> where([c], not is_nil(c.homepage_content) and c.homepage_content != "")
     |> where([c], c.homepage_scraped == true)
     |> where([c], c.country_enrichment_attempts < ^max_attempts)
     |> where(

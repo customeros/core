@@ -135,7 +135,9 @@ defmodule Core.WebTracker.BotDetector do
     has_high_confidence_signal = Enum.any?(signals, &(&1.weight == 1.0))
 
     # Determine if it's a bot based on confidence threshold OR high confidence signal
-    is_bot = has_high_confidence_signal or confidence > BotDetectorConfig.confidence_threshold()
+    is_bot =
+      has_high_confidence_signal or
+        confidence > BotDetectorConfig.confidence_threshold()
 
     {is_bot, min(confidence, 1.0), signals}
   end
