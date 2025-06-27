@@ -122,29 +122,39 @@ defmodule Core.WebTracker.BotDetectorConfig do
   end
 
   @doc """
-  Gets the list of automation tools to detect.
+  Gets the list of automation tool regex patterns to detect.
   """
-  def automation_tools do
-    Application.get_env(:core, :bot_detector_automation_tools, [
-      "selenium",
-      "webdriver",
-      "phantomjs",
-      "headless",
-      "playwright",
-      "cypress",
-      "puppeteer",
-      "automation",
-      "testcafe",
-      "nightwatch",
-      "protractor",
-      "cucumber",
-      "behat",
-      "robot",
-      "automated",
-      "script",
-      "crawler",
-      "scraper",
-      "spider"
+  def automation_patterns do
+    Application.get_env(:core, :bot_detector_automation_patterns, [
+      ~r/selenium/i,
+      ~r/webdriver/i,
+      ~r/phantomjs/i,
+      ~r/headless/i,
+      ~r/playwright/i,
+      ~r/cypress/i,
+      ~r/puppeteer/i,
+      ~r/automation/i,
+      ~r/testcafe/i,
+      ~r/nightwatch/i,
+      ~r/protractor/i,
+      ~r/cucumber/i,
+      ~r/behat/i,
+      ~r/robot/i,
+      ~r/automated/i,
+      ~r/script/i
+    ])
+  end
+
+  @doc """
+  Gets the list of browser engine regex patterns to detect.
+  """
+  def browser_engine_patterns do
+    Application.get_env(:core, :bot_detector_browser_engine_patterns, [
+      ~r/webkit/i,
+      ~r/gecko/i,
+      ~r/trident/i,
+      ~r/edgehtml/i,
+      ~r/blink/i
     ])
   end
 
@@ -153,39 +163,39 @@ defmodule Core.WebTracker.BotDetectorConfig do
   """
   def suspicious_automation_flags do
     Application.get_env(:core, :bot_detector_suspicious_automation_flags, [
-      "headless",
-      "no-sandbox",
-      "disable-dev-shm-usage",
-      "disable-gpu",
-      "disable-web-security",
-      "disable-features",
-      "disable-extensions",
-      "disable-plugins",
-      "disable-images",
-      "disable-javascript",
-      "disable-css",
-      "disable-cookies",
-      "disable-local-storage",
-      "disable-session-storage",
-      "disable-indexeddb",
-      "disable-websockets",
-      "disable-notifications",
-      "disable-popup-blocking",
-      "disable-background-timer-throttling",
-      "disable-backgrounding-occluded-windows",
-      "disable-renderer-backgrounding",
-      "disable-ipc-flooding-protection",
-      "disable-hang-monitor",
-      "disable-prompt-on-repost",
-      "disable-domain-reliability",
-      "disable-component-extensions-with-background-pages",
-      "disable-default-apps",
-      "disable-sync",
-      "disable-translate",
-      "disable-logging",
-      "disable-background-networking",
-      "disable-client-side-phishing-detection",
-      "disable-component-update"
+      ~r/headless/i,
+      ~r/no-sandbox/i,
+      ~r/disable-dev-shm-usage/i,
+      ~r/disable-gpu/i,
+      ~r/disable-web-security/i,
+      ~r/disable-features/i,
+      ~r/disable-extensions/i,
+      ~r/disable-plugins/i,
+      ~r/disable-images/i,
+      ~r/disable-javascript/i,
+      ~r/disable-css/i,
+      ~r/disable-cookies/i,
+      ~r/disable-local-storage/i,
+      ~r/disable-session-storage/i,
+      ~r/disable-indexeddb/i,
+      ~r/disable-websockets/i,
+      ~r/disable-notifications/i,
+      ~r/disable-popup-blocking/i,
+      ~r/disable-background-timer-throttling/i,
+      ~r/disable-backgrounding-occluded-windows/i,
+      ~r/disable-renderer-backgrounding/i,
+      ~r/disable-ipc-flooding-protection/i,
+      ~r/disable-hang-monitor/i,
+      ~r/disable-prompt-on-repost/i,
+      ~r/disable-domain-reliability/i,
+      ~r/disable-component-extensions-with-background-pages/i,
+      ~r/disable-default-apps/i,
+      ~r/disable-sync/i,
+      ~r/disable-translate/i,
+      ~r/disable-logging/i,
+      ~r/disable-background-networking/i,
+      ~r/disable-client-side-phishing-detection/i,
+      ~r/disable-component-update/i
     ])
   end
 
@@ -222,6 +232,101 @@ defmodule Core.WebTracker.BotDetectorConfig do
       ~r/^0\.0\.0\.0$/i,
       # IPv6 localhost
       ~r/^::1$/i
+    ])
+  end
+
+  @doc """
+  Gets the list of suspicious header regex patterns to detect.
+  """
+  def suspicious_header_patterns do
+    Application.get_env(:core, :bot_detector_suspicious_header_patterns, [
+      # Empty user agent
+      ~r/^$/i,
+      # Very long alphanumeric
+      ~r/^[a-z0-9]{16,}$/i,
+      # Very long letter string
+      ~r/^[a-z]{20,}$/i,
+      # Very long number string
+      ~r/^[0-9]{20,}$/i,
+      # Only alphanumeric (no spaces, punctuation)
+      ~r/^[a-z0-9]+$/i,
+      # Only letters
+      ~r/^[a-z]+$/i,
+      # Only numbers
+      ~r/^[0-9]+$/i,
+      # Long alphanumeric without browser info
+      ~r/^[a-z0-9]{8,}$/i
+    ])
+  end
+
+  @doc """
+  Gets the list of browser regex patterns to detect (negative signals).
+  """
+  def browser_patterns do
+    Application.get_env(:core, :bot_detector_browser_patterns, [
+      ~r/chrome/i,
+      ~r/firefox/i,
+      ~r/safari/i,
+      ~r/edge/i,
+      ~r/opera/i,
+      ~r/ie/i,
+      ~r/trident/i,
+      ~r/webkit/i,
+      ~r/gecko/i
+    ])
+  end
+
+  @doc """
+  Gets the list of strong bot regex patterns to detect (excluding trusted search engines).
+  """
+  def strong_bot_patterns do
+    Application.get_env(:core, :bot_detector_strong_bot_patterns, [
+      ~r/facebookexternalhit/i,
+      ~r/twitterbot/i,
+      ~r/linkedinbot/i,
+      ~r/whatsapp/i,
+      ~r/telegrambot/i,
+      ~r/skypeuripreview/i,
+      ~r/discordbot/i,
+      ~r/slackbot/i
+    ])
+  end
+
+  @doc """
+  Gets the list of medium bot regex patterns to detect.
+  """
+  def medium_bot_patterns do
+    Application.get_env(:core, :bot_detector_medium_bot_patterns, [
+      ~r/bot/i,
+      ~r/crawler/i,
+      ~r/spider/i,
+      ~r/robot/i,
+      ~r/scraper/i,
+      ~r/curl/i,
+      ~r/wget/i,
+      ~r/httpclient/i,
+      ~r/requests/i,
+      ~r/urllib/i
+    ])
+  end
+
+  @doc """
+  Gets the list of suspicious user agent regex patterns to detect.
+  """
+  def suspicious_patterns do
+    Application.get_env(:core, :bot_detector_suspicious_patterns, [
+      # Long alphanumeric string
+      ~r/^[a-z0-9]{8,}$/i,
+      # Long letter string
+      ~r/^[a-z]{10,}$/i,
+      # Long number string
+      ~r/^[0-9]{10,}$/i,
+      # Only alphanumeric (no spaces, punctuation)
+      ~r/^[a-z0-9]+$/i,
+      # Only letters
+      ~r/^[a-z]+$/i,
+      # Only numbers
+      ~r/^[0-9]+$/i
     ])
   end
 end

@@ -146,291 +146,35 @@ defmodule Core.WebTracker.BotDetector do
   defp analyze_user_agent_advanced(user_agent)
        when is_binary(user_agent) and user_agent != "" do
     user_agent_lower = String.downcase(user_agent)
-    signals = []
-    score = 0.0
 
     # Check whitelisted user agents first
-    whitelisted_patterns =
-      BotDetectorConfig.whitelisted_user_agents()
-      |> Enum.map(&String.downcase/1)
+    case check_whitelisted_user_agent(user_agent_lower) do
+      {:whitelisted, signals, score} ->
+        {signals, score}
 
-    if Enum.any?(whitelisted_patterns, &String.contains?(user_agent_lower, &1)) do
-      {[
-         %{
-           type: "whitelisted_user_agent",
-           value: "User agent is whitelisted",
-           weight: -1.0
-         }
-       ], 0.0}
-    else
-      # Check trusted search engines
-      trusted_search_patterns =
-        BotDetectorConfig.trusted_search_engines()
-        |> Enum.map(&String.downcase/1)
+      :not_whitelisted ->
+        # Check trusted search engines
+        case check_trusted_search_engine(user_agent_lower) do
+          {:trusted, signals, score} ->
+            {signals, score}
 
-      if Enum.any?(
-           trusted_search_patterns,
-           &String.contains?(user_agent_lower, &1)
-         ) do
-        {[
-           %{
-             type: "trusted_search_engine",
-             value: "User agent is a trusted search engine bot",
-             weight: -1.0
-           }
-         ], 0.0}
-      else
-        # Check trusted social media bots
-        trusted_social_patterns =
-          BotDetectorConfig.trusted_social_media()
-          |> Enum.map(&String.downcase/1)
-
-        if Enum.any?(
-             trusted_social_patterns,
-             &String.contains?(user_agent_lower, &1)
-           ) do
-          {[
-             %{
-               type: "trusted_social_media",
-               value: "User agent is a trusted social media bot",
-               weight: -1.0
-             }
-           ], 0.0}
-        else
-          # Check blacklisted user agents
-          blacklisted_patterns =
-            BotDetectorConfig.blacklisted_user_agents()
-            |> Enum.map(&String.downcase/1)
-
-          if Enum.any?(
-               blacklisted_patterns,
-               &String.contains?(user_agent_lower, &1)
-             ) do
-            {[
-               %{
-                 type: "blacklisted_user_agent",
-                 value: "User agent is blacklisted",
-                 weight: 1.0
-               }
-             ], 1.0}
-          else
-            # Check for automation tools first (highest priority)
-            automation_patterns = [
-              ~r/selenium/i,
-              ~r/webdriver/i,
-              ~r/phantomjs/i,
-              ~r/headless/i,
-              ~r/playwright/i,
-              ~r/cypress/i,
-              ~r/puppeteer/i,
-              ~r/automation/i,
-              ~r/testcafe/i,
-              ~r/nightwatch/i,
-              ~r/protractor/i,
-              ~r/cucumber/i,
-              ~r/behat/i,
-              ~r/robot/i,
-              ~r/automated/i,
-              ~r/script/i
-            ]
-
-            automation_matches =
-              Enum.count(
-                automation_patterns,
-                &Regex.match?(&1, user_agent_lower)
-              )
-
-            {signals, score} =
-              if automation_matches > 0 do
-                {signals ++
-                   [
-                     %{
-                       type: "automation_tool_detected",
-                       value:
-                         "Found #{automation_matches} automation tool patterns",
-                       weight: 1.0
-                     }
-                   ], score + 1.0}
-              else
+          :not_trusted ->
+            # Check trusted social media bots
+            case check_trusted_social_media(user_agent_lower) do
+              {:trusted, signals, score} ->
                 {signals, score}
-              end
 
-            # Strong bot indicators (high confidence) - only if no automation tools found
-            {signals, score} =
-              if automation_matches == 0 do
-                strong_bot_patterns = [
-                  ~r/googlebot/i,
-                  ~r/bingbot/i,
-                  ~r/slurp/i,
-                  ~r/duckduckbot/i,
-                  ~r/facebookexternalhit/i,
-                  ~r/twitterbot/i,
-                  ~r/linkedinbot/i,
-                  ~r/whatsapp/i,
-                  ~r/telegrambot/i,
-                  ~r/skypeuripreview/i,
-                  ~r/discordbot/i,
-                  ~r/slackbot/i
-                ]
+              :not_trusted ->
+                # Check blacklisted user agents
+                case check_blacklisted_user_agent(user_agent_lower) do
+                  {:blacklisted, signals, score} ->
+                    {signals, score}
 
-                strong_matches =
-                  Enum.count(
-                    strong_bot_patterns,
-                    &Regex.match?(&1, user_agent_lower)
-                  )
-
-                if strong_matches > 0 do
-                  {signals ++
-                     [
-                       %{
-                         type: "strong_bot_pattern",
-                         value: "Found #{strong_matches} strong bot patterns",
-                         weight: 1.0
-                       }
-                     ], score + 1.0}
-                else
-                  {signals, score}
+                  :not_blacklisted ->
+                    analyze_user_agent_patterns(user_agent_lower)
                 end
-              else
-                {signals, score}
-              end
-
-            # Medium bot indicators - only if no automation tools found
-            {signals, score} =
-              if automation_matches == 0 do
-                medium_bot_patterns = [
-                  ~r/bot/i,
-                  ~r/crawler/i,
-                  ~r/spider/i,
-                  ~r/robot/i,
-                  ~r/scraper/i,
-                  ~r/curl/i,
-                  ~r/wget/i,
-                  ~r/httpclient/i,
-                  ~r/requests/i,
-                  ~r/urllib/i
-                ]
-
-                medium_matches =
-                  Enum.count(
-                    medium_bot_patterns,
-                    &Regex.match?(&1, user_agent_lower)
-                  )
-
-                if medium_matches > 0 do
-                  {signals ++
-                     [
-                       %{
-                         type: "medium_bot_pattern",
-                         value: "Found #{medium_matches} medium bot patterns",
-                         weight: 0.5
-                       }
-                     ], score + 0.5}
-                else
-                  {signals, score}
-                end
-              else
-                {signals, score}
-              end
-
-            # Suspicious patterns - only if no automation tools found
-            {signals, score} =
-              if automation_matches == 0 do
-                suspicious_patterns = [
-                  # Long alphanumeric string
-                  ~r/^[a-z0-9]{8,}$/i,
-                  # Long letter string
-                  ~r/^[a-z]{10,}$/i,
-                  # Long number string
-                  ~r/^[0-9]{10,}$/i,
-                  # Only alphanumeric
-                  ~r/^[a-z0-9]+$/i,
-                  # Only letters
-                  ~r/^[a-z]+$/i,
-                  # Only numbers
-                  ~r/^[0-9]+$/i
-                ]
-
-                suspicious_matches =
-                  Enum.count(
-                    suspicious_patterns,
-                    &Regex.match?(&1, user_agent_lower)
-                  )
-
-                if suspicious_matches > 0 do
-                  {signals ++
-                     [
-                       %{
-                         type: "suspicious_pattern",
-                         value:
-                           "Found #{suspicious_matches} suspicious patterns",
-                         weight: 0.3
-                       }
-                     ], score + 0.3}
-                else
-                  {signals, score}
-                end
-              else
-                {signals, score}
-              end
-
-            # Missing or very short user agent
-            {signals, score} =
-              if String.length(user_agent) < 10 do
-                {signals ++
-                   [
-                     %{
-                       type: "short_user_agent",
-                       value:
-                         "User agent too short (#{String.length(user_agent)} chars)",
-                       weight: 0.6
-                     }
-                   ], score + 0.6}
-              else
-                {signals, score}
-              end
-
-            # Browser patterns (negative signals) - only apply if no automation tools detected
-            {signals, score} =
-              if automation_matches == 0 do
-                browser_patterns = [
-                  ~r/chrome/i,
-                  ~r/firefox/i,
-                  ~r/safari/i,
-                  ~r/edge/i,
-                  ~r/opera/i,
-                  ~r/ie/i,
-                  ~r/trident/i,
-                  ~r/webkit/i,
-                  ~r/gecko/i
-                ]
-
-                browser_matches =
-                  Enum.count(
-                    browser_patterns,
-                    &Regex.match?(&1, user_agent_lower)
-                  )
-
-                if browser_matches > 0 do
-                  {signals ++
-                     [
-                       %{
-                         type: "browser_detected",
-                         value: "Found #{browser_matches} browser patterns",
-                         weight: -0.2
-                       }
-                     ], max(0.0, score - 0.2)}
-                else
-                  {signals, score}
-                end
-              else
-                {signals, score}
-              end
-
-            {signals, min(score, 1.0)}
-          end
+            end
         end
-      end
     end
   end
 
@@ -443,6 +187,245 @@ defmodule Core.WebTracker.BotDetector do
            weight: 0.8
          }
        ], 0.8}
+
+  defp check_whitelisted_user_agent(user_agent_lower) do
+    whitelisted_patterns =
+      BotDetectorConfig.whitelisted_user_agents()
+      |> Enum.map(&String.downcase/1)
+
+    if Enum.any?(whitelisted_patterns, &String.contains?(user_agent_lower, &1)) do
+      {:whitelisted,
+       [
+         %{
+           type: "whitelisted_user_agent",
+           value: "User agent is whitelisted",
+           weight: -1.0
+         }
+       ], 0.0}
+    else
+      :not_whitelisted
+    end
+  end
+
+  defp check_trusted_search_engine(user_agent_lower) do
+    trusted_search_patterns =
+      BotDetectorConfig.trusted_search_engines()
+      |> Enum.map(&String.downcase/1)
+
+    if Enum.any?(
+         trusted_search_patterns,
+         &String.contains?(user_agent_lower, &1)
+       ) do
+      {:trusted,
+       [
+         %{
+           type: "trusted_search_engine",
+           value: "User agent is a trusted search engine bot",
+           weight: -1.0
+         }
+       ], 0.0}
+    else
+      :not_trusted
+    end
+  end
+
+  defp check_trusted_social_media(user_agent_lower) do
+    trusted_social_patterns =
+      BotDetectorConfig.trusted_social_media()
+      |> Enum.map(&String.downcase/1)
+
+    if Enum.any?(
+         trusted_social_patterns,
+         &String.contains?(user_agent_lower, &1)
+       ) do
+      {:trusted,
+       [
+         %{
+           type: "trusted_social_media",
+           value: "User agent is a trusted social media bot",
+           weight: -1.0
+         }
+       ], 0.0}
+    else
+      :not_trusted
+    end
+  end
+
+  defp check_blacklisted_user_agent(user_agent_lower) do
+    blacklisted_patterns =
+      BotDetectorConfig.blacklisted_user_agents()
+      |> Enum.map(&String.downcase/1)
+
+    if Enum.any?(
+         blacklisted_patterns,
+         &String.contains?(user_agent_lower, &1)
+       ) do
+      {:blacklisted,
+       [
+         %{
+           type: "blacklisted_user_agent",
+           value: "User agent is blacklisted",
+           weight: 1.0
+         }
+       ], 1.0}
+    else
+      :not_blacklisted
+    end
+  end
+
+  defp analyze_user_agent_patterns(user_agent_lower) do
+    signals = []
+    score = 0.0
+
+    # Check for automation tools first (highest priority)
+    automation_patterns = BotDetectorConfig.automation_patterns()
+
+    automation_matches =
+      Enum.count(
+        automation_patterns,
+        &Regex.match?(&1, user_agent_lower)
+      )
+
+    {signals, score} =
+      if automation_matches > 0 do
+        {signals ++
+           [
+             %{
+               type: "automation_tool_detected",
+               value: "Found #{automation_matches} automation tool patterns",
+               weight: 1.0
+             }
+           ], score + 1.0}
+      else
+        {signals, score}
+      end
+
+    # Strong bot indicators (high confidence) - only if no automation tools found
+    {signals, score} =
+      if automation_matches == 0 do
+        strong_bot_patterns = BotDetectorConfig.strong_bot_patterns()
+
+        strong_matches =
+          Enum.count(
+            strong_bot_patterns,
+            &Regex.match?(&1, user_agent_lower)
+          )
+
+        if strong_matches > 0 do
+          {signals ++
+             [
+               %{
+                 type: "strong_bot_pattern",
+                 value: "Found #{strong_matches} strong bot patterns",
+                 weight: 1.0
+               }
+             ], score + 1.0}
+        else
+          {signals, score}
+        end
+      else
+        {signals, score}
+      end
+
+    # Medium bot indicators - only if no automation tools found
+    {signals, score} =
+      if automation_matches == 0 do
+        medium_bot_patterns = BotDetectorConfig.medium_bot_patterns()
+
+        medium_matches =
+          Enum.count(
+            medium_bot_patterns,
+            &Regex.match?(&1, user_agent_lower)
+          )
+
+        if medium_matches > 0 do
+          {signals ++
+             [
+               %{
+                 type: "medium_bot_pattern",
+                 value: "Found #{medium_matches} medium bot patterns",
+                 weight: 0.5
+               }
+             ], score + 0.5}
+        else
+          {signals, score}
+        end
+      else
+        {signals, score}
+      end
+
+    # Suspicious patterns - only if no automation tools found
+    {signals, score} =
+      if automation_matches == 0 do
+        suspicious_patterns = BotDetectorConfig.suspicious_patterns()
+
+        suspicious_matches =
+          Enum.count(
+            suspicious_patterns,
+            &Regex.match?(&1, user_agent_lower)
+          )
+
+        if suspicious_matches > 0 do
+          {signals ++
+             [
+               %{
+                 type: "suspicious_pattern",
+                 value: "Found #{suspicious_matches} suspicious patterns",
+                 weight: 0.3
+               }
+             ], score + 0.3}
+        else
+          {signals, score}
+        end
+      else
+        {signals, score}
+      end
+
+    # Missing or very short user agent
+    {signals, score} =
+      if String.length(user_agent_lower) < 10 do
+        {signals ++
+           [
+             %{
+               type: "short_user_agent",
+               value:
+                 "User agent too short (#{String.length(user_agent_lower)} chars)",
+               weight: 0.6
+             }
+           ], score + 0.6}
+      else
+        {signals, score}
+      end
+
+    # Browser patterns (negative signals) - only apply if no automation tools detected
+    {signals, score} =
+      if automation_matches == 0 do
+        browser_patterns = BotDetectorConfig.browser_patterns()
+
+        browser_matches =
+          Enum.count(
+            browser_patterns,
+            &Regex.match?(&1, user_agent_lower)
+          )
+
+        if browser_matches > 0 do
+          {signals ++
+             [
+               %{
+                 type: "browser_detected",
+                 value: "Found #{browser_matches} browser patterns",
+                 weight: -0.2
+               }
+             ], max(0.0, score - 0.2)}
+        else
+          {signals, score}
+        end
+      else
+        {signals, score}
+      end
+
+    {signals, min(score, 1.0)}
+  end
 
   @spec analyze_ip_address(String.t()) :: {list(), float()}
   defp analyze_ip_address(ip) when is_binary(ip) and ip != "" do
@@ -529,24 +512,7 @@ defmodule Core.WebTracker.BotDetector do
     score = 0.0
 
     # Check for missing or suspicious header patterns
-    suspicious_header_patterns = [
-      # Empty user agent
-      ~r/^$/i,
-      # Very long alphanumeric
-      ~r/^[a-z0-9]{16,}$/i,
-      # Very long letter string
-      ~r/^[a-z]{20,}$/i,
-      # Very long number string
-      ~r/^[0-9]{20,}$/i,
-      # Only alphanumeric (no spaces, punctuation)
-      ~r/^[a-z0-9]+$/i,
-      # Only letters
-      ~r/^[a-z]+$/i,
-      # Only numbers
-      ~r/^[0-9]+$/i,
-      # Long alphanumeric without browser info
-      ~r/^[a-z0-9]{8,}$/i
-    ]
+    suspicious_header_patterns = BotDetectorConfig.suspicious_header_patterns()
 
     suspicious_matches =
       Enum.count(
@@ -576,13 +542,7 @@ defmodule Core.WebTracker.BotDetector do
       end
 
     # Check for missing browser engine information
-    browser_engines = [
-      ~r/webkit/i,
-      ~r/gecko/i,
-      ~r/trident/i,
-      ~r/edgehtml/i,
-      ~r/blink/i
-    ]
+    browser_engines = BotDetectorConfig.browser_engine_patterns()
 
     engine_matches =
       Enum.count(browser_engines, &Regex.match?(&1, user_agent_lower))
@@ -697,9 +657,7 @@ defmodule Core.WebTracker.BotDetector do
     score = 0.0
 
     # Automation and testing tools
-    automation_patterns =
-      BotDetectorConfig.automation_tools()
-      |> Enum.map(&Regex.compile!(&1, "i"))
+    automation_patterns = BotDetectorConfig.automation_patterns()
 
     automation_matches =
       Enum.count(automation_patterns, &Regex.match?(&1, user_agent_lower))
@@ -726,12 +684,14 @@ defmodule Core.WebTracker.BotDetector do
       end
 
     # Check for suspicious automation indicators
-    suspicious_automation =
+    suspicious_automation_flags =
       BotDetectorConfig.suspicious_automation_flags()
-      |> Enum.map(&Regex.compile!(&1, "i"))
 
     suspicious_matches =
-      Enum.count(suspicious_automation, &Regex.match?(&1, user_agent_lower))
+      Enum.count(
+        suspicious_automation_flags,
+        &Regex.match?(&1, user_agent_lower)
+      )
 
     signals =
       if suspicious_matches > 0 do
