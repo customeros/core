@@ -113,69 +113,72 @@ defmodule Core.WebTracker.IpIdentifier do
        )
        when is_binary(company_domain) do
     OpenTelemetry.Tracer.with_span "ip_identifier.update_ip_intelligence_with_snitcher_response" do
-      attrs = %{
-        domain: domain || default_domain,
-        domain_source:
-          case domain do
-            nil -> :snitcher
-            _ -> :tracker
-          end,
-        updated_at: DateTime.utc_now() |> DateTime.truncate(:second)
-      }
-
-      case IpIntelligence.get_by_ip(ip) do
-        {:ok, nil} ->
-          # Create new record with company data
-          %IpIntelligence{}
-          |> IpIntelligence.changeset(
-            Map.merge(attrs, %{
-              id: IdGenerator.generate_id_21(IpIntelligence.id_prefix()),
-              ip: ip
-            })
-          )
-          |> Repo.insert()
-          |> case do
-            {:ok, _record} ->
-              :ok
-
-            {:error, changeset} ->
-              Tracing.error(changeset.errors)
-
-              Logger.error(
-                "Failed to create IP intelligence record with company data: #{inspect(changeset.errors)}"
-              )
-
-              :error
-          end
-
-        {:ok, record} ->
-          # Update existing record with company data
-          record
-          |> IpIntelligence.changeset(attrs)
-          |> Repo.update()
-          |> case do
-            {:ok, _record} ->
-              :ok
-
-            {:error, changeset} ->
-              Tracing.error(changeset.errors)
-
-              Logger.error(
-                "Failed to update IP intelligence record with company data: #{inspect(changeset.errors)}"
-              )
-
-              :error
-          end
-
-        {:error, reason} ->
-          Tracing.error(reason)
-
-          Logger.error(
-            "Failed to query IP intelligence record: #{inspect(reason)}"
-          )
-
-          :error
-      end
+      attrs = build_ip_intelligence_attrs(domain, default_domain)
+      handle_ip_intelligence_update(ip, attrs)
     end
+  end
+
+  defp build_ip_intelligence_attrs(domain, default_domain) do
+    %{
+      domain: domain || default_domain,
+      domain_source: determine_domain_source(domain),
+      updated_at: DateTime.utc_now() |> DateTime.truncate(:second)
+    }
+  end
+
+  defp determine_domain_source(nil), do: :snitcher
+  defp determine_domain_source(_), do: :tracker
+
+  defp handle_ip_intelligence_update(ip, attrs) do
+    case IpIntelligence.get_by_ip(ip) do
+      {:ok, nil} -> create_ip_intelligence_record(ip, attrs)
+      {:ok, record} -> update_ip_intelligence_record(record, attrs)
+      {:error, reason} -> handle_query_error(reason)
+    end
+  end
+
+  defp create_ip_intelligence_record(ip, attrs) do
+    %IpIntelligence{}
+    |> IpIntelligence.changeset(
+      Map.merge(attrs, %{
+        id: IdGenerator.generate_id_21(IpIntelligence.id_prefix()),
+        ip: ip
+      })
+    )
+    |> Repo.insert()
+    |> handle_insert_result()
+  end
+
+  defp update_ip_intelligence_record(record, attrs) do
+    record
+    |> IpIntelligence.changeset(attrs)
+    |> Repo.update()
+    |> handle_update_result()
+  end
+
+  defp handle_insert_result({:ok, _record}), do: :ok
+  defp handle_insert_result({:error, changeset}) do
+    Tracing.error(changeset.errors)
+    Logger.error(
+      "Failed to create IP intelligence record with company data: #{inspect(changeset.errors)}"
+    )
+    :error
+  end
+
+  defp handle_update_result({:ok, _record}), do: :ok
+  defp handle_update_result({:error, changeset}) do
+    Tracing.error(changeset.errors)
+    Logger.error(
+      "Failed to update IP intelligence record with company data: #{inspect(changeset.errors)}"
+    )
+    :error
+  end
+
+  defp handle_query_error(reason) do
+    Tracing.error(reason)
+    Logger.error(
+      "Failed to query IP intelligence record: #{inspect(reason)}"
+    )
+    :error
   end
 end
