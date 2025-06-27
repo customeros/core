@@ -131,65 +131,87 @@ defmodule Core.Auth.Users do
         if customeros_tenant.domain == domain do
           changeset
         else
-          case Companies.get_or_create_by_domain(domain) do
-            {:ok, company} ->
-              lead_attrs = %{ref_id: company.id, type: :company}
-
-              callback_after_lead_evaluation = fn fit ->
-                login_or_register_user(email)
-
-                Web.Endpoint.broadcast("events:#{email}", "event", %{
-                  type: :icp_fit_evaluation_complete,
-                  payload: %{
-                    is_fit: fit != :not_a_fit
-                  }
-                })
-              end
-
-              case Leads.get_or_create(
-                     customeros_tenant_name,
-                     lead_attrs,
-                     callback_after_lead_evaluation
-                   ) do
-                {:ok, lead} ->
-                  case lead.icp_fit do
-                    :not_a_fit ->
-                      deliver_blocked_user_slack_notification(email)
-                      add_error(changeset, :lead, "Not a fit")
-
-                    :moderate ->
-                      changeset
-
-                    :strong ->
-                      changeset
-
-                    nil ->
-                      add_error(changeset, :lead, "Lead still evaluating")
-                  end
-
-                {:error, reason} ->
-                  Tracing.error(
-                    "Failed to create lead for company #{company.id}: #{inspect(reason)}"
-                  )
-
-                  add_error(
-                    changeset,
-                    :lead,
-                    "Failed to create lead: #{inspect(reason)}"
-                  )
-              end
-
-            {:error, reason} ->
-              add_error(
-                changeset,
-                :lead,
-                "Failed to create company: #{inspect(reason)}"
-              )
-          end
+          handle_lead_creation(changeset, domain, email, customeros_tenant_name)
         end
 
       _ ->
         changeset
+    end
+  end
+
+  defp handle_lead_creation(changeset, domain, email, customeros_tenant_name) do
+    case Companies.get_or_create_by_domain(domain) do
+      {:ok, company} ->
+        create_lead_for_company(
+          changeset,
+          company,
+          email,
+          customeros_tenant_name
+        )
+
+      {:error, reason} ->
+        add_error(
+          changeset,
+          :lead,
+          "Failed to create company: #{inspect(reason)}"
+        )
+    end
+  end
+
+  defp create_lead_for_company(
+         changeset,
+         company,
+         email,
+         customeros_tenant_name
+       ) do
+    lead_attrs = %{ref_id: company.id, type: :company}
+
+    callback_after_lead_evaluation = fn fit ->
+      login_or_register_user(email)
+
+      Web.Endpoint.broadcast("events:#{email}", "event", %{
+        type: :icp_fit_evaluation_complete,
+        payload: %{
+          is_fit: fit != :not_a_fit
+        }
+      })
+    end
+
+    case Leads.get_or_create(
+           customeros_tenant_name,
+           lead_attrs,
+           callback_after_lead_evaluation
+         ) do
+      {:ok, lead} ->
+        handle_lead_icp_fit(changeset, lead, email)
+
+      {:error, reason} ->
+        Tracing.error(
+          "Failed to create lead for company #{company.id}: #{inspect(reason)}"
+        )
+
+        add_error(
+          changeset,
+          :lead,
+          "Failed to create lead: #{inspect(reason)}"
+        )
+    end
+  end
+
+  defp handle_lead_icp_fit(changeset, lead, email) do
+    case lead.icp_fit do
+      :not_a_fit ->
+        deliver_blocked_user_slack_notification(email)
+        add_error(changeset, :lead, "Not a fit")
+
+      :moderate ->
+        changeset
+
+      :strong ->
+        changeset
+
+      nil ->
+        add_error(changeset, :lead, "Lead still evaluating")
     end
   end
 

@@ -157,28 +157,32 @@ defmodule Core.WebTracker.IpIdentifier do
   end
 
   defp handle_insert_result({:ok, _record}), do: :ok
+
   defp handle_insert_result({:error, changeset}) do
     Tracing.error(changeset.errors)
+
     Logger.error(
       "Failed to create IP intelligence record with company data: #{inspect(changeset.errors)}"
     )
+
     :error
   end
 
   defp handle_update_result({:ok, _record}), do: :ok
+
   defp handle_update_result({:error, changeset}) do
     Tracing.error(changeset.errors)
+
     Logger.error(
       "Failed to update IP intelligence record with company data: #{inspect(changeset.errors)}"
     )
+
     :error
   end
 
   defp handle_query_error(reason) do
     Tracing.error(reason)
-    Logger.error(
-      "Failed to query IP intelligence record: #{inspect(reason)}"
-    )
+    Logger.error("Failed to query IP intelligence record: #{inspect(reason)}")
     :error
   end
 end
