@@ -188,6 +188,75 @@ defmodule Core.Notifications.Slack do
   def notify_new_user(_, _), do: {:error, :invalid_input}
 
   @doc """
+  Send a notification about a user being blocked from registration due to not being a fit.
+  Includes user email and blocking timestamp.
+  """
+  @spec notify_blocked_user(String.t(), String.t()) ::
+          :ok
+          | {:error,
+             :webhook_not_configured | :slack_api_error | Finch.Error.t()}
+  def notify_blocked_user(email)
+      when is_binary(email) and email != "" do
+
+    domain = Core.Utils.DomainExtractor.extract_domain_from_email(email)
+
+    case slack_enabled?() do
+      false ->
+        :ok
+
+      true ->
+        webhook_url = Application.get_env(:core, :slack)[:new_user_webhook_url]
+
+        case webhook_url do
+          val when val in [nil, ""] ->
+            Logger.warning("Slack new user webhook URL not configured")
+            {:error, :webhook_not_configured}
+
+          _ ->
+            message = %{
+              blocks: [
+                %{
+                  type: "header",
+                  text: %{
+                    type: "plain_text",
+                    text: "🚫 User Blocked - Not a Fit",
+                    emoji: true
+                  }
+                },
+                %{
+                  type: "section",
+                  fields: [
+                    %{
+                      type: "mrkdwn",
+                      text: "*Email:*\n#{email}"
+                    },
+                    %{
+                      type: "mrkdwn",
+                      text: "*Domain:*\n#{domain}"
+                    }
+                  ]
+                },
+                %{
+                  type: "context",
+                  elements: [
+                    %{
+                      type: "mrkdwn",
+                      text:
+                        "Blocked at: #{DateTime.utc_now() |> Calendar.strftime("%Y-%m-%d %H:%M:%S UTC")}"
+                    }
+                  ]
+                }
+              ]
+            }
+
+            send_message(webhook_url, message)
+        end
+    end
+  end
+
+  def notify_blocked_user(_, _), do: {:error, :invalid_input}
+
+  @doc """
   Notify of a new ICP request submission from our website.
   """
   def notify_new_icp_request(domain)

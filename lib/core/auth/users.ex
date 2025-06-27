@@ -87,7 +87,7 @@ defmodule Core.Auth.Users do
       |> maybe_create_customeros_lead()
       |> create_tenant_if_not_exists()
       |> Repo.insert()
-      |> deliver_slack_notification()
+      |> deliver_new_user_slack_notification()
     end
   end
 
@@ -154,6 +154,7 @@ defmodule Core.Auth.Users do
                 {:ok, lead} ->
                   case lead.icp_fit do
                     :not_a_fit ->
+                      deliver_blocked_user_slack_notification(email)
                       add_error(changeset, :lead, "Not a fit")
 
                     :moderate ->
@@ -192,7 +193,7 @@ defmodule Core.Auth.Users do
     end
   end
 
-  defp deliver_slack_notification({:ok, user}) do
+  defp deliver_new_user_slack_notification({:ok, user}) do
     email = user.email
     tenant_name = user.tenant_name
 
@@ -213,7 +214,7 @@ defmodule Core.Auth.Users do
     {:ok, user}
   end
 
-  defp deliver_slack_notification(error) do
+  defp deliver_new_user_slack_notification(error) do
     error
   end
 
@@ -416,5 +417,21 @@ defmodule Core.Auth.Users do
       |> where([u], not is_nil(u.confirmed_at))
       |> Repo.all()
     end
+  end
+
+  defp deliver_blocked_user_slack_notification(email) do
+    Task.start(fn ->
+      case Slack.notify_blocked_user(email) do
+        :ok ->
+          :ok
+
+        {:error, reason} ->
+          Logger.error(
+            "Failed to send Slack notification for blocked user #{email}: #{inspect(reason)}"
+          )
+
+          reason
+      end
+    end)
   end
 end
