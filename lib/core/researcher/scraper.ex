@@ -405,72 +405,14 @@ defmodule Core.Researcher.Scraper do
           {:ok, %Finch.Response{headers: headers, status: status}} ->
             OpenTelemetry.Tracer.set_attributes([{"result.status", status}])
 
-            content_type =
-              Enum.find_value(headers, fn
-                {"content-type", ct} -> ct
-                {"Content-Type", ct} -> ct
-                _ -> nil
-              end)
-
-            disposition =
-              Enum.find_value(headers, fn
-                {"content-disposition", disp} -> disp
-                {"Content-Disposition", disp} -> disp
-                _ -> nil
-              end)
-
-            location =
-              Enum.find_value(headers, fn
-                {"location", loc} -> loc
-                {"Location", loc} -> loc
-                _ -> nil
-              end)
-
-            cond do
-              status in 300..399 and location ->
-                next_url =
-                  if String.starts_with?(location, "/") do
-                    URI.merge(URI.parse(url), location) |> URI.to_string()
-                  else
-                    location
-                  end
-
-                # If redirect points to a previously visited URL, stop and return content-type from current response
-                if MapSet.member?(visited, next_url) do
-                  cond do
-                    not is_nil(content_type) and content_type != "" ->
-                      {:ok, content_type}
-
-                    not is_nil(last_know_content_type) and
-                        last_know_content_type != "" ->
-                      {:ok, last_know_content_type}
-
-                    true ->
-                      {:error, :no_content_type}
-                  end
-                else
-                  fetch_content_type(
-                    next_url,
-                    depth + 1,
-                    MapSet.put(visited, url),
-                    if(content_type == "" or is_nil(content_type),
-                      do: last_know_content_type,
-                      else: content_type
-                    )
-                  )
-                end
-
-              is_nil(content_type) ->
-                {:error, :no_content_type}
-
-              String.contains?(content_type, "text/html") and
-                not is_nil(disposition) and
-                  Regex.match?(~r/attachment/i, disposition) ->
-                {:error, :html_download_redirect}
-
-              true ->
-                {:ok, content_type}
-            end
+            handle_fetch_content_type_successful_response(
+              url,
+              headers,
+              status,
+              depth,
+              visited,
+              last_know_content_type
+            )
 
           {:error, %Mint.TransportError{reason: :timeout}} ->
             {:error, :timeout}
@@ -480,6 +422,136 @@ defmodule Core.Researcher.Scraper do
         end
       end
     end
+  end
+
+  defp handle_fetch_content_type_successful_response(
+         url,
+         headers,
+         status,
+         depth,
+         visited,
+         last_know_content_type
+       ) do
+    content_type = extract_content_type(headers)
+    disposition = extract_disposition(headers)
+    location = extract_location(headers)
+
+    cond do
+      status in 300..399 and location ->
+        handle_redirect(
+          url,
+          location,
+          content_type,
+          depth,
+          visited,
+          last_know_content_type
+        )
+
+      is_nil(content_type) ->
+        {:error, :no_content_type}
+
+      html_download_redirect?(content_type, disposition) ->
+        {:error, :html_download_redirect}
+
+      true ->
+        {:ok, content_type}
+    end
+  end
+
+  defp extract_content_type(headers) do
+    Enum.find_value(headers, fn
+      {"content-type", ct} -> ct
+      {"Content-Type", ct} -> ct
+      _ -> nil
+    end)
+  end
+
+  defp extract_disposition(headers) do
+    Enum.find_value(headers, fn
+      {"content-disposition", disp} -> disp
+      {"Content-Disposition", disp} -> disp
+      _ -> nil
+    end)
+  end
+
+  defp extract_location(headers) do
+    Enum.find_value(headers, fn
+      {"location", loc} -> loc
+      {"Location", loc} -> loc
+      _ -> nil
+    end)
+  end
+
+  defp handle_redirect(
+         url,
+         location,
+         content_type,
+         depth,
+         visited,
+         last_know_content_type
+       ) do
+    next_url = build_next_url(url, location)
+
+    if MapSet.member?(visited, next_url) do
+      handle_visited_redirect(content_type, last_know_content_type)
+    else
+      handle_new_redirect(
+        next_url,
+        url,
+        content_type,
+        depth,
+        visited,
+        last_know_content_type
+      )
+    end
+  end
+
+  defp build_next_url(url, location) do
+    if String.starts_with?(location, "/") do
+      URI.merge(URI.parse(url), location) |> URI.to_string()
+    else
+      location
+    end
+  end
+
+  defp handle_visited_redirect(content_type, last_know_content_type) do
+    cond do
+      not is_nil(content_type) and content_type != "" ->
+        {:ok, content_type}
+
+      not is_nil(last_know_content_type) and last_know_content_type != "" ->
+        {:ok, last_know_content_type}
+
+      true ->
+        {:error, :no_content_type}
+    end
+  end
+
+  defp handle_new_redirect(
+         next_url,
+         url,
+         content_type,
+         depth,
+         visited,
+         last_know_content_type
+       ) do
+    updated_content_type =
+      if content_type == "" or is_nil(content_type),
+        do: last_know_content_type,
+        else: content_type
+
+    fetch_content_type(
+      next_url,
+      depth + 1,
+      MapSet.put(visited, url),
+      updated_content_type
+    )
+  end
+
+  defp html_download_redirect?(content_type, disposition) do
+    String.contains?(content_type, "text/html") and
+      not is_nil(disposition) and
+      Regex.match?(~r/attachment/i, disposition)
   end
 
   defp webpage_content_type_allow_scrape(content_type) do
