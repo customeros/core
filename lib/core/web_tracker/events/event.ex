@@ -111,8 +111,8 @@ defmodule Core.WebTracker.Events.Event do
     |> put_id(attrs)
     |> put_tenant(attrs)
     |> put_timestamp(attrs)
-    |> validate_bot()
-    |> validate_suspicious_referrer()
+    |> detect_bot()
+    |> detect_suspicious_referrer()
   end
 
   def put_tenant(changeset, attrs) do
@@ -142,59 +142,41 @@ defmodule Core.WebTracker.Events.Event do
     end
   end
 
-  @doc """
-  Validates that the request is not from a bot based on user agent.
-  """
-  def validate_bot(changeset) do
+  def detect_bot(changeset) do
     user_agent = get_field(changeset, :user_agent)
     ip = get_field(changeset, :ip)
     origin = get_field(changeset, :origin)
     referrer = get_field(changeset, :referrer)
 
-    case user_agent do
-      nil ->
-        add_error(changeset, :user_agent, "User agent is required")
+    # Use sophisticated bot detection
+    case Core.WebTracker.BotDetector.detect_bot(
+           user_agent || "",
+           ip || "",
+           origin || "",
+           referrer || ""
+         ) do
+      {:ok, %{bot: true, confidence: confidence}} ->
+        add_error(
+          changeset,
+          :user_agent,
+          "Bot detected with confidence #{Float.round(confidence, 2)}"
+        )
 
-      "" ->
-        add_error(changeset, :user_agent, "User agent cannot be empty")
+      {:ok, %{bot: false}} ->
+        changeset
 
-      ua when is_binary(ua) ->
-        # Use sophisticated bot detection
-        case Core.WebTracker.BotDetector.detect_bot(
-               ua,
-               ip || "",
-               origin || "",
-               referrer || ""
-             ) do
-          {:ok, %{bot: true, confidence: confidence}} ->
-            add_error(
-              changeset,
-              :user_agent,
-              "Bot detected with confidence #{Float.round(confidence, 2)}"
-            )
-
-          {:ok, %{bot: false}} ->
-            changeset
-
-          {:error, reason} ->
-            Tracing.error(reason, "Bot detection failed")
-            # Fall back to simple detection if sophisticated detection fails
-            if bot_user_agent?(ua) do
-              add_error(changeset, :user_agent, "Bot requests are not allowed")
-            else
-              changeset
-            end
+      {:error, reason} ->
+        Tracing.error(reason, "Bot detection failed")
+        # Fall back to simple detection if sophisticated detection fails
+        if bot_user_agent?(user_agent) do
+          add_error(changeset, :user_agent, "Bot requests are not allowed")
+        else
+          changeset
         end
-
-      _ ->
-        add_error(changeset, :user_agent, "Invalid user agent format")
     end
   end
 
-  @doc """
-  Validates that the referrer is not suspicious.
-  """
-  def validate_suspicious_referrer(changeset) do
+  def detect_suspicious_referrer(changeset) do
     referrer = get_field(changeset, :referrer)
 
     case referrer do
