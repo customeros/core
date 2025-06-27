@@ -16,7 +16,7 @@ defmodule Core.WebTracker.BotDetectorConfig do
   Gets the maximum requests per minute for rate limiting.
   """
   def max_requests_per_minute do
-    Application.get_env(:core, :bot_detector_max_requests_per_minute, 10000)
+    Application.get_env(:core, :bot_detector_max_requests_per_minute, 10_000)
   end
 
   @doc """

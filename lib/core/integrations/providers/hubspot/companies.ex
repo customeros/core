@@ -416,94 +416,15 @@ defmodule Core.Integrations.Providers.HubSpot.Companies do
       ])
 
       case list_hubspot_companies(connection, params) do
-        {:ok, %{"results" => companies} = response} ->
-          Logger.info(
-            "[HubSpot Company] Processing page #{total_pages + 1} with #{length(companies)} companies"
+        {:ok, response} ->
+          handle_successful_companies_fetch(
+            connection,
+            response,
+            params,
+            total_synced,
+            total_pages,
+            recursive?
           )
-
-          # Process each company in the current page
-          {synced_count, errors} = process_companies_page(connection, companies)
-
-          updated_total_synced = total_synced + synced_count
-          updated_total_pages = total_pages + 1
-
-          # Log any errors that occurred during processing
-          if length(errors) > 0 do
-            Logger.warning(
-              "[HubSpot Company] Encountered #{length(errors)} errors while processing page #{updated_total_pages}: #{inspect(errors)}"
-            )
-          end
-
-          # Check if there are more pages to process
-          paging = Map.get(response, "paging", %{})
-
-          case Map.get(paging, "next", %{}) do
-            %{"after" => after_cursor} when is_binary(after_cursor) ->
-              Logger.info(
-                "[HubSpot Company] Next page after cursor: #{after_cursor}"
-              )
-
-              # Update company_sync_after with the current cursor for pagination tracking
-              case Connections.update_connection(connection, %{
-                     company_sync_after: after_cursor
-                   }) do
-                {:ok, _updated_connection} ->
-                  Logger.debug(
-                    "[HubSpot Company] Updated connection #{connection.id} company_sync_after to #{after_cursor}"
-                  )
-
-                {:error, reason} ->
-                  Tracing.error(
-                    reason,
-                    "[HubSpot Company] Failed to update company_sync_after for connection #{connection.id}"
-                  )
-              end
-
-              next_params = Map.put(params, :after, after_cursor)
-
-              if recursive? do
-                do_sync_companies(
-                  connection,
-                  next_params,
-                  updated_total_synced,
-                  updated_total_pages,
-                  true
-                )
-              else
-                {:ok,
-                 %{
-                   total_synced: updated_total_synced,
-                   total_pages: updated_total_pages
-                 }}
-              end
-
-            _ ->
-              # Update company_sync_completed to true when sync is completed
-              case Connections.update_connection(connection, %{
-                     company_sync_completed: true
-                   }) do
-                {:ok, _updated_connection} ->
-                  Logger.info(
-                    "[HubSpot Company] Updated connection #{connection.id} company_sync_completed to true"
-                  )
-
-                {:error, reason} ->
-                  Logger.error(
-                    "[HubSpot Company] Failed to update company_sync_completed for connection #{connection.id}: #{inspect(reason)}"
-                  )
-              end
-
-              # No more pages, we're done
-              Logger.info(
-                "[HubSpot Company] Completed sync of all companies. Total synced: #{updated_total_synced}, Total pages: #{updated_total_pages}"
-              )
-
-              {:ok,
-               %{
-                 total_synced: updated_total_synced,
-                 total_pages: updated_total_pages
-               }}
-          end
 
         {:error, reason} ->
           Logger.error(
@@ -512,6 +433,136 @@ defmodule Core.Integrations.Providers.HubSpot.Companies do
 
           {:error, reason}
       end
+    end
+  end
+
+  defp handle_successful_companies_fetch(
+         connection,
+         %{"results" => companies} = response,
+         params,
+         total_synced,
+         total_pages,
+         recursive?
+       ) do
+    Logger.info(
+      "[HubSpot Company] Processing page #{total_pages + 1} with #{length(companies)} companies"
+    )
+
+    {synced_count, errors} = process_companies_page(connection, companies)
+    updated_total_synced = total_synced + synced_count
+    updated_total_pages = total_pages + 1
+
+    log_processing_errors(errors, updated_total_pages)
+
+    case get_next_page_cursor(response) do
+      {:ok, after_cursor} ->
+        handle_next_page(
+          connection,
+          params,
+          after_cursor,
+          updated_total_synced,
+          updated_total_pages,
+          recursive?
+        )
+
+      :no_more_pages ->
+        handle_sync_completion(
+          connection,
+          updated_total_synced,
+          updated_total_pages
+        )
+    end
+  end
+
+  defp log_processing_errors(errors, page_number) do
+    if length(errors) > 0 do
+      Logger.warning(
+        "[HubSpot Company] Encountered #{length(errors)} errors while processing page #{page_number}: #{inspect(errors)}"
+      )
+    end
+  end
+
+  defp get_next_page_cursor(%{
+         "paging" => %{"next" => %{"after" => after_cursor}}
+       })
+       when is_binary(after_cursor) do
+    {:ok, after_cursor}
+  end
+
+  defp get_next_page_cursor(_), do: :no_more_pages
+
+  defp handle_next_page(
+         connection,
+         params,
+         after_cursor,
+         updated_total_synced,
+         updated_total_pages,
+         recursive?
+       ) do
+    Logger.info("[HubSpot Company] Next page after cursor: #{after_cursor}")
+
+    update_connection_cursor(connection, after_cursor)
+    next_params = Map.put(params, :after, after_cursor)
+
+    if recursive? do
+      do_sync_companies(
+        connection,
+        next_params,
+        updated_total_synced,
+        updated_total_pages,
+        true
+      )
+    else
+      {:ok,
+       %{total_synced: updated_total_synced, total_pages: updated_total_pages}}
+    end
+  end
+
+  defp update_connection_cursor(connection, after_cursor) do
+    case Connections.update_connection(connection, %{
+           company_sync_after: after_cursor
+         }) do
+      {:ok, _updated_connection} ->
+        Logger.debug(
+          "[HubSpot Company] Updated connection #{connection.id} company_sync_after to #{after_cursor}"
+        )
+
+      {:error, reason} ->
+        Tracing.error(
+          reason,
+          "[HubSpot Company] Failed to update company_sync_after for connection #{connection.id}"
+        )
+    end
+  end
+
+  defp handle_sync_completion(
+         connection,
+         updated_total_synced,
+         updated_total_pages
+       ) do
+    update_connection_completion_status(connection)
+
+    Logger.info(
+      "[HubSpot Company] Completed sync of all companies. Total synced: #{updated_total_synced}, Total pages: #{updated_total_pages}"
+    )
+
+    {:ok,
+     %{total_synced: updated_total_synced, total_pages: updated_total_pages}}
+  end
+
+  defp update_connection_completion_status(connection) do
+    case Connections.update_connection(connection, %{
+           company_sync_completed: true
+         }) do
+      {:ok, _updated_connection} ->
+        Logger.info(
+          "[HubSpot Company] Updated connection #{connection.id} company_sync_completed to true"
+        )
+
+      {:error, reason} ->
+        Logger.error(
+          "[HubSpot Company] Failed to update company_sync_completed for connection #{connection.id}: #{inspect(reason)}"
+        )
     end
   end
 
