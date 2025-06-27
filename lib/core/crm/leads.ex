@@ -313,7 +313,9 @@ defmodule Core.Crm.Leads do
   def get_or_create(tenant_name, attrs, callback \\ nil) do
     OpenTelemetry.Tracer.with_span "leads.get_or_create" do
       OpenTelemetry.Tracer.set_attributes([
-        {"param.tenant.name", tenant_name}
+        {"param.tenant.name", tenant_name},
+        {"param.lead.ref_id", attrs.ref_id},
+        {"param.with_callback", !is_nil(callback)}
       ])
 
       case Tenants.get_tenant_by_name(tenant_name) do
@@ -324,45 +326,49 @@ defmodule Core.Crm.Leads do
         {:ok, tenant} ->
           case get_by_ref_id(tenant.id, attrs.ref_id) do
             {:error, :not_found} ->
-              with {:ok, company} <- Companies.get_by_id(attrs.ref_id),
-                   false <- company.primary_domain == tenant.domain do
-                case %Lead{}
-                     |> Lead.changeset(%{
-                       tenant_id: tenant.id,
-                       ref_id: attrs.ref_id,
-                       type: attrs.type,
-                       stage: Map.get(attrs, :stage, :pending),
-                       icp_fit: Map.get(attrs, :icp_fit)
-                     })
-                     |> Repo.insert() do
-                  {:ok, lead} ->
-                    after_insert_start(lead, callback)
-                    {:ok, lead}
-
-                  {:error, %Ecto.Changeset{errors: errors}} ->
-                    # Check if this is a unique constraint violation
-                    if has_unique_constraint_error?(errors) do
-                      # Lead already exists, fetch it
-                      case get_by_ref_id(tenant.id, attrs.ref_id) do
-                        {:ok, existing_lead} -> {:ok, existing_lead}
-                        {:error, reason} -> {:error, reason}
-                      end
-                    else
-                      {:error, :validation_failed}
-                    end
-
-                  {:error, reason} ->
-                    {:error, reason}
-                end
-              else
-                {:error, :not_found} -> {:error, :not_found}
-                true -> {:error, :domain_matches_tenant}
-              end
+              create_lead(tenant, attrs, callback)
 
             {:ok, lead} ->
               {:ok, lead}
           end
       end
+    end
+  end
+
+  defp create_lead(tenant, attrs, callback) do
+    with {:ok, company} <- Companies.get_by_id(attrs.ref_id),
+         false <- company.primary_domain == tenant.domain do
+      case %Lead{}
+           |> Lead.changeset(%{
+             tenant_id: tenant.id,
+             ref_id: attrs.ref_id,
+             type: attrs.type,
+             stage: Map.get(attrs, :stage, :pending),
+             icp_fit: Map.get(attrs, :icp_fit)
+           })
+           |> Repo.insert() do
+        {:ok, lead} ->
+          after_insert_start(lead, callback)
+          {:ok, lead}
+
+        {:error, %Ecto.Changeset{errors: errors}} ->
+          # Check if this is a unique constraint violation
+          if has_unique_constraint_error?(errors) do
+            # Lead already exists, fetch it
+            case get_by_ref_id(tenant.id, attrs.ref_id) do
+              {:ok, existing_lead} -> {:ok, existing_lead}
+              {:error, reason} -> {:error, reason}
+            end
+          else
+            {:error, :validation_failed}
+          end
+
+        {:error, reason} ->
+          {:error, reason}
+      end
+    else
+      {:error, :not_found} -> {:error, :not_found}
+      true -> {:error, :domain_matches_tenant}
     end
   end
 

@@ -197,7 +197,6 @@ defmodule Core.Notifications.Slack do
              :webhook_not_configured | :slack_api_error | Finch.Error.t()}
   def notify_blocked_user(email)
       when is_binary(email) and email != "" do
-
     case Core.Utils.DomainExtractor.extract_domain_from_email(email) do
       {:ok, domain} ->
         case slack_enabled?() do
@@ -205,7 +204,8 @@ defmodule Core.Notifications.Slack do
             :ok
 
           true ->
-            webhook_url = Application.get_env(:core, :slack)[:new_user_webhook_url]
+            webhook_url =
+              Application.get_env(:core, :slack)[:new_user_webhook_url]
 
             case webhook_url do
               val when val in [nil, ""] ->
@@ -254,7 +254,10 @@ defmodule Core.Notifications.Slack do
         end
 
       {:error, reason} ->
-        Logger.error("Failed to extract domain from email #{email}: #{inspect(reason)}")
+        Logger.error(
+          "Failed to extract domain from email #{email}: #{inspect(reason)}"
+        )
+
         {:error, :invalid_domain}
     end
   end

@@ -214,6 +214,10 @@ defmodule Core.Auth.Users do
     {:ok, user}
   end
 
+  defp deliver_new_user_slack_notification(error) do
+    error
+  end
+
   defp deliver_blocked_user_slack_notification(email) do
     Task.start(fn ->
       case Slack.notify_blocked_user(email) do
@@ -228,10 +232,6 @@ defmodule Core.Auth.Users do
           {:error, reason}
       end
     end)
-  end
-
-  defp deliver_new_user_slack_notification(error) do
-    error
   end
 
   ## Settings
@@ -434,5 +434,4 @@ defmodule Core.Auth.Users do
       |> Repo.all()
     end
   end
-
 end
