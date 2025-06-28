@@ -91,6 +91,13 @@ defmodule Core.Crm.Companies.CompanyScrapinEnricher do
     end
   end
 
+  # Handle unexpected messages (like task results) gracefully
+  @impl true
+  def handle_info(message, state) do
+    Logger.warning("CompanyScrapinEnricher received unexpected message: #{inspect(message)}")
+    {:noreply, state}
+  end
+
   # Schedule the next check
   defp schedule_check(interval_ms) do
     Process.send_after(self(), :enrich_companies, interval_ms)
