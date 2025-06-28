@@ -1,7 +1,7 @@
 defmodule Core.Repo.Migrations.CreateContactsTable do
   use Ecto.Migration
 
-  def change do
+  def up do
     create table(:contacts, primary_key: false) do
       add :id, :string, primary_key: true, null: false
       add :first_name, :string
@@ -26,18 +26,20 @@ defmodule Core.Repo.Migrations.CreateContactsTable do
       timestamps(type: :utc_datetime)
     end
 
+    # Unique constraints
+    create unique_index(:contacts, [:linkedin_id], where: "linkedin_id IS NOT NULL")
+    create unique_index(:contacts, [:business_email], where: "business_email IS NOT NULL")
+
     # Indexes for common queries
-    create index(:contacts, [:linkedin_id])
-    create index(:contacts, [:business_email])
     create index(:contacts, [:personal_email])
     create index(:contacts, [:current_company_id])
     create index(:contacts, [:full_name])
     create index(:contacts, [:country_a2])
     create index(:contacts, [:seniority])
     create index(:contacts, [:department])
+  end
 
-    # Unique constraints
-    create unique_index(:contacts, [:linkedin_id], where: "linkedin_id IS NOT NULL")
-    create unique_index(:contacts, [:business_email], where: "business_email IS NOT NULL")
+  def down do
+    drop table(:contacts)
   end
 end
