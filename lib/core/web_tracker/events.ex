@@ -35,6 +35,11 @@ defmodule Core.WebTracker.Events do
 
       case result do
         {:ok, event} ->
+          # Handle special case for identify events with existing sessions
+          if event.event_type == "identify" and not event.with_new_session do
+            CompanyEnrichmentJob.enqueue_identify_event(event)
+          end
+
           OpenTelemetry.Tracer.set_attributes([
             {"event.id", event.id},
             {"event.session_id", event.session_id}

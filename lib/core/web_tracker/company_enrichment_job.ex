@@ -36,6 +36,20 @@ defmodule Core.WebTracker.CompanyEnrichmentJob do
   end
 
   @doc """
+  Enqueues a company enrichment job for an identify event with existing session.
+
+  This handles the special case where an identify event occurs on an existing session
+  and we need to check if the domain from the email matches the current session's company.
+  """
+  @spec enqueue_identify_event(Core.WebTracker.Events.Event.t()) ::
+          {:ok, pid()} | {:error, term()}
+  def enqueue_identify_event(event) do
+    Task.Supervisor.start_child(Core.TaskSupervisor, fn ->
+      process_identify_event(event)
+    end)
+  end
+
+  @doc """
   Processes company enrichment for an event.
 
   Only processes enrichment for events with new sessions to avoid
@@ -56,6 +70,104 @@ defmodule Core.WebTracker.CompanyEnrichmentJob do
     else
       :ok
     end
+  end
+
+  @doc """
+  Processes identify event for existing session.
+
+  Checks if the domain from the email matches the current session's company.
+  If not, creates a new company/lead and reassociates the session.
+  """
+  @spec process_identify_event(Core.WebTracker.Events.Event.t()) :: :ok
+  def process_identify_event(event) do
+    OpenTelemetry.Tracer.with_span "company_enrichment_job.process_identify_event" do
+      OpenTelemetry.Tracer.set_attributes([
+        {"event.id", event.id},
+        {"event.session_id", event.session_id},
+        {"event.type", event.event_type}
+      ])
+
+      case extract_domain_from_event(event) do
+        nil ->
+          # No valid domain extracted, skip processing
+          :ok
+
+        domain ->
+          process_identify_domain(event, domain)
+      end
+    end
+  end
+
+  @doc false
+  defp process_identify_domain(event, domain) do
+    OpenTelemetry.Tracer.with_span "company_enrichment_job.process_identify_domain" do
+      OpenTelemetry.Tracer.set_attributes([
+        {"extracted.domain", domain},
+        {"event.session_id", event.session_id}
+      ])
+
+      with {:ok, session} <- Sessions.get_session_by_id(event.session_id),
+           {:ok, should_reassociate} <- check_if_reassociation_needed(session, domain),
+           {:ok, _} <- maybe_reassociate_company(event, domain, should_reassociate) do
+        Tracing.ok()
+        :ok
+      else
+        {:error, reason} ->
+          Tracing.error(reason, "Failed to process identify domain",
+            session_id: event.session_id,
+            domain: domain
+          )
+          {:error, reason}
+      end
+    end
+  end
+
+  @doc false
+  defp check_if_reassociation_needed(session, domain) do
+    case session.company_id do
+      nil ->
+        # No company associated, need to reassociate
+        {:ok, true}
+
+      company_id ->
+        # Check if current company's primary domain matches extracted domain
+        case Companies.get_by_id(company_id) do
+          {:ok, company} ->
+            should_reassociate = company.primary_domain != domain
+            {:ok, should_reassociate}
+
+          {:error, :not_found} ->
+            # Company not found, need to reassociate
+            {:ok, true}
+        end
+    end
+  end
+
+  @doc false
+  defp maybe_reassociate_company(event, domain, true) do
+    # Reassociation needed - create/get company and update session
+    with {:ok, db_company} <- Companies.get_or_create_by_domain(domain),
+         {:ok, _session} <- Sessions.set_company_id(event.session_id, db_company.id),
+         {:ok, _lead} <-
+           Leads.get_or_create(event.tenant, %{
+             type: :company,
+             ref_id: db_company.id
+           }) do
+      Tracing.ok()
+      {:ok, :reassociated}
+    else
+      {:error, reason} ->
+        Tracing.error(reason, "Failed to reassociate company",
+          session_id: event.session_id,
+          domain: domain
+        )
+        {:error, reason}
+    end
+  end
+
+  defp maybe_reassociate_company(_event, _domain, false) do
+    # No reassociation needed
+    {:ok, :no_change}
   end
 
   # Private Functions
