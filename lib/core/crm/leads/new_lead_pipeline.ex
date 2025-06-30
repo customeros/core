@@ -106,7 +106,8 @@ defmodule Core.Crm.Leads.NewLeadPipeline do
     end
   end
 
-  defp analyze_icp_fit(domain, %Leads.Lead{} = lead, opts \\ []) when is_binary(domain) do
+  defp analyze_icp_fit(domain, %Leads.Lead{} = lead, opts)
+       when is_binary(domain) do
     OpenTelemetry.Tracer.with_span "new_lead_pipeline.analyze_icp_fit" do
       OpenTelemetry.Tracer.set_attributes([
         {"lead.id", lead.id},

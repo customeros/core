@@ -35,7 +35,9 @@ defmodule Core.Researcher.IcpFitEvaluator do
   @icp_timeout 45 * 1000
   @max_retries 1
 
-  def evaluate(domain, %Leads.Lead{} = lead, opts \\ [])
+  def evaluate(domain, lead, opts \\ [])
+
+  def evaluate(domain, %Leads.Lead{} = lead, opts)
       when is_binary(domain) and byte_size(domain) > 0 do
     OpenTelemetry.Tracer.with_span "icp_fit_evaluator.evaluate" do
       case PrimaryDomainFinder.get_primary_domain(domain) do
@@ -49,15 +51,15 @@ defmodule Core.Researcher.IcpFitEvaluator do
     end
   end
 
-  def evaluate(domain, _lead) when not is_binary(domain) do
+  def evaluate(domain, _lead, _opts) when not is_binary(domain) do
     {:error, "Domain must be a string, got: #{inspect(domain)}"}
   end
 
-  def evaluate(_domain, invalid_lead) do
+  def evaluate(_domain, invalid_lead, _opts) do
     {:error, "Expected Lead struct, got: #{inspect(invalid_lead)}"}
   end
 
-  defp evaluate_icp_fit(domain, %Leads.Lead{} = lead, opts \\ []) do
+  defp evaluate_icp_fit(domain, %Leads.Lead{} = lead, opts) do
     OpenTelemetry.Tracer.with_span "icp_fit_evaluator.evaluate_icp_fit" do
       OpenTelemetry.Tracer.set_attributes([
         {"lead.id", lead.id},
@@ -68,7 +70,7 @@ defmodule Core.Researcher.IcpFitEvaluator do
       with {:ok, icp} <- IcpProfiles.get_by_tenant_id(lead.tenant_id),
            {:ok, pages} <- get_prompt_context(domain, opts),
            {:ok, fit} <-
-             get_icp_fit_with_retry(domain, pages, icp, opts) do
+             get_icp_fit_with_retry(domain, pages, icp, 0) do
         update_lead(lead, fit)
         {:ok, fit}
       else
@@ -104,7 +106,7 @@ defmodule Core.Researcher.IcpFitEvaluator do
     end
   end
 
-  defp crawl_website_with_retry(domain, opts \\ [], attempts \\ 0) do
+  defp crawl_website_with_retry(domain, opts, attempts) do
     OpenTelemetry.Tracer.with_span "icp_fit_evaluator.crawl_website_with_retry" do
       task = Crawler.crawl_supervised(domain, opts)
 
@@ -123,9 +125,9 @@ defmodule Core.Researcher.IcpFitEvaluator do
     end
   end
 
-  defp get_prompt_context(domain, opts \\ []) do
+  defp get_prompt_context(domain, opts) do
     OpenTelemetry.Tracer.with_span "icp_fit_evaluator.get_prompt_context" do
-      with :ok <- crawl_website_with_retry(domain, opts),
+      with :ok <- crawl_website_with_retry(domain, opts, 0),
            {:ok, pages} <-
              Webpages.get_business_pages_by_domain(domain, limit: 8) do
         {:ok, pages}
@@ -144,7 +146,7 @@ defmodule Core.Researcher.IcpFitEvaluator do
          domain,
          [%Webpages.ScrapedWebpage{} | _] = pages,
          %IcpProfiles.Profile{} = icp,
-         attempts \\ 0
+         attempts
        ) do
     OpenTelemetry.Tracer.with_span "icp_fit_evaluator.get_icp_fit_with_retry" do
       OpenTelemetry.Tracer.set_attributes([
