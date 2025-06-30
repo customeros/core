@@ -83,6 +83,10 @@ config :core, :snitcher,
   api_url: "https://api.snitcher.com",
   api_key: get_env.("SNITCHER_API_KEY", nil)
 
+config :core, :better_contact,
+  api_url: "https://app.bettercontact.rocks/api/v2/async",
+  api_key: get_env.("BETTER_CONTACT_API_KEY", nil)
+
 # AI configuration
 config :core, :ai,
   anthropic_api_path: "https://api.anthropic.com/v1/messages",
