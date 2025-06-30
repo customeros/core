@@ -336,7 +336,7 @@ defmodule Core.Crm.Leads do
     end
   end
 
-  defp create_lead(tenant, attrs, callback, opts \\ []) do
+  defp create_lead(tenant, attrs, callback, opts) do
     with {:ok, company} <- Companies.get_by_id(attrs.ref_id),
          false <- company.primary_domain == tenant.domain do
       case %Lead{}
@@ -442,12 +442,17 @@ defmodule Core.Crm.Leads do
 
   # Private functions
 
-  defp after_insert_start(result, callback, opts \\ []) do
+  defp after_insert_start(result, callback, opts) do
     Task.start(fn ->
       LeadNotifier.notify_lead_created(result)
     end)
 
-    Core.Crm.Leads.NewLeadPipeline.start(result.id, result.tenant_id, callback, opts)
+    Core.Crm.Leads.NewLeadPipeline.start(
+      result.id,
+      result.tenant_id,
+      callback,
+      opts
+    )
   end
 
   defp fetch_lead(%LeadContext{} = ctx) do
