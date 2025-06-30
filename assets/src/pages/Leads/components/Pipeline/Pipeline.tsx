@@ -23,7 +23,10 @@ export const Pipeline = ({
   const { pipeline, stage: selectedStage, group, lead } = getUrlState();
 
   const getHeight = (count: number) => {
-    return scrollProgress < 0.2 ? `${count ? (count / maxCount) * 100 + 10 : 20}px` : '20px';
+    const calculatedHeight = count ? Math.round((count / maxCount) * 100 + 10) : 20;
+    const finalHeight = Math.round(calculatedHeight < 20 ? 20 : calculatedHeight);
+
+    return scrollProgress < 0.2 ? `${finalHeight}px` : '20px';
   };
 
   if (pipeline === 'hidden') {
@@ -57,18 +60,22 @@ export const Pipeline = ({
             }}
             className={cn(
               'flex-1 flex items-center justify-center bg-primary-100 cursor-pointer hover:bg-primary-200 duration-300',
-              scrollProgress < 0.2 &&
-                count > nextCount &&
-                (count - nextCount < 5 ? 'rounded-r-xs' : 'rounded-r-md'),
-              scrollProgress < 0.2 &&
-                count > prevCount &&
-                (count - prevCount < 5 ? 'rounded-l-xs' : 'rounded-l-md'),
-              scrollProgress > 0.2 &&
-                index === 0 &&
-                (count - nextCount > 5 ? 'rounded-l-xs' : 'rounded-l-md'),
-              scrollProgress > 0.2 &&
-                index === stageOptionsWithoutCustomer.length - 1 &&
-                (count - prevCount > 5 ? 'rounded-r-xs' : 'rounded-r-md'),
+              scrollProgress < 0.2 && index === stageOptionsWithoutCustomer.length - 1,
+              parseInt(getHeight(count)) === parseInt(getHeight(nextCount)) && index !== 0
+                ? 'rounded-r-none'
+                : parseInt(getHeight(count)) > parseInt(getHeight(nextCount)) && index !== 0
+                  ? 'rounded-r-md'
+                  : 'rounded-r-none',
+              index === 0 && 'rounded-l-md',
+              index === stageOptionsWithoutCustomer.length - 1 && 'rounded-r-md',
+              parseInt(getHeight(prevCount)) < parseInt(getHeight(count)) && index > 0
+                ? 'rounded-l-md'
+                : parseInt(getHeight(count)) === parseInt(getHeight(prevCount)) && index > 0
+                  ? 'rounded-l-none'
+                  : '',
+              index === 0 &&
+                parseInt(getHeight(count)) > parseInt(getHeight(prevCount)) &&
+                'rounded-r-md',
               selectedStage === stage.value && 'bg-primary-200',
               count === 0 && 'cursor-not-allowed hover:bg-primary-100'
             )}
