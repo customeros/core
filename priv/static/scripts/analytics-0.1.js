@@ -1,21 +1,31 @@
 (function (w) {
-  function botd() {
-    return import('https://openfpcdn.io/botd/v1')
-      .then((Botd) => Botd.load())
-      .then((botd) => botd.detect())
-      .then((res) => res.bot)
+  function botd(ip) {
+    return fetch("https://app.customeros.ai/events/bot-detect", {
+      headers: {
+        "user-agent": navigator.userAgent,
+        origin: window.location.origin,
+        ip: ip,
+        referrer: document.referrer,
+      },
+    })
+      .then((botd) => botd.json())
+      .then((res) => {
+        if (res.bot) {
+          return true;
+        }
+        return false;
+      })
       .catch((error) => {
-        console.error('Error loading Botd:', error);
-
-        return true;
+        console.error("Error loading Botd:", error);
+        return false;
       });
   }
 
   function generateUUID() {
     return (
-      'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, function (c) {
+      "xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx".replace(/[xy]/g, function (c) {
         var r = (Math.random() * 16) | 0,
-          v = c === 'x' ? r : (r & 0x3) | 0x8;
+          v = c === "x" ? r : (r & 0x3) | 0x8;
 
         return v.toString(16);
       }) + new Date().valueOf()
@@ -23,7 +33,7 @@
   }
 
   function getIp() {
-    return fetch('https://api.ipify.org?format=json')
+    return fetch("https://api.ipify.org?format=json")
       .then((response) => response.json())
       .then((data) => {
         window.cosUserIp = data.ip;
@@ -34,12 +44,12 @@
 
   function sendData(eventType, eventData) {
     const userAgent = navigator.userAgent;
-    const cdnEndpoint = '{{CDN_ENDPOINT}}';
+    const cdnEndpoint = "{{CDN_ENDPOINT}}";
 
     fetch(cdnEndpoint, {
-      method: 'POST',
+      method: "POST",
       headers: {
-        'Content-Type': 'application/json',
+        "Content-Type": "application/json",
       },
       keepalive: true,
       body: JSON.stringify({
@@ -57,43 +67,43 @@
         userAgent: userAgent,
         language: navigator.language,
         cookiesEnabled: navigator.cookieEnabled,
-        screenResolution: window.screen.width + 'x' + window.screen.height,
+        screenResolution: window.screen.width + "x" + window.screen.height,
       }),
     });
   }
 
   var cosUserId = document.cookie.replace(
     /(?:(?:^|.*;\s*)cosUserId\s*=\s*([^;]*).*$)|^.*$/,
-    '$1',
+    "$1"
   );
 
   if (!cosUserId) {
     cosUserId = generateUUID();
-    document.cookie = 'cosUserId=' + cosUserId + '; path=/';
+    document.cookie = "cosUserId=" + cosUserId + "; path=/";
   }
   window.cosUserId = cosUserId;
 
   getIp()
     .then((ip) => {
-      return botd()
+      return botd(ip)
         .then((isBot) => {
           if (isBot) {
             return;
           }
 
-          sendData('page_view', {
+          sendData("page_view", {
             title: document.title,
           });
           window.cosPageLoadTime = new Date().valueOf();
 
-          document.addEventListener('click', function (event) {
+          document.addEventListener("click", function (event) {
             const target = event.target;
 
-            if (target.tagName === 'BODY') {
+            if (target.tagName === "BODY") {
               return;
             }
 
-            sendData('click', {
+            sendData("click", {
               tag: target.tagName,
               id: target.id,
               classes: target.className,
@@ -104,15 +114,15 @@
           });
 
           document.addEventListener(
-            'blur',
+            "blur",
             function (event) {
               const target = event.target;
 
-              if (target.tagName !== 'INPUT' && target.tagName !== 'TEXTAREA') {
+              if (target.tagName !== "INPUT" && target.tagName !== "TEXTAREA") {
                 return;
               }
 
-              if (target.type !== 'email') {
+              if (target.type !== "email") {
                 return;
               }
 
@@ -120,7 +130,7 @@
                 return;
               }
 
-              sendData('identify', {
+              sendData("identify", {
                 tag: target.tagName,
                 id: target.id,
                 classes: target.className,
@@ -128,12 +138,12 @@
                 dataset: target.dataset,
               });
             },
-            true,
+            true
           );
 
-          document.addEventListener('visibilitychange', function (event) {
-            if (document.visibilityState === 'hidden') {
-              sendData('page_exit', {
+          document.addEventListener("visibilitychange", function (event) {
+            if (document.visibilityState === "hidden") {
+              sendData("page_exit", {
                 title: document.title,
                 sessionDuration: new Date().valueOf() - window.cosPageLoadTime,
               });
@@ -143,10 +153,10 @@
           });
         })
         .catch((error) => {
-          console.error('Error verifying IP:', error);
+          console.error("Error verifying IP:", error);
         });
     })
     .catch((error) => {
-      console.error('Error fetching IP:', error);
+      console.error("Error fetching IP:", error);
     });
 })(window);
