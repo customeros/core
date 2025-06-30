@@ -46,25 +46,25 @@ defmodule Core.Auth.MagicLinkUsageChecker do
   end
 
   @impl true
-  def handle_info(:check_user_tokens, state) do
-    OpenTelemetry.Tracer.with_span "magic_link_usage_checker.check_user_tokens" do
+  def handle_info(:check_users_tokens, state) do
+    OpenTelemetry.Tracer.with_span "magic_link_usage_checker.check_users_tokens" do
       lock_uuid = Ecto.UUID.generate()
 
       case CronLocks.acquire_lock(:cron_magic_link_usage_checker, lock_uuid) do
         %CronLock{} ->
-          case fetch_user_tokens_without_usage() do
-            {:ok, user_tokens} ->
+          case fetch_users_tokens_without_usage() do
+            {:ok, users_tokens} ->
               OpenTelemetry.Tracer.set_attributes([
-                {"user_tokens.count", length(user_tokens)}
+                {"users_tokens.count", length(users_tokens)}
               ])
 
-              Enum.each(user_tokens, fn user_token ->
+              Enum.each(users_tokens, fn user_token ->
                 process_user_token(user_token)
               end)
 
             {:error, :not_found} ->
               OpenTelemetry.Tracer.set_attributes([
-                {"user_tokens.count", 0}
+                {"users_tokens.count", 0}
               ])
 
               Logger.info("No user tokens found without usage")
@@ -142,14 +142,14 @@ defmodule Core.Auth.MagicLinkUsageChecker do
   end
 
   defp schedule_initial_check do
-    Process.send_after(self(), :check_user_tokens, @default_interval)
+    Process.send_after(self(), :check_users_tokens, @default_interval)
   end
 
   defp schedule_next_check do
-    Process.send_after(self(), :check_user_tokens, @default_interval)
+    Process.send_after(self(), :check_users_tokens, @default_interval)
   end
 
-  defp fetch_user_tokens_without_usage() do
+  defp fetch_users_tokens_without_usage() do
     minutes_ago_5 = DateTime.add(DateTime.utc_now(), -5 * 60, :second)
 
     UserToken
