@@ -1,6 +1,6 @@
 (function (w) {
   function botd(ip) {
-    return fetch("https://app.customeros.ai/events/bot-detect", {
+    return fetch("{{CDN_ENDPOINT}}/bot-detect", {
       headers: {
         "user-agent": navigator.userAgent,
         origin: window.location.origin,
