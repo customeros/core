@@ -6,6 +6,7 @@ import { cn } from 'src/utils/cn';
 import { Input } from '../../components/Input';
 import { RootLayout } from '../../layouts/Root';
 import { Button } from '../../components/Button';
+import { IcpNotFit } from './components/IcpNotFit';
 import { IcpFitStatus } from './components/IcpFitStatus';
 
 export default function Signin() {
@@ -28,6 +29,14 @@ export default function Signin() {
     return (
       <RootLayout>
         <IcpFitStatus email={data.email} />
+      </RootLayout>
+    );
+  }
+
+  if (errors.lead === 'Not a fit') {
+    return (
+      <RootLayout>
+        <IcpNotFit />
       </RootLayout>
     );
   }
