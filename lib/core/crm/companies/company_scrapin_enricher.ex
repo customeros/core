@@ -94,7 +94,10 @@ defmodule Core.Crm.Companies.CompanyScrapinEnricher do
   # Handle unexpected messages (like task results) gracefully
   @impl true
   def handle_info(message, state) do
-    Logger.warning("CompanyScrapinEnricher received unexpected message: #{inspect(message)}")
+    Logger.warning(
+      "CompanyScrapinEnricher received unexpected message: #{inspect(message)}"
+    )
+
     {:noreply, state}
   end
 

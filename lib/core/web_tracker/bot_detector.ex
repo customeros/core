@@ -30,7 +30,7 @@ defmodule Core.WebTracker.BotDetector do
       ])
 
       # Check rate limiting if enabled
-      case check_rate_limit_if_enabled(ip) do
+      case check_rate_limit(ip) do
         :ok ->
           # Check cache first if enabled
           cache_key = generate_cache_key(user_agent, ip, origin)
@@ -55,7 +55,7 @@ defmodule Core.WebTracker.BotDetector do
           end
 
         {:error, :rate_limited} ->
-          Logger.warning("Rate limit exceeded for IP", ip: ip)
+          Logger.error("Rate limit exceeded for IP", ip: ip)
           {:error, "rate_limit_exceeded"}
       end
     end
@@ -881,6 +881,4 @@ defmodule Core.WebTracker.BotDetector do
 
   defp cache_result_if_enabled(cache_key, result),
     do: cache_result(cache_key, result)
-
-  defp check_rate_limit_if_enabled(ip), do: check_rate_limit(ip)
 end

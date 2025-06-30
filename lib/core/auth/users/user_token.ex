@@ -38,6 +38,8 @@ defmodule Core.Auth.Users.UserToken do
     field(:context, :string)
     field(:sent_to, :string)
     field(:user_id, :string)
+    field(:used_at, :utc_datetime)
+    field(:alert_sent, :boolean, default: false)
 
     timestamps(updated_at: false)
   end

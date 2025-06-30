@@ -116,59 +116,68 @@ defmodule Core.Crm.Leads.BriefCreator do
       )
 
       case Leads.mark_brief_create_attempt(lead.id) do
-        :ok ->
-          case Documents.get_documents_by_ref_id(lead.id) do
-            [] ->
-              Logger.info("No existing documents found for lead #{lead.id}")
-
-              # get company
-              domain =
-                case Companies.get_by_id(lead.ref_id) do
-                  {:ok, company} ->
-                    Logger.info("Company found: #{company.primary_domain}")
-                    company.primary_domain
-
-                  {:error, reason} ->
-                    Logger.error("Company not found: #{reason}")
-                    nil
-                end
-
-              if domain do
-                case BriefWriter.create_brief(
-                       lead.tenant_id,
-                       lead.id,
-                       domain
-                     ) do
-                  {:ok, _document} ->
-                    Logger.info("Document created for lead #{lead.id}")
-
-                  {:error, reason} ->
-                    Logger.error("Document creation failed: #{inspect(reason)}",
-                      lead_id: lead.id,
-                      url: domain,
-                      tenant_id: lead.tenant_id
-                    )
-                end
-              end
-
-            documents ->
-              Logger.info(
-                "Found #{length(documents)} existing document(s) for lead #{lead.ref_id}"
-              )
-
-              Logger.info(
-                "Skipping document creation as document(s) already exist"
-              )
-          end
-
-        {:error, :update_failed} ->
-          Tracing.error(
-            :update_failed,
-            "Failed to mark brief creation attempt for lead: #{lead.id}",
-            lead_id: lead.id
-          )
+        :ok -> handle_lead_processing(lead)
+        {:error, :update_failed} -> handle_update_failure(lead)
       end
     end
+  end
+
+  defp handle_lead_processing(lead) do
+    case Documents.get_documents_by_ref_id(lead.id) do
+      [] -> create_brief_for_lead(lead)
+      documents -> log_existing_documents(lead, documents)
+    end
+  end
+
+  defp handle_update_failure(lead) do
+    Tracing.error(
+      :update_failed,
+      "Failed to mark brief creation attempt for lead: #{lead.id}",
+      lead_id: lead.id
+    )
+  end
+
+  defp create_brief_for_lead(lead) do
+    Logger.info("No existing documents found for lead #{lead.id}")
+
+    case get_company_domain(lead.ref_id) do
+      nil -> :ok
+      domain -> create_brief_document(lead, domain)
+    end
+  end
+
+  defp get_company_domain(company_id) do
+    case Companies.get_by_id(company_id) do
+      {:ok, company} ->
+        Logger.info("Company found: #{company.primary_domain}")
+        company.primary_domain
+
+      {:error, reason} ->
+        Logger.error("Company not found: #{reason}")
+        nil
+    end
+  end
+
+  defp create_brief_document(lead, domain) do
+    case BriefWriter.create_brief(lead.tenant_id, lead.id, domain) do
+      {:ok, _document} ->
+        Logger.info("Document created for lead #{lead.id}")
+
+      {:error, reason} ->
+        Logger.error("Document creation failed: #{inspect(reason)}",
+          lead_id: lead.id,
+          url: domain,
+          tenant_id: lead.tenant_id
+        )
+    end
+  end
+
+  defp log_existing_documents(lead, documents) do
+    Logger.info(
+      "Found #{length(documents)} existing document(s) for lead #{lead.ref_id}"
+    )
+
+    Logger.info("Skipping document creation as document(s) already exist")
   end
 
   defp schedule_initial_check do
