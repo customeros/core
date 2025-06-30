@@ -307,10 +307,11 @@ defmodule Core.Crm.Leads do
   @spec get_or_create(
           tenant_name :: String.t(),
           attrs :: map(),
-          callback :: (Lead.t() -> any()) | nil
+          callback :: (Lead.t() -> any()) | nil,
+          opts :: keyword() | nil
         ) ::
           {:ok, Lead.t()} | {:error, :not_found | :domain_matches_tenant}
-  def get_or_create(tenant_name, attrs, callback \\ nil) do
+  def get_or_create(tenant_name, attrs, callback \\ nil, opts \\ []) do
     OpenTelemetry.Tracer.with_span "leads.get_or_create" do
       OpenTelemetry.Tracer.set_attributes([
         {"param.tenant.name", tenant_name},
@@ -326,7 +327,7 @@ defmodule Core.Crm.Leads do
         {:ok, tenant} ->
           case get_by_ref_id(tenant.id, attrs.ref_id) do
             {:error, :not_found} ->
-              create_lead(tenant, attrs, callback)
+              create_lead(tenant, attrs, callback, opts)
 
             {:ok, lead} ->
               {:ok, lead}
@@ -335,7 +336,7 @@ defmodule Core.Crm.Leads do
     end
   end
 
-  defp create_lead(tenant, attrs, callback) do
+  defp create_lead(tenant, attrs, callback, opts \\ []) do
     with {:ok, company} <- Companies.get_by_id(attrs.ref_id),
          false <- company.primary_domain == tenant.domain do
       case %Lead{}
@@ -348,7 +349,7 @@ defmodule Core.Crm.Leads do
            })
            |> Repo.insert() do
         {:ok, lead} ->
-          after_insert_start(lead, callback)
+          after_insert_start(lead, callback, opts)
           {:ok, lead}
 
         {:error, %Ecto.Changeset{errors: errors}} ->
@@ -441,12 +442,12 @@ defmodule Core.Crm.Leads do
 
   # Private functions
 
-  defp after_insert_start(result, callback) do
+  defp after_insert_start(result, callback, opts \\ []) do
     Task.start(fn ->
       LeadNotifier.notify_lead_created(result)
     end)
 
-    Core.Crm.Leads.NewLeadPipeline.start(result.id, result.tenant_id, callback)
+    Core.Crm.Leads.NewLeadPipeline.start(result.id, result.tenant_id, callback, opts)
   end
 
   defp fetch_lead(%LeadContext{} = ctx) do

@@ -35,12 +35,12 @@ defmodule Core.Researcher.IcpFitEvaluator do
   @icp_timeout 45 * 1000
   @max_retries 1
 
-  def evaluate(domain, %Leads.Lead{} = lead)
+  def evaluate(domain, %Leads.Lead{} = lead, opts \\ [])
       when is_binary(domain) and byte_size(domain) > 0 do
     OpenTelemetry.Tracer.with_span "icp_fit_evaluator.evaluate" do
       case PrimaryDomainFinder.get_primary_domain(domain) do
         {:ok, primary_domain} ->
-          evaluate_icp_fit(primary_domain, lead)
+          evaluate_icp_fit(primary_domain, lead, opts)
 
         {:error, reason} ->
           Tracing.error(reason)
@@ -57,7 +57,7 @@ defmodule Core.Researcher.IcpFitEvaluator do
     {:error, "Expected Lead struct, got: #{inspect(invalid_lead)}"}
   end
 
-  defp evaluate_icp_fit(domain, %Leads.Lead{} = lead) do
+  defp evaluate_icp_fit(domain, %Leads.Lead{} = lead, opts \\ []) do
     OpenTelemetry.Tracer.with_span "icp_fit_evaluator.evaluate_icp_fit" do
       OpenTelemetry.Tracer.set_attributes([
         {"lead.id", lead.id},
@@ -66,9 +66,9 @@ defmodule Core.Researcher.IcpFitEvaluator do
       ])
 
       with {:ok, icp} <- IcpProfiles.get_by_tenant_id(lead.tenant_id),
-           {:ok, pages} <- get_prompt_context(domain),
+           {:ok, pages} <- get_prompt_context(domain, opts),
            {:ok, fit} <-
-             get_icp_fit_with_retry(domain, pages, icp) do
+             get_icp_fit_with_retry(domain, pages, icp, opts) do
         update_lead(lead, fit)
         {:ok, fit}
       else
@@ -104,9 +104,9 @@ defmodule Core.Researcher.IcpFitEvaluator do
     end
   end
 
-  defp crawl_website_with_retry(domain, attempts \\ 0) do
+  defp crawl_website_with_retry(domain, opts \\ [], attempts \\ 0) do
     OpenTelemetry.Tracer.with_span "icp_fit_evaluator.crawl_website_with_retry" do
-      task = Crawler.crawl_supervised(domain)
+      task = Crawler.crawl_supervised(domain, opts)
 
       case TaskAwaiter.await(task, @crawl_timeout) do
         {:ok, _response} ->
@@ -114,7 +114,7 @@ defmodule Core.Researcher.IcpFitEvaluator do
 
         {:error, _reason} when attempts < @max_retries ->
           :timer.sleep(:timer.seconds(attempts + 1))
-          crawl_website_with_retry(domain, attempts + 1)
+          crawl_website_with_retry(domain, opts, attempts + 1)
 
         {:error, reason} ->
           Tracing.error(reason)
@@ -123,9 +123,9 @@ defmodule Core.Researcher.IcpFitEvaluator do
     end
   end
 
-  defp get_prompt_context(domain) do
+  defp get_prompt_context(domain, opts \\ []) do
     OpenTelemetry.Tracer.with_span "icp_fit_evaluator.get_prompt_context" do
-      with :ok <- crawl_website_with_retry(domain),
+      with :ok <- crawl_website_with_retry(domain, opts),
            {:ok, pages} <-
              Webpages.get_business_pages_by_domain(domain, limit: 8) do
         {:ok, pages}
