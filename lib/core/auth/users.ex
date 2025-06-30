@@ -17,6 +17,8 @@ defmodule Core.Auth.Users do
   alias Core.Crm.Leads
   alias Application
 
+  @hash_algorithm :sha256
+
   ## Database getters
 
   def get_user_by_email_token(token, context) do
@@ -454,6 +456,24 @@ defmodule Core.Auth.Users do
       |> where([u], u.tenant_id == ^tenant_id)
       |> where([u], not is_nil(u.confirmed_at))
       |> Repo.all()
+    end
+  end
+
+  @doc """
+  Marks a token as used by setting the used_at timestamp.
+  """
+  def mark_token_as_used(token, context) do
+    case Base.url_decode64(token, padding: false) do
+      {:ok, decoded_token} ->
+        hashed_token = :crypto.hash(@hash_algorithm, decoded_token)
+
+        from(t in UserToken,
+          where: t.token == ^hashed_token and t.context == ^context
+        )
+        |> Repo.update_all(set: [used_at: DateTime.utc_now()])
+
+      :error ->
+        :error
     end
   end
 end

@@ -265,6 +265,67 @@ defmodule Core.Notifications.Slack do
   def notify_blocked_user(_, _), do: {:error, :invalid_input}
 
   @doc """
+  Send a notification about a user who requested a magic link but didn't log in.
+  Includes user email and timestamp.
+  """
+  @spec notify_no_login(String.t()) ::
+          :ok
+          | {:error,
+             :webhook_not_configured | :slack_api_error | Finch.Error.t()}
+  def notify_no_login(email)
+      when is_binary(email) and email != "" do
+    case slack_enabled?() do
+      false ->
+        :ok
+
+      true ->
+        webhook_url =
+          Application.get_env(:core, :slack)[:new_user_webhook_url]
+
+        case webhook_url do
+          val when val in [nil, ""] ->
+            Logger.warning("Slack new user webhook URL not configured")
+            {:error, :webhook_not_configured}
+
+          _ ->
+            message = %{
+              blocks: [
+                %{
+                  type: "header",
+                  text: %{
+                    type: "plain_text",
+                    text: "⏰ Magic Link Not Used",
+                    emoji: true
+                  }
+                },
+                %{
+                  type: "section",
+                  fields: [
+                    %{
+                      type: "mrkdwn",
+                      text: "*Email:*\n#{email}"
+                    }
+                  ]
+                },
+                %{
+                  type: "context",
+                  elements: [
+                    %{
+                      type: "mrkdwn",
+                      text:
+                        "Magic link expired at: #{DateTime.utc_now() |> Calendar.strftime("%Y-%m-%d %H:%M:%S UTC")}"
+                    }
+                  ]
+                }
+              ]
+            }
+
+            send_message(webhook_url, message)
+        end
+    end
+  end
+
+  @doc """
   Notify of a new ICP request submission from our website.
   """
   def notify_new_icp_request(domain)

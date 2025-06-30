@@ -30,6 +30,8 @@ defmodule Web.AuthController do
   def signin_with_token(conn, %{"token" => token} = _params) do
     case Users.get_user_by_email_token(token, "magic_link") do
       %User{} = user ->
+        Users.mark_token_as_used(token, "magic_link")
+
         {:ok, user} = Users.confirm_user(user)
 
         conn
@@ -46,6 +48,8 @@ defmodule Web.AuthController do
   def signup_with_token(conn, %{"token" => token} = _params) do
     case Users.get_user_by_email_token(token, "magic_link") do
       %User{} = user ->
+        Users.mark_token_as_used(token, "magic_link")
+
         {:ok, user} = Users.confirm_user(user)
 
         conn

@@ -22,6 +22,7 @@ defmodule Core.Application do
       {Phoenix.PubSub, name: Core.PubSub},
       {Task.Supervisor, name: Core.TaskSupervisor},
       Core.Auth.Users.ColorManager,
+      Core.Auth.MagicLinkUsageChecker,
       Core.Repo,
       Core.Crm.Companies.CompanyEnricher,
       Core.Crm.Companies.CompanyScrapinEnricher,
