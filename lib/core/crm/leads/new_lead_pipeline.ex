@@ -24,7 +24,7 @@ defmodule Core.Crm.Leads.NewLeadPipeline do
   alias Core.Researcher.IcpFitEvaluator
   alias Core.Utils.Tracing
 
-  def start(lead_id, tenant_id, callback \\ nil) do
+  def start(lead_id, tenant_id, callback \\ nil, opts \\ []) do
     OpenTelemetry.Tracer.with_span "new_lead_pipeline.start" do
       OpenTelemetry.Tracer.set_attributes([
         {"lead.id", lead_id},
@@ -38,7 +38,7 @@ defmodule Core.Crm.Leads.NewLeadPipeline do
         fn ->
           OpenTelemetry.Ctx.attach(span_ctx)
 
-          case new_lead_pipeline(lead_id, tenant_id, callback) do
+          case new_lead_pipeline(lead_id, tenant_id, callback, opts) do
             :ok ->
               Logger.info(
                 "Successfully completed new lead pipeline for #{lead_id}"
@@ -69,7 +69,7 @@ defmodule Core.Crm.Leads.NewLeadPipeline do
     lead.icp_fit not in [:moderate, :strong] and lead.stage != :customer
   end
 
-  def new_lead_pipeline(lead_id, tenant_id, callback \\ nil) do
+  def new_lead_pipeline(lead_id, tenant_id, callback \\ nil, opts \\ []) do
     OpenTelemetry.Tracer.with_span "new_lead_pipeline.new_lead_pipeline" do
       OpenTelemetry.Tracer.set_attributes([
         {"lead.id", lead_id},
@@ -87,7 +87,7 @@ defmodule Core.Crm.Leads.NewLeadPipeline do
            true <- applicable_for_icp_fit?(lead),
            {:ok, domain} <-
              Leads.get_domain_for_lead_company(tenant_id, lead_id),
-           {:ok, fit} <- analyze_icp_fit(domain, lead),
+           {:ok, fit} <- analyze_icp_fit(domain, lead, opts),
            :ok <- execute_callback_if_provided(callback, fit),
            :ok <- brief_writer(fit, domain, lead) do
         :ok
@@ -106,7 +106,7 @@ defmodule Core.Crm.Leads.NewLeadPipeline do
     end
   end
 
-  defp analyze_icp_fit(domain, %Leads.Lead{} = lead) when is_binary(domain) do
+  defp analyze_icp_fit(domain, %Leads.Lead{} = lead, opts \\ []) when is_binary(domain) do
     OpenTelemetry.Tracer.with_span "new_lead_pipeline.analyze_icp_fit" do
       OpenTelemetry.Tracer.set_attributes([
         {"lead.id", lead.id},
@@ -122,7 +122,7 @@ defmodule Core.Crm.Leads.NewLeadPipeline do
         tenant_id: lead.tenant_id
       )
 
-      case IcpFitEvaluator.evaluate(domain, lead) do
+      case IcpFitEvaluator.evaluate(domain, lead, opts) do
         {:ok, :not_a_fit} ->
           OpenTelemetry.Tracer.set_attributes([
             {"result", :not_a_fit}

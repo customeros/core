@@ -182,7 +182,8 @@ defmodule Core.Auth.Users do
     case Leads.get_or_create(
            customeros_tenant_name,
            lead_attrs,
-           callback_after_lead_evaluation
+           callback_after_lead_evaluation,
+           [max_pages: 10]
          ) do
       {:ok, lead} ->
         handle_lead_icp_fit(changeset, lead, email)
