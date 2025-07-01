@@ -223,7 +223,7 @@ defmodule Core.Crm.Leads.LeadCreator do
     )
     SELECT * FROM ranked_records
     WHERE tenant_rank <= #{max(2, div(@fetch_batch_size, 10))}
-    ORDER BY COALESCE(rank, -1) DESC, inserted_at ASC
+    ORDER BY COALESCE(rank, -1) DESC, tenant_rank ASC
     LIMIT #{@fetch_batch_size}
     """
 
