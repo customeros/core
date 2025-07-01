@@ -62,11 +62,10 @@ defmodule Web.WebTrackerController do
     end
   end
 
-  def bot_detect(conn, _params) do
+  def bot_detect(conn, %{"ip" => ip}) do
     OpenTelemetry.Tracer.with_span "web_tracker_controller.bot_detect" do
       user_agent = get_req_header(conn, "user-agent") |> List.first() || ""
       origin = get_req_header(conn, "origin") |> List.first() || ""
-      ip = get_req_header(conn, "ip") |> List.first() || ""
       referrer = get_req_header(conn, "referrer") |> List.first() || ""
 
       OpenTelemetry.Tracer.set_attributes([
