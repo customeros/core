@@ -1,11 +1,12 @@
 (function (w) {
   function botd(ip) {
     return fetch("{{CDN_ENDPOINT}}/b", {
-      headers: {
-        "user-agent": navigator.userAgent,
-        origin: window.location.origin,
+      method: "POST",
+      body: JSON.stringify({
         ip: ip,
-        referrer: document.referrer,
+      }),
+      headers: {
+        "Content-Type": "application/json",
       },
     })
       .then((botd) => botd.json())
