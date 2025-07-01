@@ -1,7 +1,9 @@
 defmodule Core.Researcher.ContactEnricher.BetterContact do
   require Logger
   import Core.Utils.Pipeline
+
   alias Core.Researcher.ContactEnricher.Request
+  alias Core.Researcher.ContactEnricher.BetterContactJobs
 
   @err_empty_api_key {:error, "better contact API key is empty"}
   @err_empty_api_path {:error, "better contact API path is empty"}
@@ -42,7 +44,8 @@ defmodule Core.Researcher.ContactEnricher.BetterContact do
       enrich_phone_number: false
     }
     |> make_post_call()
-    |> ok(&parse_and_save_job_id/1)
+    |> ok(&parse_job_id/1)
+    |> BetterContactJobs.create_job(req.contact_id)
   end
 
   defp start_phone_search(req) do
@@ -52,7 +55,8 @@ defmodule Core.Researcher.ContactEnricher.BetterContact do
       enrich_phone_number: true
     }
     |> make_post_call()
-    |> ok(&parse_and_save_job_id/1)
+    |> ok(&parse_job_id/1)
+    |> BetterContactJobs.create_job(req.contact_id)
   end
 
   defp start_email_and_phone_search(req) do
@@ -62,7 +66,8 @@ defmodule Core.Researcher.ContactEnricher.BetterContact do
       enrich_phone_number: true
     }
     |> make_post_call()
-    |> ok(&parse_and_save_job_id/1)
+    |> ok(&parse_job_id/1)
+    |> BetterContactJobs.create_job(req.contact_id)
   end
 
   defp build_request_data(%Request{} = req) do
@@ -169,15 +174,15 @@ defmodule Core.Researcher.ContactEnricher.BetterContact do
     end
   end
 
-  defp parse_and_save_job_id(response) when is_binary(response) do
+  defp parse_job_id(response) when is_binary(response) do
     response
     |> Jason.decode()
     |> ok(&extract_job_id/1)
   end
 
-  defp parse_and_save_job_id(_), do: @err_unexpected_response
+  defp parse_job_id(_), do: @err_unexpected_response
 
-  defp extract_job_id(%{"id" => id}) when is_binary(id), do: {:ok, id}
+  defp extract_job_id(%{"id" => id}) when is_binary(id), do: id
   defp extract_job_id(%{"success" => false}), do: @err_cannot_process
   defp extract_job_id(_), do: @err_unexpected_response
 
