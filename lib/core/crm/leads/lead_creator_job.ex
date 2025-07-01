@@ -6,7 +6,6 @@ defmodule Core.Crm.Leads.LeadCreator do
   use GenServer
   require Logger
   require OpenTelemetry.Tracer
-  import Ecto.Query
   alias Core.Crm.Leads
   alias Core.Crm.Leads.LeadDomainQueue
   alias Core.Crm.Companies
@@ -17,8 +16,10 @@ defmodule Core.Crm.Leads.LeadCreator do
 
   # 5 minutes in milliseconds
   @default_interval 5 * 60 * 1000
-  # Number of leads to process in each batch
-  @default_batch_size 5
+  # Number of leads to process in each run
+  @process_batch_size 5
+  # Number of records to fetch from database (higher to account for existing leads)
+  @fetch_batch_size 50
   # Duration in minutes after which a lock is considered stuck
   @stuck_lock_duration_minutes 30
 
@@ -58,9 +59,7 @@ defmodule Core.Crm.Leads.LeadCreator do
                   {"lead_domain_queues.count", length(lead_domain_queues)}
                 ])
 
-                Enum.each(lead_domain_queues, fn lead_domain_queue ->
-                  process_lead_domain_queue(lead_domain_queue)
-                end)
+                process_lead_domain_queues_with_balance(lead_domain_queues)
 
               {:error, :not_found} ->
                 OpenTelemetry.Tracer.set_attributes([
@@ -106,12 +105,12 @@ defmodule Core.Crm.Leads.LeadCreator do
       ])
 
       result = with {:ok, db_company} <- Companies.get_or_create_by_domain(lead_domain_queue.domain),
-                   {:ok, _lead} <-
+                   {:ok, lead} <-
                      Leads.get_or_create_with_tenant_id(lead_domain_queue.tenant_id, %{
                        type: :company,
                        ref_id: db_company.id
                      }) do
-        {:ok, db_company}
+        {:ok, lead}
       else
         {:error, reason} ->
           Tracing.error(reason, "Failed to process domain queue record",
@@ -126,6 +125,66 @@ defmodule Core.Crm.Leads.LeadCreator do
 
       result
     end
+  end
+
+  defp process_lead_domain_queues_with_balance(lead_domain_queues) do
+    # Group by tenant and sort by rank (desc) and inserted_at (asc) within each tenant
+    tenant_groups =
+      lead_domain_queues
+      |> Enum.group_by(& &1.tenant_id)
+      |> Enum.map(fn {tenant_id, records} ->
+        sorted_records = Enum.sort_by(records, &{&1.rank || -1, &1.inserted_at}, [desc: true, asc: true])
+        {tenant_id, sorted_records}
+      end)
+      |> Enum.sort_by(fn {_tenant_id, records} ->
+        # Sort tenants by their highest rank record
+        case records do
+          [first_record | _] -> {first_record.rank || -1, first_record.inserted_at}
+          [] -> {-1, DateTime.utc_now()}
+        end
+      end, [desc: true, asc: true])
+
+    # Process records in a round-robin fashion across tenants
+    process_round_robin(tenant_groups, 0, [])
+  end
+
+  defp process_round_robin([], _created_count, _processed_records), do: :ok
+  defp process_round_robin(_tenant_groups, created_count, _processed_records) when created_count >= @process_batch_size, do: :ok
+
+  defp process_round_robin(tenant_groups, created_count, processed_records) do
+    # Take one record from each tenant in order
+    {new_processed_records, new_created_count, remaining_tenant_groups} =
+      Enum.reduce_while(tenant_groups, {processed_records, created_count, []}, fn {tenant_id, records}, {acc_processed, acc_created, acc_remaining} ->
+        case records do
+          [record | remaining_records] ->
+            # Process this record
+            result = process_lead_domain_queue(record)
+
+            new_created_count = case result do
+              {:ok, %{just_created: true}} -> acc_created + 1
+              _ -> acc_created
+            end
+
+            new_processed = [record | acc_processed]
+
+            # Add remaining records back to the list if any
+            new_remaining = if remaining_records != [], do: [{tenant_id, remaining_records} | acc_remaining], else: acc_remaining
+
+            # Stop if we've created enough leads
+            if new_created_count >= @process_batch_size do
+              {:halt, {new_processed, new_created_count, new_remaining}}
+            else
+              {:cont, {new_processed, new_created_count, new_remaining}}
+            end
+
+          [] ->
+            # No more records for this tenant, skip
+            {:cont, {acc_processed, acc_created, acc_remaining}}
+        end
+      end)
+
+    # Continue with remaining tenant groups
+    process_round_robin(remaining_tenant_groups, new_created_count, new_processed_records)
   end
 
   defp mark_as_processed(%LeadDomainQueue{} = lead_domain_queue) do
@@ -152,14 +211,38 @@ defmodule Core.Crm.Leads.LeadCreator do
   end
 
   defp fetch_lead_domain_queues_to_process() do
-    LeadDomainQueue
-    |> where([l], is_nil(l.processed_at))
-    |> order_by([l], [desc: l.rank, asc: l.inserted_at])
-    |> limit(^@default_batch_size)
-    |> Repo.all()
-    |> then(fn
-      [] -> {:error, :not_found}
-      leads -> {:ok, leads}
-    end)
+    query = """
+    WITH ranked_records AS (
+      SELECT *,
+             ROW_NUMBER() OVER (
+               PARTITION BY tenant_id
+               ORDER BY COALESCE(rank, -1) DESC, inserted_at ASC
+             ) as tenant_rank
+      FROM lead_domain_queues
+      WHERE processed_at IS NULL
+    )
+    SELECT * FROM ranked_records
+    WHERE tenant_rank <= #{max(2, div(@fetch_batch_size, 10))}
+    ORDER BY COALESCE(rank, -1) DESC, inserted_at ASC
+    LIMIT #{@fetch_batch_size}
+    """
+
+    case Repo.query(query) do
+      {:ok, %{rows: rows, columns: columns}} ->
+        records = Enum.map(rows, fn row ->
+          # Convert row to struct
+          data = Enum.zip(columns, row) |> Map.new()
+          struct(LeadDomainQueue, data)
+        end)
+
+        case records do
+          [] -> {:error, :not_found}
+          records -> {:ok, records}
+        end
+
+      {:error, reason} ->
+        Logger.error("Failed to fetch lead domain queues", reason: reason)
+        {:error, :query_failed}
+    end
   end
 end
