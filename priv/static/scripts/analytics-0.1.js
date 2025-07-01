@@ -1,6 +1,6 @@
 (function (w) {
   function botd(ip) {
-    return fetch("{{CDN_ENDPOINT}}/bot-detect", {
+    return fetch("{{CDN_ENDPOINT}}/b", {
       headers: {
         "user-agent": navigator.userAgent,
         origin: window.location.origin,
@@ -44,7 +44,7 @@
 
   function sendData(eventType, eventData) {
     const userAgent = navigator.userAgent;
-    const cdnEndpoint = "{{CDN_ENDPOINT}}";
+    const cdnEndpoint = "{{CDN_ENDPOINT}}/t";
 
     fetch(cdnEndpoint, {
       method: "POST",
