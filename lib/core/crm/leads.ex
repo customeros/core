@@ -312,7 +312,7 @@ defmodule Core.Crm.Leads do
         ) ::
           {:ok, Lead.t()} | {:error, :not_found | :domain_matches_tenant}
   def get_or_create(tenant_name, attrs, callback \\ nil, opts \\ []) do
-    OpenTelemetry.Tracer.with_span "leads.get_or_create" do
+    OpenTelemetry.Tracer.with_span "leads.get_or_create_with_tenant_name" do
       OpenTelemetry.Tracer.set_attributes([
         {"param.tenant.name", tenant_name},
         {"param.lead.ref_id", attrs.ref_id},
@@ -320,6 +320,31 @@ defmodule Core.Crm.Leads do
       ])
 
       case Tenants.get_tenant_by_name(tenant_name) do
+        {:error, :not_found} ->
+          Tracing.error(:not_found)
+          {:error, :not_found}
+
+        {:ok, tenant} ->
+          case get_by_ref_id(tenant.id, attrs.ref_id) do
+            {:error, :not_found} ->
+              create_lead(tenant, attrs, callback, opts)
+
+            {:ok, lead} ->
+              {:ok, lead}
+          end
+      end
+    end
+  end
+
+  def get_or_create_with_tenant_id(tenant_id, attrs, callback \\ nil, opts \\ []) do
+    OpenTelemetry.Tracer.with_span "leads.get_or_create_with_tenant_id" do
+      OpenTelemetry.Tracer.set_attributes([
+        {"param.tenant.id", tenant_id},
+        {"param.lead.ref_id", attrs.ref_id},
+        {"param.with_callback", !is_nil(callback)}
+      ])
+
+      case Tenants.get_tenant_by_id(tenant_id) do
         {:error, :not_found} ->
           Tracing.error(:not_found)
           {:error, :not_found}
@@ -345,7 +370,8 @@ defmodule Core.Crm.Leads do
              ref_id: attrs.ref_id,
              type: attrs.type,
              stage: Map.get(attrs, :stage, :pending),
-             icp_fit: Map.get(attrs, :icp_fit)
+             icp_fit: Map.get(attrs, :icp_fit),
+             just_created: true
            })
            |> Repo.insert() do
         {:ok, lead} ->

@@ -27,6 +27,7 @@ defmodule Core.Application do
       Core.Crm.Companies.CompanyEnricher,
       Core.Crm.Companies.CompanyScrapinEnricher,
       Core.Crm.Companies.CompanyDomainProcessor,
+      Core.Crm.Leads.LeadCreator,
       Core.Crm.Leads.IcpFitEvaluator,
       Core.Crm.Leads.DailyLeadSummarySender,
       Core.Crm.Leads.BriefCreator,
