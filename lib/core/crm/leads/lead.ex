@@ -35,6 +35,7 @@ defmodule Core.Crm.Leads.Lead do
           icp_fit_evaluation_attempts: integer(),
           brief_create_attempt_at: DateTime.t(),
           brief_create_attempts: integer(),
+          just_created: boolean(),
           inserted_at: DateTime.t(),
           updated_at: DateTime.t()
         }
@@ -65,6 +66,8 @@ defmodule Core.Crm.Leads.Lead do
     field(:brief_create_attempt_at, :utc_datetime)
     field(:brief_create_attempts, :integer, default: 0)
 
+    field(:just_created, :boolean, virtual: true, default: false)
+
     timestamps(type: :utc_datetime)
   end
 
@@ -82,7 +85,8 @@ defmodule Core.Crm.Leads.Lead do
     :icp_fit_evaluation_attempt_at,
     :icp_fit_evaluation_attempts,
     :brief_create_attempt_at,
-    :brief_create_attempts
+    :brief_create_attempts,
+    :just_created
   ]
 
   def changeset(%__MODULE__{} = lead, attrs) do
