@@ -336,7 +336,12 @@ defmodule Core.Crm.Leads do
     end
   end
 
-  def get_or_create_with_tenant_id(tenant_id, attrs, callback \\ nil, opts \\ []) do
+  def get_or_create_with_tenant_id(
+        tenant_id,
+        attrs,
+        callback \\ nil,
+        opts \\ []
+      ) do
     OpenTelemetry.Tracer.with_span "leads.get_or_create_with_tenant_id" do
       OpenTelemetry.Tracer.set_attributes([
         {"param.tenant.id", tenant_id},

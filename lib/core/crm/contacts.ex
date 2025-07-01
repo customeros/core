@@ -7,8 +7,18 @@ defmodule Core.Crm.Contacts do
 
   alias Core.Repo
   alias Core.Crm.Contacts.Contact
+  alias Core.Researcher.EmailValidator
 
+  @err_undeliverable {:error, "email address is undeliverable"}
   @err_contact_creation_failed {:error, "contact creation failed"}
+
+  def create_contact_by_linkedin_alias(alias) do
+    create_contact(%Contact{}, %{linkedin_alias: alias})
+  end
+
+  def create_contact_by_linkedin_id(linkedin_id) do
+    create_contact(%Contact{}, %{linkedin_id: linkedin_id})
+  end
 
   def create_contact(%Contact{} = contact, attrs \\ %{}) do
     result =
@@ -24,6 +34,20 @@ defmodule Core.Crm.Contacts do
         Logger.error("Failed to create contact", contact)
 
         @err_contact_creation_failed
+    end
+  end
+
+  def get_contact_by_linkedin_id(linkedin_id) do
+    case Repo.get_by(Contact, linkedin_id: linkedin_id) do
+      nil -> :not_found
+      contact -> {:ok, contact}
+    end
+  end
+
+  def get_contact_by_linkedin_alias(alias) do
+    case Repo.get_by(Contact, linkedin_alias: alias) do
+      nil -> :not_found
+      contact -> {:ok, contact}
     end
   end
 

@@ -47,7 +47,14 @@ defmodule Core.Researcher.EmailValidator do
   def is_business_email?(%{valid_syntax: true}), do: true
   def is_business_email?(_), do: false
 
-  def deliverable_status(%{deliverable: "false"}), do: "undeliverable"
-  def deliverable_status(%{deliverable: "true"}), do: "deliverable"
-  def deliverable_status(_), do: "unknown"
+  def email_type(%{role_based: true}), do: :other
+  def email_type(%{disposable: true}), do: :other
+  def email_type(%{is_system_generated: true}), do: :other
+  def email_type(%{valid_syntax: true, free_provider: true}), do: :personal
+  def email_type(%{valid_syntax: true, free_provider: false}), do: :business
+  def email_type(_), do: :other
+
+  def deliverable_status(%{deliverable: "false"}), do: :undeliverable
+  def deliverable_status(%{deliverable: "true"}), do: :deliverable
+  def deliverable_status(_), do: :unknown
 end
