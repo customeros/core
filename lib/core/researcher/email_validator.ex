@@ -34,4 +34,20 @@ defmodule Core.Researcher.EmailValidator do
         {:error, reason}
     end
   end
+
+  def best_email(%{did_you_mean: email}) when byte_size(email) > 0, do: email
+  def best_email(%{clean_email: email}) when byte_size(email) > 0, do: email
+  def best_email(_), do: :not_found
+
+  def is_business_email?(%{valid_syntax: false}), do: false
+  def is_business_email?(%{free_provider: true}), do: false
+  def is_business_email?(%{role_based: true}), do: false
+  def is_business_email?(%{disposable: true}), do: false
+  def is_business_email?(%{is_system_generated: true}), do: false
+  def is_business_email?(%{valid_syntax: true}), do: true
+  def is_business_email?(_), do: false
+
+  def deliverable_status(%{deliverable: "false"}), do: "undeliverable"
+  def deliverable_status(%{deliverable: "true"}), do: "deliverable"
+  def deliverable_status(_), do: "unknown"
 end

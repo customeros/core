@@ -17,7 +17,8 @@ defmodule Core.Researcher.ContactEnricher.Request do
           company_name: String.t() | nil,
           company_domain: String.t() | nil,
           linkedin_url: String.t() | nil,
-          search_type: search_type
+          search_type: search_type,
+          contact_id: String.t() | nil
         }
 
   defstruct [
@@ -26,7 +27,8 @@ defmodule Core.Researcher.ContactEnricher.Request do
     :company_name,
     :company_domain,
     :linkedin_url,
-    :search_type
+    :search_type,
+    :contact_id
   ]
 
   def new(first_name, last_name, search_type, opts \\ []) do
@@ -36,7 +38,8 @@ defmodule Core.Researcher.ContactEnricher.Request do
       search_type: search_type,
       company_name: opts[:company_name],
       company_domain: opts[:company_domain],
-      linkedin_url: opts[:linkedin_url]
+      linkedin_url: opts[:linkedin_url],
+      contact_id: opts[:contact_id]
     }
 
     validate(req)

@@ -11,6 +11,7 @@ defmodule Core.Utils.Cron.CronLock do
   use Ecto.Schema
 
   @cron_names [
+    :cron_better_contact_job_checker,
     :cron_company_domain_processor,
     :cron_company_enricher,
     :cron_company_scrapin_enricher,
