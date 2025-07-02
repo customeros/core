@@ -1,6 +1,5 @@
 defmodule Core.Crm.TargetPersonas do
   require Logger
-  import Ecto.Query
 
   alias Core.Repo
   alias Core.Crm.Contacts

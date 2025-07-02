@@ -24,8 +24,12 @@ defmodule Core.Crm.Contacts.Contact do
     field(:region, :string)
     field(:country_a2, :string)
     field(:avatar_key, :string)
-    field(:current_job_title, :string)
-    field(:current_company_id, :string)
+    field(:job_title, :string)
+    field(:company_id, :string)
+    field(:company_domain, :string)
+    field(:description, :string)
+    field(:job_started_at, :utc_datetime)
+    field(:job_ended_at, :utc_datetime)
     field(:seniority, :string)
     field(:department, :string)
 
@@ -48,8 +52,12 @@ defmodule Core.Crm.Contacts.Contact do
     :region,
     :country_a2,
     :avatar_key,
-    :current_job_title,
-    :current_company_id,
+    :job_title,
+    :company_id,
+    :company_domain,
+    :description,
+    :job_started_at,
+    :job_ended_at,
     :seniority,
     :department
   ]
@@ -70,8 +78,12 @@ defmodule Core.Crm.Contacts.Contact do
           region: String.t() | nil,
           country_a2: String.t() | nil,
           avatar_key: String.t() | nil,
-          current_job_title: String.t() | nil,
-          current_company_id: String.t() | nil,
+          job_title: String.t() | nil,
+          company_id: String.t() | nil,
+          company_domain: String.t() | nil,
+          description: String.t() | nil,
+          job_started_at: DateTime.t() | nil,
+          job_ended_at: DateTime.t() | nil,
           seniority: String.t() | nil,
           department: String.t() | nil
         }
