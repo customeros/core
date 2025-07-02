@@ -53,15 +53,21 @@ defmodule Core.Crm.TargetPersonas do
 
   defp create_from_linkedin_id(tenant_id, linkedin_id) do
     case Contacts.get_contact_by_linkedin_id(linkedin_id) do
-      {:ok, contact} -> create(tenant_id, contact.id)
-      :not_found -> create_contact_and_persona_from_linkedin_id(tenant_id, linkedin_id)
+      {:ok, contact} ->
+        create(tenant_id, contact.id)
+
+      :not_found ->
+        create_contact_and_persona_from_linkedin_id(tenant_id, linkedin_id)
     end
   end
 
   defp create_from_linkedin_alias(tenant_id, alias) do
     case Contacts.get_contact_by_linkedin_alias(alias) do
-      {:ok, contact} -> create(tenant_id, contact.id)
-      :not_found -> create_contact_and_persona_from_linkedin_alias(tenant_id, alias)
+      {:ok, contact} ->
+        create(tenant_id, contact.id)
+
+      :not_found ->
+        create_contact_and_persona_from_linkedin_alias(tenant_id, alias)
     end
   end
 
