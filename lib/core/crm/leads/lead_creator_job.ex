@@ -67,6 +67,9 @@ defmodule Core.Crm.Leads.LeadCreator do
                 ])
 
                 Logger.info("No domain queues found for processing")
+
+              {:error, :query_failed} ->
+                Tracing.error(:query_failed,"Failed to fetch lead domain queues, will retry on next run")
             end
 
           CronLocks.release_lock(:cron_lead_creator, lock_uuid)
@@ -186,7 +189,7 @@ defmodule Core.Crm.Leads.LeadCreator do
 
   defp mark_as_processed(%LeadDomainQueue{} = lead_domain_queue) do
     lead_domain_queue
-    |> Ecto.Changeset.change(%{processed_at: DateTime.utc_now()})
+    |> Ecto.Changeset.change(%{processed_at: DateTime.utc_now() |> DateTime.truncate(:second)})
     |> Repo.update()
     |> case do
       {:ok, _updated} -> :ok
@@ -210,7 +213,7 @@ defmodule Core.Crm.Leads.LeadCreator do
   defp fetch_lead_domain_queues_to_process() do
     query = """
     WITH ranked_records AS (
-      SELECT *,
+      SELECT id, tenant_id, domain, rank, processed_at, inserted_at,
              ROW_NUMBER() OVER (
                PARTITION BY tenant_id
                ORDER BY COALESCE(rank, -1) DESC, inserted_at ASC
@@ -218,7 +221,8 @@ defmodule Core.Crm.Leads.LeadCreator do
       FROM lead_domain_queues
       WHERE processed_at IS NULL
     )
-    SELECT * FROM ranked_records
+    SELECT id, tenant_id, domain, rank, processed_at, inserted_at
+    FROM ranked_records
     WHERE tenant_rank <= #{max(2, div(@fetch_batch_size, 10))}
     ORDER BY COALESCE(rank, -1) DESC, tenant_rank ASC
     LIMIT #{@fetch_batch_size}
@@ -227,9 +231,16 @@ defmodule Core.Crm.Leads.LeadCreator do
     case Repo.query(query) do
       {:ok, %{rows: rows, columns: columns}} ->
         records = Enum.map(rows, fn row ->
-          # Convert row to struct
-          data = Enum.zip(columns, row) |> Map.new()
-          struct(LeadDomainQueue, data)
+          # Convert row to struct with proper field mapping
+          [id, tenant_id, domain, rank, processed_at, inserted_at] = row
+          %LeadDomainQueue{
+            id: id,
+            tenant_id: tenant_id,
+            domain: domain,
+            rank: rank,
+            processed_at: processed_at,
+            inserted_at: inserted_at,
+          }
         end)
 
         case records do
@@ -238,7 +249,7 @@ defmodule Core.Crm.Leads.LeadCreator do
         end
 
       {:error, reason} ->
-        Logger.error("Failed to fetch lead domain queues", reason: reason)
+        Tracing.error(reason, "Failed to fetch lead domain queues")
         {:error, :query_failed}
     end
   end
