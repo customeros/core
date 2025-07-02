@@ -2,7 +2,6 @@ defmodule Core.Crm.Contacts do
   @moduledoc """
   Manages contact data and operations.
   """
-  import Ecto.Query
   require Logger
 
   alias Core.Repo

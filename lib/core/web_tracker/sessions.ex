@@ -16,6 +16,72 @@ defmodule Core.WebTracker.Sessions do
   @default_timeout_minutes 30
   @default_limit 100
 
+  # Traffic source detection constants
+  @search_engines [
+    "google.com",
+    "google.",
+    "bing.com",
+    "bing.",
+    "yahoo.com",
+    "yahoo.",
+    "duckduckgo.com",
+    "duckduckgo.",
+    "baidu.com",
+    "baidu.",
+    "yandex.com",
+    "yandex."
+  ]
+
+  @social_platforms [
+    "facebook.com",
+    "twitter.com",
+    "x.com",
+    "linkedin.com",
+    "instagram.com",
+    "youtube.com",
+    "tiktok.com",
+    "reddit.com",
+    "pinterest.com",
+    "snapchat.com"
+  ]
+
+  @email_clients [
+    "outlook",
+    "thunderbird",
+    "apple-mail",
+    "gmail",
+    "yahoo-mail",
+    "mail.app",
+    "mozilla thunderbird"
+  ]
+
+  @email_domains [
+    "mail.google.com",
+    "outlook.live.com",
+    "mail.yahoo.com"
+  ]
+
+  @ad_platforms [
+    "doubleclick.net",
+    "googleadservices.com",
+    "googlesyndication.com",
+    "facebook.com/tr",
+    "ads.facebook.com",
+    "bing.com/ads",
+    "adnxs.com",
+    "amazon-adsystem.com",
+    "googletagmanager.com"
+  ]
+
+  @affiliate_indicators [
+    "affiliate",
+    "partner",
+    "ref=",
+    "aff=",
+    "partner_id",
+    "affiliate_id"
+  ]
+
   @doc """
   Creates a new web session.
   """
@@ -140,6 +206,9 @@ defmodule Core.WebTracker.Sessions do
          },
          ip_data
        ) do
+    # Derive traffic information from event data
+    {traffic_source, traffic_type} = derive_traffic_info(referrer, user_agent, origin)
+
     session_attrs = %{
       tenant: tenant,
       visitor_id: visitor_id,
@@ -149,6 +218,8 @@ defmodule Core.WebTracker.Sessions do
       region: ip_data.region,
       country_code: ip_data.country_code,
       is_mobile: ip_data.is_mobile,
+      traffic_source: traffic_source,
+      traffic_type: traffic_type,
       active: true,
       last_event_type: event_type,
       just_created: true,
@@ -166,6 +237,111 @@ defmodule Core.WebTracker.Sessions do
     case create(session_attrs) do
       {:ok, session} -> {:ok, session}
       {:error, changeset} -> {:error, changeset}
+    end
+  end
+
+  @doc """
+  Derives traffic source and type from referrer, user agent, and origin information.
+  Returns a tuple {traffic_source, traffic_type}.
+  """
+  def derive_traffic_info(referrer, user_agent, origin) do
+    host = parse_host(referrer)
+    params = parse_query_params(referrer)
+
+    source =
+      cond do
+        blank_referrer?(referrer, origin) ->
+          :direct
+
+        utm = params["utm_source"] ->
+          # Validate utm_source against our predefined list
+          validate_utm_source(utm)
+
+        host in @search_engines ->
+          :search
+
+        host in @social_platforms ->
+          :social
+
+        email_traffic?(host, user_agent) ->
+          :email
+
+        host in @ad_platforms ->
+          :display
+
+        affiliate_traffic?(params, host) ->
+          :affiliate
+
+        true ->
+          :referral
+      end
+
+    medium = if source in [:display, :affiliate] or params["utm_medium"] in ["cpc", "paid"], do: :paid, else: :organic
+    {source, medium}
+  end
+
+  @doc """
+  Validates utm_source against predefined traffic sources.
+  Returns a valid traffic source atom or :unknown if not recognized.
+  """
+  def validate_utm_source(utm_source) when is_binary(utm_source) do
+    # Convert to atom and check if it's in our predefined list
+    source_atom = String.to_atom(utm_source)
+
+    # Check against our predefined traffic sources
+    valid_sources = [:search, :social, :email, :direct, :referral, :display, :video, :affiliate]
+
+    if source_atom in valid_sources do
+      source_atom
+    else
+      # Log unknown utm_source for monitoring
+      require Logger
+      Logger.warning("Unknown utm_source: #{utm_source}, falling back to :unknown")
+      :unknown
+    end
+  end
+
+  def validate_utm_source(_), do: :unknown
+
+  defp blank_referrer?(referrer, origin) do
+    ref = (referrer || "") |> String.trim()
+    ref == "" or URI.parse(ref).host in [nil, URI.parse(origin).host]
+  end
+
+  defp parse_host(referrer) when is_binary(referrer) do
+    referrer
+    |> URI.parse()
+    |> Map.get(:host, "")
+    |> String.trim_leading("www.")
+    |> String.downcase()
+  end
+
+  defp parse_host(_), do: ""
+
+  defp parse_query_params(referrer) when is_binary(referrer) do
+    case URI.parse(referrer).query do
+      nil -> %{}
+      q -> URI.decode_query(q)
+    end
+  end
+
+  defp parse_query_params(_), do: %{}
+
+  defp email_traffic?(_host, user_agent) when not is_binary(user_agent), do: false
+
+  defp email_traffic?(host, user_agent) do
+    ua = String.downcase(user_agent)
+    email_client_pattern = @email_clients |> Enum.join("|") |> then(&~r/\b(#{&1})\b/)
+    is_email_client = Regex.match?(email_client_pattern, ua)
+    is_email_domain = host in @email_domains
+    is_email_client or is_email_domain
+  end
+
+  defp affiliate_traffic?(params, host) do
+    cond do
+      params["utm_medium"] == "affiliate" -> true
+      Enum.any?(@affiliate_indicators, &String.contains?(host, &1)) -> true
+      true -> false
     end
   end
 

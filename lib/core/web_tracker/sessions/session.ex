@@ -13,6 +13,12 @@ defmodule Core.WebTracker.Sessions.Session do
   @id_prefix "sess"
   @id_regex ~r/^#{@id_prefix}_[a-z0-9]{21}$/
 
+  @traffic_sources [:search, :social, :email, :direct, :referral, :display, :video, :affiliate, :unknown]
+  @traffic_types [:organic, :paid, :unknown]
+
+  @type traffic_source :: :search | :social | :email | :direct | :referral | :display | :video | :affiliate | :unknown
+  @type traffic_type :: :organic | :paid | :unknown
+
   schema "web_sessions" do
     field(:tenant, :string)
     field(:visitor_id, :string)
@@ -28,6 +34,10 @@ defmodule Core.WebTracker.Sessions.Session do
     field(:region, :string)
     field(:country_code, :string)
     field(:is_mobile, :boolean)
+
+    # Traffic information
+    field(:traffic_source, Ecto.Enum, values: @traffic_sources)
+    field(:traffic_type, Ecto.Enum, values: @traffic_types)
 
     # Custom timestamps
     field(:started_at, :utc_datetime)
@@ -53,6 +63,9 @@ defmodule Core.WebTracker.Sessions.Session do
           region: String.t() | nil,
           country_code: String.t() | nil,
           is_mobile: boolean() | nil,
+          # Traffic information
+          traffic_source: traffic_source() | nil,
+          traffic_type: traffic_type() | nil,
           # Timestamps
           started_at: DateTime.t() | nil,
           ended_at: DateTime.t() | nil,
@@ -66,6 +79,16 @@ defmodule Core.WebTracker.Sessions.Session do
   Returns the ID prefix used for web sessions.
   """
   def id_prefix, do: @id_prefix
+
+  @doc """
+  Returns the available traffic source options.
+  """
+  def traffic_sources, do: @traffic_sources
+
+  @doc """
+  Returns the available traffic type options.
+  """
+  def traffic_types, do: @traffic_types
 
   @doc """
   Validates the changeset for a web session.
@@ -86,6 +109,8 @@ defmodule Core.WebTracker.Sessions.Session do
       :region,
       :country_code,
       :is_mobile,
+      :traffic_source,
+      :traffic_type,
       :started_at,
       :ended_at,
       :last_event_at,
