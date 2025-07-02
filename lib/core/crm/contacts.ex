@@ -2,14 +2,12 @@ defmodule Core.Crm.Contacts do
   @moduledoc """
   Manages contact data and operations.
   """
-  import Ecto.Query
   require Logger
 
   alias Core.Repo
   alias Core.Crm.Contacts.Contact
-  alias Core.Researcher.EmailValidator
 
-  @err_undeliverable {:error, "email address is undeliverable"}
+  # @err_undeliverable {:error, "email address is undeliverable"}
   @err_contact_creation_failed {:error, "contact creation failed"}
 
   def create_contact_by_linkedin_alias(alias) do
