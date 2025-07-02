@@ -7,8 +7,7 @@ defmodule Core.Crm.Leads.LeadDomainQueue do
     field :domain, :string
     field :rank, :integer
     field :processed_at, :utc_datetime
-
-    timestamps(type: :utc_datetime)
+    field :inserted_at, :utc_datetime
   end
 
   @doc false
