@@ -128,23 +128,20 @@ defmodule Core.Crm.Leads.LeadCreator do
   end
 
   defp process_lead_domain_queues_with_balance(lead_domain_queues) do
-    # Group by tenant and sort by rank (desc) and inserted_at (asc) within each tenant
     tenant_groups =
       lead_domain_queues
       |> Enum.group_by(& &1.tenant_id)
       |> Enum.map(fn {tenant_id, records} ->
-        sorted_records = Enum.sort_by(records, &{&1.rank || -1, &1.inserted_at}, [desc: true, asc: true])
+        sorted_records = Enum.sort_by(records, &(&1.rank || -1), :desc)
         {tenant_id, sorted_records}
       end)
       |> Enum.sort_by(fn {_tenant_id, records} ->
-        # Sort tenants by their highest rank record
         case records do
-          [first_record | _] -> {first_record.rank || -1, first_record.inserted_at}
-          [] -> {-1, DateTime.utc_now()}
+          [first_record | _] -> first_record.rank || -1
+          [] -> -1
         end
-      end, [desc: true, asc: true])
+      end, :desc)
 
-    # Process records in a round-robin fashion across tenants
     process_round_robin(tenant_groups, 0, [])
   end
 
