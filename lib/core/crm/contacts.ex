@@ -166,7 +166,7 @@ defmodule Core.Crm.Contacts do
   end
 
   defp parse_start_date(start_end_date) when is_map(start_end_date) do
-    case Map.get(start_end_date, :start_date) do
+    case Map.get(start_end_date, :start) do
       nil -> nil
       date_map when is_map(date_map) -> parse_date_map(date_map)
       _ -> nil
@@ -176,7 +176,7 @@ defmodule Core.Crm.Contacts do
   defp parse_start_date(_), do: nil
 
   defp parse_end_date(start_end_date) when is_map(start_end_date) do
-    case Map.get(start_end_date, :end_date) do
+    case Map.get(start_end_date, :end) do
       nil -> nil
       date_map when is_map(date_map) -> parse_date_map(date_map)
       _ -> nil
