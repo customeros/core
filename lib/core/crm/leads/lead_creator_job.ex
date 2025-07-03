@@ -51,26 +51,29 @@ defmodule Core.Crm.Leads.LeadCreator do
     OpenTelemetry.Tracer.with_span "lead_creator.check_leads" do
       lock_uuid = Ecto.UUID.generate()
 
-              case CronLocks.acquire_lock(:cron_lead_creator, lock_uuid) do
-          %CronLock{} ->
-            case fetch_lead_domain_queues_to_process() do
-              {:ok, lead_domain_queues} ->
-                OpenTelemetry.Tracer.set_attributes([
-                  {"lead_domain_queues.count", length(lead_domain_queues)}
-                ])
+      case CronLocks.acquire_lock(:cron_lead_creator, lock_uuid) do
+        %CronLock{} ->
+          case fetch_lead_domain_queues_to_process() do
+            {:ok, lead_domain_queues} ->
+              OpenTelemetry.Tracer.set_attributes([
+                {"lead_domain_queues.count", length(lead_domain_queues)}
+              ])
 
-                process_lead_domain_queues_with_balance(lead_domain_queues)
+              process_lead_domain_queues_with_balance(lead_domain_queues)
 
-              {:error, :not_found} ->
-                OpenTelemetry.Tracer.set_attributes([
-                  {"domain_queues.count", 0}
-                ])
+            {:error, :not_found} ->
+              OpenTelemetry.Tracer.set_attributes([
+                {"domain_queues.count", 0}
+              ])
 
-                Logger.info("No domain queues found for processing")
+              Logger.info("No domain queues found for processing")
 
-              {:error, :query_failed} ->
-                Tracing.error(:query_failed,"Failed to fetch lead domain queues, will retry on next run")
-            end
+            {:error, :query_failed} ->
+              Tracing.error(
+                :query_failed,
+                "Failed to fetch lead domain queues, will retry on next run"
+              )
+          end
 
           CronLocks.release_lock(:cron_lead_creator, lock_uuid)
 
@@ -107,21 +110,27 @@ defmodule Core.Crm.Leads.LeadCreator do
         {"param.tenant_id", lead_domain_queue.tenant_id}
       ])
 
-      result = with {:ok, db_company} <- Companies.get_or_create_by_domain(lead_domain_queue.domain),
-                   {:ok, lead} <-
-                     Leads.get_or_create_with_tenant_id(lead_domain_queue.tenant_id, %{
-                       type: :company,
-                       ref_id: db_company.id
-                     }) do
-        {:ok, lead}
-      else
-        {:error, reason} ->
-          Tracing.error(reason, "Failed to process domain queue record",
-            company_domain: lead_domain_queue.domain,
-            tenant_id: lead_domain_queue.tenant_id
-          )
-          {:error, reason}
-      end
+      result =
+        with {:ok, db_company} <-
+               Companies.get_or_create_by_domain(lead_domain_queue.domain),
+             {:ok, lead} <-
+               Leads.get_or_create_with_tenant_id(
+                 lead_domain_queue.tenant_id,
+                 %{
+                   type: :company,
+                   ref_id: db_company.id
+                 }
+               ) do
+          {:ok, lead}
+        else
+          {:error, reason} ->
+            Tracing.error(reason, "Failed to process domain queue record",
+              company_domain: lead_domain_queue.domain,
+              tenant_id: lead_domain_queue.tenant_id
+            )
+
+            {:error, reason}
+        end
 
       # Always mark as processed regardless of result
       mark_as_processed(lead_domain_queue)
@@ -138,66 +147,89 @@ defmodule Core.Crm.Leads.LeadCreator do
         sorted_records = Enum.sort_by(records, &(&1.rank || -1), :desc)
         {tenant_id, sorted_records}
       end)
-      |> Enum.sort_by(fn {_tenant_id, records} ->
-        case records do
-          [first_record | _] -> first_record.rank || -1
-          [] -> -1
-        end
-      end, :desc)
+      |> Enum.sort_by(
+        fn {_tenant_id, records} ->
+          case records do
+            [first_record | _] -> first_record.rank || -1
+            [] -> -1
+          end
+        end,
+        :desc
+      )
 
     process_round_robin(tenant_groups, 0, [])
   end
 
   defp process_round_robin([], _created_count, _processed_records), do: :ok
-  defp process_round_robin(_tenant_groups, created_count, _processed_records) when created_count >= @process_batch_size, do: :ok
+
+  defp process_round_robin(_tenant_groups, created_count, _processed_records)
+       when created_count >= @process_batch_size,
+       do: :ok
 
   defp process_round_robin(tenant_groups, created_count, processed_records) do
     # Take one record from each tenant in order
     {new_processed_records, new_created_count, remaining_tenant_groups} =
-      Enum.reduce_while(tenant_groups, {processed_records, created_count, []}, fn {tenant_id, records}, {acc_processed, acc_created, acc_remaining} ->
-        case records do
-          [record | remaining_records] ->
-            # Process this record
-            result = process_lead_domain_queue(record)
+      Enum.reduce_while(
+        tenant_groups,
+        {processed_records, created_count, []},
+        fn {tenant_id, records}, {acc_processed, acc_created, acc_remaining} ->
+          case records do
+            [record | remaining_records] ->
+              # Process this record
+              result = process_lead_domain_queue(record)
 
-            new_created_count = case result do
-              {:ok, %{just_created: true}} -> acc_created + 1
-              _ -> acc_created
-            end
+              new_created_count =
+                case result do
+                  {:ok, %{just_created: true}} -> acc_created + 1
+                  _ -> acc_created
+                end
 
-            new_processed = [record | acc_processed]
+              new_processed = [record | acc_processed]
 
-            # Add remaining records back to the list if any
-            new_remaining = if remaining_records != [], do: [{tenant_id, remaining_records} | acc_remaining], else: acc_remaining
+              # Add remaining records back to the list if any
+              new_remaining =
+                if remaining_records != [],
+                  do: [{tenant_id, remaining_records} | acc_remaining],
+                  else: acc_remaining
 
-            # Stop if we've created enough leads
-            if new_created_count >= @process_batch_size do
-              {:halt, {new_processed, new_created_count, new_remaining}}
-            else
-              {:cont, {new_processed, new_created_count, new_remaining}}
-            end
+              # Stop if we've created enough leads
+              if new_created_count >= @process_batch_size do
+                {:halt, {new_processed, new_created_count, new_remaining}}
+              else
+                {:cont, {new_processed, new_created_count, new_remaining}}
+              end
 
-          [] ->
-            # No more records for this tenant, skip
-            {:cont, {acc_processed, acc_created, acc_remaining}}
+            [] ->
+              # No more records for this tenant, skip
+              {:cont, {acc_processed, acc_created, acc_remaining}}
+          end
         end
-      end)
+      )
 
     # Continue with remaining tenant groups
-    process_round_robin(remaining_tenant_groups, new_created_count, new_processed_records)
+    process_round_robin(
+      remaining_tenant_groups,
+      new_created_count,
+      new_processed_records
+    )
   end
 
   defp mark_as_processed(%LeadDomainQueue{} = lead_domain_queue) do
     lead_domain_queue
-    |> Ecto.Changeset.change(%{processed_at: DateTime.utc_now() |> DateTime.truncate(:second)})
+    |> Ecto.Changeset.change(%{
+      processed_at: DateTime.utc_now() |> DateTime.truncate(:second)
+    })
     |> Repo.update()
     |> case do
-      {:ok, _updated} -> :ok
+      {:ok, _updated} ->
+        :ok
+
       {:error, reason} ->
         Logger.error("Failed to mark domain queue record as processed",
           id: lead_domain_queue.id,
           reason: reason
         )
+
         :error
     end
   end
@@ -230,18 +262,20 @@ defmodule Core.Crm.Leads.LeadCreator do
 
     case Repo.query(query) do
       {:ok, %{rows: rows, columns: _columns}} ->
-        records = Enum.map(rows, fn row ->
-          # Convert row to struct with proper field mapping
-          [id, tenant_id, domain, rank, processed_at, inserted_at] = row
-          %LeadDomainQueue{
-            id: id,
-            tenant_id: tenant_id,
-            domain: domain,
-            rank: rank,
-            processed_at: processed_at,
-            inserted_at: inserted_at,
-          }
-        end)
+        records =
+          Enum.map(rows, fn row ->
+            # Convert row to struct with proper field mapping
+            [id, tenant_id, domain, rank, processed_at, inserted_at] = row
+
+            %LeadDomainQueue{
+              id: id,
+              tenant_id: tenant_id,
+              domain: domain,
+              rank: rank,
+              processed_at: processed_at,
+              inserted_at: inserted_at
+            }
+          end)
 
         case records do
           [] -> {:error, :not_found}

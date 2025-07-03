@@ -3,11 +3,11 @@ defmodule Core.Crm.Leads.LeadDomainQueue do
   import Ecto.Changeset
 
   schema "lead_domain_queues" do
-    field :tenant_id, :string
-    field :domain, :string
-    field :rank, :integer
-    field :processed_at, :utc_datetime
-    field :inserted_at, :utc_datetime
+    field(:tenant_id, :string)
+    field(:domain, :string)
+    field(:rank, :integer)
+    field(:processed_at, :utc_datetime)
+    field(:inserted_at, :utc_datetime)
   end
 
   @doc false

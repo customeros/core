@@ -36,4 +36,3 @@ defmodule Core.Crm.TargetPersonas.TargetPersona do
 
   defp maybe_put_id(changeset), do: changeset
 end
-
