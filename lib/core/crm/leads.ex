@@ -206,13 +206,18 @@ defmodule Core.Crm.Leads do
             case group_by do
               :stage ->
                 output
+                |> Enum.filter(&(&1.stage != :customer))
                 |> Enum.group_by(& &1.stage)
                 |> Enum.map(fn {stage, leads} -> {stage, Enum.count(leads)} end)
                 |> Map.new()
 
               _ ->
                 Enum.reduce(output, %{}, fn lead, acc ->
-                  Map.update(acc, lead.stage, 1, &(&1 + 1))
+                  if lead.stage != :customer do
+                    Map.update(acc, lead.stage, 1, &(&1 + 1))
+                  else
+                    acc
+                  end
                 end)
             end
 

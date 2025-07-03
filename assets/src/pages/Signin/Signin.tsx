@@ -66,9 +66,9 @@ export default function Signin() {
             <p className="text-3xl font-semibold text-gray-900 mt-6">Good to see you</p>
           </>
         )}
-        <form onSubmit={submit} className="flex flex-col items-center gap-4 w-[360px]">
+        <form onSubmit={submit} className="flex flex-col items-center gap-6 w-[360px]">
           {emailSent ? (
-            <div className="space-y-2 text-center pt-4 ">
+            <div className="space-y-2 text-center pt-4">
               <p className="font-semibold text-3xl">Check your email</p>
               <p>
                 We've sent you an email with a magic link to{' '}
@@ -87,21 +87,20 @@ export default function Signin() {
             </div>
           ) : (
             <>
-              <div className="w-full flex flex-col items-start">
+              <div className="w-full flex flex-col items-start mt-6">
                 <Input
                   size="md"
                   type="email"
                   variant="outline"
                   value={data.email}
                   autoComplete="email"
-                  className="mt-4 mb-4"
                   invalid={!!errors.email}
                   placeholder="Enter your email"
                   onChange={e => setData('email', e.target.value)}
                 />
                 <p
                   className={cn(
-                    'text-error-500  h-[0px] transition-all mt-0 text-[12px]',
+                    'text-error-500 h-[0px] transition-all mt-0 text-[12px] pl-4',
                     errors.email?.length && 'h-[13px] mt-1',
                     errors.lead?.length && 'h-[13px] mt-1'
                   )}
@@ -120,31 +119,30 @@ export default function Signin() {
               </Button>
             </>
           )}
-
-          {!emailSent && (
-            <>
-              <div className="text-gray-500 text-center text-xs pt-2">
-                By signing in you agree to CustomerOS's
-                <div className="text-gray-500">
-                  <a
-                    className="text-primary-700 mr-1 underline"
-                    href="https://customeros.ai/legal/terms-of-service"
-                  >
-                    Terms of Service
-                  </a>
-                  <span className="mr-1">and</span>
-                  <a
-                    className="text-primary-700 underline"
-                    href="https://www.customeros.ai/legal/privacy-policy"
-                  >
-                    Privacy Policy
-                  </a>
-                  .
-                </div>
-              </div>
-            </>
-          )}
         </form>
+        {!emailSent && (
+          <>
+            <div className="text-gray-500 text-center text-xs mt-4">
+              By signing in you agree to CustomerOS's
+              <div className="text-gray-500">
+                <a
+                  className="text-primary-700 mr-1 underline"
+                  href="https://customeros.ai/legal/terms-of-service"
+                >
+                  Terms of Service
+                </a>
+                <span className="mr-1">and</span>
+                <a
+                  className="text-primary-700 underline"
+                  href="https://www.customeros.ai/legal/privacy-policy"
+                >
+                  Privacy Policy
+                </a>
+                .
+              </div>
+            </div>
+          </>
+        )}
       </div>
     </RootLayout>
   );

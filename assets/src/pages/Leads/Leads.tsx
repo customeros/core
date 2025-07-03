@@ -2,6 +2,7 @@ import { router } from '@inertiajs/react';
 import { lazy, useState, useEffect, useCallback, startTransition } from 'react';
 
 import { cn } from 'src/utils/cn';
+import { useLocalstorageState } from 'rooks';
 import { RootLayout } from 'src/layouts/Root';
 import { useUrlState } from 'src/hooks/useUrlState';
 import { Icon, IconName } from 'src/components/Icon';
@@ -36,6 +37,7 @@ export default function Leads({ leads, stage_counts, max_count }: LeadsProps) {
   const [scroll_progress, setScrollProgress] = useState(0);
   const { getUrlState, setUrlState } = useUrlState<UrlState>({ revalidate: ['leads'] });
   const { viewMode, group, lead, stage: selectedStage, asc } = getUrlState();
+  const [seen] = useLocalstorageState<Record<string, boolean>>('seen-leads', {});
 
   const handleOpenLead = useCallback(
     (lead: { id: string; stage: Stage }) => {
@@ -143,6 +145,7 @@ export default function Leads({ leads, stage_counts, max_count }: LeadsProps) {
                                   <LeadItem
                                     lead={lead}
                                     key={lead.id}
+                                    isSeen={seen[lead.id]}
                                     handleOpenLead={handleOpenLead}
                                     handleStageClick={handleStageClick}
                                   />
@@ -178,6 +181,7 @@ export default function Leads({ leads, stage_counts, max_count }: LeadsProps) {
                           <LeadItem
                             lead={lead}
                             key={lead.id}
+                            isSeen={seen[lead.id]}
                             handleOpenLead={handleOpenLead}
                             handleStageClick={handleStageClick}
                           />
@@ -215,7 +219,7 @@ export default function Leads({ leads, stage_counts, max_count }: LeadsProps) {
 const EventSubscriber = () => {
   useEventsChannel<LeadUpdatedEvent>(event => {
     if (event.type === 'lead_updated') {
-      router.reload({ only: ['companies'] });
+      router.reload({ only: ['leads'] });
     }
   });
 
