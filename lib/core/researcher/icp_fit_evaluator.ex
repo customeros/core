@@ -69,14 +69,19 @@ defmodule Core.Researcher.IcpFitEvaluator do
 
       with {:ok, icp} <- IcpProfiles.get_by_tenant_id(lead.tenant_id),
            {:ok, pages} <- get_prompt_context(domain, opts),
-           {:ok, fit} <-
+           {:ok, evaluation} <-
              get_icp_fit_with_retry(domain, pages, icp, 0) do
-        update_lead(lead, fit)
-        {:ok, fit}
+        update_lead(lead, evaluation)
+        {:ok, evaluation}
       else
         {:error, :no_business_pages_found} ->
-          update_lead(lead, :not_a_fit)
-          {:ok, :not_a_fit}
+          evaluation = %{
+            icp_fit: :not_a_fit,
+            icp_disqualification_reason: [:unable_to_determine_fit]
+          }
+
+          update_lead(lead, evaluation)
+          {:ok, evaluation}
 
         {:error, reason} ->
           Tracing.error(reason)
@@ -85,24 +90,35 @@ defmodule Core.Researcher.IcpFitEvaluator do
     end
   end
 
-  defp update_lead(%Leads.Lead{} = lead, fit)
-       when fit in [:strong, :moderate, :not_a_fit] do
+  defp update_lead(%Leads.Lead{} = lead, %{
+         icp_fit: fit,
+         icp_disqualification_reason: reasons
+       }) do
     OpenTelemetry.Tracer.with_span "icp_fit_evaluator.update_lead" do
       OpenTelemetry.Tracer.set_attributes([
         {"lead.id", lead.id},
-        {"icp_fit", fit}
+        {"icp_fit", fit},
+        {"disqualification_reasons", reasons}
       ])
 
-      case fit do
-        :strong ->
-          Leads.update_lead(lead, %{icp_fit: :strong, stage: :target})
+      update_attrs = %{
+        icp_fit: fit,
+        icp_disqualification_reason: reasons
+      }
 
-        :moderate ->
-          Leads.update_lead(lead, %{icp_fit: :moderate, stage: :target})
+      stage_attrs =
+        case fit do
+          :strong ->
+            %{stage: :target}
 
-        :not_a_fit ->
-          Leads.update_lead(lead, %{icp_fit: :not_a_fit, stage: nil})
-      end
+          :moderate ->
+            %{stage: :target}
+
+          :not_a_fit ->
+            %{stage: nil}
+        end
+
+      Leads.update_lead(lead, Map.merge(update_attrs, stage_attrs))
     end
   end
 
@@ -163,8 +179,8 @@ defmodule Core.Researcher.IcpFitEvaluator do
       case TaskAwaiter.await(task, @icp_timeout) do
         {:ok, answer} ->
           case Validator.validate_and_parse(answer) do
-            {:ok, fit} ->
-              {:ok, fit}
+            {:ok, evaluation} ->
+              {:ok, evaluation}
 
             {:error, reason} ->
               Tracing.error(reason)

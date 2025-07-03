@@ -23,6 +23,23 @@ defmodule Core.Crm.Leads.Lead do
           | :ready_to_buy
           | :customer
   @type icp_fit :: :strong | :moderate | :not_a_fit
+  @type disqualification_reason ::
+          :company_too_small
+          | :company_too_large
+          | :company_declining
+          | :competitor
+          | :incompatible_tech_stack
+          | :legacy_system_constraints
+          | :market_position_mismatch
+          | :no_use_case
+          | :regulatory_restrictions
+          | :revenue_model_mismatch
+          | :startup_too_early
+          | :unable_to_determine_fit
+          | :wrong_industry
+          | :wrong_geography
+          | :wrong_business_model
+
   @type t :: %__MODULE__{
           id: String.t(),
           tenant_id: String.t(),
@@ -30,6 +47,7 @@ defmodule Core.Crm.Leads.Lead do
           type: lead_type,
           stage: lead_stage,
           icp_fit: icp_fit,
+          icp_disqualification_reason: [disqualification_reason],
           error_message: String.t(),
           icp_fit_evaluation_attempt_at: DateTime.t(),
           icp_fit_evaluation_attempts: integer(),
@@ -60,6 +78,26 @@ defmodule Core.Crm.Leads.Lead do
       default: :pending
     )
 
+    field(:icp_disqualification_reason, {:array, Ecto.Enum},
+      values: [
+        :company_too_small,
+        :company_too_large,
+        :company_declining,
+        :competitor,
+        :incompatible_tech_stack,
+        :legacy_system_constraints,
+        :market_position_mismatch,
+        :no_use_case,
+        :regulatory_restrictions,
+        :revenue_model_mismatch,
+        :startup_too_early,
+        :unable_to_determine_fit,
+        :wrong_industry,
+        :wrong_geography,
+        :wrong_business_model
+      ]
+    )
+
     field(:error_message, :string)
     field(:icp_fit_evaluation_attempt_at, :utc_datetime)
     field(:icp_fit_evaluation_attempts, :integer, default: 0)
@@ -86,7 +124,8 @@ defmodule Core.Crm.Leads.Lead do
     :icp_fit_evaluation_attempts,
     :brief_create_attempt_at,
     :brief_create_attempts,
-    :just_created
+    :just_created,
+    :icp_disqualification_reason
   ]
 
   def changeset(%__MODULE__{} = lead, attrs) do

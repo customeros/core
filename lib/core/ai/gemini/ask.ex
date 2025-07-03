@@ -31,13 +31,13 @@ defmodule Core.Ai.Gemini.Ask do
   @initial_retry_interval 2_000
   @retry_backoff_factor 1.5
   @max_retries 3
-  @model_overloaded_message "The model is overloaded. Please try again later."
+  @model_overloaded_message "The Gemini model is overloaded. Please try again later."
 
   def ask(%Gemini.Request{} = message, %Gemini.Config{} = config) do
     with :ok <- Gemini.Request.validate(message),
          :ok <- Gemini.Config.validate(config),
          {:ok, req_body} <- build_request(message),
-         {:ok, response} <- execute_with_retry(req_body, config) do
+         {:ok, response} <- execute_with_retry(message.model, req_body, config) do
       {:ok, response}
     else
       {:error, reason} -> {:error, reason}
@@ -91,8 +91,8 @@ defmodule Core.Ai.Gemini.Ask do
     {:ok, request}
   end
 
-  defp execute_with_retry(req_body, config, attempt \\ 1) do
-    case execute(req_body, config) do
+  defp execute_with_retry(model, req_body, config, attempt \\ 1) do
+    case execute(model, req_body, config) do
       {:ok, response} ->
         {:ok, response}
 
@@ -124,13 +124,13 @@ defmodule Core.Ai.Gemini.Ask do
     |> round()
   end
 
-  defp execute(req_body, config) do
+  defp execute(model, req_body, config) do
     req_body
     |> Jason.encode()
     |> case do
       {:ok, json_body} ->
         config.api_path
-        |> build_request_with_headers(json_body, config)
+        |> build_request_with_headers(model, json_body, config)
         |> send_request(config.timeout)
 
       {:error, reason} ->
@@ -138,8 +138,21 @@ defmodule Core.Ai.Gemini.Ask do
     end
   end
 
-  defp build_request_with_headers(url, body, config) do
-    url = "#{url}?#{@api_key_param}=#{config.api_key}"
+  defp get_model_id(model) do
+    case model do
+      :gemma3_27b -> "gemma-3-27b-it"
+      :gemini_flash_2_0 -> "gemini-2.0-flash"
+      :gemini_flash_2_5 -> "gemini-2.5-flash"
+      :gemini_flash_light_2_5 -> "gemini-2.5-flash-lite-preview-06-17"
+      :gemini_pro_2_5 -> "gemini-2.5-pro"
+    end
+  end
+
+  defp build_request_with_headers(url, model, body, config) do
+    url =
+      "#{url}/#{get_model_id(model)}:generateContent?#{@api_key_param}=#{config.api_key}"
+
+    dbg(url)
     headers = [{@content_type_header, "application/json"}]
     Finch.build(:post, url, headers, body)
   end

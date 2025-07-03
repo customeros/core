@@ -4,7 +4,7 @@ defmodule Core.Ai.Anthropic.Request do
   Represents a request to ask a question to Claude.
   """
 
-  @type model :: :claude_haiku | :claude_sonnet
+  @type model :: :claude_haiku_3_5 | :claude_sonnet_4_0
 
   @type t :: %__MODULE__{
           model: model(),
@@ -27,8 +27,8 @@ defmodule Core.Ai.Anthropic.Request do
   """
   def validate(%__MODULE__{} = request) do
     cond do
-      request.model not in [:claude_haiku, :claude_sonnet] ->
-        {:error, "model must be :claude_haiku or :claude_sonnet"}
+      request.model not in [:claude_haiku_3_5, :claude_sonnet_4_0] ->
+        {:error, "invalid anthropic model"}
 
       is_nil(request.prompt) or request.prompt == "" ->
         {:error, "prompt cannot be empty"}

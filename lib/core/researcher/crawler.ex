@@ -8,7 +8,7 @@ defmodule Core.Researcher.Crawler do
 
   @default_opts [
     max_depth: 2,
-    max_pages: 100,
+    max_pages: 30,
     delay: 100,
     concurrency: 5
   ]

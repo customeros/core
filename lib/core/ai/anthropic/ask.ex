@@ -36,9 +36,6 @@ defmodule Core.Ai.Anthropic.Ask do
   @content_type_header "content-type"
   @default_api_version "2023-06-01"
 
-  @haiku_version "claude-3-5-haiku-20241022"
-  @sonnet_version "claude-3-5-sonnet-20241022"
-
   @spec ask(Request.t(), Config.t()) ::
           {:ok, String.t()} | {:error, any()}
   def ask(%Request{} = message, %Config{} = config) do
@@ -55,8 +52,8 @@ defmodule Core.Ai.Anthropic.Ask do
   defp build_request(%Request{} = message) do
     model_name =
       case message.model do
-        :claude_haiku -> @haiku_version
-        :claude_sonnet -> @sonnet_version
+        :claude_haiku_3_5 -> "claude-3-5-haiku-latest"
+        :claude_sonnet_4_0 -> "claude-sonnet-4-0"
       end
 
     request = %ApiRequest{
