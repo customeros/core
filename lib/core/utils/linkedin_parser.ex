@@ -5,10 +5,10 @@ defmodule Core.Utils.LinkedinParser do
   Examples:
       iex> LinkedInParser.parse_profile_url("https://linkedin.com/in/john-doe")
       {:ok, :alias, "john-doe"}
-      
+
       iex> LinkedInParser.parse_profile_url("https://linkedin.com/in/ACoAAAX8lzoBNrXd2PoNYW37m_WQddwEAVB8MnI")
       {:ok, :id, "ACoAAAX8lzoBNrXd2PoNYW37m_WQddwEAVB8MnI"}
-      
+
       iex> LinkedInParser.parse_profile_url("invalid-url")
       {:error, :invalid_url}
   """
@@ -35,15 +35,16 @@ defmodule Core.Utils.LinkedinParser do
   Examples:
       iex> LinkedInParser.detect_type("ACoAAAX8lzoBNrXd2PoNYW37m_WQddwEAVB8MnI")
       :id
-      
+
       iex> LinkedInParser.detect_type("john-doe-123")
       :alias
   """
 
   def detect_type(identifier) when is_binary(identifier) do
-    cond do
-      is_linkedin_id?(identifier) -> :id
-      true -> :alias
+    if linkedin_id?(identifier) do
+      :id
+    else
+      :alias
     end
   end
 
@@ -73,7 +74,7 @@ defmodule Core.Utils.LinkedinParser do
 
   defp extract_identifier({:error, reason}), do: {:error, reason}
 
-  defp is_linkedin_id?(identifier) do
+  defp linkedin_id?(identifier) do
     String.length(identifier) > 30 and
       (String.starts_with?(identifier, "ACoA") or
          String.starts_with?(identifier, "ACwA") or

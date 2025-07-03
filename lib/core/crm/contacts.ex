@@ -3,18 +3,19 @@ defmodule Core.Crm.Contacts do
   Manages contact data and operations.
   """
   require Logger
+  import Ecto.Query
 
   alias Core.Repo
   alias Core.Crm.Contacts.Contact
 
-  #@err_undeliverable {:error, "email address is undeliverable"}
+  # @err_undeliverable {:error, "email address is undeliverable"}
   @err_contact_creation_failed {:error, "contact creation failed"}
 
-  def create_contact_by_linkedin_alias(alias) do
+  def create_contacts_by_linkedin_alias(alias) do
     create_contact(%Contact{}, %{linkedin_alias: alias})
   end
 
-  def create_contact_by_linkedin_id(linkedin_id) do
+  def create_contacts_by_linkedin_id(linkedin_id) do
     create_contact(%Contact{}, %{linkedin_id: linkedin_id})
   end
 
@@ -35,17 +36,21 @@ defmodule Core.Crm.Contacts do
     end
   end
 
-  def get_contact_by_linkedin_id(linkedin_id) do
-    case Repo.get_by(Contact, linkedin_id: linkedin_id) do
-      nil -> :not_found
-      contact -> {:ok, contact}
+  def get_contacts_by_linkedin_id(linkedin_id) do
+    contacts = Repo.all(from c in Contact, where: c.linkedin_id == ^linkedin_id)
+
+    case contacts do
+      [] -> :not_found
+      contacts -> {:ok, contacts}
     end
   end
 
-  def get_contact_by_linkedin_alias(alias) do
-    case Repo.get_by(Contact, linkedin_alias: alias) do
-      nil -> :not_found
-      contact -> {:ok, contact}
+  def get_contacts_by_linkedin_alias(alias) do
+    contacts = Repo.all(from c in Contact, where: c.linkedin_alias == ^alias)
+
+    case contacts do
+      [] -> :not_found
+      contacts -> {:ok, contacts}
     end
   end
 

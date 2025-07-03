@@ -7,7 +7,14 @@ defmodule Core.ScrapinCompanies do
   """
 
   import Ecto.Query
-  alias Core.{Repo, ScrapinCompany, ScrapinCompanyDetails, ScrapinCompanyResponseBody}
+
+  alias Core.{
+    Repo,
+    ScrapinCompany,
+    ScrapinCompanyDetails,
+    ScrapinCompanyResponseBody
+  }
+
   alias Core.Utils.{IdGenerator, PrimaryDomainFinder, MapUtils}
   alias Core.Logger.ApiLogger, as: ApiLogger
 
@@ -187,7 +194,8 @@ defmodule Core.ScrapinCompanies do
       {:ok, %{status: 200, body: body}} ->
         case Jason.decode(body) do
           {:ok, map} ->
-            {:ok, struct(ScrapinCompanyResponseBody, MapUtils.to_snake_case_map(map))}
+            {:ok,
+             struct(ScrapinCompanyResponseBody, MapUtils.to_snake_case_map(map))}
 
           _ ->
             {:error, :invalid_response}

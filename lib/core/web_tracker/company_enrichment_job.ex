@@ -107,8 +107,10 @@ defmodule Core.WebTracker.CompanyEnrichmentJob do
       ])
 
       with {:ok, session} <- Sessions.get_session_by_id(event.session_id),
-           {:ok, should_reassociate} <- check_if_reassociation_needed(session, domain),
-           {:ok, _} <- maybe_reassociate_company(event, domain, should_reassociate) do
+           {:ok, should_reassociate} <-
+             check_if_reassociation_needed(session, domain),
+           {:ok, _} <-
+             maybe_reassociate_company(event, domain, should_reassociate) do
         Tracing.ok()
         :ok
       else
@@ -117,6 +119,7 @@ defmodule Core.WebTracker.CompanyEnrichmentJob do
             session_id: event.session_id,
             domain: domain
           )
+
           {:error, reason}
       end
     end
@@ -147,7 +150,8 @@ defmodule Core.WebTracker.CompanyEnrichmentJob do
   defp maybe_reassociate_company(event, domain, true) do
     # Reassociation needed - create/get company and update session
     with {:ok, db_company} <- Companies.get_or_create_by_domain(domain),
-         {:ok, _session} <- Sessions.set_company_id(event.session_id, db_company.id),
+         {:ok, _session} <-
+           Sessions.set_company_id(event.session_id, db_company.id),
          {:ok, _lead} <-
            Leads.get_or_create(event.tenant, %{
              type: :company,
@@ -161,6 +165,7 @@ defmodule Core.WebTracker.CompanyEnrichmentJob do
           session_id: event.session_id,
           domain: domain
         )
+
         {:error, reason}
     end
   end

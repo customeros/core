@@ -7,7 +7,14 @@ defmodule Core.ScrapinContacts do
   """
 
   import Ecto.Query
-  alias Core.{Repo, ScrapinContact, ScrapinContactDetails, ScrapinContactResponseBody}
+
+  alias Core.{
+    Repo,
+    ScrapinContact,
+    ScrapinContactDetails,
+    ScrapinContactResponseBody
+  }
+
   alias Core.Utils.{IdGenerator, MapUtils}
   alias Core.Logger.ApiLogger, as: ApiLogger
 
@@ -36,19 +43,49 @@ defmodule Core.ScrapinContacts do
   Returns {:ok, %ScrapinContactDetails{}} or {:error, :not_found}.
   """
   def profile_contact_with_scrapin(linkedin_url) when is_binary(linkedin_url) do
-    request_params = %{linkedin_url: linkedin_url}
-    api_params = %{apikey: scrapin_api_key(), linkedInUrl: linkedin_url}
+    normalized_linkedin_url = normalize_linkedin_url(linkedin_url)
+    request_params = %{linkedin_url: normalized_linkedin_url}
+
+    api_params = %{
+      apikey: scrapin_api_key(),
+      linkedInUrl: normalized_linkedin_url
+    }
+
     do_scrapin(:contact_profile, request_params, api_params)
   end
 
-  defp build_search_request_param(%{first_name: first_name, last_name: last_name, email: email, company_domain: domain, company_name: company_name})
+  defp build_search_request_param(%{
+         first_name: first_name,
+         last_name: last_name,
+         email: email,
+         company_domain: domain,
+         company_name: company_name
+       })
        when is_binary(first_name) or is_binary(last_name) or is_binary(email) do
     request_params = %{}
-    request_params = if first_name, do: Map.put(request_params, :first_name, first_name), else: request_params
-    request_params = if last_name, do: Map.put(request_params, :last_name, last_name), else: request_params
-    request_params = if email, do: Map.put(request_params, :email, email), else: request_params
-    request_params = if domain, do: Map.put(request_params, :company_domain, domain), else: request_params
-    request_params = if company_name && !domain, do: Map.put(request_params, :company_name, company_name), else: request_params
+
+    request_params =
+      if first_name,
+        do: Map.put(request_params, :first_name, first_name),
+        else: request_params
+
+    request_params =
+      if last_name,
+        do: Map.put(request_params, :last_name, last_name),
+        else: request_params
+
+    request_params =
+      if email, do: Map.put(request_params, :email, email), else: request_params
+
+    request_params =
+      if domain,
+        do: Map.put(request_params, :company_domain, domain),
+        else: request_params
+
+    request_params =
+      if company_name && !domain,
+        do: Map.put(request_params, :company_name, company_name),
+        else: request_params
 
     {:ok, request_params}
   end
@@ -57,13 +94,30 @@ defmodule Core.ScrapinContacts do
     {:error, :invalid_params}
   end
 
-  defp build_search_params(%{first_name: first_name, last_name: last_name, email: email, company_domain: domain, company_name: company_name}) do
+  defp build_search_params(%{
+         first_name: first_name,
+         last_name: last_name,
+         email: email,
+         company_domain: domain,
+         company_name: company_name
+       }) do
     params = %{apikey: scrapin_api_key()}
-    params = if first_name, do: Map.put(params, :firstName, first_name), else: params
-    params = if last_name, do: Map.put(params, :lastName, last_name), else: params
+
+    params =
+      if first_name, do: Map.put(params, :firstName, first_name), else: params
+
+    params =
+      if last_name, do: Map.put(params, :lastName, last_name), else: params
+
     params = if email, do: Map.put(params, :email, email), else: params
-    params = if domain, do: Map.put(params, :companyDomain, domain), else: params
-    params = if company_name && !domain, do: Map.put(params, :companyName, company_name), else: params
+
+    params =
+      if domain, do: Map.put(params, :companyDomain, domain), else: params
+
+    params =
+      if company_name && !domain,
+        do: Map.put(params, :companyName, company_name),
+        else: params
 
     {:ok, params}
   end
@@ -93,8 +147,10 @@ defmodule Core.ScrapinContacts do
                 request_param_first_name: Map.get(request_params, :first_name),
                 request_param_last_name: Map.get(request_params, :last_name),
                 request_param_email: Map.get(request_params, :email),
-                request_param_company_domain: Map.get(request_params, :company_domain),
-                request_param_company_name: Map.get(request_params, :company_name),
+                request_param_company_domain:
+                  Map.get(request_params, :company_domain),
+                request_param_company_name:
+                  Map.get(request_params, :company_name),
                 data: Jason.encode!(response),
                 success: true
               }
@@ -112,8 +168,10 @@ defmodule Core.ScrapinContacts do
                 request_param_first_name: Map.get(request_params, :first_name),
                 request_param_last_name: Map.get(request_params, :last_name),
                 request_param_email: Map.get(request_params, :email),
-                request_param_company_domain: Map.get(request_params, :company_domain),
-                request_param_company_name: Map.get(request_params, :company_name),
+                request_param_company_domain:
+                  Map.get(request_params, :company_domain),
+                request_param_company_name:
+                  Map.get(request_params, :company_name),
                 data: Jason.encode!(response),
                 success: false
               }
@@ -137,18 +195,24 @@ defmodule Core.ScrapinContacts do
   defp get_latest_by_params(request_params) do
     query = ScrapinContact
 
-    query = if request_params.linkedin_url do
-      where(query, [s], s.request_param_linkedin == ^request_params.linkedin_url)
-    else
-      query
-      |> where([s],
-        s.request_param_first_name == ^request_params.first_name and
-        s.request_param_last_name == ^request_params.last_name and
-        s.request_param_email == ^request_params.email and
-        s.request_param_company_domain == ^request_params.company_domain and
-        s.request_param_company_name == ^request_params.company_name
-      )
-    end
+    query =
+      if request_params.linkedin_url do
+        where(
+          query,
+          [s],
+          s.request_param_linkedin == ^request_params.linkedin_url
+        )
+      else
+        query
+        |> where(
+          [s],
+          s.request_param_first_name == ^request_params.first_name and
+            s.request_param_last_name == ^request_params.last_name and
+            s.request_param_email == ^request_params.email and
+            s.request_param_company_domain == ^request_params.company_domain and
+            s.request_param_company_name == ^request_params.company_name
+        )
+      end
 
     query
     |> order_by([s], desc: s.inserted_at)
@@ -200,28 +264,33 @@ defmodule Core.ScrapinContacts do
     query = URI.encode_query(params)
     full_url = url <> "?" <> query
 
-                case Finch.build(:get, full_url) |> ApiLogger.request(@vendor) do
-        {:ok, %{status: 200, body: body}} ->
-          case Jason.decode(body) do
-                                    {:ok, map} ->
-              snake_case_map = MapUtils.to_snake_case_map(map)
+    case Finch.build(:get, full_url) |> ApiLogger.request(@vendor) do
+      {:ok, %{status: 200, body: body}} ->
+        case Jason.decode(body) do
+          {:ok, map} ->
+            snake_case_map = MapUtils.to_snake_case_map(map)
 
-              # Convert person field to ScrapinContactDetails struct if present
-              person_struct =
-                case Map.get(snake_case_map, :person) do
-                  nil -> nil
-                  person_map when is_map(person_map) -> struct(ScrapinContactDetails, person_map)
-                  _ -> nil
-                end
+            # Convert person field to ScrapinContactDetails struct if present
+            person_struct =
+              case Map.get(snake_case_map, :person) do
+                nil ->
+                  nil
 
-              response_struct = struct(ScrapinContactResponseBody, snake_case_map)
-              response_struct = %{response_struct | person: person_struct}
+                person_map when is_map(person_map) ->
+                  struct(ScrapinContactDetails, person_map)
 
-              {:ok, response_struct}
+                _ ->
+                  nil
+              end
 
-            _ ->
-              {:error, :invalid_response}
-          end
+            response_struct = struct(ScrapinContactResponseBody, snake_case_map)
+            response_struct = %{response_struct | person: person_struct}
+
+            {:ok, response_struct}
+
+          _ ->
+            {:error, :invalid_response}
+        end
 
       {:ok, %{status: status}} when status in 400..499 ->
         {:error, :not_found}
@@ -232,5 +301,11 @@ defmodule Core.ScrapinContacts do
       {:error, reason} ->
         {:error, reason}
     end
+  end
+
+  defp normalize_linkedin_url(url) when is_binary(url) do
+    url
+    |> String.trim()
+    |> String.trim_trailing("/")
   end
 end

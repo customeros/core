@@ -15,6 +15,7 @@ defmodule Core.Crm.Contacts.Contact do
     field(:full_name, :string)
     field(:linkedin_id, :string)
     field(:linkedin_alias, :string)
+    field(:linkedin_company_id, :string)
     field(:business_email, :string)
     field(:business_email_status, :string)
     field(:personal_email, :string)

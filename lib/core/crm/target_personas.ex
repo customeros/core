@@ -1,28 +1,37 @@
 defmodule Core.Crm.TargetPersonas do
   require Logger
 
+  require OpenTelemetry.Tracer
   alias Core.Repo
   alias Core.Crm.Contacts
   alias Core.Utils.LinkedinParser
   alias Core.Crm.TargetPersonas.TargetPersona
+  alias Core.Utils.Tracing
 
   @err_persona_creation_failed {:error, "target persona creation failed"}
 
   def create_from_linkedin(tenant_id, linkedin_url) do
-    case LinkedinParser.parse_contact_url(linkedin_url) do
-      {:ok, :id, id} ->
-        create_from_linkedin_id(tenant_id, id)
+    OpenTelemetry.Tracer.with_span "target_personas.create_from_linkedin" do
+      OpenTelemetry.Tracer.set_attributes([
+        {"param.tenant.id", tenant_id},
+        {"param.linkedin_url", linkedin_url}
+      ])
 
-      {:ok, :alias, alias} ->
-        create_from_linkedin_alias(tenant_id, alias)
+      case LinkedinParser.parse_contact_url(linkedin_url) do
+        {:ok, :id, id} ->
+          create_from_linkedin_id(tenant_id, id)
 
-      {:error, reason} ->
-        Logger.error("Unable to create prospect from linkedin", %{
-          tenant_id: tenant_id,
-          linkedin_url: linkedin_url
-        })
+        {:ok, :alias, alias} ->
+          create_from_linkedin_alias(tenant_id, alias)
 
-        {:error, reason}
+        {:error, reason} ->
+          Tracing.error(reason, "Unable to create prospect from linkedin",
+            tenant_id: tenant_id,
+            linkedin_url: linkedin_url
+          )
+
+          {:error, reason}
+      end
     end
   end
 
@@ -51,40 +60,96 @@ defmodule Core.Crm.TargetPersonas do
     end
   end
 
-  defp create_from_linkedin_id(tenant_id, linkedin_id) do
-    case Contacts.get_contact_by_linkedin_id(linkedin_id) do
-      {:ok, contact} ->
-        create(tenant_id, contact.id)
+  def get_persona(tenant_id, contact_id) do
+    case Repo.get_by(TargetPersona,
+           tenant_id: tenant_id,
+           contact_id: contact_id
+         ) do
+      nil -> :not_found
+      persona -> {:ok, persona}
+    end
+  end
 
-      :not_found ->
-        create_contact_and_persona_from_linkedin_id(tenant_id, linkedin_id)
+  defp filter_active_contacts(contacts) do
+    Enum.filter(contacts, fn contact ->
+      (is_nil(contact.job_ended_at) or
+         DateTime.compare(contact.job_ended_at, DateTime.utc_now()) == :gt) and
+        not is_nil(contact.company_id)
+    end)
+  end
+
+  defp create_personas_for_contacts(tenant_id, contacts) do
+    Enum.map(contacts, fn contact ->
+      case create(tenant_id, contact.id) do
+        {:ok, persona} ->
+          persona
+
+        {:error, _reason} ->
+          case get_persona(tenant_id, contact.id) do
+            {:ok, persona} -> persona
+            :not_found -> nil
+          end
+      end
+    end)
+    |> Enum.filter(& &1)
+  end
+
+  defp create_from_linkedin_id(tenant_id, linkedin_id) do
+    OpenTelemetry.Tracer.with_span "target_personas.create_from_linkedin_id" do
+      OpenTelemetry.Tracer.set_attributes([
+        {"param.tenant.id", tenant_id},
+        {"param.linkedin_id", linkedin_id}
+      ])
+
+      case Contacts.get_contacts_by_linkedin_id(linkedin_id) do
+        {:ok, contacts} ->
+          contacts
+          |> filter_active_contacts()
+          |> create_personas_for_contacts(tenant_id)
+
+        :not_found ->
+          create_contacts_and_personas_from_linkedin_id(tenant_id, linkedin_id)
+      end
     end
   end
 
   defp create_from_linkedin_alias(tenant_id, alias) do
-    case Contacts.get_contact_by_linkedin_alias(alias) do
-      {:ok, contact} ->
-        create(tenant_id, contact.id)
+    OpenTelemetry.Tracer.with_span "target_personas.create_from_linkedin_alias" do
+      OpenTelemetry.Tracer.set_attributes([
+        {"param.tenant.id", tenant_id},
+        {"param.linkedin_alias", alias}
+      ])
 
-      :not_found ->
-        create_contact_and_persona_from_linkedin_alias(tenant_id, alias)
+      case Contacts.get_contacts_by_linkedin_alias(alias) do
+        {:ok, contacts} ->
+          contacts
+          |> filter_active_contacts()
+          |> create_personas_for_contacts(tenant_id)
+
+        :not_found ->
+          create_contacts_and_personas_from_linkedin_alias(tenant_id, alias)
+      end
     end
   end
 
-  defp create_contact_and_persona_from_linkedin_id(tenant_id, linkedin_id) do
-    case Contacts.create_contact_by_linkedin_id(linkedin_id) do
-      {:ok, contact} ->
-        create(tenant_id, contact.id)
+  defp create_contacts_and_personas_from_linkedin_id(tenant_id, linkedin_id) do
+    case Contacts.create_contacts_by_linkedin_id(linkedin_id) do
+      {:ok, contacts} ->
+        contacts
+        |> filter_active_contacts()
+        |> create_personas_for_contacts(tenant_id)
 
       {:error, reason} ->
         {:error, reason}
     end
   end
 
-  defp create_contact_and_persona_from_linkedin_alias(tenant_id, alias) do
-    case Contacts.create_contact_by_linkedin_alias(alias) do
-      {:ok, contact} ->
-        create(tenant_id, contact.id)
+  defp create_contacts_and_personas_from_linkedin_alias(tenant_id, alias) do
+    case Contacts.create_contacts_by_linkedin_alias(alias) do
+      {:ok, contacts} ->
+        contacts
+        |> filter_active_contacts()
+        |> create_personas_for_contacts(tenant_id)
 
       {:error, reason} ->
         {:error, reason}
