@@ -229,7 +229,7 @@ defmodule Core.Crm.Leads.LeadCreator do
     """
 
     case Repo.query(query) do
-      {:ok, %{rows: rows, columns: columns}} ->
+      {:ok, %{rows: rows, columns: _columns}} ->
         records = Enum.map(rows, fn row ->
           # Convert row to struct with proper field mapping
           [id, tenant_id, domain, rank, processed_at, inserted_at] = row
