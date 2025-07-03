@@ -1,5 +1,7 @@
 import { cn } from 'src/utils/cn';
+import { useOnLongHover } from 'rooks';
 import { useUrlState } from 'src/hooks';
+import { useLocalstorageState } from 'rooks';
 import { Tooltip } from 'src/components/Tooltip';
 import { Lead, Stage, UrlState } from 'src/types';
 import { Icon, IconName } from 'src/components/Icon/Icon';
@@ -8,13 +10,21 @@ import { stageIcons } from '../util';
 
 interface LeadItemProps {
   lead: Lead;
+  isSeen: boolean;
   handleStageClick: (stage: Stage | null) => void;
   handleOpenLead: (lead: { id: string; stage: Stage }) => void;
 }
 
-export const LeadItem = ({ lead, handleOpenLead, handleStageClick }: LeadItemProps) => {
+export const LeadItem = ({ lead, isSeen, handleOpenLead, handleStageClick }: LeadItemProps) => {
   const { getUrlState } = useUrlState<UrlState>();
   const { lead: selectedLead, group, stage: selectedStage } = getUrlState();
+  const [_, setSeen] = useLocalstorageState('seen-leads', {});
+  const longHoverRef = useOnLongHover(
+    () => {
+      setSeen(prev => ({ ...prev, [lead.id]: true }));
+    },
+    { duration: 500 }
+  );
 
   const isSelected = selectedLead === lead.id;
   const isCustomer = lead.stage === 'customer';
@@ -88,16 +98,22 @@ export const LeadItem = ({ lead, handleOpenLead, handleStageClick }: LeadItemPro
           </div>
         )}
         <p
-          onClick={() => {
-            handleOpenLead({ id: lead.id, stage: lead.stage });
-          }}
           className={cn(
             'py-2 px-2 font-medium truncate',
             isCustomer ? 'cursor-default' : 'cursor-pointer'
           )}
+          onClick={() => {
+            handleOpenLead({ id: lead.id, stage: lead.stage });
+            setSeen(prev => ({ ...prev, [lead.id]: true }));
+          }}
         >
           {lead.name || 'Unnamed'}
         </p>
+        {!isSeen && (
+          <div ref={longHoverRef} className="p-3 rounded-sm hover:bg-gray-100 transition-colors">
+            <div className="size-1 bg-blue-light-500 rounded-full" />
+          </div>
+        )}
       </div>
       <div
         className={cn(
