@@ -3,8 +3,11 @@ import { router, usePage } from '@inertiajs/react';
 
 import { Icon } from 'src/components/Icon';
 import { PageProps } from '@inertiajs/core';
+import { Tabs } from 'src/components/Tabs/Tabs';
+import { useUrlState } from 'src/hooks/useUrlState';
 import { Lead, User, Stage, Tenant } from 'src/types';
 import { Editor } from 'src/components/Editor/Editor';
+import { Button } from 'src/components/Button/Button';
 import { IconButton } from 'src/components/IconButton';
 import { Tooltip } from 'src/components/Tooltip/Tooltip';
 import { toastSuccess } from 'src/components/Toast/success';
@@ -26,6 +29,8 @@ export const DocumentEditor = () => {
   const viewMode = params.get('viewMode');
 
   const { presentUsers, currentUserId } = usePresence();
+  const { getUrlState, setUrlState } = useUrlState();
+  const { viewDoc } = getUrlState();
 
   const currentLead = useMemo(() => {
     if (Array.isArray(page.props.leads)) {
@@ -83,6 +88,7 @@ export const DocumentEditor = () => {
 
     params.delete('lead');
     params.delete('viewMode');
+    params.delete('viewDoc');
     router.get(
       '/leads',
       {
@@ -101,6 +107,13 @@ export const DocumentEditor = () => {
 
     navigator.clipboard.writeText(`${url}/documents/${currentLead?.document_id}`);
     toastSuccess('Document link copied', 'document-link-copied');
+  };
+
+  const handleTabClick = () => {
+    setUrlState(state => ({
+      ...state,
+      viewDoc: state.viewDoc === 'true' ? 'false' : 'true',
+    }));
   };
 
   return (
@@ -125,7 +138,7 @@ export const DocumentEditor = () => {
                       </div>
                     )}
                     <p className="text-[16px] font-medium text-gray-900 truncate">
-                      {currentLead?.name} Account Brief
+                      {currentLead?.name}
                     </p>
                     {currentLead?.icp_fit === 'strong' && (
                       <div className="bg-error-100 w-fit px-2 py-1 rounded-[4px] max-w-[100px] truncate flex items-center gap-1 flex-shrink-0">
@@ -133,22 +146,27 @@ export const DocumentEditor = () => {
                         <span className="text-error-700 text-xs">Strong fit</span>
                       </div>
                     )}
+                    <Tabs variant="enclosed">
+                      <Button
+                        size="xs"
+                        onClick={handleTabClick}
+                        data-state={viewDoc === 'true' ? 'active' : 'inactive'}
+                      >
+                        Account brief
+                      </Button>
+                      <Button
+                        size="xs"
+                        onClick={handleTabClick}
+                        data-state={viewDoc === 'false' ? 'active' : 'inactive'}
+                      >
+                        Contacts
+                      </Button>
+                    </Tabs>
                   </div>
                 )}
 
                 <div className="flex items-center w-full justify-end mb-3 gap-2">
-                  {/* <IconButton
-                    size="xs"
-                    variant="ghost"
-                    onClick={() => {
-                      if (docId) {
-                        window.location.href = `/documents/${docId}/download`;
-                      }
-                    }}
-                    aria-label="download document"
-                    icon={<Icon name="download-02" />}
-                  /> */}
-                  {currentLead?.document_id && (
+                  {currentLead?.document_id && viewDoc === 'true' && (
                     <>
                       <Tooltip side="bottom" label="Focus mode">
                         <IconButton
@@ -175,6 +193,7 @@ export const DocumentEditor = () => {
                       </Tooltip>
                     </>
                   )}
+
                   <IconButton
                     size="xs"
                     variant="ghost"

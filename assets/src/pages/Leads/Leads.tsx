@@ -48,6 +48,7 @@ export default function Leads({ leads, stage_counts, max_count }: LeadsProps) {
           return {
             ...rest,
             viewMode: 'default',
+            viewDoc: true,
           };
         }
 
@@ -55,6 +56,7 @@ export default function Leads({ leads, stage_counts, max_count }: LeadsProps) {
           ...rest,
           lead: lead.id,
           viewMode: 'default',
+          viewDoc: true,
         };
       });
     },
