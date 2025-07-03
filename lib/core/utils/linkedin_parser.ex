@@ -61,7 +61,7 @@ defmodule Core.Utils.LinkedinParser do
     end
   end
 
-  defp extract_identifier({:ok, path}) do
+  def extract_identifier({:ok, path}) do
     case String.split(path, "/", trim: true) do
       ["in", identifier | _] when identifier != "" ->
         type = detect_type(identifier)
@@ -72,7 +72,7 @@ defmodule Core.Utils.LinkedinParser do
     end
   end
 
-  defp extract_identifier({:error, reason}), do: {:error, reason}
+  def extract_identifier({:error, reason}), do: {:error, reason}
 
   defp linkedin_id?(identifier) do
     String.length(identifier) > 30 and

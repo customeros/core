@@ -378,8 +378,10 @@ defmodule Core.Crm.Contacts do
     contacts = Repo.all(from c in Contact, where: c.linkedin_alias == ^alias)
 
     case contacts do
-      [] -> :not_found
-      contacts -> {:ok, contacts}
+      [] ->
+        :not_found
+      contacts ->
+        {:ok, contacts}
     end
   end
 
