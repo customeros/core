@@ -20,6 +20,7 @@ defmodule Core.Crm.Companies do
 
   require Logger
   require OpenTelemetry.Tracer
+  import Ecto.Query
   alias Ecto.Repo
   alias Core.Crm.Companies.{Company, CompanyEnrich}
   alias Core.Repo
@@ -27,6 +28,7 @@ defmodule Core.Crm.Companies do
   alias Core.Utils.Media.Images
   alias Core.Utils.PrimaryDomainFinder
   alias Core.Utils.Tracing
+  alias Core.ScrapinCompanies
 
   @spec get_or_create_by_domain(String.t()) ::
           {:ok, Company.t()} | {:error, Ecto.Changeset.t() | String.t()}
@@ -83,6 +85,30 @@ defmodule Core.Crm.Companies do
               Tracing.error(inspect(reason))
               {:error, reason}
           end
+      end
+    end
+  end
+
+  def create_company_by_linkedin_id(linkedin_id) do
+    OpenTelemetry.Tracer.with_span "company_service.create_company_by_linkedin_id" do
+      OpenTelemetry.Tracer.set_attributes([
+        {"param.linkedin_id", linkedin_id}
+      ])
+
+      linkedin_url = "https://www.linkedin.com/company/#{linkedin_id}"
+
+      case ScrapinCompanies.profile_company_with_scrapin(linkedin_url) do
+        {:ok, company_details} ->
+          case get_or_create_by_domain(company_details.domain) do
+            {:ok, company} ->
+              set_company_linkedin_id(company, linkedin_id)
+
+            {:error, reason} ->
+              {:error, reason}
+          end
+
+        {:error, :not_found} ->
+          {:error, :not_found}
       end
     end
   end
@@ -190,6 +216,32 @@ defmodule Core.Crm.Companies do
     end
   end
 
+  @spec get_by_linkedin_id(binary()) ::
+          {:ok, Company.t()} | {:error, :not_found}
+  def get_by_linkedin_id(linkedin_id) when is_binary(linkedin_id) do
+    OpenTelemetry.Tracer.with_span "company_service.get_by_linkedin_id" do
+      OpenTelemetry.Tracer.set_attributes([
+        {"param.linkedin_id", linkedin_id}
+      ])
+
+      case Repo.get_by(Company, linkedin_id: linkedin_id) do
+        nil ->
+          OpenTelemetry.Tracer.set_attributes([
+            {"result.found", false}
+          ])
+
+          {:error, :not_found}
+
+        %Company{} = company ->
+          OpenTelemetry.Tracer.set_attributes([
+            {"result.found", true}
+          ])
+
+          {:ok, company}
+      end
+    end
+  end
+
   @spec get_or_create(Company.t()) ::
           {:ok, Company.t()} | {:error, Ecto.Changeset.t()}
   def get_or_create(%Company{} = company) do
@@ -215,6 +267,24 @@ defmodule Core.Crm.Companies do
     case Repo.get(Company, company_id) do
       nil -> {:error, :not_found}
       %Company{} = company -> {:ok, Images.get_cdn_url(company.icon_key)}
+    end
+  end
+
+  def set_company_linkedin_id(company, linkedin_id) do
+    if is_nil(company.linkedin_id) do
+      case Repo.update_all(
+             from(c in Company, where: c.id == ^company.id),
+             set: [linkedin_id: linkedin_id]
+           ) do
+        {0, _} ->
+          {:error, :update_failed}
+
+        {_count, _} ->
+          # Return the updated company with the new LinkedIn ID
+          {:ok, %{company | linkedin_id: linkedin_id}}
+      end
+    else
+      {:ok, company}
     end
   end
 end

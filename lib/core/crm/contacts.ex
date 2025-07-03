@@ -9,6 +9,7 @@ defmodule Core.Crm.Contacts do
   alias Core.Repo
   alias Core.Crm.Contacts.Contact
   alias Core.ScrapinContacts
+  alias Core.Crm.Companies
 
   # @err_undeliverable {:error, "email address is undeliverable"}
   @err_contact_creation_failed {:error, "contact creation failed"}
@@ -29,45 +30,56 @@ defmodule Core.Crm.Contacts do
         {"param.linkedin_url", linkedin_url}
       ])
 
-    case ScrapinContacts.profile_contact_with_scrapin(linkedin_url) do
-      {:ok, contact_details} ->
-        create_contacts_from_details(contact_details)
+      case ScrapinContacts.profile_contact_with_scrapin(linkedin_url) do
+        {:ok, contact_details} ->
+          create_contacts_from_details(contact_details)
 
-      {:error, :not_found} ->
-        Logger.warning("No contact found for LinkedIn URL", %{linkedin_url: linkedin_url})
-        {:error, :not_found}
+        {:error, :not_found} ->
+          Logger.warning("No contact found for LinkedIn URL", %{
+            linkedin_url: linkedin_url
+          })
 
-      {:error, reason} ->
-        Logger.error("Failed to fetch contact from LinkedIn", %{
-          linkedin_url: linkedin_url,
-          reason: reason
-        })
-        {:error, reason}
+          {:error, :not_found}
+
+        {:error, reason} ->
+          Logger.error("Failed to fetch contact from LinkedIn", %{
+            linkedin_url: linkedin_url,
+            reason: reason
+          })
+
+          {:error, reason}
+      end
     end
-  end
   end
 
   defp create_contacts_from_details(contact_details) do
     case contact_details.positions do
-      %{position_history: positions} when is_list(positions) and length(positions) > 0 ->
+      %{position_history: positions}
+      when is_list(positions) and length(positions) > 0 ->
         # Get common fields from person details
         common_fields = extract_common_fields(contact_details)
 
         # Process each position and create/update contacts
-        results = Enum.map(positions, fn position ->
-          create_or_update_contact_for_position(common_fields, position)
-        end)
+        results =
+          Enum.map(positions, fn position ->
+            create_or_update_contact_for_position(common_fields, position)
+          end)
 
         # Return successful results
-        successful_results = Enum.filter(results, fn
-          {:ok, _contact} -> true
-          {:error, _reason} -> false
-        end)
+        successful_results =
+          Enum.filter(results, fn
+            {:ok, _contact} -> true
+            {:error, _reason} -> false
+          end)
 
         case successful_results do
           [] ->
-            Logger.error("Failed to create any contacts from LinkedIn positions")
+            Logger.error(
+              "Failed to create any contacts from LinkedIn positions"
+            )
+
             {:error, :no_contacts_created}
+
           contacts ->
             {:ok, Enum.map(contacts, fn {:ok, contact} -> contact end)}
         end
@@ -82,7 +94,8 @@ defmodule Core.Crm.Contacts do
     %{
       first_name: contact_details.first_name,
       last_name: contact_details.last_name,
-      full_name: build_full_name(contact_details.first_name, contact_details.last_name),
+      full_name:
+        build_full_name(contact_details.first_name, contact_details.last_name),
       linkedin_id: contact_details.linked_in_identifier,
       linkedin_alias: contact_details.public_identifier,
       # avatar_key: contact_details.photo_url,
@@ -109,15 +122,35 @@ defmodule Core.Crm.Contacts do
     contact_attrs = Map.merge(common_fields, position_fields)
 
     # Check if contact already exists with same linkedin_id and linkedin_company_id
-    case find_existing_contact_by_linkedin_id_and_company_id(contact_attrs.linkedin_id, contact_attrs.linkedin_company_id) do
+    case find_existing_contact_by_linkedin_id_and_company_id(
+           contact_attrs.linkedin_id,
+           contact_attrs.linkedin_company_id
+         ) do
       nil ->
-        create_contact(%Contact{}, contact_attrs)
+        case create_contact(%Contact{}, contact_attrs) do
+          {:ok, contact} ->
+            # Set company information for new contact
+            {:ok, set_company_info_for_contact(contact)}
+
+          {:error, reason} ->
+            {:error, reason}
+        end
 
       existing_contact ->
-        if should_update_contact(existing_contact, contact_attrs) do
-          update_contact_with_position(existing_contact, contact_attrs)
-        else
-          {:ok, existing_contact}
+        result =
+          if should_update_contact(existing_contact, contact_attrs) do
+            update_contact_with_position(existing_contact, contact_attrs)
+          else
+            {:ok, existing_contact}
+          end
+
+        case result do
+          {:ok, contact} ->
+            # Set company information for updated/existing contact
+            {:ok, set_company_info_for_contact(contact)}
+
+          {:error, reason} ->
+            {:error, reason}
         end
     end
   end
@@ -177,7 +210,10 @@ defmodule Core.Crm.Contacts do
 
   defp parse_date_map(_), do: nil
 
-  defp find_existing_contact_by_linkedin_id_and_company_id(linkedin_id, linkedin_company_id) do
+  defp find_existing_contact_by_linkedin_id_and_company_id(
+         linkedin_id,
+         linkedin_company_id
+       ) do
     Repo.get_by(Contact,
       linkedin_id: linkedin_id,
       linkedin_company_id: linkedin_company_id
@@ -206,16 +242,26 @@ defmodule Core.Crm.Contacts do
       # Rule 2: If both have same end date status, compare start dates
       is_nil(existing_ended) == is_nil(new_ended) ->
         case {existing_started, new_started} do
-          {nil, nil} -> false  # Keep existing if both have no start date
-          {nil, _} -> true     # New wins if existing has no start date
-          {_, nil} -> false    # Existing wins if new has no start date
+          # Keep existing if both have no start date
+          {nil, nil} ->
+            false
+
+          # New wins if existing has no start date
+          {nil, _} ->
+            true
+
+          # Existing wins if new has no start date
+          {_, nil} ->
+            false
+
           {existing, new} ->
             # Most recent start date wins
             DateTime.compare(new, existing) == :gt
         end
 
       # Default: keep existing
-      true -> false
+      true ->
+        false
     end
   end
 
@@ -225,6 +271,81 @@ defmodule Core.Crm.Contacts do
       contact_attrs,
       "position data"
     )
+  end
+
+  defp set_company_info_for_contact(contact) do
+    # Only set company info if company_id is missing
+    if is_nil(contact.company_id) do
+      set_company_info_if_needed(contact)
+    else
+      # Company ID already exists, return contact as is
+      contact
+    end
+  end
+
+  defp set_company_info_if_needed(contact) do
+    case contact.linkedin_company_id do
+      nil ->
+        # No company LinkedIn ID, return contact as is
+        contact
+
+      linkedin_company_id ->
+        find_or_create_company_and_update_contact(contact, linkedin_company_id)
+    end
+  end
+
+  defp find_or_create_company_and_update_contact(contact, linkedin_company_id) do
+    # Step 1: Try to find existing company by LinkedIn ID
+    case Companies.get_by_linkedin_id(linkedin_company_id) do
+      {:ok, company} ->
+        # Company found, update contact with company info
+        update_contact_company_info(contact, company)
+
+      {:error, :not_found} ->
+        # Company not found, try to create it
+        create_company_and_update_contact(contact, linkedin_company_id)
+    end
+  end
+
+  defp create_company_and_update_contact(contact, linkedin_company_id) do
+    case Companies.create_company_by_linkedin_id(linkedin_company_id) do
+      {:ok, company} ->
+        # Company created successfully, update contact
+        update_contact_company_info(contact, company)
+
+      {:error, reason} ->
+        # Failed to create company, log error and return contact as is
+        Logger.warning("Failed to create company for contact", %{
+          contact_id: contact.id,
+          linkedin_company_id: linkedin_company_id,
+          reason: reason
+        })
+
+        contact
+    end
+  end
+
+  defp update_contact_company_info(contact, company) do
+    case update_contact_field(
+           contact.id,
+           %{
+             company_id: company.id,
+             company_domain: company.primary_domain
+           },
+           "company information"
+         ) do
+      {:ok, updated_contact} ->
+        updated_contact
+
+      {:error, reason} ->
+        Logger.warning("Failed to update contact with company info", %{
+          contact_id: contact.id,
+          company_id: company.id,
+          reason: reason
+        })
+
+        contact
+    end
   end
 
   def create_contact(%Contact{} = contact, attrs \\ %{}) do

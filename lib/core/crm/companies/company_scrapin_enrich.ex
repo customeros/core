@@ -133,7 +133,29 @@ defmodule Core.Crm.Companies.CompanyScrapinEnrich do
         :ok
     end
 
-    :ok
+    case update_linkedin_id(company, scrapin_company_details) do
+      {:error, reason} ->
+        Logger.warning("Failed to update linkedin id",
+          company_id: company.id,
+          reason: reason
+        )
+
+      :ok ->
+        :ok
+    end
+  end
+
+  defp update_linkedin_id(company, scrapin_company_details) do
+    case Core.Crm.Companies.set_company_linkedin_id(
+           company,
+           scrapin_company_details.linkedin_id
+         ) do
+      {:ok, _updated_company} ->
+        :ok
+
+      {:error, reason} ->
+        {:error, reason}
+    end
   end
 
   defp update_employee_count(company, scrapin_company_details) do

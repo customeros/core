@@ -139,7 +139,8 @@ defmodule Core.Crm.Companies.CompanyScrapinEnricher do
         is_nil(c.city) or
         is_nil(c.region) or
         is_nil(c.country_a2) or
-        is_nil(c.employee_count)
+        is_nil(c.employee_count) or
+        is_nil(c.linkedin_id)
     )
     |> where([c], c.scrapin_enrichment_attempts < ^max_attempts)
     |> where(
