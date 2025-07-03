@@ -12,6 +12,54 @@ defmodule Core.WebTracker.Sessions.Session do
   # Constants
   @id_prefix "sess"
   @id_regex ~r/^#{@id_prefix}_[a-z0-9]{21}$/
+  @channel_types [
+    :direct,
+    :organic_search,
+    :organic_social,
+    :campaigns,
+    :referrals,
+    :paid_search,
+    :paid_social,
+    :internal
+  ]
+  @search_platforms [
+    :google,
+    :bing,
+    :yahoo,
+    :duckduckgo,
+    :brave,
+    :yandex,
+    :baidu,
+    :chatgpt,
+    :claude,
+    :gemini,
+    :deepseek,
+    :ecosia,
+    :startpage,
+    :searx,
+    :swisscows,
+    :metager,
+    :qwant,
+    :mojeek
+  ]
+  @social_platforms [
+    :linkedin,
+    :facebook,
+    :x,
+    :youtube,
+    :instagram,
+    :tiktok,
+    :reddit,
+    :github,
+    :stackoverflow,
+    :discord,
+    :pinterest,
+    :snapchat,
+    :whatsapp,
+    :telegram,
+    :slack,
+    :teams
+  ]
 
   schema "web_sessions" do
     field(:tenant, :string)
@@ -28,6 +76,13 @@ defmodule Core.WebTracker.Sessions.Session do
     field(:region, :string)
     field(:country_code, :string)
     field(:is_mobile, :boolean)
+
+    # Attribution
+    field(:channel, Ecto.Enum, values: @channel_types)
+    field(:search_platform, Ecto.Enum, values: @search_platforms)
+    field(:social_platform, Ecto.Enum, values: @social_platforms)
+    field(:utm_id, :string)
+    field(:paid_id, :string)
 
     # Custom timestamps
     field(:started_at, :utc_datetime)
@@ -89,7 +144,12 @@ defmodule Core.WebTracker.Sessions.Session do
       :started_at,
       :ended_at,
       :last_event_at,
-      :last_event_type
+      :last_event_type,
+      :channel,
+      :search_platform,
+      :social_platform,
+      :utm_id,
+      :paid_id
     ])
     |> validate_required([:id, :tenant, :visitor_id, :origin])
     |> validate_format(:id, @id_regex)

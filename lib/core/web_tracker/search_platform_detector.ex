@@ -1,0 +1,466 @@
+defmodule Core.WebTracker.SearchPlatformDetector do
+  alias Core.Utils.DomainExtractor
+
+  @doc """
+  Checks if the referrer and query params indicate paid search traffic.
+
+  Returns true if query params contain paid search indicators.
+  """
+  def is_paid_search?(_referrer, query_params) do
+    case parse_query_string(query_params) do
+      {:ok, param_map} ->
+        has_paid_search_indicators?(param_map)
+
+      {:error, _} ->
+        false
+    end
+  end
+
+  @doc """
+  Checks if the referrer indicates organic search traffic.
+
+  Returns true if referrer is from a search platform AND no paid indicators.
+  """
+  def is_organic_search?(referrer, query_params) do
+    case get_platform_from_referrer(referrer) do
+      {:ok, _platform} ->
+        case parse_query_string(query_params) do
+          {:ok, param_map} ->
+            not has_paid_search_indicators?(param_map)
+
+          {:error, _} ->
+            true
+        end
+
+      :not_found ->
+        false
+    end
+  end
+
+  @doc """
+  Gets the search platform from referrer or query params.
+
+  Returns {:ok, :google} or :not_found
+  """
+  def get_platform(referrer, query_params) do
+    case parse_query_string(query_params) do
+      {:ok, param_map} ->
+        case get_platform_from_params(param_map) do
+          {:ok, platform} ->
+            {:ok, platform}
+
+          :not_found ->
+            get_platform_from_referrer(referrer)
+        end
+
+      {:error, _} ->
+        get_platform_from_referrer(referrer)
+    end
+  end
+
+  @search_domains %{
+    # Google
+    "google.com" => :google,
+    "www.google.com" => :google,
+    "google.co.uk" => :google,
+    "google.ca" => :google,
+    "google.com.au" => :google,
+    "google.de" => :google,
+    "google.fr" => :google,
+    "google.es" => :google,
+    "google.it" => :google,
+    "google.co.jp" => :google,
+    "google.co.in" => :google,
+    "google.com.br" => :google,
+    "google.com.mx" => :google,
+    "google.nl" => :google,
+    "google.se" => :google,
+    "google.no" => :google,
+    "google.dk" => :google,
+    "google.fi" => :google,
+    "google.pl" => :google,
+    "google.ru" => :google,
+    "google.co.za" => :google,
+    "google.com.sg" => :google,
+    "google.com.hk" => :google,
+    "google.co.kr" => :google,
+    "google.com.tw" => :google,
+    "google.co.th" => :google,
+    "google.com.my" => :google,
+    "google.co.id" => :google,
+    "google.com.ph" => :google,
+    "google.com.vn" => :google,
+
+    # Bing/Microsoft
+    "bing.com" => :bing,
+    "www.bing.com" => :bing,
+    "bing.co.uk" => :bing,
+    "bing.ca" => :bing,
+    "bing.com.au" => :bing,
+    "bing.de" => :bing,
+    "bing.fr" => :bing,
+    "bing.es" => :bing,
+    "bing.it" => :bing,
+    "bing.co.jp" => :bing,
+    "bing.com.br" => :bing,
+    "bing.nl" => :bing,
+    "bing.se" => :bing,
+    "bing.no" => :bing,
+    "bing.dk" => :bing,
+    "bing.fi" => :bing,
+    "bing.pl" => :bing,
+
+    # Yahoo
+    "yahoo.com" => :yahoo,
+    "www.yahoo.com" => :yahoo,
+    "search.yahoo.com" => :yahoo,
+    "yahoo.co.uk" => :yahoo,
+    "yahoo.ca" => :yahoo,
+    "yahoo.com.au" => :yahoo,
+    "yahoo.de" => :yahoo,
+    "yahoo.fr" => :yahoo,
+    "yahoo.es" => :yahoo,
+    "yahoo.it" => :yahoo,
+    "yahoo.co.jp" => :yahoo,
+    "yahoo.com.br" => :yahoo,
+    "yahoo.com.mx" => :yahoo,
+    "yahoo.nl" => :yahoo,
+    "yahoo.se" => :yahoo,
+    "yahoo.no" => :yahoo,
+    "yahoo.dk" => :yahoo,
+    "yahoo.fi" => :yahoo,
+
+    # DuckDuckGo
+    "duckduckgo.com" => :duckduckgo,
+    "www.duckduckgo.com" => :duckduckgo,
+    "ddg.gg" => :duckduckgo,
+
+    # Brave Search
+    "search.brave.com" => :brave,
+    "brave.com" => :brave,
+
+    # Yandex
+    "yandex.ru" => :yandex,
+    "yandex.com" => :yandex,
+    "www.yandex.ru" => :yandex,
+    "www.yandex.com" => :yandex,
+    "yandex.by" => :yandex,
+    "yandex.kz" => :yandex,
+    "yandex.ua" => :yandex,
+    "yandex.com.tr" => :yandex,
+
+    # Baidu
+    "baidu.com" => :baidu,
+    "www.baidu.com" => :baidu,
+    "m.baidu.com" => :baidu,
+
+    # AI Search Platforms
+    "chatgpt.com" => :chatgpt,
+    "chat.openai.com" => :chatgpt,
+    "claude.ai" => :claude,
+    "gemini.google.com" => :gemini,
+    "bard.google.com" => :gemini,
+    "chat.deepseek.com" => :deepseek,
+    "deepseek.com" => :deepseek,
+
+    # Other Search Engines
+    "ecosia.org" => :ecosia,
+    "www.ecosia.org" => :ecosia,
+    "startpage.com" => :startpage,
+    "www.startpage.com" => :startpage,
+    "searx.org" => :searx,
+    "searx.me" => :searx,
+    "searx.be" => :searx,
+    "swisscows.com" => :swisscows,
+    "www.swisscows.com" => :swisscows,
+    "metager.org" => :metager,
+    "www.metager.org" => :metager,
+    "qwant.com" => :qwant,
+    "www.qwant.com" => :qwant,
+    "mojeek.com" => :mojeek,
+    "www.mojeek.com" => :mojeek
+  }
+
+  @domain_patterns [
+    {~r/.*\.google\./, :google},
+    {~r/.*\.bing\./, :bing},
+    {~r/.*\.yahoo\./, :yahoo},
+    {~r/.*\.yandex\./, :yandex},
+    {~r/.*\.baidu\./, :baidu}
+  ]
+
+  @utm_source_mapping %{
+    # Google variants
+    "google" => :google,
+    "google.com" => :google,
+    "adwords" => :google,
+    "google-ads" => :google,
+    "googleads" => :google,
+    "google_ads" => :google,
+    "gads" => :google,
+    "sem" => :google,
+
+    # Microsoft/Bing variants
+    "bing" => :bing,
+    "bing.com" => :bing,
+    "microsoft" => :bing,
+    "microsoft-ads" => :bing,
+    "bing-ads" => :bing,
+    "bingads" => :bing,
+    "msads" => :bing,
+
+    # Yahoo variants
+    "yahoo" => :yahoo,
+    "yahoo.com" => :yahoo,
+    "yahoo-ads" => :yahoo,
+    "yahooads" => :yahoo,
+    "yahoo_ads" => :yahoo,
+    "yahoo_gemini" => :yahoo,
+
+    # DuckDuckGo
+    "duckduckgo" => :duckduckgo,
+    "ddg" => :duckduckgo,
+
+    # Brave
+    "brave" => :brave,
+    "brave-search" => :brave,
+
+    # Yandex
+    "yandex" => :yandex,
+    "yandex.ru" => :yandex,
+    "yandex-direct" => :yandex,
+    "direct.yandex" => :yandex,
+
+    # Baidu
+    "baidu" => :baidu,
+    "baidu.com" => :baidu,
+
+    # AI Search platforms
+    "chatgpt" => :chatgpt,
+    "openai" => :chatgpt,
+    "claude" => :claude,
+    "anthropic" => :claude,
+    "gemini" => :gemini,
+    "bard" => :gemini,
+    "deepseek" => :deepseek
+  }
+
+  # UTM medium values that typically indicate search advertising
+  @search_mediums [
+    "cpc",
+    "ppc",
+    "paid-search",
+    "paid_search",
+    "search",
+    "sem",
+    "adwords",
+    "google-ads",
+    "bing-ads",
+    "yahoo-ads"
+  ]
+
+  # Platform-specific tracking parameters that indicate the source
+  @platform_indicators %{
+    # Google Ads indicators
+    "gclid" => :google,
+    "gclsrc" => :google,
+
+    # Microsoft/Bing indicators
+    "msclkid" => :bing,
+
+    # HubSpot Ads indicators 
+    "hsa_acc" => :hubspot_managed,
+    "hsa_cam" => :hubspot_managed,
+    "hsa_grp" => :hubspot_managed,
+    "hsa_ad" => :hubspot_managed,
+    "hsa_src" => :hubspot_managed,
+    "hsa_tgt" => :hubspot_managed,
+    "hsa_kw" => :hubspot_managed
+  }
+
+  # Private helper functions
+
+  defp parse_query_string(query_params) when is_binary(query_params) do
+    try do
+      clean_params = String.trim_leading(query_params, "?")
+      param_map = URI.decode_query(clean_params)
+      {:ok, param_map}
+    rescue
+      _ -> {:error, :invalid_query_string}
+    end
+  end
+
+  defp parse_query_string(params) when is_list(params) do
+    try do
+      param_map = params_to_map(params)
+      {:ok, param_map}
+    rescue
+      _ -> {:error, :invalid_params_format}
+    end
+  end
+
+  defp parse_query_string(_), do: {:error, :invalid_params_type}
+
+  defp params_to_map(params) do
+    params
+    |> Enum.reduce(%{}, fn
+      %{"name" => name, "value" => value}, acc
+      when is_binary(name) and is_binary(value) ->
+        Map.put(acc, name, String.trim(value))
+
+      _, acc ->
+        acc
+    end)
+  end
+
+  defp check_domain(domain) do
+    case Map.get(@search_domains, domain) do
+      nil -> check_pattern_matches(domain)
+      platform -> platform
+    end
+  end
+
+  defp check_pattern_matches(domain) do
+    case Enum.find(@domain_patterns, fn {pattern, _platform} ->
+           Regex.match?(pattern, domain)
+         end) do
+      {_pattern, platform} -> platform
+      nil -> :none
+    end
+  end
+
+  defp has_paid_search_indicators?(param_map) when is_map(param_map) do
+    cond do
+      has_platform_tracking_params?(param_map) -> true
+      has_paid_search_utm?(param_map) -> true
+      true -> false
+    end
+  end
+
+  defp has_platform_tracking_params?(param_map) do
+    Enum.any?(@platform_indicators, fn {param_name, _platform} ->
+      Map.has_key?(param_map, param_name) and
+        Map.get(param_map, param_name) != ""
+    end)
+  end
+
+  defp has_paid_search_utm?(param_map) do
+    utm_medium = Map.get(param_map, "utm_medium", "") |> String.downcase()
+    utm_source = Map.get(param_map, "utm_source", "") |> String.downcase()
+
+    utm_medium in @search_mediums and
+      (Map.has_key?(@utm_source_mapping, utm_source) or
+         has_search_source_keywords?(utm_source))
+  end
+
+  defp has_search_source_keywords?(utm_source) do
+    search_keywords = [
+      "google",
+      "adwords",
+      "bing",
+      "microsoft",
+      "yahoo",
+      "yandex",
+      "baidu"
+    ]
+
+    Enum.any?(search_keywords, fn keyword ->
+      String.contains?(utm_source, keyword)
+    end)
+  end
+
+  defp get_platform_from_params(param_map) do
+    case detect_from_platform_indicators(param_map) do
+      {:ok, true, platform} ->
+        case resolve_actual_platform(platform, param_map) do
+          {:ok, true, resolved_platform} -> {:ok, resolved_platform}
+          _ -> :not_found
+        end
+
+      {:ok, false} ->
+        case detect_from_utm_params(param_map) do
+          {:ok, true, platform} -> {:ok, platform}
+          _ -> :not_found
+        end
+
+      _ ->
+        :not_found
+    end
+  end
+
+  defp get_platform_from_referrer(referrer) do
+    case DomainExtractor.extract_base_domain(referrer) do
+      {:ok, domain} ->
+        case check_domain(domain) do
+          :none -> :not_found
+          platform -> {:ok, platform}
+        end
+
+      {:error, _} ->
+        :not_found
+    end
+  end
+
+  defp detect_from_platform_indicators(param_map) do
+    platform_param =
+      Enum.find_value(@platform_indicators, fn {param_name, platform} ->
+        if Map.has_key?(param_map, param_name), do: platform, else: nil
+      end)
+
+    case platform_param do
+      nil -> {:ok, false}
+      platform -> {:ok, true, platform}
+    end
+  end
+
+  defp resolve_actual_platform(:hubspot_managed, param_map) do
+    case Map.get(param_map, "hsa_src") do
+      "g" ->
+        {:ok, true, :google}
+
+      "b" ->
+        {:ok, true, :bing}
+
+      _ ->
+        detect_from_utm_params(param_map)
+    end
+  end
+
+  defp resolve_actual_platform(platform, _param_map) do
+    {:ok, true, platform}
+  end
+
+  defp detect_from_utm_params(param_map) do
+    utm_source = Map.get(param_map, "utm_source", "") |> String.downcase()
+    utm_medium = Map.get(param_map, "utm_medium", "") |> String.downcase()
+
+    cond do
+      utm_medium not in @search_mediums ->
+        {:ok, false}
+
+      Map.has_key?(@utm_source_mapping, utm_source) ->
+        platform = Map.get(@utm_source_mapping, utm_source)
+        {:ok, true, platform}
+
+      String.contains?(utm_source, "google") or
+          String.contains?(utm_source, "adwords") ->
+        {:ok, true, :google}
+
+      String.contains?(utm_source, "bing") or
+          String.contains?(utm_source, "microsoft") ->
+        {:ok, true, :bing}
+
+      String.contains?(utm_source, "yahoo") ->
+        {:ok, true, :yahoo}
+
+      String.contains?(utm_source, "yandex") ->
+        {:ok, true, :yandex}
+
+      String.contains?(utm_source, "baidu") ->
+        {:ok, true, :baidu}
+
+      true ->
+        {:ok, false}
+    end
+  end
+end
