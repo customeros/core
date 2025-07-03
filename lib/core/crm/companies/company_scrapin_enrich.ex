@@ -148,7 +148,7 @@ defmodule Core.Crm.Companies.CompanyScrapinEnrich do
   defp update_linkedin_id(company, scrapin_company_details) do
     case Core.Crm.Companies.set_company_linkedin_id(
            company,
-           scrapin_company_details.linkedin_id
+           scrapin_company_details.linked_in_id
          ) do
       {:ok, _updated_company} ->
         :ok
