@@ -99,9 +99,15 @@ defmodule Core.Crm.Companies do
 
       case ScrapinCompanies.profile_company_with_scrapin(linkedin_url) do
         {:ok, company_details} ->
-          case get_or_create_by_domain(company_details.domain) do
-            {:ok, company} ->
-              set_company_linkedin_id(company, linkedin_id)
+          case ScrapinCompanies.get_scrapin_company_record_by_linkedin_id(company_details.linked_in_id) do
+            {:ok, scrapin_company_record} ->
+              case get_or_create_by_domain(scrapin_company_record.domain) do
+                {:ok, company} ->
+                  set_company_linkedin_id(company, linkedin_id)
+
+                {:error, reason} ->
+                  {:error, reason}
+              end
 
             {:error, reason} ->
               {:error, reason}

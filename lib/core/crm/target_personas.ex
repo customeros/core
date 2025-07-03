@@ -44,11 +44,18 @@ defmodule Core.Crm.TargetPersonas do
     result =
       %TargetPersona{}
       |> TargetPersona.changeset(attrs)
-      |> Repo.insert()
+      |> Repo.insert(on_conflict: :nothing, conflict_target: [:tenant_id, :contact_id])
 
     case result do
       {:ok, persona} ->
         {:ok, persona}
+
+      {:ok, nil} ->
+        # Persona already exists, get it
+        case get_persona(tenant_id, contact_id) do
+          {:ok, persona} -> {:ok, persona}
+          :not_found -> @err_persona_creation_failed
+        end
 
       {:error, _changeset} ->
         Logger.error("Failed to create target persona", %{
@@ -78,7 +85,7 @@ defmodule Core.Crm.TargetPersonas do
     end)
   end
 
-  defp create_personas_for_contacts(tenant_id, contacts) do
+  defp create_personas_for_contacts(contacts, tenant_id) do
     Enum.map(contacts, fn contact ->
       case create(tenant_id, contact.id) do
         {:ok, persona} ->

@@ -61,6 +61,25 @@ defmodule Core.ScrapinCompanies do
     end
   end
 
+  @doc """
+  Get latest ScrapinCompany record by LinkedIn ID.
+  Returns {:ok, %ScrapinCompany{}} or {:error, :not_found}.
+  """
+  def get_scrapin_company_record_by_linkedin_id(linkedin_id) when is_binary(linkedin_id) do
+    latest = get_latest_by_linkedin_id(linkedin_id)
+
+    case latest do
+      %ScrapinCompany{company_found: true} = record ->
+        {:ok, record}
+
+      %ScrapinCompany{company_found: false} ->
+        {:error, :not_found}
+
+      nil ->
+        {:error, :not_found}
+    end
+  end
+
   # --- Private helpers ---
 
   defp do_scrapin(flow, request_param) do
@@ -139,6 +158,14 @@ defmodule Core.ScrapinCompanies do
   defp get_latest_by_domain(domain) do
     ScrapinCompany
     |> where([s], s.domain == ^domain)
+    |> order_by([s], desc: s.inserted_at)
+    |> limit(1)
+    |> Repo.one()
+  end
+
+  defp get_latest_by_linkedin_id(linkedin_id) do
+    ScrapinCompany
+    |> where([s], s.linkedin_id == ^linkedin_id)
     |> order_by([s], desc: s.inserted_at)
     |> limit(1)
     |> Repo.one()
