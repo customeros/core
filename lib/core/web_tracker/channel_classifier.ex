@@ -23,7 +23,7 @@ defmodule Core.WebTracker.ChannelClassifier do
       referrer_domain in tenant_domains
     else
       {:error, reason} ->
-        Logger.error("failed to determine if referrer is internal", %{
+        Logger.error("failed to determine if referrer is internal: #{inspect(reason)}", %{
           tenant_domains: tenant_domains,
           referrer: referrer
         })
