@@ -7,7 +7,7 @@ defmodule Core.ScrapinCompanies do
   """
 
   import Ecto.Query
-  alias Core.{Repo, ScrapinCompany, ScrapinCompanyDetails, ScrapinResponseBody}
+  alias Core.{Repo, ScrapinCompany, ScrapinCompanyDetails, ScrapinCompanyResponseBody}
   alias Core.Utils.{IdGenerator, PrimaryDomainFinder, MapUtils}
   alias Core.Logger.ApiLogger, as: ApiLogger
 
@@ -141,7 +141,7 @@ defmodule Core.ScrapinCompanies do
        when is_binary(data) do
     with {:ok, decoded} <- Jason.decode(data, keys: :atoms),
          %{} = map <- MapUtils.to_snake_case_map(decoded) do
-      response_struct = struct(ScrapinResponseBody, map)
+      response_struct = struct(ScrapinCompanyResponseBody, map)
 
       company_struct =
         case response_struct.company do
@@ -155,7 +155,7 @@ defmodule Core.ScrapinCompanies do
       response_struct = %{response_struct | company: company_struct}
 
       case response_struct do
-        %ScrapinResponseBody{company: %ScrapinCompanyDetails{} = company} ->
+        %ScrapinCompanyResponseBody{company: %ScrapinCompanyDetails{} = company} ->
           {:ok, company}
 
         _ ->
@@ -187,7 +187,7 @@ defmodule Core.ScrapinCompanies do
       {:ok, %{status: 200, body: body}} ->
         case Jason.decode(body) do
           {:ok, map} ->
-            {:ok, struct(ScrapinResponseBody, MapUtils.to_snake_case_map(map))}
+            {:ok, struct(ScrapinCompanyResponseBody, MapUtils.to_snake_case_map(map))}
 
           _ ->
             {:error, :invalid_response}
