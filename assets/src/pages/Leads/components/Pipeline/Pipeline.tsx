@@ -23,7 +23,7 @@ export const Pipeline = ({
   const { pipeline, stage: selectedStage, group, lead } = getUrlState();
 
   const getHeight = (count: number) => {
-    return scrollProgress < 0.2 ? `${count ? (count / maxCount) * 100 + 10 : 20}px` : '20px';
+    return scrollProgress < 0.2 ? `${count > 5 ? (count / maxCount) * 100 + 10 : 20}px` : '20px';
   };
 
   if (pipeline === 'hidden') {
@@ -57,26 +57,40 @@ export const Pipeline = ({
             }}
             className={cn(
               'flex-1 flex items-center justify-center bg-primary-100 cursor-pointer hover:bg-primary-200 duration-300',
-              scrollProgress < 0.2 &&
-                count > nextCount &&
-                (count - nextCount < 5 ? 'rounded-r-xs' : 'rounded-r-md'),
 
-              scrollProgress < 0.2 &&
-                count > prevCount &&
-                (count - prevCount < 5 ? 'rounded-l-xs' : 'rounded-l-md'),
+              (() => {
+                let className = '';
 
-              scrollProgress < 0.2 &&
-                index === stageOptionsWithoutCustomer.length - 1 &&
-                'rounded-r-md',
+                if (index === 0) {
+                  className += ' rounded-l-md';
+                }
 
-              scrollProgress < 0.2 && index === 0 && 'rounded-l-md',
+                if (index === stageOptionsWithoutCustomer.length - 1) {
+                  className += ' rounded-r-md';
+                }
 
-              scrollProgress > 0.2 && index === 0 && 'rounded-l-md',
+                if (scrollProgress < 0.2 && count > 5) {
+                  if (count > nextCount) {
+                    className += count - nextCount < 5 ? ' rounded-r-xs' : ' rounded-r-md';
+                  }
 
-              scrollProgress > 0.2 &&
-                index === stageOptionsWithoutCustomer.length - 1 &&
-                'rounded-r-md',
+                  if (count > prevCount) {
+                    className += count - prevCount < 5 ? ' rounded-l-xs' : ' rounded-l-md';
+                  }
 
+                  if (count === nextCount) {
+                    className += ' rounded-r-none';
+                  }
+
+                  if (count === prevCount) {
+                    className += ' rounded-l-none';
+                  }
+
+                  return className;
+                }
+
+                return className;
+              })(),
               selectedStage === stage.value && 'bg-primary-200',
               count === 0 && 'cursor-not-allowed hover:bg-primary-100'
             )}
