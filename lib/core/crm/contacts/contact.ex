@@ -28,7 +28,10 @@ defmodule Core.Crm.Contacts.Contact do
     field(:job_title, :string)
     field(:company_id, :string)
     field(:company_domain, :string)
-    field(:description, :string)
+    field(:job_description, :string)
+    field(:location, :string)
+    field(:headline, :string)
+    field(:summary, :string)
     field(:job_started_at, :utc_datetime)
     field(:job_ended_at, :utc_datetime)
     field(:seniority, :string)
@@ -44,6 +47,7 @@ defmodule Core.Crm.Contacts.Contact do
     :full_name,
     :linkedin_id,
     :linkedin_alias,
+    :linkedin_company_id,
     :business_email,
     :business_email_status,
     :personal_email,
@@ -56,7 +60,10 @@ defmodule Core.Crm.Contacts.Contact do
     :job_title,
     :company_id,
     :company_domain,
-    :description,
+    :job_description,
+    :location,
+    :headline,
+    :summary,
     :job_started_at,
     :job_ended_at,
     :seniority,
@@ -70,6 +77,7 @@ defmodule Core.Crm.Contacts.Contact do
           full_name: String.t() | nil,
           linkedin_id: String.t() | nil,
           linkedin_alias: String.t() | nil,
+          linkedin_company_id: String.t() | nil,
           business_email: String.t() | nil,
           business_email_status: String.t() | nil,
           personal_email: String.t() | nil,
@@ -82,7 +90,10 @@ defmodule Core.Crm.Contacts.Contact do
           job_title: String.t() | nil,
           company_id: String.t() | nil,
           company_domain: String.t() | nil,
-          description: String.t() | nil,
+          job_description: String.t() | nil,
+          location: String.t() | nil,
+          headline: String.t() | nil,
+          summary: String.t() | nil,
           job_started_at: DateTime.t() | nil,
           job_ended_at: DateTime.t() | nil,
           seniority: String.t() | nil,
