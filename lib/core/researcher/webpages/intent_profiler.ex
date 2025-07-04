@@ -7,7 +7,7 @@ defmodule Core.Researcher.Webpages.IntentProfiler do
   alias Core.Utils.TaskAwaiter
   require Logger
 
-  @model :claude_sonnet
+  @model :claude_sonnet_4_0
   @model_temperature 0.2
   @max_tokens 1024
   @timeout 60 * 1000
