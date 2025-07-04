@@ -518,59 +518,54 @@ defmodule Core.Crm.Contacts do
     if not is_nil(contact.avatar_key) do
       {:ok, contact}
     else
-      case find_existing_avatar_key_by_linkedin_id(contact.linkedin_id) do
-        {:ok, existing_avatar_key} ->
-          case update_contact_field(
-                 contact.id,
-                 %{avatar_key: existing_avatar_key},
-                 "avatar_key"
-               ) do
-            {:ok, updated_contact} ->
-              {:ok, updated_contact}
-
-            {:error, reason} ->
-              Logger.error(
-                "Failed to update contact with existing avatar key",
-                %{
-                  contact_id: contact.id,
-                  reason: reason
-                }
-              )
-
-              {:error, reason}
-          end
-
-        {:error, :not_found} ->
-          case download_and_store_avatar(photo_url) do
-            {:ok, avatar_key} ->
-              case update_contact_field(
-                     contact.id,
-                     %{avatar_key: avatar_key},
-                     "avatar_key"
-                   ) do
-                {:ok, updated_contact} ->
-                  {:ok, updated_contact}
-
-                {:error, reason} ->
-                  Logger.error(
-                    "Failed to update contact with new avatar key",
-                    %{
-                      contact_id: contact.id,
-                      reason: reason
-                    }
-                  )
-
-                  {:error, reason}
-              end
-
-            {:error, reason} ->
-              {:error, reason}
-          end
-      end
+      process_avatar_for_contact_without_avatar(contact, photo_url)
     end
   end
 
-  defp find_existing_avatar_key_by_linkedin_id(linkedin_id) when is_nil(linkedin_id) or linkedin_id == "" do
+  defp process_avatar_for_contact_without_avatar(contact, photo_url) do
+    case find_existing_avatar_key_by_linkedin_id(contact.linkedin_id) do
+      {:ok, existing_avatar_key} ->
+        update_contact_with_avatar_key(contact, existing_avatar_key, "existing")
+
+      {:error, :not_found} ->
+        download_avatar_and_update_contact(contact, photo_url)
+    end
+  end
+
+  defp download_avatar_and_update_contact(contact, photo_url) do
+    case download_and_store_avatar(photo_url) do
+      {:ok, avatar_key} ->
+        update_contact_with_avatar_key(contact, avatar_key, "new")
+
+      {:error, reason} ->
+        {:error, reason}
+    end
+  end
+
+  defp update_contact_with_avatar_key(contact, avatar_key, key_type) do
+    case update_contact_field(
+           contact.id,
+           %{avatar_key: avatar_key},
+           "avatar_key"
+         ) do
+      {:ok, updated_contact} ->
+        {:ok, updated_contact}
+
+      {:error, reason} ->
+        Logger.error(
+          "Failed to update contact with #{key_type} avatar key",
+          %{
+            contact_id: contact.id,
+            reason: reason
+          }
+        )
+
+        {:error, reason}
+    end
+  end
+
+  defp find_existing_avatar_key_by_linkedin_id(linkedin_id)
+       when is_nil(linkedin_id) or linkedin_id == "" do
     {:error, :not_found}
   end
 
