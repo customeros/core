@@ -7,8 +7,10 @@ defmodule Core.Crm.TargetPersonas do
   alias Core.Utils.LinkedinParser
   alias Core.Crm.TargetPersonas.TargetPersona
   alias Core.Utils.Tracing
+  alias Core.Auth.Tenants
 
   @err_persona_creation_failed {:error, "target persona creation failed"}
+  @err_tenant_not_found {:error, "tenant not found"}
 
   def create_from_linkedin(tenant_id, linkedin_url) do
     OpenTelemetry.Tracer.with_span "target_personas.create_from_linkedin" do
@@ -17,20 +19,34 @@ defmodule Core.Crm.TargetPersonas do
         {"param.linkedin_url", linkedin_url}
       ])
 
-      case LinkedinParser.parse_contact_url(linkedin_url) do
-        {:ok, :id, id} ->
-          create_from_linkedin_id(tenant_id, id)
+      # Validate tenant exists
+      case Tenants.get_tenant_by_id(tenant_id) do
+        {:ok, _tenant} ->
+          case LinkedinParser.parse_contact_url(linkedin_url) do
+            {:ok, :id, id} ->
+              create_from_linkedin_id(tenant_id, id)
 
-        {:ok, :alias, alias} ->
-          create_from_linkedin_alias(tenant_id, alias)
+            {:ok, :alias, alias} ->
+              create_from_linkedin_alias(tenant_id, alias)
 
-        {:error, reason} ->
-          Tracing.error(reason, "Unable to create prospect from linkedin",
+            {:error, reason} ->
+              Tracing.error(reason, "Unable to create prospect from linkedin",
+                tenant_id: tenant_id,
+                linkedin_url: linkedin_url
+              )
+
+              {:error, reason}
+          end
+
+        {:error, :not_found} ->
+          Tracing.error(
+            :not_found,
+            "Tenant not found for target persona creation",
             tenant_id: tenant_id,
             linkedin_url: linkedin_url
           )
 
-          {:error, reason}
+          @err_tenant_not_found
       end
     end
   end
@@ -50,11 +66,10 @@ defmodule Core.Crm.TargetPersonas do
       )
 
     case result do
-      {:ok, persona} ->
+      {:ok, persona} when not is_nil(persona) ->
         {:ok, persona}
 
       {:ok, nil} ->
-        # Persona already exists, get it
         case get_persona(tenant_id, contact_id) do
           {:ok, persona} -> {:ok, persona}
           :not_found -> @err_persona_creation_failed

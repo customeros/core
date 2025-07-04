@@ -107,8 +107,7 @@ defmodule Core.WebTracker.Sessions.UtmCampaign do
             get_field(changeset, :utm_term),
             get_field(changeset, :utm_content)
           ]
-          |> Enum.map(&(&1 || ""))
-          |> Enum.join("|")
+          |> Enum.map_join("|", &(&1 || ""))
 
         hash = :crypto.hash(:sha256, hash_input) |> Base.encode16(case: :lower)
         put_change(changeset, :utm_hash, hash)

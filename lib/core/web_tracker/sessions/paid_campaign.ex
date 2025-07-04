@@ -93,8 +93,7 @@ defmodule Core.WebTracker.Sessions.PaidCampaign do
             get_field(changeset, :targeting_id),
             get_field(changeset, :content_id)
           ]
-          |> Enum.map(&(&1 || ""))
-          |> Enum.join("|")
+          |> Enum.map_join("|", &(&1 || ""))
 
         hash = :crypto.hash(:sha256, hash_input) |> Base.encode16(case: :lower)
         put_change(changeset, :hash, hash)
