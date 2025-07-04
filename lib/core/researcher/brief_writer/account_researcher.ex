@@ -11,7 +11,7 @@ defmodule Core.Researcher.BriefWriter.AccountResearcher do
   alias Core.Utils.MarkdownValidator
 
   @max_tokens 2056
-  @model :claude_sonnet
+  @model :claude_sonnet_4_0
   @model_temperature 0.3
   @timeout 60_000
 

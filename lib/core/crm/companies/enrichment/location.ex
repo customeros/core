@@ -15,7 +15,7 @@ defmodule Core.Crm.Companies.Enrichment.Location do
   alias Core.Utils.TaskAwaiter
 
   @timeout 30 * 1000
-  @model :gemini_flash
+  @model :gemini_flash_2_0
   @max_tokens 20
   @temperature 0.05
   @system_prompt_country """

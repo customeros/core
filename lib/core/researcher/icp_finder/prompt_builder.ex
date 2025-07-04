@@ -10,7 +10,7 @@ defmodule Core.Researcher.IcpFinder.PromptBuilder do
   alias Core.Ai
   alias Core.Researcher.IcpFinder.TopicsAndIndustriesInput
 
-  @model :claude_sonnet
+  @model :claude_sonnet_4_0
   @model_temperature 0.2
   @max_tokens 2000
 

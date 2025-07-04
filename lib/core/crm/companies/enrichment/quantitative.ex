@@ -14,7 +14,7 @@ defmodule Core.Crm.Companies.Enrichment.BusinessModel do
   alias Core.Utils.TaskAwaiter
 
   @timeout 30 * 1000
-  @model_gemini :gemini_flash
+  @model_gemini :gemini_flash_2_0
   @max_tokens 250
   @temperature 0.05
   @system_prompt """

@@ -21,7 +21,7 @@ defmodule Core.Researcher.IcpBuilder.ProfileWriter do
   alias Core.Ai
   alias Core.Utils.TaskAwaiter
 
-  @model :claude_sonnet
+  @model :claude_sonnet_4_0
   @model_temperature 0.2
   @max_tokens 2048
   @timeout 60 * 1000

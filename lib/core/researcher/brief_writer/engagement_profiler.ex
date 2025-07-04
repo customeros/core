@@ -18,7 +18,7 @@ defmodule Core.Researcher.BriefWriter.EngagementProfiler do
   import Core.Utils.Pipeline
 
   @max_tokens 1024
-  @model :claude_sonnet
+  @model :claude_sonnet_4_0
   @model_temperature 0.3
   @timeout 60_000
 

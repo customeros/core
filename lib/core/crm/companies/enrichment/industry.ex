@@ -25,7 +25,7 @@ defmodule Core.Crm.Companies.Enrichment.Industry do
   @max_retries 5
 
   @timeout 30 * 1000
-  @model :gemini_flash
+  @model :gemini_flash_2_0
   @max_tokens 20
   @temperature 0.05
   @system_prompt """
