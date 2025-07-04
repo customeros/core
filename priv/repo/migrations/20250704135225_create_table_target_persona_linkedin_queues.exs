@@ -1,4 +1,4 @@
-defmodule Core.Repo.Migrations.CreateTableContactLinkedinQueues do
+defmodule Core.Repo.Migrations.CreateTableTargetPersonaLinkedinQueues do
   use Ecto.Migration
 
   def up do
