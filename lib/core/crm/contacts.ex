@@ -87,7 +87,6 @@ defmodule Core.Crm.Contacts do
 
             case process_avatar_for_contacts(
                    created_contacts,
-                   scrapin_contact_details.linked_in_identifier,
                    scrapin_contact_details.photo_url
                  ) do
               {:ok, contacts_with_avatars} ->
@@ -421,6 +420,30 @@ defmodule Core.Crm.Contacts do
     )
   end
 
+  @doc """
+  Sets avatar for a single contact or list of contacts.
+
+  For each contact:
+  - If avatar_key is already present, skip
+  - If another contact with same LinkedIn ID has avatar, reuse it
+  - Otherwise, download and store new avatar from photo_url
+
+  Returns {:ok, updated_contacts} or {:error, reason}
+  """
+  def set_avatar_for_contacts([%Contact{} | _] = contacts, photo_url) do
+    process_avatar_for_contacts(contacts, photo_url)
+  end
+
+  def set_avatar_for_contacts(%Contact{} = contact, photo_url) do
+    case process_avatar_for_contacts([contact], photo_url) do
+      {:ok, [updated_contact]} ->
+        {:ok, updated_contact}
+
+      {:error, reason} ->
+        {:error, reason}
+    end
+  end
+
   defp update_contact_field(contact_id, attrs, field_name) do
     case Repo.get(Contact, contact_id) do
       nil ->
@@ -450,7 +473,7 @@ defmodule Core.Crm.Contacts do
     end
   end
 
-  defp process_avatar_for_contacts(contacts, linkedin_id, photo_url) do
+  defp process_avatar_for_contacts([%Contact{} | _] = contacts, photo_url) do
     case photo_url do
       nil ->
         {:ok, contacts}
@@ -459,29 +482,102 @@ defmodule Core.Crm.Contacts do
         {:ok, contacts}
 
       photo_url ->
-        case find_existing_avatar_key_by_linkedin_id(linkedin_id) do
-          {:ok, existing_avatar_key} ->
-            update_contacts_with_avatar_key(contacts, existing_avatar_key)
+        # Process each contact individually
+        results =
+          Enum.map(contacts, fn contact ->
+            process_avatar_for_contact(contact, photo_url)
+          end)
 
-          {:error, :not_found} ->
-            case download_and_store_avatar(photo_url) do
-              {:ok, avatar_key} ->
-                update_contacts_with_avatar_key(contacts, avatar_key)
+        # Check if all processing was successful
+        failed_results =
+          Enum.filter(results, fn
+            {:ok, _} -> false
+            {:error, _} -> true
+          end)
 
-              {:error, reason} ->
-                {:error, reason}
-            end
+        case failed_results do
+          [] ->
+            # All successful, return updated contacts
+            updated_contacts =
+              Enum.map(results, fn {:ok, contact} -> contact end)
+
+            {:ok, updated_contacts}
+
+          _ ->
+            Logger.error("Failed to process avatar for some contacts", %{
+              failed_count: length(failed_results)
+            })
+
+            {:error, :avatar_processing_failed}
         end
     end
   end
 
+  defp process_avatar_for_contact(contact, photo_url) do
+    # Skip if contact already has avatar
+    if not is_nil(contact.avatar_key) do
+      {:ok, contact}
+    else
+      case find_existing_avatar_key_by_linkedin_id(contact.linkedin_id) do
+        {:ok, existing_avatar_key} ->
+          case update_contact_field(
+                 contact.id,
+                 %{avatar_key: existing_avatar_key},
+                 "avatar_key"
+               ) do
+            {:ok, updated_contact} ->
+              {:ok, updated_contact}
+
+            {:error, reason} ->
+              Logger.error(
+                "Failed to update contact with existing avatar key",
+                %{
+                  contact_id: contact.id,
+                  reason: reason
+                }
+              )
+
+              {:error, reason}
+          end
+
+        {:error, :not_found} ->
+          case download_and_store_avatar(photo_url) do
+            {:ok, avatar_key} ->
+              case update_contact_field(
+                     contact.id,
+                     %{avatar_key: avatar_key},
+                     "avatar_key"
+                   ) do
+                {:ok, updated_contact} ->
+                  {:ok, updated_contact}
+
+                {:error, reason} ->
+                  Logger.error(
+                    "Failed to update contact with new avatar key",
+                    %{
+                      contact_id: contact.id,
+                      reason: reason
+                    }
+                  )
+
+                  {:error, reason}
+              end
+
+            {:error, reason} ->
+              {:error, reason}
+          end
+      end
+    end
+  end
+
   defp find_existing_avatar_key_by_linkedin_id(linkedin_id) do
-    case Repo.one(
+    case Repo.all(
            from c in Contact,
-             where: c.linkedin_id == ^linkedin_id and not is_nil(c.avatar_key)
+             where: c.linkedin_id == ^linkedin_id and not is_nil(c.avatar_key),
+             limit: 1
          ) do
-      nil -> {:error, :not_found}
-      contact -> {:ok, contact.avatar_key}
+      [] -> {:error, :not_found}
+      [contact | _] -> {:ok, contact.avatar_key}
     end
   end
 
@@ -643,52 +739,6 @@ defmodule Core.Crm.Contacts do
         )
 
         {:error, :download_failed}
-    end
-  end
-
-  defp update_contacts_with_avatar_key(contacts, avatar_key) do
-    contacts_without_avatar = Enum.filter(contacts, &is_nil(&1.avatar_key))
-
-    case contacts_without_avatar do
-      [] ->
-        {:ok, contacts}
-
-      contacts_to_update ->
-        results =
-          Enum.map(contacts_to_update, fn contact ->
-            update_contact_field(
-              contact.id,
-              %{avatar_key: avatar_key},
-              "avatar_key"
-            )
-          end)
-
-        # Check if all updates were successful
-        failed_updates =
-          Enum.filter(results, fn
-            {:ok, _} -> false
-            {:error, _} -> true
-          end)
-
-        case failed_updates do
-          [] ->
-            # All updates successful, return updated contacts
-            updated_contacts =
-              Enum.map(results, fn {:ok, contact} -> contact end)
-
-            # Merge with contacts that already had avatar_key
-            contacts_with_avatar =
-              Enum.filter(contacts, &(not is_nil(&1.avatar_key)))
-
-            {:ok, updated_contacts ++ contacts_with_avatar}
-
-          _ ->
-            Logger.error("Failed to update avatar_key for some contacts", %{
-              failed_count: length(failed_updates)
-            })
-
-            {:error, :avatar_update_failed}
-        end
     end
   end
 end
