@@ -38,28 +38,7 @@ defmodule Core.Crm.Leads.NewLeadPipeline do
         fn ->
           OpenTelemetry.Ctx.attach(span_ctx)
 
-          case new_lead_pipeline(lead_id, tenant_id, callback, opts) do
-            :ok ->
-              Logger.info(
-                "Successfully completed new lead pipeline for #{lead_id}"
-              )
-
-            {:error, :not_a_company} ->
-              OpenTelemetry.Tracer.set_attributes([
-                {"result", :not_a_company}
-              ])
-
-              Logger.info("Lead_id #{lead_id} is not a company")
-
-            {:error, reason} ->
-              Tracing.error(reason)
-
-              Logger.error("New Lead Pipeline failed for #{lead_id}",
-                tenant_id: tenant_id,
-                lead_id: lead_id,
-                reason: reason
-              )
-          end
+          new_lead_pipeline(lead_id, tenant_id, callback, opts)
         end
       )
     end
@@ -95,6 +74,22 @@ defmodule Core.Crm.Leads.NewLeadPipeline do
         false ->
           Logger.info("Skipping ICP fit analysis - lead not applicable")
           :ok
+
+        {:error, :not_a_company} ->
+          Tracing.warning(
+            :not_a_company,
+            "Lead_id #{lead_id} is not a company"
+          )
+
+          {:error, :not_a_company}
+
+        {:error, :closed_sessions_not_found} ->
+          Tracing.warning(
+            :closed_sessions_not_found,
+            "Closed sessions not found for lead #{lead_id}"
+          )
+
+          {:error, :closed_sessions_not_found}
 
         {:error, reason} ->
           Tracing.error(reason, "New Lead Pipeline failed for #{lead_id}",

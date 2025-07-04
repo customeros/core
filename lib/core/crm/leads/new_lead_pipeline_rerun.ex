@@ -33,7 +33,6 @@ defmodule Core.Crm.Leads.NewLeadPipelineRerun do
     end
   end
 
-
   defp process_lead_safely(lead, tenant_id) do
     try do
       case NewLeadPipeline.new_lead_pipeline(lead.id, tenant_id) do
@@ -47,6 +46,5 @@ defmodule Core.Crm.Leads.NewLeadPipelineRerun do
       :exit, reason -> {:error, {:exit, reason}}
       :throw, reason -> {:error, {:throw, reason}}
     end
-
   end
 end
