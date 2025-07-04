@@ -404,6 +404,33 @@ defmodule Core.Crm.Contacts do
     end
   end
 
+  def get_taget_persona_contacts_by_lead_id(tenant_id, lead_id) do
+    OpenTelemetry.Tracer.with_span "contacts.get_taget_persona_contacts_by_lead_id" do
+      OpenTelemetry.Tracer.set_attributes([
+        {"param.tenant.id", tenant_id},
+        {"param.lead.id", lead_id}
+      ])
+
+      target_persona_contacts_query =
+        from c in Contact,
+          join: l in Core.Crm.Leads.Lead,
+          on:
+            l.ref_id == c.company_id and l.tenant_id == ^tenant_id and
+              l.id == ^lead_id,
+          join: tp in Core.Crm.TargetPersonas.TargetPersona,
+          on: tp.contact_id == c.id and tp.tenant_id == ^tenant_id,
+          select: c
+
+      contacts = Repo.all(target_persona_contacts_query)
+
+      OpenTelemetry.Tracer.set_attributes([
+        {"result.count", length(contacts)}
+      ])
+
+      contacts
+    end
+  end
+
   def update_business_email(business_email, status, contact_id) do
     update_contact_field(
       contact_id,
