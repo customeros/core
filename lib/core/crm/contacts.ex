@@ -516,36 +516,129 @@ defmodule Core.Crm.Contacts do
     end
   end
 
-  defp download_linkedin_avatar_with_fallback(photo_url) do
-    base_headers = [
-      {"User-Agent", "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36"},
-      {"Accept", "image/avif,image/webp,image/apng,image/svg+xml,image/*,*/*;q=0.8"},
-      {"Accept-Language", "en-US,en;q=0.9"}
+    defp download_linkedin_avatar_with_fallback(photo_url) do
+    # Try multiple strategies for LinkedIn URLs
+    strategies = [
+      # Strategy 1: Finch with standard headers and LinkedIn referer
+      fn ->
+        headers = [
+          {"User-Agent", "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36"},
+          {"Accept", "image/avif,image/webp,image/apng,image/svg+xml,image/*,*/*;q=0.8"},
+          {"Accept-Language", "en-US,en;q=0.9"},
+          {"Referer", "https://www.linkedin.com/"}
+        ]
+        Images.download_image(photo_url, headers)
+      end,
+
+      # Strategy 2: Finch with standard headers without referer
+      fn ->
+        headers = [
+          {"User-Agent", "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36"},
+          {"Accept", "image/avif,image/webp,image/apng,image/svg+xml,image/*,*/*;q=0.8"},
+          {"Accept-Language", "en-US,en;q=0.9"}
+        ]
+        Images.download_image(photo_url, headers)
+      end,
+
+      # Strategy 3: HTTPoison with standard headers and LinkedIn referer
+      fn ->
+        headers = [
+          {"User-Agent", "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36"},
+          {"Accept", "image/avif,image/webp,image/apng,image/svg+xml,image/*,*/*;q=0.8"},
+          {"Accept-Language", "en-US,en;q=0.9"},
+          {"Referer", "https://www.linkedin.com/"}
+        ]
+        Images.download_image_with_httpoison(photo_url, headers)
+      end,
+
+      # Strategy 4: HTTPoison with standard headers without referer
+      fn ->
+        headers = [
+          {"User-Agent", "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36"},
+          {"Accept", "image/avif,image/webp,image/apng,image/svg+xml,image/*,*/*;q=0.8"},
+          {"Accept-Language", "en-US,en;q=0.9"}
+        ]
+        Images.download_image_with_httpoison(photo_url, headers)
+      end,
+
+      # Strategy 5: Finch with different User-Agent
+      fn ->
+        headers = [
+          {"User-Agent", "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36"},
+          {"Accept", "image/avif,image/webp,image/apng,image/svg+xml,image/*,*/*;q=0.8"},
+          {"Accept-Language", "en-US,en;q=0.9"},
+          {"Referer", "https://www.linkedin.com/"}
+        ]
+        Images.download_image(photo_url, headers)
+      end,
+
+      # Strategy 6: HTTPoison with different User-Agent
+      fn ->
+        headers = [
+          {"User-Agent", "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36"},
+          {"Accept", "image/avif,image/webp,image/apng,image/svg+xml,image/*,*/*;q=0.8"},
+          {"Accept-Language", "en-US,en;q=0.9"},
+          {"Referer", "https://www.linkedin.com/"}
+        ]
+        Images.download_image_with_httpoison(photo_url, headers)
+      end,
+
+      # Strategy 7: Finch with modified URL (remove query parameters)
+      fn ->
+        modified_url = String.replace(photo_url, ~r/\?.*$/, "")
+        headers = [
+          {"User-Agent", "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36"},
+          {"Accept", "image/avif,image/webp,image/apng,image/svg+xml,image/*,*/*;q=0.8"},
+          {"Accept-Language", "en-US,en;q=0.9"},
+          {"Referer", "https://www.linkedin.com/"}
+        ]
+        Images.download_image(modified_url, headers)
+      end,
+
+      # Strategy 8: HTTPoison with modified URL (remove query parameters)
+      fn ->
+        modified_url = String.replace(photo_url, ~r/\?.*$/, "")
+        headers = [
+          {"User-Agent", "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36"},
+          {"Accept", "image/avif,image/webp,image/apng,image/svg+xml,image/*,*/*;q=0.8"},
+          {"Accept-Language", "en-US,en;q=0.9"},
+          {"Referer", "https://www.linkedin.com/"}
+        ]
+        Images.download_image_with_httpoison(modified_url, headers)
+      end
     ]
 
-    headers = [{"Referer", "https://www.linkedin.com/"} | base_headers]
+    try_strategies(strategies, photo_url)
+  end
 
-    case Images.download_image(photo_url, headers) do
-      {:ok, image_data} ->
-        {:ok, image_data}
-
-      {:error, reason} ->
-        Logger.debug("LinkedIn avatar download failed with referer, trying without", %{
-          photo_url: photo_url,
-          reason: reason
-        })
-
-        case Images.download_image(photo_url, base_headers) do
+    defp try_strategies(strategies, photo_url, attempt \\ 1) do
+    case strategies do
+      [strategy | remaining_strategies] ->
+        case strategy.() do
           {:ok, image_data} ->
+            Logger.debug("LinkedIn avatar download succeeded with strategy #{attempt}", %{
+              photo_url: photo_url
+            })
             {:ok, image_data}
 
           {:error, reason} ->
-            Logger.debug("LinkedIn avatar download failed without referer", %{
+            Logger.debug("LinkedIn avatar download failed with strategy #{attempt}", %{
               photo_url: photo_url,
-              reason: reason
+              reason: reason,
+              strategy: attempt
             })
-            {:error, reason}
+
+            # Add a small delay between attempts
+            Process.sleep(500)
+            try_strategies(remaining_strategies, photo_url, attempt + 1)
         end
+
+      [] ->
+        Logger.error("All LinkedIn avatar download strategies failed", %{
+          photo_url: photo_url,
+          total_strategies: 8
+        })
+        {:error, "All LinkedIn avatar download strategies failed"}
     end
   end
 

@@ -62,7 +62,7 @@ defmodule Core.Utils.Media.Images do
   end
 
   @doc """
-  Downloads an image from a URL.
+  Downloads an image from a URL using Finch.
   Returns {:ok, binary_data} or {:error, reason}
   """
   def download_image(url, headers \\ []) do
@@ -80,6 +80,32 @@ defmodule Core.Utils.Media.Images do
         @err_timeout
 
       {:error, reason} ->
+        {:error, "HTTP request failed: #{inspect(reason)}"}
+    end
+  end
+
+  @doc """
+  Downloads an image from a URL using HTTPoison.
+  Returns {:ok, binary_data} or {:error, reason}
+  """
+  def download_image_with_httpoison(url, headers \\ []) do
+    # Convert list of tuples to map for HTTPoison
+    headers_map = Map.new(headers)
+
+    case HTTPoison.get(url, headers_map, [timeout: 30_000, recv_timeout: 30_000]) do
+      {:ok, %HTTPoison.Response{status_code: 200, body: body}} ->
+        {:ok, body}
+
+      {:ok, %HTTPoison.Response{status_code: 404}} ->
+        @err_not_found
+
+      {:ok, %HTTPoison.Response{status_code: status_code}} ->
+        {:error, "HTTP request failed with status #{status_code}"}
+
+      {:error, %HTTPoison.Error{reason: :timeout}} ->
+        @err_timeout
+
+      {:error, %HTTPoison.Error{reason: reason}} ->
         {:error, "HTTP request failed: #{inspect(reason)}"}
     end
   end
