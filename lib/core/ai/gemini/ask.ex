@@ -152,7 +152,6 @@ defmodule Core.Ai.Gemini.Ask do
     url =
       "#{url}/#{get_model_id(model)}:generateContent?#{@api_key_param}=#{config.api_key}"
 
-    dbg(url)
     headers = [{@content_type_header, "application/json"}]
     Finch.build(:post, url, headers, body)
   end
