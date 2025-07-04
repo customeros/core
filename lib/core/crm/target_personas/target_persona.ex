@@ -2,6 +2,7 @@ defmodule Core.Crm.TargetPersonas.TargetPersona do
   use Ecto.Schema
   import Ecto.Changeset
 
+  @id_prefix "per"
   @primary_key {:id, :string, autogenerate: false}
 
   schema "target_personas" do
@@ -31,7 +32,11 @@ defmodule Core.Crm.TargetPersonas.TargetPersona do
   end
 
   defp maybe_put_id(%Ecto.Changeset{data: %{id: nil}} = changeset) do
-    put_change(changeset, :id, Core.Utils.IdGenerator.generate_id_21("per"))
+    put_change(
+      changeset,
+      :id,
+      Core.Utils.IdGenerator.generate_id_21(@id_prefix)
+    )
   end
 
   defp maybe_put_id(changeset), do: changeset
