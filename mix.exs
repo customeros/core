@@ -67,6 +67,7 @@ defmodule Core.MixProject do
       {:ex_phone_number, "~> 0.4.8"},
       {:floki, "~> 0.38.0"},
       {:finch, "~> 0.19"},
+      {:httpoison, "~> 2.2"},
       {:gnat, "~> 1.10"},
       {:grpc, "~> 0.10.1"},
       {:gettext, "~> 0.20"},
