@@ -513,12 +513,11 @@ defmodule Core.Crm.Contacts do
     end
   end
 
-  defp process_avatar_for_contact(contact, photo_url) do
-    # Skip if contact already has avatar
-    if not is_nil(contact.avatar_key) do
-      {:ok, contact}
-    else
+  defp process_avatar_for_contact(%Contact{} = contact, photo_url) do
+    if is_nil(contact.avatar_key) do
       process_avatar_for_contact_without_avatar(contact, photo_url)
+    else
+      {:ok, contact}
     end
   end
 
