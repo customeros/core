@@ -10,7 +10,7 @@ defmodule Core.Researcher.Webpages.Classifier do
   alias Core.Utils.DomainExtractor
   alias Core.Researcher.Webpages.Classification
 
-  @model :gemini_pro
+  @model :gemini_pro_2_5
   @model_temperature 0.2
   @max_tokens 1024
   @timeout 45 * 1000
