@@ -6,33 +6,34 @@ defmodule Core.Crm.Contacts do
   require OpenTelemetry.Tracer
   import Ecto.Query
 
-  alias Core.Repo
-  alias Core.Crm.Contacts.Contact
-  alias Core.ScrapinContacts
   alias Core.Crm.Companies
+  alias Core.Crm.Contacts.Contact
+  alias Core.Repo
+  alias Core.ScrapinContactDetails
+  alias Core.ScrapinContacts
+  alias Core.Utils.Media.Images
+  alias Core.Utils.Tracing
 
-  # @err_undeliverable {:error, "email address is undeliverable"}
   @err_contact_creation_failed {:error, "contact creation failed"}
+  @linkedin_url_prefix "https://www.linkedin.com/in/"
 
-  def create_contacts_by_linkedin_alias(alias) do
-    linkedin_url = "https://www.linkedin.com/in/#{alias}"
-    create_contacts_from_linkedin_url(linkedin_url)
+  def create_contacts_by_linkedin_alias(linkedin_alias) do
+    create_contacts_by_linkedin_url("#{@linkedin_url_prefix}#{linkedin_alias}")
   end
 
   def create_contacts_by_linkedin_id(linkedin_id) do
-    linkedin_url = "https://www.linkedin.com/in/#{linkedin_id}"
-    create_contacts_from_linkedin_url(linkedin_url)
+    create_contacts_by_linkedin_url("#{@linkedin_url_prefix}#{linkedin_id}")
   end
 
-  defp create_contacts_from_linkedin_url(linkedin_url) do
-    OpenTelemetry.Tracer.with_span "contacts.create_contacts_from_linkedin_url" do
+  defp create_contacts_by_linkedin_url(linkedin_url) do
+    OpenTelemetry.Tracer.with_span "contacts.create_contacts_by_linkedin_url" do
       OpenTelemetry.Tracer.set_attributes([
         {"param.linkedin_url", linkedin_url}
       ])
 
       case ScrapinContacts.profile_contact_with_scrapin(linkedin_url) do
         {:ok, contact_details} ->
-          create_contacts_from_details(contact_details)
+          create_contacts_from_scrapin_details(contact_details)
 
         {:error, :not_found} ->
           Logger.warning("No contact found for LinkedIn URL", %{
@@ -52,14 +53,14 @@ defmodule Core.Crm.Contacts do
     end
   end
 
-  defp create_contacts_from_details(contact_details) do
-    case contact_details.positions do
+  defp create_contacts_from_scrapin_details(
+         %ScrapinContactDetails{} = scrapin_contact_details
+       ) do
+    case scrapin_contact_details.positions do
       %{position_history: positions}
       when is_list(positions) and length(positions) > 0 ->
-        # Get common fields from person details
-        common_fields = extract_common_fields(contact_details)
+        common_fields = extract_common_fields(scrapin_contact_details)
 
-        # Process each position and create/update contacts
         results =
           Enum.map(positions, fn position ->
             create_or_update_contact_for_position(common_fields, position)
@@ -81,7 +82,26 @@ defmodule Core.Crm.Contacts do
             {:error, :no_contacts_created}
 
           contacts ->
-            {:ok, Enum.map(contacts, fn {:ok, contact} -> contact end)}
+            created_contacts =
+              Enum.map(contacts, fn {:ok, contact} -> contact end)
+
+            case process_avatar_for_contacts(
+                   created_contacts,
+                   scrapin_contact_details.linked_in_identifier,
+                   scrapin_contact_details.photo_url
+                 ) do
+              {:ok, contacts_with_avatars} ->
+                {:ok, contacts_with_avatars}
+
+              {:error, reason} ->
+                Logger.warning("Failed to process avatar for contacts", %{
+                  linkedin_id: scrapin_contact_details.linked_in_identifier,
+                  reason: reason
+                })
+
+                # Return contacts even if avatar processing failed
+                {:ok, created_contacts}
+            end
         end
 
       _ ->
@@ -90,18 +110,20 @@ defmodule Core.Crm.Contacts do
     end
   end
 
-  defp extract_common_fields(contact_details) do
+  defp extract_common_fields(%ScrapinContactDetails{} = scrapin_contact_details) do
     %{
-      first_name: contact_details.first_name,
-      last_name: contact_details.last_name,
+      first_name: scrapin_contact_details.first_name,
+      last_name: scrapin_contact_details.last_name,
       full_name:
-        build_full_name(contact_details.first_name, contact_details.last_name),
-      linkedin_id: contact_details.linked_in_identifier,
-      linkedin_alias: contact_details.public_identifier,
-      # avatar_key: contact_details.photo_url,
-      location: contact_details.location,
-      headline: contact_details.headline,
-      summary: contact_details.summary
+        build_full_name(
+          scrapin_contact_details.first_name,
+          scrapin_contact_details.last_name
+        ),
+      linkedin_id: scrapin_contact_details.linked_in_identifier,
+      linkedin_alias: scrapin_contact_details.public_identifier,
+      location: scrapin_contact_details.location,
+      headline: scrapin_contact_details.headline,
+      summary: scrapin_contact_details.summary
     }
   end
 
@@ -115,13 +137,10 @@ defmodule Core.Crm.Contacts do
   end
 
   defp create_or_update_contact_for_position(common_fields, position) do
-    # Extract position-specific fields
     position_fields = extract_position_fields(position)
 
-    # Combine common and position fields
     contact_attrs = Map.merge(common_fields, position_fields)
 
-    # Check if contact already exists with same linkedin_id and linkedin_company_id
     case find_existing_contact_by_linkedin_id_and_company_id(
            contact_attrs.linkedin_id,
            contact_attrs.linkedin_company_id
@@ -380,6 +399,7 @@ defmodule Core.Crm.Contacts do
     case contacts do
       [] ->
         :not_found
+
       contacts ->
         {:ok, contacts}
     end
@@ -426,6 +446,156 @@ defmodule Core.Crm.Contacts do
             })
 
             {:error, "Failed to update #{field_name}"}
+        end
+    end
+  end
+
+  defp process_avatar_for_contacts(contacts, linkedin_id, photo_url) do
+    case photo_url do
+      nil ->
+        {:ok, contacts}
+
+      "" ->
+        {:ok, contacts}
+
+      photo_url ->
+        case find_existing_avatar_key_by_linkedin_id(linkedin_id) do
+          {:ok, existing_avatar_key} ->
+            update_contacts_with_avatar_key(contacts, existing_avatar_key)
+
+          {:error, :not_found} ->
+            case download_and_store_avatar(photo_url, linkedin_id) do
+              {:ok, avatar_key} ->
+                update_contacts_with_avatar_key(contacts, avatar_key)
+
+              {:error, reason} ->
+                {:error, reason}
+            end
+        end
+    end
+  end
+
+  defp find_existing_avatar_key_by_linkedin_id(linkedin_id) do
+    case Repo.one(
+           from c in Contact,
+             where: c.linkedin_id == ^linkedin_id and not is_nil(c.avatar_key)
+         ) do
+      nil -> {:error, :not_found}
+      contact -> {:ok, contact.avatar_key}
+    end
+  end
+
+  defp download_and_store_avatar(photo_url, linkedin_id) do
+    OpenTelemetry.Tracer.with_span "contacts.download_and_store_avatar" do
+      OpenTelemetry.Tracer.set_attributes([
+        {"param.photo_url", photo_url},
+        {"param.linkedin_id", linkedin_id}
+      ])
+
+      case download_linkedin_avatar_with_fallback(photo_url) do
+        {:ok, image_data} ->
+          case Images.store_image(
+                 image_data,
+                 "image/jpeg",
+                 photo_url,
+                 %{generate_name: true, path: "_contacts"}
+               ) do
+            {:ok, storage_key} ->
+              {:ok, storage_key}
+
+            {:error, reason} ->
+              Tracing.error(reason, "Failed to store avatar image: #{photo_url}")
+
+              {:error, reason}
+          end
+
+        {:error, reason} ->
+          Tracing.error(reason, "Failed to download avatar image: #{photo_url}")
+
+          {:error, reason}
+      end
+    end
+  end
+
+  defp download_linkedin_avatar_with_fallback(photo_url) do
+    base_headers = [
+      {"User-Agent", "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36"},
+      {"Accept", "image/avif,image/webp,image/apng,image/svg+xml,image/*,*/*;q=0.8"},
+      {"Accept-Language", "en-US,en;q=0.9"}
+    ]
+
+    headers = [{"Referer", "https://www.linkedin.com/"} | base_headers]
+
+    case Images.download_image(photo_url, headers) do
+      {:ok, image_data} ->
+        {:ok, image_data}
+
+      {:error, reason} ->
+        Logger.debug("LinkedIn avatar download failed with referer, trying without", %{
+          photo_url: photo_url,
+          reason: reason
+        })
+
+        case Images.download_image(photo_url, base_headers) do
+          {:ok, image_data} ->
+            {:ok, image_data}
+
+          {:error, reason} ->
+            Logger.debug("LinkedIn avatar download failed without referer", %{
+              photo_url: photo_url,
+              reason: reason
+            })
+            {:error, reason}
+        end
+    end
+  end
+
+
+
+  defp update_contacts_with_avatar_key(contacts, avatar_key) do
+    contacts_without_avatar = Enum.filter(contacts, &is_nil(&1.avatar_key))
+
+    case contacts_without_avatar do
+      [] ->
+        # All contacts already have avatar_key
+        {:ok, contacts}
+
+      contacts_to_update ->
+        # Update all contacts without avatar_key
+        results =
+          Enum.map(contacts_to_update, fn contact ->
+            update_contact_field(
+              contact.id,
+              %{avatar_key: avatar_key},
+              "avatar_key"
+            )
+          end)
+
+        # Check if all updates were successful
+        failed_updates =
+          Enum.filter(results, fn
+            {:ok, _} -> false
+            {:error, _} -> true
+          end)
+
+        case failed_updates do
+          [] ->
+            # All updates successful, return updated contacts
+            updated_contacts =
+              Enum.map(results, fn {:ok, contact} -> contact end)
+
+            # Merge with contacts that already had avatar_key
+            contacts_with_avatar =
+              Enum.filter(contacts, &(not is_nil(&1.avatar_key)))
+
+            {:ok, updated_contacts ++ contacts_with_avatar}
+
+          _ ->
+            Logger.error("Failed to update avatar_key for some contacts", %{
+              failed_count: length(failed_updates)
+            })
+
+            {:error, :avatar_update_failed}
         end
     end
   end

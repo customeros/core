@@ -65,7 +65,8 @@ defmodule Core.ScrapinCompanies do
   Get latest ScrapinCompany record by LinkedIn ID.
   Returns {:ok, %ScrapinCompany{}} or {:error, :not_found}.
   """
-  def get_scrapin_company_record_by_linkedin_id(linkedin_id) when is_binary(linkedin_id) do
+  def get_scrapin_company_record_by_linkedin_id(linkedin_id)
+      when is_binary(linkedin_id) do
     latest = get_latest_by_linkedin_id(linkedin_id)
 
     case latest do

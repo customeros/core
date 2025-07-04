@@ -44,7 +44,10 @@ defmodule Core.Crm.TargetPersonas do
     result =
       %TargetPersona{}
       |> TargetPersona.changeset(attrs)
-      |> Repo.insert(on_conflict: :nothing, conflict_target: [:tenant_id, :contact_id])
+      |> Repo.insert(
+        on_conflict: :nothing,
+        conflict_target: [:tenant_id, :contact_id]
+      )
 
     case result do
       {:ok, persona} ->
