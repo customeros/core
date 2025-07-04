@@ -303,8 +303,8 @@ defmodule Core.Crm.Leads do
              where:
                l.icp_fit == :not_a_fit and
                  l.tenant_id == ^tenant_id and
-                 not is_nil(l.icp_disqualification_reason) and
-                 l.icp_disqualification_reason != []
+                 (is_nil(l.icp_disqualification_reason) or
+                    l.icp_disqualification_reason == [])
          ) do
       [] -> {:error, :not_found}
       leads -> {:ok, leads}
