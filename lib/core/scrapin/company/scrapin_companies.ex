@@ -142,8 +142,8 @@ defmodule Core.ScrapinCompanies do
               {:error, :not_found}
           end
         else
-          _error ->
-            {:error, :not_found}
+          {:error, reason} ->
+            {:error, reason}
         end
     end
   end

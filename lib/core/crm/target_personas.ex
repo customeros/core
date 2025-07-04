@@ -6,6 +6,7 @@ defmodule Core.Crm.TargetPersonas do
   alias Core.Crm.Contacts
   alias Core.Utils.LinkedinParser
   alias Core.Crm.TargetPersonas.TargetPersona
+  alias Core.Crm.TargetPersonas.TargetPersonaLinkedinQueues
   alias Core.Utils.Tracing
   alias Core.Auth.Tenants
 
@@ -19,7 +20,6 @@ defmodule Core.Crm.TargetPersonas do
         {"param.linkedin_url", linkedin_url}
       ])
 
-      # Validate tenant exists
       case Tenants.get_tenant_by_id(tenant_id) do
         {:ok, _tenant} ->
           case LinkedinParser.parse_contact_url(linkedin_url) do
@@ -128,9 +128,12 @@ defmodule Core.Crm.TargetPersonas do
 
       case Contacts.get_contacts_by_linkedin_id(linkedin_id) do
         {:ok, contacts} ->
-          contacts
-          |> filter_active_contacts()
-          |> create_personas_for_contacts(tenant_id)
+          personas =
+            contacts
+            |> filter_active_contacts()
+            |> create_personas_for_contacts(tenant_id)
+
+          {:ok, personas}
 
         :not_found ->
           create_contacts_and_personas_from_linkedin_id(tenant_id, linkedin_id)
@@ -147,9 +150,12 @@ defmodule Core.Crm.TargetPersonas do
 
       case Contacts.get_contacts_by_linkedin_alias(alias) do
         {:ok, contacts} ->
-          contacts
-          |> filter_active_contacts()
-          |> create_personas_for_contacts(tenant_id)
+          personas =
+            contacts
+            |> filter_active_contacts()
+            |> create_personas_for_contacts(tenant_id)
+
+          {:ok, personas}
 
         :not_found ->
           create_contacts_and_personas_from_linkedin_alias(tenant_id, alias)
@@ -160,11 +166,19 @@ defmodule Core.Crm.TargetPersonas do
   defp create_contacts_and_personas_from_linkedin_id(tenant_id, linkedin_id) do
     case Contacts.create_contacts_by_linkedin_id(linkedin_id) do
       {:ok, contacts} ->
-        contacts
-        |> filter_active_contacts()
-        |> create_personas_for_contacts(tenant_id)
+        personas =
+          contacts
+          |> filter_active_contacts()
+          |> create_personas_for_contacts(tenant_id)
+
+        {:ok, personas}
 
       {:error, reason} ->
+        TargetPersonaLinkedinQueues.add_record(
+          tenant_id,
+          "https://www.linkedin.com/in/#{linkedin_id}"
+        )
+
         {:error, reason}
     end
   end
@@ -172,11 +186,16 @@ defmodule Core.Crm.TargetPersonas do
   defp create_contacts_and_personas_from_linkedin_alias(tenant_id, alias) do
     case Contacts.create_contacts_by_linkedin_alias(alias) do
       {:ok, contacts} ->
-        contacts
-        |> filter_active_contacts()
-        |> create_personas_for_contacts(tenant_id)
+        personas =
+          contacts
+          |> filter_active_contacts()
+          |> create_personas_for_contacts(tenant_id)
+
+        {:ok, personas}
 
       {:error, reason} ->
+        TargetPersonaLinkedinQueues.add_record(tenant_id, alias)
+
         {:error, reason}
     end
   end
