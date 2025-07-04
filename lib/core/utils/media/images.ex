@@ -92,7 +92,7 @@ defmodule Core.Utils.Media.Images do
     # Convert list of tuples to map for HTTPoison
     headers_map = Map.new(headers)
 
-    case HTTPoison.get(url, headers_map, [timeout: 30_000, recv_timeout: 30_000]) do
+    case HTTPoison.get(url, headers_map, timeout: 30_000, recv_timeout: 30_000) do
       {:ok, %HTTPoison.Response{status_code: 200, body: body}} ->
         {:ok, body}
 
