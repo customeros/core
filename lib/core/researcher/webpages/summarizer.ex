@@ -14,7 +14,7 @@ defmodule Core.Researcher.Webpages.Summarizer do
   alias Core.Ai
   alias Core.Utils.TaskAwaiter
 
-  @model :gemini_flash
+  @model :gemini_flash_2_0
   @model_temperature 0.2
   @max_tokens 1024
   @timeout 60 * 1000
