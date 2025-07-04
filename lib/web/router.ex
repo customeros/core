@@ -188,6 +188,8 @@ defmodule Web.Router do
 
     resources "/documents", DocumentController,
       only: [:create, :update, :delete]
+
+    post "/target-personas", TargetPersonaController, :create
   end
 
   # Flexible authentication (supports both session and Bearer token)

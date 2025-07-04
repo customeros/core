@@ -9,8 +9,8 @@ defmodule Core.Crm.TargetPersonas do
   alias Core.Utils.Tracing
   alias Core.Auth.Tenants
 
-  @err_persona_creation_failed {:error, "target persona creation failed"}
-  @err_tenant_not_found {:error, "tenant not found"}
+  @err_persona_creation_failed {:error, :target_persona_creation_failed}
+  @err_tenant_not_found {:error, :tenant_not_found}
 
   def create_from_linkedin(tenant_id, linkedin_url) do
     OpenTelemetry.Tracer.with_span "target_personas.create_from_linkedin" do
