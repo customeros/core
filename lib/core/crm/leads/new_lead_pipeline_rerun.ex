@@ -9,27 +9,44 @@ defmodule Core.Crm.Leads.NewLeadPipelineRerun do
            Leads.get_icp_not_a_fits_without_disqual_reason(tenant_id) do
       leads
       |> Task.async_stream(
-        fn lead -> process_lead(lead, tenant_id) end,
+        fn lead -> process_lead_safely(lead, tenant_id) end,
         max_concurrency: @max_concurrency,
         timeout: :timer.minutes(5),
         on_timeout: :kill_task
       )
       |> Stream.with_index()
       |> Enum.reduce({[], []}, fn
-        {{:ok, result}, index}, {successes, failures} ->
+        {{:ok, {:success, result}}, index}, {successes, failures} ->
           IO.puts("Completed record #{index + 1}/#{length(leads)}")
           {[result | successes], failures}
 
+        {{:ok, {:error, reason}}, index}, {successes, failures} ->
+          IO.puts("Failed record #{index + 1}: #{inspect(reason)}")
+          {successes, [reason | failures]}
+
         {{:exit, reason}, index}, {successes, failures} ->
-          IO.puts("Failed record #{index + 1}: #{inspect(leads)}")
-          {successes, [index | failures]}
+          IO.puts("Task crashed #{index + 1}: #{inspect(reason)}")
+          {successes, [reason | failures]}
       end)
     else
       {:error, reason} -> {:error, reason}
     end
   end
 
-  def process_lead(lead, tenant_id) do
-    NewLeadPipeline.start(lead.id, tenant_id)
+
+  defp process_lead_safely(lead, tenant_id) do
+    try do
+      case NewLeadPipeline.new_lead_pipeline(lead.id, tenant_id) do
+        {:ok, result} -> {:success, result}
+        {:error, reason} -> {:error, reason}
+        other -> {:error, {:unexpected_result, other}}
+      end
+    rescue
+      exception -> {:error, {:exception, Exception.message(exception)}}
+    catch
+      :exit, reason -> {:error, {:exit, reason}}
+      :throw, reason -> {:error, {:throw, reason}}
+    end
+
   end
 end
