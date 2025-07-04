@@ -651,11 +651,9 @@ defmodule Core.Crm.Contacts do
 
     case contacts_without_avatar do
       [] ->
-        # All contacts already have avatar_key
         {:ok, contacts}
 
       contacts_to_update ->
-        # Update all contacts without avatar_key
         results =
           Enum.map(contacts_to_update, fn contact ->
             update_contact_field(
