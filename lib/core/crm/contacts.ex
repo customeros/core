@@ -570,6 +570,10 @@ defmodule Core.Crm.Contacts do
     end
   end
 
+  defp find_existing_avatar_key_by_linkedin_id(linkedin_id) when is_nil(linkedin_id) or linkedin_id == "" do
+    {:error, :not_found}
+  end
+
   defp find_existing_avatar_key_by_linkedin_id(linkedin_id) do
     case Repo.all(
            from c in Contact,
