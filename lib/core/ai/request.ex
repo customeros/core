@@ -2,15 +2,30 @@ defmodule Core.Ai.Request do
   @moduledoc """
   Represents a request to ask a question to an AI Model.
   """
-  @default_model :claude_haiku
+  @default_model :claude_haiku_3_5
   @default_max_tokens 512
   @default_temperature 0.2
   @default_response_type :text
 
-  @type model :: :claude_haiku | :claude_sonnet | :gemini_pro | :gemini_flash
+  @type model ::
+          :claude_haiku_3_5
+          | :claude_sonnet_4_0
+          | :llama3_70b
+          | :llama3_8b
+          | :llama33_70b
+          | :llama31_8b
+          | :llama4_scout
+          | :llama4_maverick
+          | :qwen_qwq32b
+          | :gemma3_27b
+          | :gemini_flash_2_0
+          | :gemini_flash_2_5
+          | :gemini_flash_light_2_5
+          | :gemini_pro_2_5
+
   @type response_type :: :text | :json
   @type t :: %__MODULE__{
-          model: model(),
+          model: model,
           prompt: String.t(),
           system_prompt: String.t() | nil,
           max_output_tokens: integer() | nil,

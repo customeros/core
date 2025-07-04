@@ -30,9 +30,23 @@ defmodule Core.Ai do
   alias Core.Ai.Groq
   alias Core.Ai.Request
 
-  @anthropic_models [:claude_haiku, :claude_sonnet]
-  @gemini_models [:gemini_pro, :gemini_flash]
-  @groq_models [:llama3_70b, :llama3_8b, :llama33_70b, :llama31_8b, :gemma2_9b]
+  @anthropic_models [:claude_haiku_3_5, :claude_sonnet_4_0]
+  @gemini_models [
+    :gemma3_27b,
+    :gemini_flash_2_0,
+    :gemini_flash_2_5,
+    :gemini_flash_light_2_5,
+    :gemini_pro_2_5
+  ]
+  @groq_models [
+    :llama4_maverick,
+    :llama4_scout,
+    :llama3_70b,
+    :llama3_8b,
+    :llama33_70b,
+    :llama31_8b,
+    :qwen_qwq32b
+  ]
   @supported_models @anthropic_models ++ @gemini_models ++ @groq_models
 
   @doc """

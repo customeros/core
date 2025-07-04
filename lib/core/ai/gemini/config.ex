@@ -27,7 +27,7 @@ defmodule Core.Ai.Gemini.Config do
     %__MODULE__{
       api_path:
         ai_config[:gemini_api_path] ||
-          "https://generativelanguage.googleapis.com/v1beta/models/gemini-pro:generateContent",
+          "https://generativelanguage.googleapis.com/v1beta/models",
       api_key: ai_config[:gemini_api_key],
       timeout: ai_config[:timeout] || 45_000
     }

@@ -39,6 +39,9 @@ defmodule Core.Ai.Groq.Ask do
   @llama33_70b_model "llama-3.3-70b-versatile"
   @llama31_8b_model "llama-3.1-8b-instant"
   @gemma2_9b_model "gemma2-9b-it"
+  @llama4_scout_model "meta-llama/llama-4-scout-17b-16e-instruct"
+  @llama4_maverick_model "meta-llama/llama-4-maverick-17b-128e-instruct"
+  @qwen_qwq32b "qwen-qwq-32b"
 
   @spec ask(Request.t(), Config.t()) ::
           {:ok, String.t()} | {:error, any()}
@@ -61,6 +64,9 @@ defmodule Core.Ai.Groq.Ask do
         :llama33_70b -> @llama33_70b_model
         :llama31_8b -> @llama31_8b_model
         :gemma2_9b -> @gemma2_9b_model
+        :llama4_scout -> @llama4_scout_model
+        :llama4_maverick -> @llama4_maverick_model
+        :qwen_qwq32b -> @qwen_qwq32b
       end
 
     messages =

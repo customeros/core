@@ -2,7 +2,12 @@ defmodule Core.Ai.Gemini.Request do
   @moduledoc """
   Represents a request to ask a question to Gemini.
   """
-  @type model :: :gemini_pro | :gemini_flash
+  @type model ::
+          :gemma3_27b
+          | :gemini_flash_2_0
+          | :gemini_flash_2_5
+          | :gemini_flash_light_2_5
+          | :gemini_pro_2_5
   @type response_type :: :text | :json
 
   @type t :: %__MODULE__{
@@ -11,7 +16,7 @@ defmodule Core.Ai.Gemini.Request do
           system_prompt: String.t() | nil,
           max_output_tokens: integer() | nil,
           model_temperature: float() | nil,
-          response_type: response_type()
+          response_type: response_type
         }
 
   defstruct [
@@ -25,7 +30,13 @@ defmodule Core.Ai.Gemini.Request do
 
   def validate(%__MODULE__{} = request) do
     cond do
-      request.model not in [:gemini_pro, :gemini_flash] ->
+      request.model not in [
+        :gemma3_27b,
+        :gemini_flash_2_0,
+        :gemini_flash_2_5,
+        :gemini_flash_light_2_5,
+        :gemini_pro_2_5
+      ] ->
         {:error, "model must be :gemini_pro or :gemini_flash"}
 
       is_nil(request.prompt) or request.prompt == "" ->
