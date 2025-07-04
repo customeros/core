@@ -20,6 +20,8 @@ import {
   ScrollAreaScrollbar,
 } from 'src/components/ScrollArea';
 
+import { ContactCard } from '../ContactCard/ContactCard';
+
 export const DocumentEditor = () => {
   const page = usePage<
     PageProps & { tenant: Tenant; current_user: User; leads: Lead[] | Record<Stage, Lead[]> }
@@ -110,10 +112,15 @@ export const DocumentEditor = () => {
   };
 
   const handleTabClick = () => {
-    setUrlState(state => ({
-      ...state,
-      viewDoc: state.viewDoc === 'true' ? 'false' : 'true',
-    }));
+    setUrlState(state => {
+      const newViewDoc = state.viewDoc === 'true' ? 'false' : 'true';
+
+      return {
+        ...state,
+        viewDoc: newViewDoc,
+        viewMode: newViewDoc === 'false' && state.viewMode === 'focus' ? 'default' : state.viewMode,
+      };
+    });
   };
 
   return (
@@ -137,7 +144,7 @@ export const DocumentEditor = () => {
                         <Icon name="building-06" />
                       </div>
                     )}
-                    <p className="text-[16px] font-medium text-gray-900 truncate">
+                    <p className="text-[16px] font-medium text-gray-900 truncate min-w-fit">
                       {currentLead?.name}
                     </p>
                     {currentLead?.icp_fit === 'strong' && (
@@ -203,8 +210,13 @@ export const DocumentEditor = () => {
                   />
                 </div>
               </div>
+              {viewDoc === 'false' && (
+                <div className="flex items-center justify-start p-4">
+                  <ContactCard />
+                </div>
+              )}
 
-              {currentLead?.document_id ? (
+              {currentLead?.document_id && viewDoc ? (
                 <Editor
                   size="sm"
                   useYjs={true}

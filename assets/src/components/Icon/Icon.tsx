@@ -57,7 +57,8 @@ export type IconName =
   | 'mail-02'
   | 'phone'
   | 'linkedin-solid'
-  | 'lock-01';
+  | 'lock-01'
+  | 'user-03';
 
 export const Icon = ({
   name,
