@@ -464,7 +464,7 @@ defmodule Core.Crm.Contacts do
             update_contacts_with_avatar_key(contacts, existing_avatar_key)
 
           {:error, :not_found} ->
-            case download_and_store_avatar(photo_url, linkedin_id) do
+            case download_and_store_avatar(photo_url) do
               {:ok, avatar_key} ->
                 update_contacts_with_avatar_key(contacts, avatar_key)
 
@@ -485,11 +485,10 @@ defmodule Core.Crm.Contacts do
     end
   end
 
-  defp download_and_store_avatar(photo_url, linkedin_id) do
+  def download_and_store_avatar(photo_url) do
     OpenTelemetry.Tracer.with_span "contacts.download_and_store_avatar" do
       OpenTelemetry.Tracer.set_attributes([
-        {"param.photo_url", photo_url},
-        {"param.linkedin_id", linkedin_id}
+        {"param.photo_url", photo_url}
       ])
 
       case download_linkedin_avatar_with_fallback(photo_url) do
