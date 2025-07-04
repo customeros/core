@@ -30,6 +30,6 @@ defmodule Core.Crm.Leads.NewLeadPipelineRerun do
   end
 
   def process_lead(lead, tenant_id) do
-    NewLeadPipeline.new_lead_pipeline(lead.id, tenant_id)
+    NewLeadPipeline.start(lead.id, tenant_id)
   end
 end
