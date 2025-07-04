@@ -153,7 +153,7 @@ defmodule Core.Crm.Leads.BriefCreator do
         company.primary_domain
 
       {:error, reason} ->
-        Logger.error("Company not found: #{reason}")
+        Tracing.error(reason, "Company not found", company_id: company_id)
         nil
     end
   end
@@ -163,8 +163,17 @@ defmodule Core.Crm.Leads.BriefCreator do
       {:ok, _document} ->
         Logger.info("Document created for lead #{lead.id}")
 
+      {:error, :closed_sessions_not_found} ->
+        Tracing.warning(
+          :closed_sessions_not_found,
+          "Closed sessions not found",
+          lead_id: lead.id,
+          url: domain,
+          tenant_id: lead.tenant_id
+        )
+
       {:error, reason} ->
-        Logger.error("Document creation failed: #{inspect(reason)}",
+        Tracing.error(reason, "Document creation failed",
           lead_id: lead.id,
           url: domain,
           tenant_id: lead.tenant_id
