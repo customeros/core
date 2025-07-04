@@ -2,7 +2,7 @@ defmodule Core.Ai.Groq.Request do
   @moduledoc """
   Represents a request to ask a question to Groq AI.
   """
-  
+
   @type model ::
           :llama3_70b
           | :llama3_8b
@@ -12,7 +12,7 @@ defmodule Core.Ai.Groq.Request do
           | :llama4_scout
           | :llama4_maverick
           | :qwen_qwq32b
-          
+
   @type t :: %__MODULE__{
           model: model(),
           prompt: String.t(),
@@ -20,7 +20,7 @@ defmodule Core.Ai.Groq.Request do
           max_output_tokens: integer() | nil,
           model_temperature: float() | nil
         }
-        
+
   defstruct [
     :model,
     :prompt,
@@ -53,8 +53,10 @@ defmodule Core.Ai.Groq.Request do
         :qwen_qwq32b
       ] ->
         {:error, "invalid groq model"}
+
       is_nil(request.prompt) or request.prompt == "" ->
         {:error, "prompt cannot be empty"}
+
       true ->
         :ok
     end
