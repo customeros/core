@@ -2,6 +2,7 @@ import type { Stage, UrlState } from 'src/types';
 
 import { cn } from 'src/utils/cn';
 import { useUrlState } from 'src/hooks';
+import { twMerge } from 'tailwind-merge';
 import { Icon, IconName } from 'src/components/Icon/Icon';
 
 import { stageIcons, stageOptionsWithoutCustomer } from '../util';
@@ -23,7 +24,12 @@ export const Pipeline = ({
   const { pipeline, stage: selectedStage, group, lead } = getUrlState();
 
   const getHeight = (count: number) => {
-    return scrollProgress < 0.2 ? `${count ? (count / maxCount) * 100 + 10 : 20}px` : '20px';
+    if (scrollProgress >= 0.2) return 20;
+    if (count === 0) return 20;
+
+    const height = Math.round((count / maxCount) * 100);
+
+    return height;
   };
 
   if (pipeline === 'hidden') {
@@ -41,6 +47,9 @@ export const Pipeline = ({
         const count = stageCounts[stage.value as Stage] || 0;
         const prevCount = stageCounts[stageOptionsWithoutCustomer[index - 1]?.value as Stage] || 0;
         const nextCount = stageCounts[stageOptionsWithoutCustomer[index + 1]?.value as Stage] || 0;
+        const height = getHeight(count);
+        const prevHeight = getHeight(prevCount);
+        const nextHeight = getHeight(nextCount);
 
         return (
           <div
@@ -57,26 +66,56 @@ export const Pipeline = ({
             }}
             className={cn(
               'flex-1 flex items-center justify-center bg-primary-100 cursor-pointer hover:bg-primary-200 duration-300',
-              scrollProgress < 0.2 &&
-                count > nextCount &&
-                (count - nextCount < 5 ? 'rounded-r-xs' : 'rounded-r-md'),
 
-              scrollProgress < 0.2 &&
-                count > prevCount &&
-                (count - prevCount < 5 ? 'rounded-l-xs' : 'rounded-l-md'),
+              (() => {
+                let className = '';
 
-              scrollProgress < 0.2 &&
-                index === stageOptionsWithoutCustomer.length - 1 &&
-                'rounded-r-md',
+                if (index === 0) {
+                  className += ' rounded-l-md';
+                }
 
-              scrollProgress < 0.2 && index === 0 && 'rounded-l-md',
+                if (index === stageOptionsWithoutCustomer.length - 1) {
+                  className += ' rounded-r-md';
+                }
 
-              scrollProgress > 0.2 && index === 0 && 'rounded-l-md',
+                if (scrollProgress < 0.2) {
+                  if (height - nextHeight === 0) {
+                    className += ' rounded-r-none';
+                  }
 
-              scrollProgress > 0.2 &&
-                index === stageOptionsWithoutCustomer.length - 1 &&
-                'rounded-r-md',
+                  if (height - prevHeight === 0) {
+                    className += ' rounded-l-none';
+                  }
 
+                  if (height - nextHeight < 0) {
+                    className += ' rounded-r-none';
+                  } else {
+                    if (height - nextHeight !== 0) {
+                      className +=
+                        Math.abs(height - nextHeight) > 2 ? ' rounded-r-xs' : ' rounded-r-md';
+                    }
+                  }
+
+                  if (height - prevHeight < 0 && height - prevHeight !== 0) {
+                    className += ' rounded-l-none';
+                  } else {
+                    if (height - prevHeight !== 0) {
+                      className +=
+                        Math.abs(height - prevHeight) < 2 ? ' rounded-l-xs' : ' rounded-l-md';
+                    }
+                  }
+
+                  if (index === 0) {
+                    className += ' rounded-l-md';
+                  }
+
+                  if (index === stageOptionsWithoutCustomer.length - 1) {
+                    className += ' rounded-r-md';
+                  }
+                }
+
+                return twMerge(className);
+              })(),
               selectedStage === stage.value && 'bg-primary-200',
               count === 0 && 'cursor-not-allowed hover:bg-primary-100'
             )}

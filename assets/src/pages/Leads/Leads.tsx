@@ -96,10 +96,10 @@ export default function Leads({ leads, stage_counts, max_count }: LeadsProps) {
           <div className="w-full flex">
             <div className="flex-1 flex flex-col overflow-hidden">
               <Pipeline
-                maxCount={max_count}
                 stageCounts={stage_counts}
                 onStageClick={handleStageClick}
                 scrollProgress={scroll_progress}
+                maxCount={Math.max(...Object.values(stage_counts))}
               />
               <ScrollAreaRoot>
                 <ScrollAreaViewport

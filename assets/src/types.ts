@@ -16,6 +16,7 @@ export type Lead = {
   country: string;
   industry: string;
   document_id: string;
+  inserted_at: string;
   country_name: string;
   icp_fit: 'strong' | 'moderate';
 };

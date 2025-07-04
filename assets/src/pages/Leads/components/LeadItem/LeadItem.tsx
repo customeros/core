@@ -29,6 +29,12 @@ export const LeadItem = ({ lead, isSeen, handleOpenLead, handleStageClick }: Lea
   const isSelected = selectedLead === lead.id;
   const isCustomer = lead.stage === 'customer';
 
+  const leadDate = new Date(lead.inserted_at);
+  const now = new Date();
+  const timeDifference = now.getTime() - leadDate.getTime();
+  const hoursDifference = timeDifference / (1000 * 60 * 60);
+  const isOlderThan24Hours = hoursDifference > 24;
+
   return (
     <div
       key={lead.id}
@@ -109,7 +115,7 @@ export const LeadItem = ({ lead, isSeen, handleOpenLead, handleStageClick }: Lea
         >
           {lead.name || 'Unnamed'}
         </p>
-        {!isSeen && (
+        {!isSeen && !isOlderThan24Hours && (
           <div ref={longHoverRef} className="p-3 rounded-sm hover:bg-gray-100 transition-colors">
             <div className="size-1 bg-blue-light-500 rounded-full" />
           </div>
