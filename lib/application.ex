@@ -45,7 +45,7 @@ defmodule Core.Application do
       {Finch,
        name: Core.Finch,
        pools: %{
-         default: [size: 10]
+         default: [size: 40, count: 4]
        }}
     ]
 

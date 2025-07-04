@@ -297,10 +297,14 @@ defmodule Core.Crm.Leads do
     end)
   end
 
-  def get_icp_not_a_fits(tenant_id) do
+  def get_icp_not_a_fits_without_disqual_reason(tenant_id) do
     case Repo.all(
            from l in Lead,
-             where: l.icp_fit == :not_a_fit and l.tenant_id == ^tenant_id
+             where:
+               l.icp_fit == :not_a_fit and
+                 l.tenant_id == ^tenant_id and
+                 not is_nil(l.icp_disqualification_reason) and
+                 l.icp_disqualification_reason != []
          ) do
       [] -> {:error, :not_found}
       leads -> {:ok, leads}

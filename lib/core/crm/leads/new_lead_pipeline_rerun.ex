@@ -5,7 +5,8 @@ defmodule Core.Crm.Leads.NewLeadPipelineRerun do
   @max_concurrency 5
 
   def rerun_not_a_fits(tenant_id) do
-    with {:ok, leads} <- Leads.get_icp_not_a_fits(tenant_id) do
+    with {:ok, leads} <-
+           Leads.get_icp_not_a_fits_without_disqual_reason(tenant_id) do
       leads
       |> Task.async_stream(
         fn lead -> process_lead(lead, tenant_id) end,
