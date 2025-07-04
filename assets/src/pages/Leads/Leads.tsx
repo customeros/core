@@ -23,6 +23,7 @@ interface LeadsProps {
   profile: Profile;
   max_count: number;
   current_user: User;
+  personas: TargetPersona[];
   stage_counts: Record<Stage, number>;
   leads: Lead[] | Record<Stage, Lead[]>;
 }

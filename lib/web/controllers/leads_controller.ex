@@ -4,6 +4,7 @@ defmodule Web.LeadsController do
   alias Core.Crm.Leads
   alias Core.Stats
   alias CSV
+  alias Core.Crm.Contacts
 
   def index(conn, params) do
     OpenTelemetry.Tracer.with_span "web.leads_controller:index" do
@@ -28,12 +29,22 @@ defmodule Web.LeadsController do
           _ -> nil
         end
 
+      personas =
+        case params["lead_id"] do
+          nil ->
+            []
+
+          lead_id ->
+            Contacts.get_taget_persona_contacts_by_lead_id(tenant_id, lead_id)
+        end
+
       conn
       |> assign_prop(:page_title, "Leads | CustomerOS")
       |> assign_prop(:leads, leads)
       |> assign_prop(:profile, profile)
       |> assign_prop(:stage_counts, stage_counts)
       |> assign_prop(:max_count, max_count)
+      |> inertia_lazy(:personas, fn -> personas end)
       |> render_inertia("Leads")
     end
   end

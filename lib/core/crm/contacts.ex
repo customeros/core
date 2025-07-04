@@ -7,7 +7,8 @@ defmodule Core.Crm.Contacts do
   import Ecto.Query
 
   alias Core.Crm.Companies
-  alias Core.Crm.Contacts.Contact
+  alias Core.Crm.Contacts.{Contact, ContactsView}
+  alias Core.Utils.{CalculateTimeInPosition, FormatLocation}
   alias Core.Repo
   alias Core.ScrapinContactDetails
   alias Core.ScrapinContacts
@@ -427,7 +428,30 @@ defmodule Core.Crm.Contacts do
         {"result.count", length(contacts)}
       ])
 
-      contacts
+      # Convert to ContactsView structs
+      Enum.map(contacts, fn contact ->
+        # Calculate time in current position
+        time_current_position =
+          CalculateTimeInPosition.calculate(
+            contact.job_started_at,
+            contact.job_ended_at
+          )
+
+        # Build LinkedIn URL
+        linkedin_url =
+          build_linkedin_url(contact.linkedin_id, contact.linkedin_alias)
+
+        struct(ContactsView, %{
+          id: contact.id,
+          full_name: contact.full_name,
+          job_title: contact.job_title,
+          location: FormatLocation.format(contact.country_a2, contact.city),
+          time_current_position: time_current_position,
+          work_email: contact.business_email,
+          phone_number: contact.mobile_phone,
+          linkedin: linkedin_url
+        })
+      end)
     end
   end
 
@@ -764,6 +788,19 @@ defmodule Core.Crm.Contacts do
         )
 
         {:error, :download_failed}
+    end
+  end
+
+  defp build_linkedin_url(linkedin_id, linkedin_alias) do
+    cond do
+      not is_nil(linkedin_alias) ->
+        "https://www.linkedin.com/in/#{linkedin_alias}"
+
+      not is_nil(linkedin_id) ->
+        "https://www.linkedin.com/in/#{linkedin_id}"
+
+      true ->
+        nil
     end
   end
 end
