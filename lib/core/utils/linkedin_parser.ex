@@ -1,4 +1,12 @@
 defmodule Core.Utils.LinkedinParser do
+  @moduledoc """
+  Utilities for parsing and analyzing LinkedIn profile URLs.
+
+  This module provides functions to extract identifiers from LinkedIn profile URLs,
+  distinguish between LinkedIn IDs and aliases, and validate LinkedIn URL formats.
+  It handles both public profile URLs and internal LinkedIn identifiers.
+  """
+
   @doc """
   Parses a LinkedIn profile URL and extracts the alias or ID with type detection.
 

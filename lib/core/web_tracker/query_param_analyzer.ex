@@ -1,4 +1,12 @@
 defmodule Core.WebTracker.QueryParamAnalyzer do
+  @moduledoc """
+  Analyzes query parameters to detect UTM tracking parameters.
+
+  This module provides utilities for parsing and analyzing URL query parameters,
+  specifically focused on detecting UTM parameters (utm_source, utm_medium,
+  utm_campaign, utm_term, utm_content) used for marketing campaign tracking.
+  """
+
   @utm_params [
     "utm_source",
     "utm_medium",

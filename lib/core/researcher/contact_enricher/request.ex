@@ -1,4 +1,13 @@
 defmodule Core.Researcher.ContactEnricher.Request do
+  @moduledoc """
+  Data structure and validation for contact enrichment requests.
+
+  This module defines the structure and validation logic for contact enrichment
+  requests, ensuring that required fields (first name, last name, search type)
+  are present and valid, and that at least one company identifier (name or domain)
+  is provided.
+  """
+
   alias Core.Utils.DomainValidator
 
   @err_first_name_empty {:error, "first name is empty"}

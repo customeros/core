@@ -1,4 +1,13 @@
 defmodule Core.Crm.TargetPersonas do
+  @moduledoc """
+  Manages target personas for CRM contacts.
+
+  This module handles the creation and management of target personas from LinkedIn
+  profiles. It can create personas from LinkedIn URLs (both IDs and aliases),
+  filter active contacts, and queue LinkedIn profiles for processing when direct
+  creation fails.
+  """
+
   require Logger
 
   require OpenTelemetry.Tracer

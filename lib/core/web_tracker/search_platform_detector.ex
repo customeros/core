@@ -1,4 +1,12 @@
 defmodule Core.WebTracker.SearchPlatformDetector do
+  @moduledoc """
+  Detects search platforms and distinguishes between paid and organic search traffic.
+
+  This module analyzes referrer URLs and query parameters to identify search
+  platforms (Google, Bing, Yahoo, etc.) and determine whether traffic comes
+  from paid advertising campaigns or organic search results.
+  """
+
   alias Core.Utils.DomainExtractor
 
   @doc """
@@ -6,7 +14,7 @@ defmodule Core.WebTracker.SearchPlatformDetector do
 
   Returns true if query params contain paid search indicators.
   """
-  def is_paid_search?(_referrer, query_params) do
+  def paid_search?(query_params) do
     case parse_query_string(query_params) do
       {:ok, param_map} ->
         has_paid_search_indicators?(param_map)
@@ -21,7 +29,7 @@ defmodule Core.WebTracker.SearchPlatformDetector do
 
   Returns true if referrer is from a search platform AND no paid indicators.
   """
-  def is_organic_search?(referrer, query_params) do
+  def organic_search?(referrer, query_params) do
     case get_platform_from_referrer(referrer) do
       {:ok, _platform} ->
         case parse_query_string(query_params) do
@@ -268,7 +276,7 @@ defmodule Core.WebTracker.SearchPlatformDetector do
     # Microsoft/Bing indicators
     "msclkid" => :bing,
 
-    # HubSpot Ads indicators 
+    # HubSpot Ads indicators
     "hsa_acc" => :hubspot_managed,
     "hsa_cam" => :hubspot_managed,
     "hsa_grp" => :hubspot_managed,

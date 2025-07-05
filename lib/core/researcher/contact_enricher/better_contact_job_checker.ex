@@ -1,4 +1,13 @@
 defmodule Core.Researcher.ContactEnricher.BetterContactJobChecker do
+  @moduledoc """
+  GenServer that periodically checks and processes BetterContact enrichment jobs.
+
+  This module runs as a background process that checks for BetterContact jobs
+  ready for retry, processes their results, and updates contact information
+  with enriched email and phone data. It implements cron-based scheduling
+  with distributed locking to prevent duplicate processing.
+  """
+
   use GenServer
   require Logger
 
@@ -105,7 +114,7 @@ defmodule Core.Researcher.ContactEnricher.BetterContactJobChecker do
 
   defp validate_and_update_email(contact_id, email) do
     with {:ok, result} <- EmailValidator.validate_email(email),
-         true <- EmailValidator.is_business_email?(result),
+         true <- EmailValidator.business_email?(result),
          clean_email <- EmailValidator.best_email(result),
          status <- EmailValidator.deliverable_status(result) do
       Contacts.update_business_email(clean_email, status, contact_id)

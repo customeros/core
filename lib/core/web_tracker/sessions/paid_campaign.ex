@@ -1,4 +1,13 @@
 defmodule Core.WebTracker.Sessions.PaidCampaign do
+  @moduledoc """
+  Schema for tracking paid advertising campaign data from web traffic.
+
+  This module handles the storage and validation of paid campaign parameters
+  from various advertising platforms (Google, Bing, LinkedIn, Facebook, etc.).
+  It generates a unique hash based on campaign identifiers and tracks when
+  campaigns are first and last seen.
+  """
+
   use Ecto.Schema
   import Ecto.Changeset
   alias Core.Utils.IdGenerator

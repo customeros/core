@@ -1,4 +1,13 @@
 defmodule Core.Researcher.ContactEnricher.BetterContact do
+  @moduledoc """
+  Client for the BetterContact API for contact enrichment.
+
+  This module provides functions to start contact enrichment searches via the
+  BetterContact API, fetch results, and parse email addresses and phone numbers.
+  It supports different search types (email, phone, or both) and handles
+  asynchronous job processing with result polling.
+  """
+
   require Logger
   import Core.Utils.Pipeline
 
