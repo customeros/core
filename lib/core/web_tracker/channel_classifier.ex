@@ -1,4 +1,13 @@
 defmodule Core.WebTracker.ChannelClassifier do
+  @moduledoc """
+  Classifies web traffic sources into marketing channels.
+
+  This module analyzes referrer URLs and query parameters to categorize
+  web traffic into different channels: direct traffic, paid search,
+  organic search, and other marketing sources. It handles UTM parameter
+  detection and self-referral identification.
+  """
+
   require Logger
 
   alias Core.Utils.DomainExtractor
@@ -19,9 +28,10 @@ defmodule Core.WebTracker.ChannelClassifier do
   end
 
   defp self_referral?(tenant_domains, referrer) do
-    with {:ok, referrer_domain} <- DomainExtractor.extract_base_domain(referrer) do
-      referrer_domain in tenant_domains
-    else
+    case DomainExtractor.extract_base_domain(referrer) do
+      {:ok, referrer_domain} ->
+        referrer_domain in tenant_domains
+
       {:error, reason} ->
         Logger.error("failed to determine if referrer is internal", %{
           tenant_domains: tenant_domains,

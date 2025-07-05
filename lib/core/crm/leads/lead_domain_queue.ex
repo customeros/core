@@ -1,4 +1,12 @@
 defmodule Core.Crm.Leads.LeadDomainQueue do
+  @moduledoc """
+  Schema for queuing lead domains for processing.
+
+  This module defines the database schema for lead domain processing queue,
+  tracking domains that need to be processed for lead generation. It includes
+  ranking information and processing status tracking.
+  """
+
   use Ecto.Schema
   import Ecto.Changeset
 

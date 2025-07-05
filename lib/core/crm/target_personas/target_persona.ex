@@ -1,4 +1,12 @@
 defmodule Core.Crm.TargetPersonas.TargetPersona do
+  @moduledoc """
+  Schema for target personas in the CRM system.
+
+  This module defines the database schema for target personas, which represent
+  contacts that are identified as potential prospects for a tenant. Each persona
+  links a tenant to a specific contact for targeted marketing and sales efforts.
+  """
+
   use Ecto.Schema
   import Ecto.Changeset
 

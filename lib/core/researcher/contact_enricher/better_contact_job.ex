@@ -1,4 +1,12 @@
 defmodule Core.Researcher.ContactEnricher.BetterContactJob do
+  @moduledoc """
+  Schema for tracking BetterContact enrichment job status.
+
+  This module defines the database schema for BetterContact enrichment jobs,
+  including job status tracking, attempt counting, and scheduling information.
+  It provides validation and changeset functions for job lifecycle management.
+  """
+
   use Ecto.Schema
   import Ecto.Changeset
 

@@ -1,4 +1,13 @@
 defmodule Core.Crm.TargetPersonas.TargetPersonaLinkedinQueues do
+  @moduledoc """
+  Manages the queue of LinkedIn profiles for target persona processing.
+
+  This module handles the lifecycle of LinkedIn profile processing jobs,
+  including adding new records to the queue, tracking processing attempts,
+  and marking jobs as completed. It prevents duplicate processing by
+  checking for existing records before adding new ones.
+  """
+
   alias Core.Crm.TargetPersonas.TargetPersonaLinkedinQueue
   alias Core.Repo
   import Ecto.Query

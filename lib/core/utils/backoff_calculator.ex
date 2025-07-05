@@ -1,4 +1,13 @@
 defmodule Core.Utils.BackoffCalculator do
+  @moduledoc """
+  Calculates exponential backoff delays for retry mechanisms.
+
+  This module provides utilities for implementing exponential backoff strategies
+  in retry logic. It calculates delays that start at 1 minute and double with
+  each attempt, capped at 24 hours, with optional jitter to prevent thundering
+  herd problems.
+  """
+
   @doc """
   Calculates the next check time using exponential backoff.
   Base delay starts at 1 min and doubles each attempt.  Max delay capped at 24 hours.
