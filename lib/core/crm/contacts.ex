@@ -10,6 +10,7 @@ defmodule Core.Crm.Contacts do
   alias Core.Crm.Contacts.Contact
   alias Core.Repo
   alias Core.ScrapinContactDetails
+  alias Core.ScrapinContactPosition
   alias Core.ScrapinContacts
   alias Core.Utils.Media.Images
   alias Core.Utils.Tracing
@@ -135,9 +136,20 @@ defmodule Core.Crm.Contacts do
     end
   end
 
-  defp create_or_update_contact_for_position(common_fields, position) do
-    position_fields = extract_position_fields(position)
+  defp create_or_update_contact_for_position(
+         _common_fields,
+         %ScrapinContactPosition{linked_in_id: nil}
+       ) do
+    Logger.warning("Skipping position without company linked_in_id")
 
+    {:error, :missing_company_linked_in_id}
+  end
+
+  defp create_or_update_contact_for_position(
+         common_fields,
+         %ScrapinContactPosition{} = position
+       ) do
+    position_fields = extract_position_fields(position)
     contact_attrs = Map.merge(common_fields, position_fields)
 
     case find_existing_contact_by_linkedin_id_and_company_id(
