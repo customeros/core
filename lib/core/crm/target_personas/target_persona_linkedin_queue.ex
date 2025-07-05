@@ -1,4 +1,12 @@
 defmodule Core.Crm.TargetPersonas.TargetPersonaLinkedinQueue do
+  @moduledoc """
+  Schema for tracking LinkedIn profile processing queue items.
+
+  This module defines the database schema for queued LinkedIn profiles that
+  need to be processed for target persona creation. It tracks processing
+  attempts, completion status, and timing information for each queued item.
+  """
+
   use Ecto.Schema
   import Ecto.Changeset
 
