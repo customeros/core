@@ -1,4 +1,12 @@
 defmodule Core.Researcher.ContactEnricher.BetterContactJobs do
+  @moduledoc """
+  Manages BetterContact enrichment job lifecycle and retry logic.
+
+  This module handles the creation, updating, and scheduling of BetterContact
+  enrichment jobs. It implements exponential backoff for retries and provides
+  functions to mark jobs as completed, failed, or ready for retry.
+  """
+
   import Ecto.Query
   require Logger
   alias Core.Repo

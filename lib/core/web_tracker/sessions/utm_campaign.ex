@@ -1,4 +1,14 @@
 defmodule Core.WebTracker.Sessions.UtmCampaign do
+  @moduledoc """
+  Schema for tracking UTM campaign parameters from web traffic.
+
+  This module handles the storage and validation of UTM parameters
+  (utm_source, utm_medium, utm_campaign, utm_term, utm_content) used
+  for tracking marketing campaign effectiveness. It generates a unique
+  hash based on the UTM parameters and tracks when campaigns are first
+  and last seen.
+  """
+
   use Ecto.Schema
   import Ecto.Changeset
   alias Core.Utils.IdGenerator
