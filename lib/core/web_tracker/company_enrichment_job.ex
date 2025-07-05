@@ -260,6 +260,13 @@ defmodule Core.WebTracker.CompanyEnrichmentJob do
             company_domain: domain
           )
 
+        {:error, :cannot_resolve_url} ->
+          Tracing.warning(
+            :cannot_resolve_url,
+            "Cannot resolve url: #{domain}",
+            company_domain: domain
+          )
+
         {:error, reason} ->
           Tracing.error(reason, "Company not created from webTracker",
             company_domain: domain,
