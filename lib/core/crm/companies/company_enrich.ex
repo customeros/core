@@ -119,7 +119,7 @@ defmodule Core.Crm.Companies.CompanyEnrich do
         {:ok, %{content: content}} when is_binary(content) ->
           {:ok, content}
 
-        {:error, :err_no_content} ->
+        {:error, :no_content} ->
           Tracing.warning(
             :no_content,
             "No valid content available by url content type",
