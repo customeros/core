@@ -7,6 +7,8 @@ defmodule Core.Crm.Leads.NewLeadPipelineRerun do
   reasons. It processes leads concurrently with safety measures and progress tracking.
   """
 
+  require Logger
+
   alias Core.Crm.Leads
   alias Core.Crm.Leads.NewLeadPipeline
 
