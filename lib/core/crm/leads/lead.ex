@@ -22,7 +22,7 @@ defmodule Core.Crm.Leads.Lead do
           | :evaluation
           | :ready_to_buy
           | :customer
-  @type icp_fit :: :strong | :moderate | :not_a_fit
+  @type icp_fit :: :strong | :moderate | :not_a_fit | :unknown
   @type disqualification_reason ::
           :company_too_small
           | :company_too_large
@@ -63,7 +63,11 @@ defmodule Core.Crm.Leads.Lead do
     field(:tenant_id, :string)
     field(:ref_id, :string)
     field(:type, Ecto.Enum, values: [:contact, :company])
-    field(:icp_fit, Ecto.Enum, values: [:strong, :moderate, :not_a_fit])
+
+    field(:icp_fit, Ecto.Enum,
+      values: [:strong, :moderate, :not_a_fit, :unknown],
+      default: :unknown
+    )
 
     field(:stage, Ecto.Enum,
       values: [
@@ -110,14 +114,14 @@ defmodule Core.Crm.Leads.Lead do
   end
 
   @required_fields [
-    :tenant_id,
-    :ref_id,
-    :type
+    :tenant_id
   ]
 
   @optional_fields [
     :id,
     :stage,
+    :ref_id,
+    :type,
     :icp_fit,
     :error_message,
     :icp_fit_evaluation_attempt_at,
