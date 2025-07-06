@@ -43,17 +43,34 @@ defmodule Core.Crm.Leads.NewLeadPipelineRerun do
   end
 
   defp process_lead_safely(lead, tenant_id) do
-    try do
-      case NewLeadPipeline.new_lead_pipeline(lead.id, tenant_id) do
-        {:ok, result} -> {:success, result}
-        {:error, reason} -> {:error, reason}
-        other -> {:error, {:unexpected_result, other}}
+    Task.async(fn ->
+      try do
+        case NewLeadPipeline.new_lead_pipeline(lead.id, tenant_id) do
+          {:ok, result} -> {:success, result}
+          {:error, reason} -> {:error, reason}
+          other -> {:error, {:unexpected_result, other}}
+        end
+      rescue
+        exception ->
+          Logger.error(
+            "Exception in lead processing: #{Exception.message(exception)}"
+          )
+
+          {:error, {:exception, Exception.message(exception)}}
+      catch
+        :exit, reason ->
+          Logger.error("Exit in lead processing: #{inspect(reason)}")
+          {:error, {:exit, reason}}
+
+        :throw, reason ->
+          Logger.error("Throw in lead processing: #{inspect(reason)}")
+          {:error, {:throw, reason}}
       end
-    rescue
-      exception -> {:error, {:exception, Exception.message(exception)}}
-    catch
-      :exit, reason -> {:error, {:exit, reason}}
-      :throw, reason -> {:error, {:throw, reason}}
-    end
+    end)
+    |> Task.await(:timer.minutes(5))
+  rescue
+    e ->
+      Logger.error("Task failed: #{Exception.message(e)}")
+      {:error, {:task_failed, Exception.message(e)}}
   end
 end
