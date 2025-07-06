@@ -1,4 +1,4 @@
-defmodule Researcher.Scraper.Filter do
+defmodule Core.Researcher.Scraper.Filter do
   @moduledoc """
   Filters out non-scrapeable URLs based on path and file extension.
   """

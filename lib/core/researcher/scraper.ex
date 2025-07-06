@@ -17,20 +17,21 @@ defmodule Core.Researcher.Scraper do
   supervised and unsupervised content processing.
   """
 
-  require OpenTelemetry.Tracer
   require Logger
-  alias Researcher.Scraper.Filter
-  alias Core.Researcher.Webpages
-  alias Core.Researcher.Webpages.Classifier
-  alias Core.Utils.PrimaryDomainFinder
-  alias Core.Utils.DomainExtractor
-  alias Core.Utils.UrlFormatter
+  require OpenTelemetry.Tracer
+
   alias Core.Utils.Tracing
   alias Core.Utils.TaskAwaiter
-  alias Core.Researcher.Scraper.ContentProcessor
+  alias Core.Utils.UrlFormatter
+  alias Core.Researcher.Webpages
+  alias Core.Utils.DomainExtractor
   alias Core.Researcher.Scraper.Jina
+  alias Core.Utils.PrimaryDomainFinder
+  alias Core.Researcher.Scraper.Filter
   alias Core.Researcher.Scraper.Puremd
   alias Core.Researcher.Scraper.Firecrawl
+  alias Core.Researcher.Webpages.Classifier
+  alias Core.Researcher.Scraper.ContentProcessor
 
   # 60 seconds
   @scraper_timeout 60 * 1000
@@ -397,31 +398,70 @@ defmodule Core.Researcher.Scraper do
         {"param.last_know_content_type", last_know_content_type}
       ])
 
-      if depth > 10 do
-        {:error, :too_many_redirects}
-      else
-        case Finch.build(:get, url)
-             |> Finch.request(Core.Finch, receive_timeout: 30_000) do
-          {:ok, %Finch.Response{headers: headers, status: status}} ->
-            OpenTelemetry.Tracer.set_attributes([{"result.status", status}])
+      cond do
+        depth > 10 ->
+          {:error, :too_many_redirects}
 
-            handle_fetch_content_type_successful_response(
-              url,
-              headers,
-              status,
-              depth,
-              visited,
-              last_know_content_type
-            )
+        not valid_url?(url) ->
+          Logger.warning(
+            "Invalid URL format in fetch_content_type: #{inspect(url)}"
+          )
 
-          {:error, %Mint.TransportError{reason: :timeout}} ->
-            {:error, :timeout}
+          {:error, :invalid_url}
 
-          {:error, reason} ->
-            {:error, reason}
-        end
+        true ->
+          make_request(url, depth, visited, last_know_content_type)
       end
     end
+  end
+
+  # Add this helper function to validate URL format
+  defp valid_url?(url) when is_binary(url) do
+    case URI.parse(url) do
+      %URI{scheme: scheme, host: host}
+      when scheme in ["http", "https"] and not is_nil(host) ->
+        true
+
+      _ ->
+        false
+    end
+  end
+
+  defp valid_url?(_), do: false
+
+  # Extract the request logic to a separate function
+  defp make_request(url, depth, visited, last_know_content_type) do
+    case Finch.build(:get, url)
+         |> Finch.request(Core.Finch, receive_timeout: 30_000) do
+      {:ok, %Finch.Response{headers: headers, status: status}} ->
+        OpenTelemetry.Tracer.set_attributes([{"result.status", status}])
+
+        handle_fetch_content_type_successful_response(
+          url,
+          headers,
+          status,
+          depth,
+          visited,
+          last_know_content_type
+        )
+
+      {:error, %Mint.TransportError{reason: :timeout}} ->
+        {:error, :timeout}
+
+      {:error, reason} ->
+        Logger.warning(
+          "Finch request failed for URL #{url}: #{inspect(reason)}"
+        )
+
+        {:error, reason}
+    end
+  rescue
+    e in ArgumentError ->
+      Logger.error(
+        "ArgumentError in fetch_content_type for URL #{url}: #{Exception.message(e)}"
+      )
+
+      {:error, :invalid_url}
   end
 
   defp handle_fetch_content_type_successful_response(
@@ -507,10 +547,39 @@ defmodule Core.Researcher.Scraper do
   end
 
   defp build_next_url(url, location) do
-    if String.starts_with?(location, "/") do
-      URI.merge(URI.parse(url), location) |> URI.to_string()
-    else
-      location
+    cond do
+      String.match?(location, ~r/^https?:\/\//) ->
+        location
+
+      String.starts_with?(location, "/") ->
+        case URI.parse(url) do
+          %URI{scheme: scheme, host: host}
+          when not is_nil(scheme) and not is_nil(host) ->
+            URI.merge(URI.parse(url), location) |> URI.to_string()
+
+          _ ->
+            Logger.warning(
+              "Cannot build valid URL from base: #{url}, location: #{location}"
+            )
+
+            location
+        end
+
+      true ->
+        case URI.parse(url) do
+          %URI{scheme: scheme, host: host, path: path}
+          when not is_nil(scheme) and not is_nil(host) ->
+            base_path = if path, do: Path.dirname(path), else: "/"
+            new_path = Path.join(base_path, location)
+            %URI{scheme: scheme, host: host, path: new_path} |> URI.to_string()
+
+          _ ->
+            Logger.warning(
+              "Cannot build valid URL from base: #{url}, location: #{location}"
+            )
+
+            location
+        end
     end
   end
 
@@ -540,12 +609,17 @@ defmodule Core.Researcher.Scraper do
         do: last_know_content_type,
         else: content_type
 
-    fetch_content_type(
-      next_url,
-      depth + 1,
-      MapSet.put(visited, url),
-      updated_content_type
-    )
+    if valid_url?(next_url) do
+      fetch_content_type(
+        next_url,
+        depth + 1,
+        MapSet.put(visited, url),
+        updated_content_type
+      )
+    else
+      Logger.warning("Invalid redirect URL: #{next_url}")
+      {:error, :invalid_redirect_url}
+    end
   end
 
   defp html_download_redirect?(content_type, disposition) do
