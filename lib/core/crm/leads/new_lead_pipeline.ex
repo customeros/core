@@ -20,9 +20,10 @@ defmodule Core.Crm.Leads.NewLeadPipeline do
   require OpenTelemetry.Tracer
 
   alias Core.Crm.Leads
+  alias Core.Utils.Tracing
+  alias Core.Crm.Leads.Lead
   alias Core.Researcher.BriefWriter
   alias Core.Researcher.IcpFitEvaluator
-  alias Core.Utils.Tracing
 
   def start(lead_id, tenant_id, callback \\ nil, opts \\ []) do
     OpenTelemetry.Tracer.with_span "new_lead_pipeline.start" do
@@ -75,29 +76,30 @@ defmodule Core.Crm.Leads.NewLeadPipeline do
           Logger.info("Skipping ICP fit analysis - lead not applicable")
           :ok
 
-        {:error, :not_a_company} ->
-          Tracing.warning(
-            :not_a_company,
-            "Lead_id #{lead_id} is not a company"
-          )
-
-          {:error, :not_a_company}
-
-        {:error, :closed_sessions_not_found} ->
-          Tracing.warning(
-            :closed_sessions_not_found,
-            "Closed sessions not found for lead #{lead_id}"
-          )
-
-          {:error, :closed_sessions_not_found}
-
         {:error, reason} ->
-          Tracing.error(reason, "New Lead Pipeline failed for #{lead_id}",
+          Tracing.warning(reason, "New Lead Pipeline failed for #{lead_id}",
             lead_id: lead_id
           )
 
-          {:error, reason}
+          handle_error(lead_id, tenant_id, reason)
       end
+    end
+  end
+
+  defp handle_error(lead_id, tenant_id, reason) do
+    case Leads.get_by_id(tenant_id, lead_id) do
+      {:ok, %Lead{} = lead} ->
+        Leads.update_lead(lead, %{
+          icp_fit: :unknown,
+          error_message: to_string(reason)
+        })
+
+      {:error, :not_found} ->
+        Tracing.error("lead_not_found", "Failed to update lead",
+          lead_id: lead_id
+        )
+
+        {:error, :lead_not_found}
     end
   end
 
