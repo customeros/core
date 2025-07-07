@@ -7,15 +7,19 @@ defmodule Core.Auth.Tenants do
   require Logger
   require OpenTelemetry.Tracer
 
-  alias Core.Researcher.IcpBuilder
   alias Core.Repo
+  alias Core.Crm.Companies
+  alias Core.Utils.Tracing
+  alias Core.Utils.Media.Images
   alias Core.Auth.Tenants.Tenant
   alias Core.Notifications.Slack
-  alias Core.Crm.Companies
-  alias Core.Utils.Media.Images
-  alias Core.Utils.Tracing
+  alias Core.Researcher.IcpBuilder
 
   @company_enrichment_timeout 15_000
+
+  @err_not_found {:error, "tenant not found"}
+  @err_invalid_tenant_id {:error, "tenant id invalid"}
+  @err_domain_exists {:error, "tenant domain already exists"}
 
   ## Database getters
 
@@ -32,6 +36,23 @@ defmodule Core.Auth.Tenants do
       nil -> {:error, :not_found}
     end
   end
+
+  def get_tenant_by_id(_tenant_id), do: @err_invalid_tenant_id
+
+  def get_tenant_domains(tenant_id) when is_binary(tenant_id) do
+    domains =
+      Tenant
+      |> where([t], t.id == ^tenant_id)
+      |> select([t], t.domains)
+      |> Repo.one()
+
+    case domains do
+      nil -> @err_not_found
+      domains -> {:ok, domains}
+    end
+  end
+
+  def get_tenant_domains(_tenant_id), do: @err_invalid_tenant_id
 
   ## Tenant updates
 
@@ -76,6 +97,20 @@ defmodule Core.Auth.Tenants do
         )
 
         {:error, changeset}
+    end
+  end
+
+  def add_domain_to_tenant(tenant_id, domain) do
+    with {:ok, tenant} <- get_tenant_by_id(tenant_id),
+         false <- domain in tenant.domains do
+      updated_domains = tenant.domains ++ [domain]
+      update_tenant(tenant, %{domains: updated_domains})
+    else
+      true ->
+        @err_domain_exists
+
+      {:error, reason} ->
+        {:error, reason}
     end
   end
 
