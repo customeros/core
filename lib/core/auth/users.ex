@@ -174,7 +174,7 @@ defmodule Core.Auth.Users do
       Web.Endpoint.broadcast("events:#{email}", "event", %{
         type: :icp_fit_evaluation_complete,
         payload: %{
-          is_fit: fit != :not_a_fit
+          is_fit: fit not in [:not_a_fit, :unknown]
         }
       })
     end
@@ -206,6 +206,10 @@ defmodule Core.Auth.Users do
       :not_a_fit ->
         deliver_blocked_user_slack_notification(email)
         add_error(changeset, :lead, "Not a fit")
+
+      :unknown ->
+        deliver_blocked_user_slack_notification(email)
+        add_error(changeset, :lead, "Unknown ICP fit")
 
       :moderate ->
         changeset

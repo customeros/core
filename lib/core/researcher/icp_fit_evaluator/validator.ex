@@ -12,11 +12,12 @@ defmodule Core.Researcher.IcpFitEvaluator.Validator do
   or :not_a_fit) with appropriate disqualification reasons when applicable.
   """
 
-  @valid_fits ["strong", "moderate", "not_a_fit"]
+  @valid_fits ["strong", "moderate", "not_a_fit", "unknown"]
   @fit_atoms %{
     "strong" => :strong,
     "moderate" => :moderate,
-    "not_a_fit" => :not_a_fit
+    "not_a_fit" => :not_a_fit,
+    "unknown" => :unknown
   }
 
   @valid_disqualification_reasons [

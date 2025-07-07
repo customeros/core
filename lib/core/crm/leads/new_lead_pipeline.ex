@@ -22,7 +22,6 @@ defmodule Core.Crm.Leads.NewLeadPipeline do
   alias Core.Crm.Leads
   alias Core.Utils.Tracing
   alias Core.Crm.Leads.Lead
-  alias Core.Researcher.BriefWriter
   alias Core.Researcher.IcpFitEvaluator
 
   def start(lead_id, tenant_id, callback \\ nil, opts \\ []) do
@@ -68,8 +67,7 @@ defmodule Core.Crm.Leads.NewLeadPipeline do
            {:ok, domain} <-
              Leads.get_domain_for_lead_company(tenant_id, lead_id),
            {:ok, fit} <- analyze_icp_fit(domain, lead, opts),
-           :ok <- execute_callback_if_provided(callback, fit),
-           :ok <- brief_writer(fit, domain, lead) do
+           :ok <- execute_callback_if_provided(callback, fit) do
         :ok
       else
         false ->
@@ -133,7 +131,7 @@ defmodule Core.Crm.Leads.NewLeadPipeline do
             {"result", fit}
           ])
 
-          {:ok, lead}
+          {:ok, fit}
 
         {:error, reason} ->
           Tracing.error(
@@ -157,48 +155,4 @@ defmodule Core.Crm.Leads.NewLeadPipeline do
   end
 
   defp execute_callback_if_provided(_, _), do: :ok
-
-  defp brief_writer(:not_a_fit, _domain, _lead), do: :ok
-
-  defp brief_writer(fit, domain, %Leads.Lead{} = lead) do
-    OpenTelemetry.Tracer.with_span "new_lead_pipeline.brief_writer" do
-      OpenTelemetry.Tracer.set_attributes([
-        {"param.lead.id", lead.id},
-        {"param.tenant.id", lead.tenant_id},
-        {"param.domain", domain},
-        {"param.icp_fit", fit}
-      ])
-
-      Logger.metadata(module: __MODULE__, function: :brief_writer)
-
-      Logger.info("Writing Account Brief",
-        lead_id: lead.id,
-        url: domain,
-        tenant_id: lead.tenant_id,
-        icp_fit: fit
-      )
-
-      case BriefWriter.create_brief(lead.tenant_id, lead.id, domain) do
-        {:ok, _document} ->
-          :ok
-
-        {:error, :closed_sessions_not_found} ->
-          Tracing.warning(
-            :not_found,
-            "Sessions data not ready for brief creation"
-          )
-
-          {:error, :closed_sessions_not_found}
-
-        {:error, reason} ->
-          Tracing.error(reason, "Account brief creation failed",
-            lead_id: lead.id,
-            url: domain,
-            tenant_id: lead.tenant_id
-          )
-
-          {:error, reason}
-      end
-    end
-  end
 end
