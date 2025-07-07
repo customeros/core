@@ -10,6 +10,7 @@ defmodule Core.Crm.Leads do
   alias Core.Repo
   alias Core.Crm.Leads.{Lead, LeadView, LeadContext}
   alias Core.Auth.Tenants
+  alias Core.Auth.Tenants.Tenant
   alias Core.Crm.Companies
   alias Core.Crm.Companies.Company
   alias Core.Utils.Media.Images
@@ -385,9 +386,9 @@ defmodule Core.Crm.Leads do
     end
   end
 
-  defp create_lead(tenant, attrs, callback, opts) do
+  defp create_lead(%Tenant{} = tenant, attrs, callback, opts) do
     with {:ok, company} <- Companies.get_by_id(attrs.ref_id),
-         false <- company.primary_domain == tenant.domain do
+         false <- company.primary_domain == tenant.primary_domain do
       case %Lead{}
            |> Lead.changeset(%{
              tenant_id: tenant.id,
