@@ -23,14 +23,13 @@ interface LeadsProps {
   profile: Profile;
   max_count: number;
   current_user: User;
-  personas: TargetPersona[];
   stage_counts: Record<Stage, number>;
   leads: Lead[] | Record<Stage, Lead[]>;
 }
 
-const DocumentEditor = lazy(() =>
-  import('./components/DocumentEditor/DocumentEditor').then(module => ({
-    default: module.DocumentEditor,
+const ContextualPanel = lazy(() =>
+  import('./components/ContextualPanel.tsx/ContextualPanel').then(module => ({
+    default: module.ContextualPanel,
   }))
 );
 
@@ -210,7 +209,7 @@ export default function Leads({ leads, stage_counts, max_count }: LeadsProps) {
                 viewMode === 'focus' && 'w-full md:w-full border-transparent'
               )}
             >
-              <DocumentEditor />
+              <ContextualPanel />
             </div>
           </div>
         </div>

@@ -16,7 +16,6 @@ export type Lead = {
   country: string;
   industry: string;
   document_id: string;
-  inserted_at: string;
   country_name: string;
   icp_fit: 'strong' | 'moderate';
 };
@@ -78,4 +77,16 @@ export type UrlState = {
 export type IcpProfile = {
   profile: string;
   qualifying_attributes: string[];
+};
+
+export type TargetPersona = {
+  id: string;
+  full_name: string;
+  job_title: string;
+  location: string | null;
+  linkedin: string | null;
+  work_email: string | null;
+  phone_number: string | null;
+  company_name: string | null;
+  time_current_position: string;
 };

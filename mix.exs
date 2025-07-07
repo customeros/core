@@ -107,6 +107,7 @@ defmodule Core.MixProject do
       {:ex_aws_s3, "~> 2.5"},
       {:sweet_xml, "~> 0.7"},
       {:countriex, "~> 0.4.1"},
+      {:country_data, "~> 0.2.0"},
       {:timex, "~> 3.7.13"}
     ]
   end

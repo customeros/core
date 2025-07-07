@@ -30,7 +30,7 @@ defmodule Web.LeadsController do
         end
 
       personas =
-        case params["lead_id"] do
+        case params["lead"] do
           nil ->
             []
 
@@ -44,7 +44,7 @@ defmodule Web.LeadsController do
       |> assign_prop(:profile, profile)
       |> assign_prop(:stage_counts, stage_counts)
       |> assign_prop(:max_count, max_count)
-      |> inertia_lazy(:personas, fn -> personas end)
+      |> assign_prop(:personas, personas)
       |> render_inertia("Leads")
     end
   end

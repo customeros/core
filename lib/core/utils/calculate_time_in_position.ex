@@ -31,12 +31,12 @@ defmodule Core.Utils.CalculateTimeInPosition do
   end
 
   defp calculate_human_duration(start_date, end_date) do
-    import Timex.Duration
+    # Calculate duration in days first
+    days = Timex.diff(end_date, start_date, :days)
 
-    duration = Timex.diff(end_date, start_date, :duration)
-
-    years = Duration.to_years(duration)
-    months = Duration.to_months(duration) |> rem(12)
+    years = div(days, 365)
+    remaining_days = rem(days, 365)
+    months = div(remaining_days, 30)
 
     cond do
       years > 0 and months > 0 ->
@@ -49,7 +49,6 @@ defmodule Core.Utils.CalculateTimeInPosition do
         "#{months} #{if months == 1, do: "month", else: "months"}"
 
       true ->
-        days = Duration.to_days(duration)
         "#{days} #{if days == 1, do: "day", else: "days"}"
     end
   end

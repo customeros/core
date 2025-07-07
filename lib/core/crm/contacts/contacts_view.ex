@@ -7,7 +7,8 @@ defmodule Core.Crm.Contacts.ContactsView do
     :time_current_position,
     :work_email,
     :phone_number,
-    :linkedin
+    :linkedin,
+    :company_name
   ]
 
   @type t :: %__MODULE__{
@@ -18,7 +19,8 @@ defmodule Core.Crm.Contacts.ContactsView do
           time_current_position: String.t() | nil,
           work_email: String.t() | nil,
           phone_number: String.t() | nil,
-          linkedin: String.t() | nil
+          linkedin: String.t() | nil,
+          company_name: String.t() | nil
         }
 
   defimpl Jason.Encoder, for: __MODULE__ do
@@ -32,7 +34,8 @@ defmodule Core.Crm.Contacts.ContactsView do
         :time_current_position,
         :work_email,
         :phone_number,
-        :linkedin
+        :linkedin,
+        :company_name
       ])
       |> Jason.Encode.map(opts)
     end

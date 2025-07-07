@@ -22,13 +22,13 @@ import {
 
 import { ContactCard } from '../ContactCard/ContactCard';
 
-export const DocumentEditor = () => {
+export const ContextualPanel = () => {
   const page = usePage<
     PageProps & { tenant: Tenant; current_user: User; leads: Lead[] | Record<Stage, Lead[]> }
   >();
   const params = new URLSearchParams(window.location.search);
   const leadId = params.get('lead');
-  const viewMode = params.get('viewMode');
+  // const viewMode = params.get('viewMode');
 
   const { presentUsers, currentUserId } = usePresence();
   const { getUrlState, setUrlState } = useUrlState();
@@ -58,32 +58,32 @@ export const DocumentEditor = () => {
     };
   }, [currentUserId, presentUsers]);
 
-  const handleViewModeChange = () => {
-    const params = new URLSearchParams(window.location.search);
-    const viewMode = params.get('viewMode');
+  // const handleViewModeChange = () => {
+  //   const params = new URLSearchParams(window.location.search);
+  //   const viewMode = params.get('viewMode');
 
-    if (viewMode === 'default') {
-      params.set('viewMode', 'focus');
-    } else if (viewMode === 'focus') {
-      params.set('viewMode', 'default');
-    } else if (!viewMode) {
-      params.set('viewMode', 'default');
-    } else {
-      params.delete('viewMode');
-    }
+  //   if (viewMode === 'default') {
+  //     params.set('viewMode', 'focus');
+  //   } else if (viewMode === 'focus') {
+  //     params.set('viewMode', 'default');
+  //   } else if (!viewMode) {
+  //     params.set('viewMode', 'default');
+  //   } else {
+  //     params.delete('viewMode');
+  //   }
 
-    router.get(
-      '/leads',
-      {
-        ...Object.fromEntries(params.entries()),
-      },
-      {
-        only: ['leads'],
-        replace: true,
-        preserveState: true,
-      }
-    );
-  };
+  //   router.get(
+  //     '/leads',
+  //     {
+  //       ...Object.fromEntries(params.entries()),
+  //     },
+  //     {
+  //       only: ['leads'],
+  //       replace: true,
+  //       preserveState: true,
+  //     }
+  //   );
+  // };
 
   const closeEditor = () => {
     const params = new URLSearchParams(window.location.search);
@@ -153,29 +153,13 @@ export const DocumentEditor = () => {
                         <span className="text-error-700 text-xs">Strong fit</span>
                       </div>
                     )}
-                    <Tabs variant="enclosed">
-                      <Button
-                        size="xs"
-                        onClick={handleTabClick}
-                        data-state={viewDoc === 'true' ? 'active' : 'inactive'}
-                      >
-                        Account brief
-                      </Button>
-                      <Button
-                        size="xs"
-                        onClick={handleTabClick}
-                        data-state={viewDoc === 'false' ? 'active' : 'inactive'}
-                      >
-                        Contacts
-                      </Button>
-                    </Tabs>
                   </div>
                 )}
 
                 <div className="flex items-center w-full justify-end mb-3 gap-2">
                   {currentLead?.document_id && viewDoc === 'true' && (
                     <>
-                      <Tooltip side="bottom" label="Focus mode">
+                      {/* <Tooltip side="bottom" label="Focus mode">
                         <IconButton
                           size="xs"
                           variant="ghost"
@@ -186,7 +170,7 @@ export const DocumentEditor = () => {
                             <Icon name={viewMode === 'default' ? 'expand-01' : 'collapse-01'} />
                           }
                         />
-                      </Tooltip>
+                      </Tooltip> */}
 
                       <Tooltip side="bottom" label="Copy document link">
                         <IconButton
@@ -200,7 +184,22 @@ export const DocumentEditor = () => {
                       </Tooltip>
                     </>
                   )}
-
+                  <Tabs variant="enclosed">
+                    <Button
+                      size="xs"
+                      onClick={handleTabClick}
+                      data-state={viewDoc === 'true' ? 'active' : 'inactive'}
+                    >
+                      Account brief
+                    </Button>
+                    <Button
+                      size="xs"
+                      onClick={handleTabClick}
+                      data-state={viewDoc === 'false' ? 'active' : 'inactive'}
+                    >
+                      Contacts
+                    </Button>
+                  </Tabs>
                   <IconButton
                     size="xs"
                     variant="ghost"
@@ -211,7 +210,7 @@ export const DocumentEditor = () => {
                 </div>
               </div>
               {viewDoc === 'false' && (
-                <div className="flex items-center justify-start p-4">
+                <div className="flex items-center justify-start w-full">
                   <ContactCard />
                 </div>
               )}
@@ -228,23 +227,25 @@ export const DocumentEditor = () => {
                   documentId={currentLead?.document_id}
                 />
               ) : (
-                <div className="flex items-center justify-start flex-col h-full">
-                  <div className="flex items-center justify-center">
-                    <FeaturedIcon className="mb-6 mt-[40px]">
-                      <Icon name="clock-fast-forward" />
-                    </FeaturedIcon>
-                  </div>
-                  <div className="flex flex-col items-center justify-center ">
-                    <p className="text-base font-medium mb-1">Preparing account brief</p>
-                    <div className="max-w-[340px] text-center gap-2 flex flex-col">
-                      <p>
-                        We're now busy analyzing and pulling together everything you need to know
-                        about this lead.
-                      </p>
-                      <p>Hang tight, the brief should be available in a moment.</p>
+                viewDoc === 'true' && (
+                  <div className="flex items-center justify-start flex-col h-full">
+                    <div className="flex items-center justify-center">
+                      <FeaturedIcon className="mb-6 mt-[40px]">
+                        <Icon name="clock-fast-forward" />
+                      </FeaturedIcon>
+                    </div>
+                    <div className="flex flex-col items-center justify-center ">
+                      <p className="text-base font-medium mb-1">Preparing account brief</p>
+                      <div className="max-w-[340px] text-center gap-2 flex flex-col">
+                        <p>
+                          We're now busy analyzing and pulling together everything you need to know
+                          about this lead.
+                        </p>
+                        <p>Hang tight, the brief should be available in a moment.</p>
+                      </div>
                     </div>
                   </div>
-                </div>
+                )
               )}
 
               <div className="h-20 w-full"></div>
