@@ -20,13 +20,10 @@ defmodule Core.Crm.Leads.BriefCreator do
   alias Core.Utils.CronLocks
   alias Core.Utils.Cron.CronLock
 
-  # Constants
-  # 5 minutes in milliseconds
   @default_interval 5 * 60 * 1000
-  # Number of leads to process in each batch
   @default_batch_size 10
-  # Duration in minutes after which a lock is considered stuck
   @stuck_lock_duration_minutes 30
+  @max_attempts 3
 
   @doc """
   Starts the stage evaluator process.
@@ -200,14 +197,13 @@ defmodule Core.Crm.Leads.BriefCreator do
   defp fetch_leads_without_briefs() do
     hours_ago_2 = DateTime.add(DateTime.utc_now(), -4 * 60 * 60)
     minutes_ago_30 = DateTime.add(DateTime.utc_now(), -30 * 60)
-    max_attempts = 3
 
     Lead
     |> where([l], l.inserted_at < ^minutes_ago_30)
     |> where([l], l.stage not in [:pending, :customer])
     |> where([l], not is_nil(l.stage))
     |> where([l], l.icp_fit in [:strong, :moderate])
-    |> where([l], l.brief_create_attempts < ^max_attempts)
+    |> where([l], l.brief_create_attempts < ^@max_attempts)
     |> where(
       [l],
       is_nil(l.brief_create_attempt_at) or

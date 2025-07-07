@@ -76,6 +76,7 @@ defmodule Core.WebTracker.SessionAnalyzer do
       cond do
         lead.stage == :ready_to_buy -> {:stop, :already_ready_to_buy}
         lead.icp_fit == :not_a_fit -> {:stop, :not_icp_fit}
+        lead.icp_fit == :unknown -> {:stop, :unknown_icp_fit}
         true -> {:ok, :proceed}
       end
     else

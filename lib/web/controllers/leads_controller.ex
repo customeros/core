@@ -182,7 +182,6 @@ defmodule Web.LeadsController do
       :evaluation -> "Evaluation"
       :ready_to_buy -> "Ready to Buy"
       :customer -> "Customer"
-      :not_a_fit -> "Not a Fit"
       :pending -> "Pending"
       nil -> ""
       _ -> stage |> Atom.to_string() |> String.capitalize()
