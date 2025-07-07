@@ -1,4 +1,4 @@
-defmodule Core.Researcher.ContactEnricher.BetterContactJobChecker do
+defmodule Core.Crm.Contacts.Enricher.BetterContactJobChecker do
   @moduledoc """
   GenServer that periodically checks and processes BetterContact enrichment jobs.
 
@@ -15,8 +15,8 @@ defmodule Core.Researcher.ContactEnricher.BetterContactJobChecker do
   alias Core.Utils.CronLocks
   alias Core.Utils.Cron.CronLock
   alias Core.Researcher.EmailValidator
-  alias Core.Researcher.ContactEnricher.BetterContact
-  alias Core.Researcher.ContactEnricher.BetterContactJobs
+  alias Core.Crm.Contacts.Enricher.BetterContact
+  alias Core.Crm.Contacts.Enricher.BetterContactJobs
 
   @cron :cron_better_contact_job_checker
   @default_interval 60_000

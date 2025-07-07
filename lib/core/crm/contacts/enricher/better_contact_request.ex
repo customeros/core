@@ -1,4 +1,4 @@
-defmodule Core.Researcher.ContactEnricher.Request do
+defmodule Core.Crm.Contacts.Enricher.BetterContactRequest do
   @moduledoc """
   Data structure and validation for contact enrichment requests.
 
