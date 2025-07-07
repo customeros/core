@@ -7,6 +7,7 @@ defmodule Core.WebTracker.SessionAnalyzer do
   alias Core.Utils.UrlFormatter
   alias Core.Researcher.Webpages.Intent
   alias Core.Crm.Leads
+  alias Core.Crm.Leads.Lead
   alias Core.Researcher.Webpages.ScrapedWebpage
   alias Core.WebTracker.StageIdentifier
   alias Core.Researcher.Webpages
@@ -15,6 +16,9 @@ defmodule Core.WebTracker.SessionAnalyzer do
   alias Core.WebTracker.Sessions
   alias Core.Auth.Tenants
   alias Core.Utils.TaskAwaiter
+  alias Core.Crm.Companies
+  alias Core.Researcher.BriefWriter
+  alias Core.Crm.Documents
 
   @analysis_timeout 60 * 1000
 
@@ -37,6 +41,7 @@ defmodule Core.WebTracker.SessionAnalyzer do
     session_id
     |> session_details()
     |> determine_lead_stage()
+    |> create_brief()
   end
 
   defp session_details(session_id) do
@@ -106,12 +111,6 @@ defmodule Core.WebTracker.SessionAnalyzer do
   end
 
   defp determine_lead_stage({:ok, tenant_id, visited_pages, visitor_company_id}) do
-    Logger.metadata(module: __MODULE__, function: :determine_lead_stage)
-
-    Logger.info(
-      "Determining lead stage for #{tenant_id} and #{visitor_company_id}"
-    )
-
     page_visits =
       visited_pages
       |> Enum.map(&analyze_webpage/1)
@@ -154,7 +153,10 @@ defmodule Core.WebTracker.SessionAnalyzer do
   defp update_lead_with_stage(tenant_id, visitor_company_id, stage) do
     case Leads.get_lead_by_company_ref(tenant_id, visitor_company_id) do
       {:ok, lead} ->
-        Leads.update_lead(lead, %{stage: stage})
+        case Leads.update_lead(lead, %{stage: stage}) do
+          {:ok, _} -> {:ok, tenant_id, visitor_company_id}
+          {:error, reason} -> {:error, reason}
+        end
 
       {:error, :not_found} ->
         Logger.error(
@@ -251,4 +253,94 @@ defmodule Core.WebTracker.SessionAnalyzer do
     do: {url, summary, intent}
 
   defp save_analysis({:error, reason}), do: {:error, reason}
+
+  defp create_brief({:error, reason}), do: {:error, reason}
+  defp create_brief({:stop, reason}), do: {:stop, reason}
+
+  defp create_brief({:ok, tenant_id, visitor_company_id}) do
+    with {:ok, lead} <-
+           Leads.get_lead_by_company_ref(tenant_id, visitor_company_id),
+         true <- lead_applicable_for_brief_creation?(lead),
+         {:ok, domain} <- get_company_domain(lead.ref_id),
+         :ok <- create_brief_document_if_missing(lead, domain) do
+      :ok
+    else
+      false ->
+        Logger.info("Skipping brief creation - lead not applicable")
+        :ok
+
+      {:error, reason} ->
+        Logger.error("Brief creation failed: #{inspect(reason)}")
+        {:error, reason}
+    end
+  end
+
+  defp lead_applicable_for_brief_creation?(%Lead{} = lead) do
+    lead.icp_fit in [:strong, :moderate] and lead.stage != :customer
+  end
+
+  defp get_company_domain(company_id) do
+    case Companies.get_by_id(company_id) do
+      {:ok, company} ->
+        Logger.info("Company found: #{company.primary_domain}")
+        {:ok, company.primary_domain}
+
+      {:error, reason} ->
+        Logger.error("Company not found: #{reason}")
+        {:error, reason}
+    end
+  end
+
+  defp create_brief_document_if_missing(%Lead{} = lead, domain) do
+    Logger.info("Checking if Account Brief document exists for lead #{lead.id}")
+
+    case Documents.get_documents_by_ref_id(lead.id) do
+      [] ->
+        Logger.info("No existing documents found for lead #{lead.id}")
+        create_brief_document(lead, domain)
+
+      documents ->
+        case Enum.find(documents, fn doc -> doc.name == "Account Brief" end) do
+          nil ->
+            Logger.info(
+              "Found #{length(documents)} existing document(s) for lead #{lead.id}, but no Account Brief"
+            )
+
+            Logger.info("Creating Account Brief as it doesn't exist")
+            create_brief_document(lead, domain)
+
+          _account_brief ->
+            Logger.info(
+              "Found #{length(documents)} existing document(s) for lead #{lead.id}, including Account Brief"
+            )
+
+            Logger.info(
+              "Skipping brief creation as Account Brief already exists"
+            )
+
+            :ok
+        end
+    end
+  end
+
+  defp create_brief_document(%Lead{} = lead, domain) do
+    case BriefWriter.create_brief(lead.tenant_id, lead.id, domain) do
+      {:ok, _document} ->
+        Logger.info("Document created for lead #{lead.id}")
+        :ok
+
+      {:error, :closed_sessions_not_found} ->
+        Logger.warning("Closed sessions not available, skipping brief creation")
+        {:error, :closed_sessions_not_found}
+
+      {:error, reason} ->
+        Logger.error("Account brief creation failed: #{inspect(reason)}",
+          lead_id: lead.id,
+          url: domain,
+          tenant_id: lead.tenant_id
+        )
+
+        {:error, reason}
+    end
+  end
 end

@@ -21,7 +21,6 @@ defmodule Core.WebTracker.ChannelClassifier do
   def classify_session(session_id, tenant_domains) do
     case Events.get_first_event(session_id) do
       {:ok, event} ->
-        dbg(event)
         classify(tenant_domains, event.referrer, event.search, event.user_agent)
 
       {:error, :not_found} ->
