@@ -15,6 +15,8 @@ defmodule Core.Crm.Contacts do
   alias Core.ScrapinContacts
   alias Core.Utils.Media.Images
   alias Core.Utils.Tracing
+  alias Core.Crm.Contacts.Enricher.BetterContact
+  alias Core.Crm.Contacts.Enricher.BetterContactRequest
 
   @err_contact_creation_failed {:error, "contact creation failed"}
   @linkedin_url_prefix "https://www.linkedin.com/in/"
@@ -405,6 +407,16 @@ defmodule Core.Crm.Contacts do
     end
   end
 
+  defp get_contact_by_id(contact_id) do
+    case Repo.get(Contact, contact_id) do
+      nil ->
+        {:error, :contact_not_found}
+
+      contact ->
+        {:ok, contact}
+    end
+  end
+
   def get_contacts_by_linkedin_id(linkedin_id) do
     contacts = Repo.all(from c in Contact, where: c.linkedin_id == ^linkedin_id)
 
@@ -516,6 +528,14 @@ defmodule Core.Crm.Contacts do
       contact_id,
       %{business_email: business_email, business_email_status: status},
       "business email"
+    )
+  end
+
+  def update_personal_email(personal_email, status, contact_id) do
+    update_contact_field(
+      contact_id,
+      %{personal_email: personal_email, personal_email_status: status},
+      "personal email"
     )
   end
 
@@ -844,6 +864,252 @@ defmodule Core.Crm.Contacts do
         )
 
         {:error, :download_failed}
+    end
+  end
+
+  @doc """
+  Starts email enrichment for a contact.
+
+  Only enriches if:
+  - Contact is active (no end date or end date is in the future)
+  - Contact has a company
+  - Email enrichment hasn't been requested recently
+  """
+  def start_email_enrichment(contact_id) do
+    case get_contact_by_id(contact_id) do
+      {:ok, contact} ->
+        case validate_email_enrichment_eligibility(contact) do
+          :ok ->
+            case get_company_domain(contact.company_id) do
+              {:ok, company_domain} ->
+                start_better_contact_enrichment(contact, company_domain, :email)
+
+              {:error, reason} ->
+                Logger.warning(
+                  "Failed to get company domain for email enrichment",
+                  %{
+                    contact_id: contact_id,
+                    company_id: contact.company_id,
+                    reason: reason
+                  }
+                )
+
+                {:error, reason}
+            end
+
+          {:error, reason} ->
+            {:error, reason}
+        end
+
+      {:error, reason} ->
+        {:error, reason}
+    end
+  end
+
+  def start_email_and_phone_enrichment(contact_id) do
+    case get_contact_by_id(contact_id) do
+      {:ok, contact} ->
+        case validate_phone_enrichment_eligibility(contact) do
+          :ok ->
+            case get_company_domain(contact.company_id) do
+              {:ok, company_domain} ->
+                start_better_contact_enrichment(
+                  contact,
+                  company_domain,
+                  :email_and_phone
+                )
+
+              {:error, reason} ->
+                Logger.warning("Failed to get company domain for enrichment", %{
+                  contact_id: contact_id,
+                  company_id: contact.company_id,
+                  reason: reason
+                })
+
+                {:error, reason}
+            end
+
+          {:error, reason} ->
+            {:error, reason}
+        end
+
+      {:error, reason} ->
+        {:error, reason}
+    end
+  end
+
+  defp validate_email_enrichment_eligibility(%Contact{} = contact) do
+    cond do
+      not active_contact?(contact) ->
+        {:error, :contact_not_active}
+
+      is_nil(contact.company_id) ->
+        {:error, :no_company}
+
+      is_nil(contact.first_name) or contact.first_name == "" ->
+        {:error, :missing_first_name}
+
+      is_nil(contact.last_name) or contact.last_name == "" ->
+        {:error, :missing_last_name}
+
+      not is_nil(contact.business_email) and contact.business_email != "" ->
+        {:error, :business_email_already_set}
+
+      email_enrichment_recently_requested?(contact) ->
+        {:error, :email_enrichment_recently_requested}
+
+      true ->
+        :ok
+    end
+  end
+
+  defp validate_phone_enrichment_eligibility(%Contact{} = contact) do
+    cond do
+      not active_contact?(contact) ->
+        {:error, :contact_not_active}
+
+      is_nil(contact.company_id) ->
+        {:error, :no_company}
+
+      is_nil(contact.first_name) or contact.first_name == "" ->
+        {:error, :missing_first_name}
+
+      is_nil(contact.last_name) or contact.last_name == "" ->
+        {:error, :missing_last_name}
+
+      email_enrichment_recently_requested?(contact) or
+          phone_enrichment_recently_requested?(contact) ->
+        {:error, :enrichment_recently_requested}
+
+      true ->
+        :ok
+    end
+  end
+
+  defp active_contact?(contact) do
+    is_nil(contact.job_ended_at) or
+      DateTime.compare(contact.job_ended_at, DateTime.utc_now()) == :gt
+  end
+
+  defp email_enrichment_recently_requested?(contact) do
+    case contact.email_enrich_requested_at do
+      nil ->
+        false
+
+      requested_at ->
+        DateTime.diff(DateTime.utc_now(), requested_at, :hour) < 48
+    end
+  end
+
+  defp phone_enrichment_recently_requested?(contact) do
+    case contact.phone_enrich_requested_at do
+      nil ->
+        false
+
+      requested_at ->
+        DateTime.diff(DateTime.utc_now(), requested_at, :hour) < 48
+    end
+  end
+
+  defp get_company_domain(company_id) do
+    case Companies.get_by_id(company_id) do
+      {:ok, company} ->
+        {:ok, company.primary_domain}
+
+      {:error, reason} ->
+        {:error, reason}
+    end
+  end
+
+  defp start_better_contact_enrichment(contact, company_domain, search_type) do
+    linkedin_url =
+      case build_linkedin_url(contact) do
+        {:ok, url} -> url
+      end
+
+    request =
+      BetterContactRequest.new(
+        contact.first_name,
+        contact.last_name,
+        search_type,
+        # We'll use domain instead
+        company_name: nil,
+        company_domain: company_domain,
+        linkedin_url: linkedin_url,
+        contact_id: contact.id
+      )
+
+    case request do
+      %BetterContactRequest{} = valid_request ->
+        case BetterContact.start_search(valid_request) do
+          {:ok, _job_record} ->
+            # Only mark as requested after successful job creation
+            case mark_enrichment_requested(contact.id, search_type) do
+              {:ok, _} ->
+                {:ok, :enrichment_started}
+
+              {:error, reason} ->
+                Logger.error("Failed to mark enrichment as requested", %{
+                  contact_id: contact.id,
+                  search_type: search_type,
+                  reason: reason
+                })
+
+                {:error, reason}
+            end
+
+          {:error, reason} ->
+            Logger.error("Failed to start BetterContact enrichment", %{
+              contact_id: contact.id,
+              search_type: search_type,
+              reason: reason
+            })
+
+            {:error, reason}
+        end
+
+      {:error, reason} ->
+        Logger.error("Invalid BetterContact request", %{
+          contact_id: contact.id,
+          reason: reason
+        })
+
+        {:error, reason}
+    end
+  end
+
+  defp mark_enrichment_requested(contact_id, search_type) do
+    now = DateTime.utc_now()
+
+    attrs =
+      case search_type do
+        :email ->
+          %{email_enrich_requested_at: now}
+
+        :phone ->
+          %{phone_enrich_requested_at: now}
+
+        :email_and_phone ->
+          %{
+            email_enrich_requested_at: now,
+            phone_enrich_requested_at: now
+          }
+      end
+
+    update_contact_field(contact_id, attrs, "enrichment request tracking")
+  end
+
+  defp build_linkedin_url(contact) do
+    case {contact.linkedin_id, contact.linkedin_alias} do
+      {linkedin_id, _} when not is_nil(linkedin_id) and linkedin_id != "" ->
+        {:ok, "#{@linkedin_url_prefix}#{linkedin_id}"}
+
+      {_, linkedin_alias}
+      when not is_nil(linkedin_alias) and linkedin_alias != "" ->
+        {:ok, "#{@linkedin_url_prefix}#{linkedin_alias}"}
+
+      _ ->
+        {:ok, nil}
     end
   end
 

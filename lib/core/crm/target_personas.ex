@@ -76,6 +76,24 @@ defmodule Core.Crm.TargetPersonas do
 
     case result do
       {:ok, persona} when not is_nil(persona) ->
+        # Trigger enrichment for the new target persona
+        Task.start(fn ->
+          case Contacts.start_email_and_phone_enrichment(contact_id) do
+            {:ok, :enrichment_started} ->
+              Logger.info("Started enrichment for target persona", %{
+                tenant_id: tenant_id,
+                contact_id: contact_id
+              })
+
+            {:error, reason} ->
+              Logger.warning("Failed to start enrichment for target persona", %{
+                tenant_id: tenant_id,
+                contact_id: contact_id,
+                reason: reason
+              })
+          end
+        end)
+
         {:ok, persona}
 
       {:ok, nil} ->

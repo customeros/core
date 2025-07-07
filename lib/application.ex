@@ -35,7 +35,7 @@ defmodule Core.Application do
       Core.Integrations.Providers.HubSpot.CompaniesSyncJob,
       Core.WebTracker.SessionCloser,
       Core.Crm.Industries,
-      Core.Researcher.ContactEnricher.BetterContactJobChecker,
+      Core.Crm.Contacts.Enricher.BetterContactJobChecker,
       Web.Endpoint,
       Web.Presence,
       Web.Telemetry,
