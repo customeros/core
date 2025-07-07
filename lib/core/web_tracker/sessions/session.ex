@@ -2,16 +2,15 @@ defmodule Core.WebTracker.Sessions.Session do
   @moduledoc """
   Schema definition for web sessions.
   """
-
   use Ecto.Schema
   import Ecto.Changeset
-
   @primary_key {:id, :string, autogenerate: false}
   @foreign_key_type :string
 
   # Constants
   @id_prefix "sess"
   @id_regex ~r/^#{@id_prefix}_[a-z0-9]{21}$/
+
   @channel_types [
     :direct,
     :organic_search,
@@ -22,43 +21,74 @@ defmodule Core.WebTracker.Sessions.Session do
     :email,
     :workplace_tools
   ]
-  @search_platforms [
-    :google,
-    :bing,
-    :yahoo,
-    :duckduckgo,
-    :brave,
-    :yandex,
+
+  @platforms [
+    :airtable,
+    :asana,
     :baidu,
+    :basecamp,
+    :bing,
+    :box,
+    :brave,
+    :campaign_monitor,
     :chatgpt,
     :claude,
-    :gemini,
+    :clickup,
+    :constant_contact,
     :deepseek,
-    :ecosia,
-    :startpage,
-    :searx,
-    :swisscows,
-    :metager,
-    :qwant,
-    :mojeek
-  ]
-  @social_platforms [
-    :linkedin,
-    :facebook,
-    :x,
-    :youtube,
-    :instagram,
-    :tiktok,
-    :reddit,
-    :github,
-    :stackoverflow,
     :discord,
+    :drift,
+    :dropbox,
+    :duckduckgo,
+    :ecosia,
+    :facebook,
+    :freshworks,
+    :gemini,
+    :github,
+    :google,
+    :google_drive,
+    :google_meet,
+    :gotomeeting,
+    :hubspot,
+    :instagram,
+    :intercom,
+    :jira,
+    :klavio,
+    :linkedin,
+    :mailchimp,
+    :marketo,
+    :meta_workplace,
+    :metager,
+    :microsoft_onedrive,
+    :microsoft_sharepoint,
+    :monday,
+    :mojeek,
+    :notion,
     :pinterest,
-    :snapchat,
-    :whatsapp,
-    :telegram,
+    :pipedrive,
+    :qwant,
+    :reddit,
+    :salesforce,
+    :searx,
     :slack,
-    :teams
+    :snapchat,
+    :stackoverflow,
+    :startpage,
+    :swisscows,
+    :teams,
+    :telegram,
+    :tiktok,
+    :trello,
+    :webex,
+    :whatsapp,
+    :x,
+    :yahoo,
+    :yammer,
+    :yandex,
+    :youtube,
+    :zendesk,
+    :zoho,
+    :zoom
   ]
 
   schema "web_sessions" do
@@ -79,8 +109,8 @@ defmodule Core.WebTracker.Sessions.Session do
 
     # Attribution
     field(:channel, Ecto.Enum, values: @channel_types)
-    field(:search_platform, Ecto.Enum, values: @search_platforms)
-    field(:social_platform, Ecto.Enum, values: @social_platforms)
+    field(:platform, Ecto.Enum, values: @platforms)
+    field(:referrer, :string)
     field(:utm_id, :string)
     field(:paid_id, :string)
 
@@ -108,6 +138,12 @@ defmodule Core.WebTracker.Sessions.Session do
           region: String.t() | nil,
           country_code: String.t() | nil,
           is_mobile: boolean() | nil,
+          # Attribution
+          channel: atom() | nil,
+          platform: atom() | nil,
+          referrer: String.t() | nil,
+          utm_id: String.t() | nil,
+          paid_id: String.t() | nil,
           # Timestamps
           started_at: DateTime.t() | nil,
           ended_at: DateTime.t() | nil,
@@ -146,8 +182,8 @@ defmodule Core.WebTracker.Sessions.Session do
       :last_event_at,
       :last_event_type,
       :channel,
-      :search_platform,
-      :social_platform,
+      :platform,
+      :referrer,
       :utm_id,
       :paid_id
     ])

@@ -73,13 +73,6 @@ defmodule Core.WebTracker.WorkplacePlatformDetector do
     "basecamp.com" => :basecamp,
     "airtable.com" => :airtable,
 
-    # HR & People Management
-    "bamboohr.com" => :bamboohr,
-    "workday.com" => :workday,
-    "adp.com" => :adp,
-    "greenhouse.io" => :greenhouse,
-    "lever.co" => :lever,
-
     # Marketing & Email Tools
     "mailchimp.com" => :mailchimp,
     "constantcontact.com" => :constant_contact,
@@ -93,17 +86,12 @@ defmodule Core.WebTracker.WorkplacePlatformDetector do
     "sheets.google.com" => :google_drive,
     "dropbox.com" => :dropbox,
     "box.com" => :box,
-    "sharepoint.com" => :sharepoint,
-    "onedrive.com" => :onedrive,
-
-    # Business Intelligence
-    "tableau.com" => :tableau,
-    "powerbi.microsoft.com" => :power_bi,
-    "looker.com" => :looker,
+    "sharepoint.com" => :microsoft_sharepoint,
+    "onedrive.com" => :microsoft_onedrive,
 
     # Enterprise Social
     "yammer.com" => :yammer,
-    "workplace.com" => :workplace_by_meta
+    "workplace.com" => :meta_workplace
   }
 
   @domain_patterns [
@@ -125,8 +113,8 @@ defmodule Core.WebTracker.WorkplacePlatformDetector do
     {~r/.*\.hs-sites\.com/, :hubspot},
 
     # Microsoft patterns
-    {~r/.*\.sharepoint\.com/, :sharepoint},
-    {~r/.*\.onedrive\.com/, :onedrive},
+    {~r/.*\.sharepoint\.com/, :microsoft_sharepoint},
+    {~r/.*\.onedrive\.com/, :microsoft_onedrive},
 
     # Atlassian patterns
     {~r/.*\.atlassian\.net/, :jira},
@@ -163,7 +151,7 @@ defmodule Core.WebTracker.WorkplacePlatformDetector do
     {~r/.*\.adp\.com/, :adp},
     {~r/.*\.looker\.com/, :looker},
     {~r/.*\.yammer\.com/, :yammer},
-    {~r/.*\.workplace\.com/, :workplace_by_meta}
+    {~r/.*\.workplace\.com/, :meta_workplace}
   ]
 
   @utm_source_mapping %{

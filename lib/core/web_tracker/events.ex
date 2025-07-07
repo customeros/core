@@ -111,13 +111,15 @@ defmodule Core.WebTracker.Events do
             |> put_change(:with_new_session, session.just_created)
 
           {:error, reason} when is_binary(reason) ->
-            if reason == "ip_is_threat" do
-              Tracing.warning(
-                :ip_is_threat,
-                "IP is threat, skipping session creation"
-              )
-            else
-              Tracing.error(reason, "Failed to create/get session")
+            case reason do
+              :ip_is_threat ->
+                Tracing.warning(
+                  :ip_is_threat,
+                  "IP is threat, skipping session creation"
+                )
+
+              _ ->
+                Tracing.error(reason, "Failed to create/get session")
             end
 
             add_error(changeset, :session_id, reason)

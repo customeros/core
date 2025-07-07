@@ -7,7 +7,10 @@ defmodule Core.WebTracker.ChannelClassifier do
   detection and self-referral identification.
   """
   require Logger
+
+  alias Core.Auth.Tenants
   alias Core.WebTracker.Events
+  alias Core.WebTracker.Sessions
   alias Core.Utils.DomainExtractor
   alias Core.WebTracker.EmailDetector
   alias Core.WebTracker.QueryParamAnalyzer
@@ -18,57 +21,111 @@ defmodule Core.WebTracker.ChannelClassifier do
   @err_unable_to_classify {:error,
                            "unable to determine channel attribution for session"}
 
-  def classify_session(session_id, tenant_domains) do
-    case Events.get_first_event(session_id) do
-      {:ok, event} ->
-        classify(tenant_domains, event.referrer, event.search, event.user_agent)
+  def classify_session(session_id) do
+    with {:ok, session} <- Sessions.get_session_by_id(session_id),
+         tenant_id = session.tenant,
+         {:ok, event} <- Events.get_first_event(session_id),
+         {:ok, tenant_domains} <- Tenants.get_tenant_domains(tenant_id) do
+      classification =
+        classify_traffic(
+          tenant_domains,
+          event.referrer,
+          event.search,
+          event.user_agent
+        )
 
-      {:error, :not_found} ->
+      update_session_classification(session_id, classification)
+    else
+      {:error, reason} ->
         Logger.error("unable to determine channel for session", %{
-          session_id: session_id
+          session_id: session_id,
+          reason: reason
         })
 
         @err_unable_to_classify
     end
   end
 
-  def classify(_tenant_domains, nil, _query_params, _user_agent), do: :direct
-
-  def classify(tenant_domains, referrer, query_params, user_agent) do
+  defp classify_traffic(tenant_domains, referrer, query_params, user_agent) do
     cond do
+      is_direct_traffic?(tenant_domains, referrer, query_params) ->
+        {:direct, nil}
+
       SearchPlatformDetector.paid_search?(query_params) ->
-        :paid_search
+        platform = SearchPlatformDetector.get_platform(referrer, query_params)
+        {:paid_search, platform}
 
       SocialPlatformDetector.paid_social?(query_params) ->
-        :paid_social
+        platform =
+          SocialPlatformDetector.get_platform(
+            referrer,
+            query_params,
+            user_agent
+          )
+
+        {:paid_social, platform}
 
       SearchPlatformDetector.organic_search?(referrer, query_params) ->
-        :organic_search
+        platform = SearchPlatformDetector.get_platform(referrer, query_params)
+        {:organic_search, platform}
 
-      SocialPlatformDetector.organic_social?(referrer, query_params) ->
-        :organic_social
+      SocialPlatformDetector.organic_social?(referrer, query_params) or
+          SocialPlatformDetector.in_app_browser?(user_agent) ->
+        platform =
+          SocialPlatformDetector.get_platform(
+            referrer,
+            query_params,
+            user_agent
+          )
 
-      SocialPlatformDetector.in_app_browser?(user_agent) ->
-        :organic_social
+        {:organic_social, platform}
 
       EmailDetector.email_traffic?(referrer, query_params) ->
-        :email
+        {:email, nil}
 
       WorkplacePlatformDetector.workplace?(referrer) ->
-        :workplace_tools
+        platform =
+          WorkplacePlatformDetector.get_platform(referrer, query_params)
 
-      direct?(tenant_domains, referrer, query_params) ->
-        :direct
+        {:workplace_tools, platform}
 
-      has_referrer?(referrer) ->
-        :referral
+      has_valid_referrer?(referrer) ->
+        referrer_domain = DomainExtractor.extract_base_domain(referrer)
+        {:referral, referrer_domain}
 
       true ->
-        :direct
+        {:direct, nil}
     end
   end
 
-  defp direct?(tenant_domains, referrer, query_params) do
+  defp update_session_classification(session_id, {:referral, referral_result}) do
+    case referral_result do
+      {:ok, domain} when is_binary(domain) ->
+        Sessions.set_channel_classification(session_id, :referral, %{
+          referrer: domain
+        })
+
+      {:error, _reason} ->
+        Sessions.set_channel_classification(session_id, :referral)
+    end
+  end
+
+  defp update_session_classification(session_id, {channel, platform_result}) do
+    case platform_result do
+      {:ok, platform} ->
+        Sessions.set_channel_classification(session_id, channel, %{
+          platform: platform
+        })
+
+      :not_found ->
+        Sessions.set_channel_classification(session_id, channel)
+
+      nil ->
+        Sessions.set_channel_classification(session_id, channel)
+    end
+  end
+
+  defp is_direct_traffic?(tenant_domains, referrer, query_params) do
     cond do
       QueryParamAnalyzer.has_utm_params?(query_params) -> false
       is_nil(referrer) or referrer == "" -> true
@@ -77,14 +134,15 @@ defmodule Core.WebTracker.ChannelClassifier do
     end
   end
 
-  defp has_referrer?(referrer) when is_binary(referrer) and referrer != "" do
+  defp has_valid_referrer?(referrer)
+       when is_binary(referrer) and referrer != "" do
     case URI.parse(referrer) do
       %URI{host: host} when is_binary(host) and host != "" -> true
       _ -> false
     end
   end
 
-  defp has_referrer?(_), do: false
+  defp has_valid_referrer?(_), do: false
 
   defp self_referral?(tenant_domains, referrer) do
     case DomainExtractor.extract_base_domain(referrer) do
@@ -93,7 +151,6 @@ defmodule Core.WebTracker.ChannelClassifier do
 
       {:error, reason} ->
         Logger.error("failed to determine if referrer is internal", %{
-          tenant_domains: tenant_domains,
           referrer: referrer,
           reason: reason
         })
