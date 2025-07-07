@@ -1100,12 +1100,12 @@ defmodule Core.Crm.Contacts do
 
   defp build_linkedin_url(contact) do
     case {contact.linkedin_id, contact.linkedin_alias} do
-      {linkedin_id, _} when not is_nil(linkedin_id) and linkedin_id != "" ->
-        {:ok, "#{@linkedin_url_prefix}#{linkedin_id}"}
-
       {_, linkedin_alias}
       when not is_nil(linkedin_alias) and linkedin_alias != "" ->
         {:ok, "#{@linkedin_url_prefix}#{linkedin_alias}"}
+
+      {linkedin_id, _} when not is_nil(linkedin_id) and linkedin_id != "" ->
+        {:ok, "#{@linkedin_url_prefix}#{linkedin_id}"}
 
       _ ->
         {:ok, nil}
