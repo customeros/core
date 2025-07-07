@@ -505,8 +505,7 @@ defmodule Core.Crm.Contacts do
             contact.job_ended_at
           )
 
-        linkedin_url =
-          build_linkedin_url(contact.linkedin_id, contact.linkedin_alias)
+        {:ok, linkedin_url} = build_linkedin_url(contact)
 
         struct(ContactsView, %{
           id: contact.id,
@@ -1113,16 +1112,4 @@ defmodule Core.Crm.Contacts do
     end
   end
 
-  defp build_linkedin_url(linkedin_id, linkedin_alias) do
-    cond do
-      not is_nil(linkedin_alias) ->
-        "https://www.linkedin.com/in/#{linkedin_alias}"
-
-      not is_nil(linkedin_id) ->
-        "https://www.linkedin.com/in/#{linkedin_id}"
-
-      true ->
-        nil
-    end
-  end
 end
