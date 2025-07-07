@@ -1,10 +1,4 @@
-export type Stage =
-  | 'target'
-  | 'education'
-  | 'solution'
-  | 'evaluation'
-  | 'ready_to_buy'
-  | 'customer';
+export type Stage = 'target' | 'education' | 'solution' | 'evaluation' | 'ready_to_buy';
 
 export type Lead = {
   id: string;
