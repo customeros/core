@@ -126,15 +126,17 @@ export default function Signin() {
               By signing in you agree to CustomerOS's
               <div className="text-gray-500">
                 <a
+                  target="_blank"
                   className="text-primary-700 mr-1 underline"
-                  href="https://customeros.ai/legal/terms-of-service"
+                  href="https://customeros.ai/standard-agreement/tos"
                 >
                   Terms of Service
                 </a>
                 <span className="mr-1">and</span>
                 <a
+                  target="_blank"
                   className="text-primary-700 underline"
-                  href="https://www.customeros.ai/legal/privacy-policy"
+                  href="https://customeros.ai/policies/privacy-policy"
                 >
                   Privacy Policy
                 </a>
