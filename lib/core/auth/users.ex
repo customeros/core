@@ -130,7 +130,7 @@ defmodule Core.Auth.Users do
         {:ok, customeros_tenant} =
           Tenants.get_tenant_by_name(customeros_tenant_name)
 
-        if customeros_tenant.domain == domain do
+        if customeros_tenant.primary_domain == domain do
           changeset
         else
           handle_lead_creation(changeset, domain, email, customeros_tenant_name)

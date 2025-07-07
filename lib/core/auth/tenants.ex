@@ -79,14 +79,14 @@ defmodule Core.Auth.Tenants do
     end
   end
 
-  def create_tenant(name, domain) do
+  def create_tenant(name, primary_domain) do
     OpenTelemetry.Tracer.with_span "tenants.create_tenant" do
       OpenTelemetry.Tracer.set_attributes([
         {"param.tenant.name", name},
-        {"param.tenant.domain", domain}
+        {"param.tenant.primary_domain", primary_domain}
       ])
 
-      case insert_tenant(name, domain) do
+      case insert_tenant(name, primary_domain) do
         {:ok, tenant} = result ->
           start_post_creation_tasks(tenant)
           result
@@ -98,10 +98,10 @@ defmodule Core.Auth.Tenants do
     end
   end
 
-  def get_or_create_tenant(name, domain) do
+  def get_or_create_tenant(name, primary_domain) do
     case get_tenant_by_name(name) do
       {:error, :not_found} ->
-        case create_tenant(name, domain) do
+        case create_tenant(name, primary_domain) do
           {:ok, tenant} -> {:ok, tenant}
           error -> error
         end
@@ -113,9 +113,9 @@ defmodule Core.Auth.Tenants do
 
   ## Private functions
 
-  defp insert_tenant(name, domain) do
+  defp insert_tenant(name, primary_domain) do
     %Tenant{}
-    |> Tenant.changeset(%{name: name, domain: domain})
+    |> Tenant.changeset(%{name: name, primary_domain: primary_domain})
     |> Repo.insert()
   end
 
@@ -145,7 +145,7 @@ defmodule Core.Auth.Tenants do
 
   defp notify_slack_new_tenant(tenant) do
     OpenTelemetry.Tracer.with_span "tenants.notify_slack_new_tenant" do
-      case Slack.notify_new_tenant(tenant.name, tenant.domain) do
+      case Slack.notify_new_tenant(tenant.name, tenant.primary_domain) do
         :ok ->
           Logger.info("Sent Slack notification for new tenant: #{tenant.name}")
           :ok
@@ -163,7 +163,7 @@ defmodule Core.Auth.Tenants do
 
   defp process_company_for_tenant(tenant) do
     OpenTelemetry.Tracer.with_span "tenants.process_company_for_tenant" do
-      case Companies.get_or_create_by_domain(tenant.domain) do
+      case Companies.get_or_create_by_domain(tenant.primary_domain) do
         {:ok, company} ->
           company = wait_for_enrichment_if_needed(company)
           set_workspace_data_from_company(tenant, company)

@@ -16,11 +16,11 @@ defmodule Core.WebTracker.Sessions.Session do
     :direct,
     :organic_search,
     :organic_social,
-    :campaigns,
-    :referrals,
+    :referral,
     :paid_search,
     :paid_social,
-    :internal
+    :email,
+    :workplace_tools
   ]
   @search_platforms [
     :google,
