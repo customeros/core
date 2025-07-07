@@ -16,6 +16,7 @@ defmodule Core.Researcher.BriefWriter do
   direct brief creation workflows.
   """
   require Logger
+  require OpenTelemetry.Tracer
 
   alias Core.Utils.Tracing
   alias Core.Crm.Documents
@@ -23,37 +24,45 @@ defmodule Core.Researcher.BriefWriter do
   alias Core.Researcher.BriefWriter.EngagementProfiler
 
   def create_brief(tenant_id, lead_id, lead_domain) do
-    with {:ok, account_overview} <-
-           AccountResearcher.account_overview(tenant_id, lead_domain),
-         {:ok, engagement_summary} <-
-           EngagementProfiler.engagement_summary(tenant_id, lead_id) do
-      create_and_save_document(
-        tenant_id,
-        lead_id,
-        account_overview,
-        engagement_summary
-      )
-    else
-      {:error, :closed_sessions_not_found} ->
-        Tracing.warning(
-          :closed_sessions_not_found,
-          "Closed sessions not available, skipping brief creation"
+    OpenTelemetry.Tracer.with_span "brief_writer.create_brief" do
+      OpenTelemetry.Tracer.set_attributes([
+        {"param.tenant.id", tenant_id},
+        {"param.lead.id", lead_id},
+        {"param.domain", lead_domain}
+      ])
+
+      with {:ok, account_overview} <-
+             AccountResearcher.account_overview(tenant_id, lead_domain),
+           {:ok, engagement_summary} <-
+             EngagementProfiler.engagement_summary(tenant_id, lead_id) do
+        build_and_save_document(
+          tenant_id,
+          lead_id,
+          account_overview,
+          engagement_summary
         )
+      else
+        {:error, :closed_sessions_not_found} ->
+          Tracing.warning(
+            :closed_sessions_not_found,
+            "Closed sessions not available, skipping brief creation"
+          )
 
-        {:error, :closed_sessions_not_found}
+          {:error, :closed_sessions_not_found}
 
-      {:error, reason} ->
-        Logger.error("Account Brief failed: #{inspect(reason)}",
-          tenant_id: tenant_id,
-          lead_id: lead_id,
-          domain: lead_domain
-        )
+        {:error, reason} ->
+          Tracing.error(reason, "Account Brief failed",
+            tenant_id: tenant_id,
+            lead_id: lead_id,
+            company_domain: lead_domain
+          )
 
-        {:error, reason}
+          {:error, reason}
+      end
     end
   end
 
-  defp create_and_save_document(
+  defp build_and_save_document(
          tenant_id,
          lead_id,
          account_overview,
