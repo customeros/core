@@ -133,7 +133,7 @@ defmodule Core.Crm.Leads.NewLeadPipeline do
             {"result", fit}
           ])
 
-          {:ok, lead}
+          {:ok, fit}
 
         {:error, reason} ->
           Tracing.error(
@@ -159,6 +159,8 @@ defmodule Core.Crm.Leads.NewLeadPipeline do
   defp execute_callback_if_provided(_, _), do: :ok
 
   defp brief_writer(:not_a_fit, _domain, _lead), do: :ok
+
+  defp brief_writer(:unknown, _domain, _lead), do: :ok
 
   defp brief_writer(fit, domain, %Leads.Lead{} = lead) do
     OpenTelemetry.Tracer.with_span "new_lead_pipeline.brief_writer" do

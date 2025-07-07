@@ -193,7 +193,7 @@ defmodule Core.Crm.Leads do
       |> where([l], l.stage not in [:pending])
       |> where([l], not is_nil(l.stage))
       |> where([l], not is_nil(l.icp_fit))
-      |> where([l], l.icp_fit != :not_a_fit)
+      |> where([l], l.icp_fit not in [:not_a_fit, :unknown])
       |> order(order_by)
       |> Repo.all()
       |> then(fn
