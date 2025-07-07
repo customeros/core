@@ -202,5 +202,4 @@ defmodule Core.Crm.TargetPersonas.TargetPersonaLinkedinProcessor do
         {:ok, records}
     end
   end
-
 end

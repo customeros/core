@@ -442,6 +442,26 @@ defmodule Core.Crm.Leads do
     |> tap(fn {:ok, result} -> LeadNotifier.notify_lead_updated(result) end)
   end
 
+  def disqualify_lead(tenant_id, lead_id) do
+    OpenTelemetry.Tracer.with_span "leads.disqualify_lead" do
+      OpenTelemetry.Tracer.set_attributes([
+        {"param.tenant.id", tenant_id},
+        {"param.lead.id", lead_id}
+      ])
+
+      case get_by_id(tenant_id, lead_id) do
+        {:ok, lead} ->
+          update_lead(lead, %{
+            icp_fit: :not_a_fit,
+            icp_disqualification_reason: [:user_feedback]
+          })
+
+        {:error, reason} ->
+          {:error, reason}
+      end
+    end
+  end
+
   @doc """
   Marks an attempt for a lead by updating the attempt timestamp and incrementing the attempts counter.
 

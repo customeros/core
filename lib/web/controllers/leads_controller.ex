@@ -106,6 +106,27 @@ defmodule Web.LeadsController do
     |> send_resp(200, csv_content)
   end
 
+  def disqualify(conn, %{"id" => lead_id}) do
+    %{tenant_id: tenant_id} = conn.assigns.current_user
+
+    case Leads.disqualify_lead(tenant_id, lead_id) do
+      {:ok, lead} ->
+        conn
+        |> put_status(:ok)
+        |> json(%{success: true, lead: lead})
+
+      {:error, :not_found} ->
+        conn
+        |> put_status(:not_found)
+        |> json(%{error: "Lead not found"})
+
+      {:error, reason} ->
+        conn
+        |> put_status(:unprocessable_entity)
+        |> json(%{error: "Failed to disqualify lead: #{reason}"})
+    end
+  end
+
   defp get_filter_by(params) do
     case params do
       %{"stage" => stage} -> [stage: stage]

@@ -1111,5 +1111,4 @@ defmodule Core.Crm.Contacts do
         {:ok, nil}
     end
   end
-
 end

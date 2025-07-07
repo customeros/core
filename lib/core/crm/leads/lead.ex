@@ -36,6 +36,7 @@ defmodule Core.Crm.Leads.Lead do
           | :revenue_model_mismatch
           | :startup_too_early
           | :unable_to_determine_fit
+          | :user_feedback
           | :wrong_industry
           | :wrong_geography
           | :wrong_business_model
@@ -96,6 +97,7 @@ defmodule Core.Crm.Leads.Lead do
         :revenue_model_mismatch,
         :startup_too_early,
         :unable_to_determine_fit,
+        :user_feedback,
         :wrong_industry,
         :wrong_geography,
         :wrong_business_model
