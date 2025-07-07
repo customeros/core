@@ -52,7 +52,13 @@ export type IconName =
   | 'arrows-up'
   | 'layers-three-01'
   | 'activity-heart'
-  | 'lock-01';
+  | 'globe-05'
+  | 'git-timeline'
+  | 'mail-02'
+  | 'phone'
+  | 'linkedin-solid'
+  | 'lock-01'
+  | 'user-03';
 
 export const Icon = ({
   name,

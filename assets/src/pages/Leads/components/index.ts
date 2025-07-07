@@ -1,5 +1,5 @@
 export * from './EmptyState';
-export * from './DocumentEditor';
+export * from './ContextualPanel.tsx';
 export * from './Header';
 export * from './UserHexagon';
 export * from './UserPresence';

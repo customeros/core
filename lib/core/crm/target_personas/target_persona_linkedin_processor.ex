@@ -202,4 +202,8 @@ defmodule Core.Crm.TargetPersonas.TargetPersonaLinkedinProcessor do
         {:ok, records}
     end
   end
+
+  def start_link(_opts) do
+    crons_enabled = Application.get_env(:core, :crons)[:enabled] || false
+  end
 end

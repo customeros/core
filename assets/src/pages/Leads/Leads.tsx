@@ -27,9 +27,9 @@ interface LeadsProps {
   leads: Lead[] | Record<Stage, Lead[]>;
 }
 
-const DocumentEditor = lazy(() =>
-  import('./components/DocumentEditor/DocumentEditor').then(module => ({
-    default: module.DocumentEditor,
+const ContextualPanel = lazy(() =>
+  import('./components/ContextualPanel.tsx/ContextualPanel').then(module => ({
+    default: module.ContextualPanel,
   }))
 );
 
@@ -48,6 +48,7 @@ export default function Leads({ leads, stage_counts, max_count }: LeadsProps) {
           return {
             ...rest,
             viewMode: 'default',
+            viewDoc: true,
           };
         }
 
@@ -55,6 +56,7 @@ export default function Leads({ leads, stage_counts, max_count }: LeadsProps) {
           ...rest,
           lead: lead.id,
           viewMode: 'default',
+          viewDoc: true,
         };
       });
     },
@@ -207,7 +209,7 @@ export default function Leads({ leads, stage_counts, max_count }: LeadsProps) {
                 viewMode === 'focus' && 'w-full md:w-full border-transparent'
               )}
             >
-              <DocumentEditor />
+              <ContextualPanel />
             </div>
           </div>
         </div>

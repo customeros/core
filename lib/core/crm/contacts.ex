@@ -7,7 +7,8 @@ defmodule Core.Crm.Contacts do
   import Ecto.Query
 
   alias Core.Crm.Companies
-  alias Core.Crm.Contacts.Contact
+  alias Core.Crm.Contacts.{Contact, ContactsView}
+  alias Core.Utils.{CalculateTimeInPosition, FormatLocation}
   alias Core.Repo
   alias Core.ScrapinContactDetails
   alias Core.ScrapinContactPosition
@@ -432,6 +433,41 @@ defmodule Core.Crm.Contacts do
         {"param.lead.id", lead_id}
       ])
 
+      # First, let's debug by checking if the lead exists and what its ref_id is
+      lead = Repo.get(Core.Crm.Leads.Lead, lead_id)
+
+      if lead do
+        Logger.info("Found lead", %{
+          lead_id: lead_id,
+          ref_id: lead.ref_id,
+          tenant_id: lead.tenant_id
+        })
+
+        # Check if there are any contacts for this company
+        contacts_for_company =
+          from(c in Contact, where: c.company_id == ^lead.ref_id)
+          |> Repo.all()
+
+        Logger.info("Contacts for company", %{
+          company_id: lead.ref_id,
+          contact_count: length(contacts_for_company)
+        })
+
+        # Check if there are any target personas for this tenant
+        target_personas =
+          from(tp in Core.Crm.TargetPersonas.TargetPersona,
+            where: tp.tenant_id == ^tenant_id
+          )
+          |> Repo.all()
+
+        Logger.info("Target personas for tenant", %{
+          tenant_id: tenant_id,
+          persona_count: length(target_personas)
+        })
+      else
+        Logger.error("Lead not found", %{lead_id: lead_id})
+      end
+
       target_persona_contacts_query =
         from c in Contact,
           join: l in Core.Crm.Leads.Lead,
@@ -440,7 +476,9 @@ defmodule Core.Crm.Contacts do
               l.id == ^lead_id,
           join: tp in Core.Crm.TargetPersonas.TargetPersona,
           on: tp.contact_id == c.id and tp.tenant_id == ^tenant_id,
-          select: c
+          join: comp in Core.Crm.Companies.Company,
+          on: comp.id == c.company_id,
+          select: {c, comp.name}
 
       contacts = Repo.all(target_persona_contacts_query)
 
@@ -448,7 +486,28 @@ defmodule Core.Crm.Contacts do
         {"result.count", length(contacts)}
       ])
 
-      contacts
+      Enum.map(contacts, fn {contact, company_name} ->
+        time_current_position =
+          CalculateTimeInPosition.calculate(
+            contact.job_started_at,
+            contact.job_ended_at
+          )
+
+        linkedin_url =
+          build_linkedin_url(contact.linkedin_id, contact.linkedin_alias)
+
+        struct(ContactsView, %{
+          id: contact.id,
+          full_name: contact.full_name,
+          job_title: contact.job_title,
+          location: FormatLocation.format(contact.country_a2, contact.city),
+          time_current_position: time_current_position,
+          work_email: contact.business_email,
+          phone_number: contact.mobile_phone,
+          linkedin: linkedin_url,
+          company_name: company_name
+        })
+      end)
     end
   end
 
@@ -785,6 +844,19 @@ defmodule Core.Crm.Contacts do
         )
 
         {:error, :download_failed}
+    end
+  end
+
+  defp build_linkedin_url(linkedin_id, linkedin_alias) do
+    cond do
+      not is_nil(linkedin_alias) ->
+        "https://www.linkedin.com/in/#{linkedin_alias}"
+
+      not is_nil(linkedin_id) ->
+        "https://www.linkedin.com/in/#{linkedin_id}"
+
+      true ->
+        nil
     end
   end
 end
