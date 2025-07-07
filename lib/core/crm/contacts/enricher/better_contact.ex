@@ -1,4 +1,4 @@
-defmodule Core.Researcher.ContactEnricher.BetterContact do
+defmodule Core.Crm.Contacts.Enricher.BetterContact do
   @moduledoc """
   Client for the BetterContact API for contact enrichment.
 
@@ -11,8 +11,8 @@ defmodule Core.Researcher.ContactEnricher.BetterContact do
   require Logger
   import Core.Utils.Pipeline
 
-  alias Core.Researcher.ContactEnricher.Request
-  alias Core.Researcher.ContactEnricher.BetterContactJobs
+  alias Core.Crm.Contacts.Enricher.BetterContactRequest
+  alias Core.Crm.Contacts.Enricher.BetterContactJobs
 
   @err_empty_api_key {:error, "better contact API key is empty"}
   @err_empty_api_path {:error, "better contact API path is empty"}
@@ -26,7 +26,7 @@ defmodule Core.Researcher.ContactEnricher.BetterContact do
   @doc """
   Starts a BetterContact search.
   """
-  def start_search(%Request{} = req) do
+  def start_search(%BetterContactRequest{} = req) do
     case req.search_type do
       :email -> start_email_search(req)
       :phone -> start_phone_search(req)
@@ -46,7 +46,7 @@ defmodule Core.Researcher.ContactEnricher.BetterContact do
     |> ok(&process_results/1)
   end
 
-  defp start_email_search(%Request{} = req) do
+  defp start_email_search(%BetterContactRequest{} = req) do
     %{
       data: [build_request_data(req)],
       enrich_email_address: true,
@@ -79,7 +79,7 @@ defmodule Core.Researcher.ContactEnricher.BetterContact do
     |> BetterContactJobs.create_job(req.contact_id)
   end
 
-  defp build_request_data(%Request{} = req) do
+  defp build_request_data(%BetterContactRequest{} = req) do
     %{
       first_name: req.first_name,
       last_name: req.last_name,

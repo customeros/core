@@ -1,4 +1,4 @@
-defmodule Core.Researcher.ContactEnricher.BetterContactJobs do
+defmodule Core.Crm.Contacts.Enricher.BetterContactJobs do
   @moduledoc """
   Manages BetterContact enrichment job lifecycle and retry logic.
 
@@ -11,7 +11,7 @@ defmodule Core.Researcher.ContactEnricher.BetterContactJobs do
   require Logger
   alias Core.Repo
   alias Core.Utils.BackoffCalculator
-  alias Core.Researcher.ContactEnricher.BetterContactJob
+  alias Core.Crm.Contacts.Enricher.BetterContactJob
 
   @err_create_job {:error, "failed to create job"}
   @err_update_job {:error, "failed to update job"}

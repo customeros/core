@@ -1,4 +1,4 @@
-defmodule Core.Researcher.ContactEnricher.BetterContactJob do
+defmodule Core.Crm.Contacts.Enricher.BetterContactJob do
   @moduledoc """
   Schema for tracking BetterContact enrichment job status.
 
