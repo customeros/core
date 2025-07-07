@@ -83,7 +83,7 @@ defmodule Core.WebTracker.Events do
       |> Repo.one()
 
     case event do
-      [] -> {:error, :not_found}
+      nil -> {:error, :not_found}
       results -> {:ok, results}
     end
   end
