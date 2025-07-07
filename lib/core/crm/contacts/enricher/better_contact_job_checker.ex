@@ -114,12 +114,25 @@ defmodule Core.Crm.Contacts.Enricher.BetterContactJobChecker do
 
   defp validate_and_update_email(contact_id, email) do
     with {:ok, result} <- EmailValidator.validate_email(email),
-         true <- EmailValidator.business_email?(result),
          clean_email <- EmailValidator.best_email(result),
          status <- EmailValidator.deliverable_status(result) do
-      Contacts.update_business_email(clean_email, status, contact_id)
+      case EmailValidator.business_email?(result) do
+        true ->
+          # Save as business email
+          Contacts.update_business_email(clean_email, status, contact_id)
+
+        false ->
+          # Save as personal email
+          Contacts.update_personal_email(clean_email, status, contact_id)
+      end
     else
       {:error, reason} ->
+        Logger.error("Failed to validate email from BetterContact", %{
+          contact_id: contact_id,
+          email: email,
+          reason: reason
+        })
+
         {:error, reason}
     end
   end
