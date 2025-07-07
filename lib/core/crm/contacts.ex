@@ -8,7 +8,7 @@ defmodule Core.Crm.Contacts do
 
   alias Core.Crm.Companies
   alias Core.Crm.Contacts.{Contact, ContactsView}
-  alias Core.Utils.{CalculateTimeInPosition, FormatLocation}
+  alias Core.Utils.{CalculateTimeInPosition, FormatLocation, StructUtils}
   alias Core.Repo
   alias Core.ScrapinContactDetails
   alias Core.ScrapinContactPosition
@@ -193,7 +193,7 @@ defmodule Core.Crm.Contacts do
          %{} = position_map
        )
        when is_map(position_map) do
-    position = struct(ScrapinContactPosition, position_map)
+    position = StructUtils.safe_struct(position_map, ScrapinContactPosition)
     create_or_update_contact_for_position(common_fields, position)
   end
 

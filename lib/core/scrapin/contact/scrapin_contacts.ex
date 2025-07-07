@@ -28,7 +28,7 @@ defmodule Core.ScrapinContacts do
     ScrapinContactInterests
   }
 
-  alias Core.Utils.{IdGenerator, MapUtils}
+  alias Core.Utils.{IdGenerator, MapUtils, StructUtils}
   alias Core.Logger.ApiLogger, as: ApiLogger
 
   @vendor "scrapin"
@@ -237,7 +237,7 @@ defmodule Core.ScrapinContacts do
        when is_binary(data) do
     with {:ok, decoded} <- Jason.decode(data, keys: :atoms),
          %{} = map <- MapUtils.to_snake_case_map(decoded) do
-      response_struct = struct(ScrapinContactResponseBody, map)
+      response_struct = StructUtils.safe_struct(map, ScrapinContactResponseBody)
 
       contact_struct =
         case response_struct.person do
@@ -266,7 +266,7 @@ defmodule Core.ScrapinContacts do
   defp convert_to_scrapin_contact_details(person_map) do
     person_map
     |> convert_nested_structures()
-    |> struct(ScrapinContactDetails)
+    |> StructUtils.safe_struct(ScrapinContactDetails)
   end
 
   defp convert_nested_structures(person_map) do
@@ -390,12 +390,12 @@ defmodule Core.ScrapinContacts do
       maybe_convert_list(
         positions_map,
         :position_history,
-        &struct(ScrapinContactPosition, &1)
+        &StructUtils.safe_struct(&1, ScrapinContactPosition)
       )
 
     positions_map
     |> Map.put(:position_history, position_history_structs)
-    |> struct(ScrapinContactPositions)
+    |> StructUtils.safe_struct(ScrapinContactPositions)
   end
 
   defp convert_to_scrapin_contact_schools(schools_map) do
@@ -403,16 +403,16 @@ defmodule Core.ScrapinContacts do
       maybe_convert_list(
         schools_map,
         :education_history,
-        &struct(ScrapinContactEducation, &1)
+        &StructUtils.safe_struct(&1, ScrapinContactEducation)
       )
 
     schools_map
     |> Map.put(:education_history, education_history_structs)
-    |> struct(ScrapinContactSchools)
+    |> StructUtils.safe_struct(ScrapinContactSchools)
   end
 
   defp convert_to_scrapin_contact_language(language_map) do
-    struct(ScrapinContactLanguage, language_map)
+    StructUtils.safe_struct(language_map, ScrapinContactLanguage)
   end
 
   defp convert_to_scrapin_contact_recommendations(recommendations_map) do
@@ -420,12 +420,12 @@ defmodule Core.ScrapinContacts do
       maybe_convert_list(
         recommendations_map,
         :recommendation_history,
-        &struct(ScrapinContactRecommendation, &1)
+        &StructUtils.safe_struct(&1, ScrapinContactRecommendation)
       )
 
     recommendations_map
     |> Map.put(:recommendation_history, recommendation_history_structs)
-    |> struct(ScrapinContactRecommendations)
+    |> StructUtils.safe_struct(ScrapinContactRecommendations)
   end
 
   defp convert_to_scrapin_contact_certifications(certifications_map) do
@@ -433,12 +433,12 @@ defmodule Core.ScrapinContacts do
       maybe_convert_list(
         certifications_map,
         :certification_history,
-        &struct(ScrapinContactCertification, &1)
+        &StructUtils.safe_struct(&1, ScrapinContactCertification)
       )
 
     certifications_map
     |> Map.put(:certification_history, certification_history_structs)
-    |> struct(ScrapinContactCertifications)
+    |> StructUtils.safe_struct(ScrapinContactCertifications)
   end
 
   defp convert_to_scrapin_contact_test_scores(test_scores_map) do
@@ -446,21 +446,20 @@ defmodule Core.ScrapinContacts do
       maybe_convert_list(
         test_scores_map,
         :test_score_history,
-        &struct(ScrapinContactTestScore, &1)
+        &StructUtils.safe_struct(&1, ScrapinContactTestScore)
       )
 
     test_scores_map
     |> Map.put(:test_score_history, test_score_history_structs)
-    |> struct(ScrapinContactTestScores)
+    |> StructUtils.safe_struct(ScrapinContactTestScores)
   end
 
   defp convert_to_scrapin_contact_volunteering(volunteering_map) do
-    # Volunteering experience history is kept as map() according to the type spec
-    struct(ScrapinContactVolunteering, volunteering_map)
+    StructUtils.safe_struct(volunteering_map, ScrapinContactVolunteering)
   end
 
   defp convert_to_scrapin_contact_interests(interests_map) do
-    struct(ScrapinContactInterests, interests_map)
+    StructUtils.safe_struct(interests_map, ScrapinContactInterests)
   end
 
   defp call_scrapin(:contact_search, params) do
@@ -496,7 +495,12 @@ defmodule Core.ScrapinContacts do
                   nil
               end
 
-            response_struct = struct(ScrapinContactResponseBody, snake_case_map)
+            response_struct =
+              StructUtils.safe_struct(
+                snake_case_map,
+                ScrapinContactResponseBody
+              )
+
             response_struct = %{response_struct | person: person_struct}
 
             {:ok, response_struct}

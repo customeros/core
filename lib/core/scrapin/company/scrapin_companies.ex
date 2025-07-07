@@ -15,7 +15,7 @@ defmodule Core.ScrapinCompanies do
     ScrapinCompanyResponseBody
   }
 
-  alias Core.Utils.{IdGenerator, PrimaryDomainFinder, MapUtils}
+  alias Core.Utils.{IdGenerator, PrimaryDomainFinder, MapUtils, StructUtils}
   alias Core.Logger.ApiLogger, as: ApiLogger
 
   @vendor "scrapin"
@@ -82,7 +82,6 @@ defmodule Core.ScrapinCompanies do
   end
 
   # --- Private helpers ---
-
   defp do_scrapin(flow, request_param) do
     latest = get_latest_by_param(request_param)
 
@@ -98,8 +97,11 @@ defmodule Core.ScrapinCompanies do
              true <- response.success do
           company_struct =
             case response.company do
-              nil -> nil
-              map when is_map(map) -> struct(ScrapinCompanyDetails, map)
+              nil ->
+                nil
+
+              map when is_map(map) ->
+                StructUtils.safe_struct(map, ScrapinCompanyDetails)
             end
 
           case company_struct do
@@ -176,7 +178,7 @@ defmodule Core.ScrapinCompanies do
        when is_binary(data) do
     with {:ok, decoded} <- Jason.decode(data, keys: :atoms),
          %{} = map <- MapUtils.to_snake_case_map(decoded) do
-      response_struct = struct(ScrapinCompanyResponseBody, map)
+      response_struct = StructUtils.safe_struct(map, ScrapinCompanyResponseBody)
 
       company_struct =
         case response_struct.company do
@@ -184,7 +186,7 @@ defmodule Core.ScrapinCompanies do
             nil
 
           company_map when is_map(company_map) ->
-            struct(ScrapinCompanyDetails, company_map)
+            StructUtils.safe_struct(company_map, ScrapinCompanyDetails)
         end
 
       response_struct = %{response_struct | company: company_struct}
@@ -223,7 +225,10 @@ defmodule Core.ScrapinCompanies do
         case Jason.decode(body) do
           {:ok, map} ->
             {:ok,
-             struct(ScrapinCompanyResponseBody, MapUtils.to_snake_case_map(map))}
+             StructUtils.safe_struct(
+               MapUtils.to_snake_case_map(map),
+               ScrapinCompanyResponseBody
+             )}
 
           _ ->
             {:error, :invalid_response}
