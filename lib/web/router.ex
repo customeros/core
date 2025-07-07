@@ -118,6 +118,7 @@ defmodule Web.Router do
     scope "/leads" do
       get "/", LeadsController, :index
       get "/download", LeadsController, :download
+      post "/:id/disqualify", LeadsController, :disqualify
     end
 
     scope "/tenants" do
