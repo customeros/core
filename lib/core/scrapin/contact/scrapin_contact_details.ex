@@ -70,6 +70,8 @@ defmodule Core.ScrapinContactPositions do
   Struct for positions data in ScrapIn contact response.
   """
 
+  @derive Jason.Encoder
+
   @type t :: %__MODULE__{
           positions_count: integer() | nil,
           position_history: [ScrapinContactPosition.t()] | nil
@@ -85,6 +87,8 @@ defmodule Core.ScrapinContactPosition do
   @moduledoc """
   Struct for individual position data in ScrapIn contact response.
   """
+
+  @derive Jason.Encoder
 
   @type t :: %__MODULE__{
           title: String.t() | nil,
@@ -116,6 +120,8 @@ defmodule Core.ScrapinContactSchools do
   Struct for schools/education data in ScrapIn contact response.
   """
 
+  @derive Jason.Encoder
+
   @type t :: %__MODULE__{
           educations_count: integer() | nil,
           education_history: [ScrapinContactEducation.t()] | nil
@@ -131,6 +137,8 @@ defmodule Core.ScrapinContactEducation do
   @moduledoc """
   Struct for individual education data in ScrapIn contact response.
   """
+
+  @derive Jason.Encoder
 
   @type t :: %__MODULE__{
           school_name: String.t() | nil,
@@ -156,6 +164,8 @@ defmodule Core.ScrapinContactLanguage do
   Struct for language proficiency data in ScrapIn contact response.
   """
 
+  @derive Jason.Encoder
+
   @type t :: %__MODULE__{
           language: String.t() | nil,
           proficiency: String.t() | nil
@@ -172,6 +182,8 @@ defmodule Core.ScrapinContactRecommendations do
   Struct for recommendations data in ScrapIn contact response.
   """
 
+  @derive Jason.Encoder
+
   @type t :: %__MODULE__{
           recommendations_count: integer() | nil,
           recommendation_history: [ScrapinContactRecommendation.t()] | nil
@@ -187,6 +199,8 @@ defmodule Core.ScrapinContactRecommendation do
   @moduledoc """
   Struct for individual recommendation data in ScrapIn contact response.
   """
+
+  @derive Jason.Encoder
 
   @type t :: %__MODULE__{
           description: String.t() | nil,
@@ -208,6 +222,8 @@ defmodule Core.ScrapinContactCertifications do
   Struct for certifications data in ScrapIn contact response.
   """
 
+  @derive Jason.Encoder
+
   @type t :: %__MODULE__{
           certifications_count: integer() | nil,
           certification_history: [ScrapinContactCertification.t()] | nil
@@ -223,6 +239,8 @@ defmodule Core.ScrapinContactCertification do
   @moduledoc """
   Struct for individual certification data in ScrapIn contact response.
   """
+
+  @derive Jason.Encoder
 
   @type t :: %__MODULE__{
           name: String.t() | nil,
@@ -244,6 +262,8 @@ defmodule Core.ScrapinContactTestScores do
   Struct for test scores data in ScrapIn contact response.
   """
 
+  @derive Jason.Encoder
+
   @type t :: %__MODULE__{
           test_scores_count: integer() | nil,
           test_score_history: [ScrapinContactTestScore.t()] | nil
@@ -259,6 +279,8 @@ defmodule Core.ScrapinContactTestScore do
   @moduledoc """
   Struct for individual test score data in ScrapIn contact response.
   """
+
+  @derive Jason.Encoder
 
   @type t :: %__MODULE__{
           test_title: String.t() | nil,
@@ -276,6 +298,8 @@ defmodule Core.ScrapinContactVolunteering do
   Struct for volunteering experiences data in ScrapIn contact response.
   """
 
+  @derive Jason.Encoder
+
   @type t :: %__MODULE__{
           volunteering_experiences_count: integer() | nil,
           volunteering_experience_history: [map()] | nil
@@ -292,6 +316,8 @@ defmodule Core.ScrapinContactInterests do
   Struct for interests data in ScrapIn contact response.
   """
 
+  @derive Jason.Encoder
+
   @type t :: %__MODULE__{
           companies: [ScrapinContactInterestCompany.t()] | nil,
           top_voices: [ScrapinContactInterestPerson.t()] | nil
@@ -307,6 +333,8 @@ defmodule Core.ScrapinContactInterestCompany do
   @moduledoc """
   Struct for company interest data in ScrapIn contact response.
   """
+
+  @derive Jason.Encoder
 
   @type t :: %__MODULE__{
           name: String.t() | nil,
@@ -329,6 +357,8 @@ defmodule Core.ScrapinContactInterestPerson do
   @moduledoc """
   Struct for person interest data in ScrapIn contact response.
   """
+
+  @derive Jason.Encoder
 
   @type t :: %__MODULE__{
           first_name: String.t() | nil,
