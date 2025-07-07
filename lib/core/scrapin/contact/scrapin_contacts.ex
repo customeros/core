@@ -12,7 +12,20 @@ defmodule Core.ScrapinContacts do
     Repo,
     ScrapinContact,
     ScrapinContactDetails,
-    ScrapinContactResponseBody
+    ScrapinContactResponseBody,
+    ScrapinContactPositions,
+    ScrapinContactPosition,
+    ScrapinContactSchools,
+    ScrapinContactEducation,
+    ScrapinContactLanguage,
+    ScrapinContactRecommendations,
+    ScrapinContactRecommendation,
+    ScrapinContactCertifications,
+    ScrapinContactCertification,
+    ScrapinContactTestScores,
+    ScrapinContactTestScore,
+    ScrapinContactVolunteering,
+    ScrapinContactInterests
   }
 
   alias Core.Utils.{IdGenerator, MapUtils}
@@ -232,7 +245,7 @@ defmodule Core.ScrapinContacts do
             nil
 
           person_map when is_map(person_map) ->
-            struct(ScrapinContactDetails, person_map)
+            convert_to_scrapin_contact_details(person_map)
         end
 
       response_struct = %{response_struct | person: contact_struct}
@@ -248,6 +261,206 @@ defmodule Core.ScrapinContacts do
       _ ->
         {:error, :not_found}
     end
+  end
+
+  defp convert_to_scrapin_contact_details(person_map) do
+    person_map
+    |> convert_nested_structures()
+    |> struct(ScrapinContactDetails)
+  end
+
+  defp convert_nested_structures(person_map) do
+    person_map
+    |> convert_positions()
+    |> convert_schools()
+    |> convert_languages()
+    |> convert_recommendations()
+    |> convert_certifications()
+    |> convert_test_scores()
+    |> convert_volunteering()
+    |> convert_interests()
+  end
+
+  defp convert_positions(person_map) do
+    positions_struct =
+      maybe_convert_map(
+        person_map,
+        :positions,
+        &convert_to_scrapin_contact_positions/1
+      )
+
+    Map.put(person_map, :positions, positions_struct)
+  end
+
+  defp convert_schools(person_map) do
+    schools_struct =
+      maybe_convert_map(
+        person_map,
+        :schools,
+        &convert_to_scrapin_contact_schools/1
+      )
+
+    Map.put(person_map, :schools, schools_struct)
+  end
+
+  defp convert_languages(person_map) do
+    languages_structs =
+      maybe_convert_list(
+        person_map,
+        :languages_with_proficiency,
+        &convert_to_scrapin_contact_language/1
+      )
+
+    Map.put(person_map, :languages_with_proficiency, languages_structs)
+  end
+
+  defp convert_recommendations(person_map) do
+    recommendations_struct =
+      maybe_convert_map(
+        person_map,
+        :recommendations,
+        &convert_to_scrapin_contact_recommendations/1
+      )
+
+    Map.put(person_map, :recommendations, recommendations_struct)
+  end
+
+  defp convert_certifications(person_map) do
+    certifications_struct =
+      maybe_convert_map(
+        person_map,
+        :certifications,
+        &convert_to_scrapin_contact_certifications/1
+      )
+
+    Map.put(person_map, :certifications, certifications_struct)
+  end
+
+  defp convert_test_scores(person_map) do
+    test_scores_struct =
+      maybe_convert_map(
+        person_map,
+        :test_scores,
+        &convert_to_scrapin_contact_test_scores/1
+      )
+
+    Map.put(person_map, :test_scores, test_scores_struct)
+  end
+
+  defp convert_volunteering(person_map) do
+    volunteering_struct =
+      maybe_convert_map(
+        person_map,
+        :volunteering_experiences,
+        &convert_to_scrapin_contact_volunteering/1
+      )
+
+    Map.put(person_map, :volunteering_experiences, volunteering_struct)
+  end
+
+  defp convert_interests(person_map) do
+    interests_struct =
+      maybe_convert_map(
+        person_map,
+        :interests,
+        &convert_to_scrapin_contact_interests/1
+      )
+
+    Map.put(person_map, :interests, interests_struct)
+  end
+
+  defp maybe_convert_map(person_map, key, converter) do
+    case Map.get(person_map, key) do
+      nil -> nil
+      map when is_map(map) -> converter.(map)
+      _ -> nil
+    end
+  end
+
+  defp maybe_convert_list(person_map, key, converter) do
+    case Map.get(person_map, key) do
+      nil -> nil
+      list when is_list(list) -> Enum.map(list, converter)
+      _ -> nil
+    end
+  end
+
+  defp convert_to_scrapin_contact_positions(positions_map) do
+    position_history_structs =
+      maybe_convert_list(
+        positions_map,
+        :position_history,
+        &struct(ScrapinContactPosition, &1)
+      )
+
+    positions_map
+    |> Map.put(:position_history, position_history_structs)
+    |> struct(ScrapinContactPositions)
+  end
+
+  defp convert_to_scrapin_contact_schools(schools_map) do
+    education_history_structs =
+      maybe_convert_list(
+        schools_map,
+        :education_history,
+        &struct(ScrapinContactEducation, &1)
+      )
+
+    schools_map
+    |> Map.put(:education_history, education_history_structs)
+    |> struct(ScrapinContactSchools)
+  end
+
+  defp convert_to_scrapin_contact_language(language_map) do
+    struct(ScrapinContactLanguage, language_map)
+  end
+
+  defp convert_to_scrapin_contact_recommendations(recommendations_map) do
+    recommendation_history_structs =
+      maybe_convert_list(
+        recommendations_map,
+        :recommendation_history,
+        &struct(ScrapinContactRecommendation, &1)
+      )
+
+    recommendations_map
+    |> Map.put(:recommendation_history, recommendation_history_structs)
+    |> struct(ScrapinContactRecommendations)
+  end
+
+  defp convert_to_scrapin_contact_certifications(certifications_map) do
+    certification_history_structs =
+      maybe_convert_list(
+        certifications_map,
+        :certification_history,
+        &struct(ScrapinContactCertification, &1)
+      )
+
+    certifications_map
+    |> Map.put(:certification_history, certification_history_structs)
+    |> struct(ScrapinContactCertifications)
+  end
+
+  defp convert_to_scrapin_contact_test_scores(test_scores_map) do
+    test_score_history_structs =
+      maybe_convert_list(
+        test_scores_map,
+        :test_score_history,
+        &struct(ScrapinContactTestScore, &1)
+      )
+
+    test_scores_map
+    |> Map.put(:test_score_history, test_score_history_structs)
+    |> struct(ScrapinContactTestScores)
+  end
+
+  defp convert_to_scrapin_contact_volunteering(volunteering_map) do
+    # Volunteering experience history is kept as map() according to the type spec
+    struct(ScrapinContactVolunteering, volunteering_map)
+  end
+
+  defp convert_to_scrapin_contact_interests(interests_map) do
+    struct(ScrapinContactInterests, interests_map)
   end
 
   defp call_scrapin(:contact_search, params) do
@@ -277,7 +490,7 @@ defmodule Core.ScrapinContacts do
                   nil
 
                 person_map when is_map(person_map) ->
-                  struct(ScrapinContactDetails, person_map)
+                  convert_to_scrapin_contact_details(person_map)
 
                 _ ->
                   nil

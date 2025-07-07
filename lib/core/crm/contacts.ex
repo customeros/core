@@ -185,6 +185,15 @@ defmodule Core.Crm.Contacts do
     end
   end
 
+  defp create_or_update_contact_for_position(
+         common_fields,
+         %{} = position_map
+       )
+       when is_map(position_map) do
+    position = struct(ScrapinContactPosition, position_map)
+    create_or_update_contact_for_position(common_fields, position)
+  end
+
   defp extract_position_fields(position) do
     %{
       job_title: position.title,
