@@ -74,8 +74,21 @@ defmodule Core.WebTracker.Events do
     end
   end
 
+  def get_first_event(session_id) do
+    event =
+      Event
+      |> where([e], e.session_id == ^session_id)
+      |> order_by([e], asc: e.inserted_at)
+      |> limit(1)
+      |> Repo.one()
+
+    case event do
+      [] -> {:error, :not_found}
+      results -> {:ok, results}
+    end
+  end
+
   defp maybe_put_session_id(changeset) do
-    # Check if session_id is already set in the changeset data or changes
     session_id = get_field(changeset, :session_id)
 
     if is_nil(session_id) do
@@ -97,13 +110,25 @@ defmodule Core.WebTracker.Events do
             |> put_change(:session_id, session.id)
             |> put_change(:with_new_session, session.just_created)
 
-          {:error, :ip_is_threat} ->
-            Tracing.warning(
-              :ip_is_threat,
-              "IP is threat, skipping session creation"
+          {:error, reason} when is_binary(reason) ->
+            if reason == "ip_is_threat" do
+              Tracing.warning(
+                :ip_is_threat,
+                "IP is threat, skipping session creation"
+              )
+            else
+              Tracing.error(reason, "Failed to create/get session")
+            end
+
+            add_error(changeset, :session_id, reason)
+
+          {:error, %Ecto.Changeset{}} ->
+            Tracing.error(
+              "changeset_error",
+              "Failed to create/get session with changeset error"
             )
 
-            add_error(changeset, :session_id, :ip_is_threat)
+            add_error(changeset, :session_id, "session_creation_failed")
 
           {:error, reason} ->
             Tracing.error(reason, "Failed to create/get session")

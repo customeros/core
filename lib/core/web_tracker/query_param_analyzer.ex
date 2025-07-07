@@ -38,6 +38,4 @@ defmodule Core.WebTracker.QueryParamAnalyzer do
       end
     end)
   end
-
-  defp has_any_utm_params?(_), do: false
 end

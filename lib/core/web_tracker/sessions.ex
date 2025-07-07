@@ -80,16 +80,12 @@ defmodule Core.WebTracker.Sessions do
   Gets or creates a session for the given event.
   Returns an existing active session if found, or creates a new one.
   """
-  @spec get_or_create_session(Core.WebTracker.Events.Event.t()) ::
-          {:ok, Session.t()} | {:error, Ecto.Changeset.t() | String.t()}
   def get_or_create_session(event) when is_map(event) do
     case get_active_session(event.tenant, event.visitor_id, event.origin) do
       nil ->
-        # No active session found, create a new one with IP validation
         create_new_session_with_ip_validation(event)
 
       session ->
-        # Active session found, return it
         {:ok, session}
     end
   end

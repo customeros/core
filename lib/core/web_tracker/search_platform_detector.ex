@@ -382,17 +382,14 @@ defmodule Core.WebTracker.SearchPlatformDetector do
       {:ok, true, platform} ->
         case resolve_actual_platform(platform, param_map) do
           {:ok, true, resolved_platform} -> {:ok, resolved_platform}
-          _ -> :not_found
+          {:ok, false} -> :not_found
         end
 
       {:ok, false} ->
         case detect_from_utm_params(param_map) do
           {:ok, true, platform} -> {:ok, platform}
-          _ -> :not_found
+          {:ok, false} -> :not_found
         end
-
-      _ ->
-        :not_found
     end
   end
 
