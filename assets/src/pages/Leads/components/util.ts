@@ -1,8 +1,9 @@
+import { Stage } from 'src/types';
 import { IconName } from 'src/components/Icon';
 
 type StageOption = {
+  value: Stage;
   label: string;
-  value: string;
   icon: IconName;
 };
 

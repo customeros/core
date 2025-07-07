@@ -9,8 +9,8 @@ import { Icon } from 'src/components/Icon/Icon';
 import { Tooltip } from 'src/components/Tooltip';
 import { toastSuccess } from 'src/components/Toast';
 import { IconButton } from 'src/components/IconButton';
-import { Lead, User, Tenant, Profile } from 'src/types';
-import { useChannel, useEventsChannel, LeadCreatedEvent } from 'src/hooks';
+import { Lead, User, Tenant, Profile, UrlState } from 'src/types';
+import { useChannel, useUrlState, useEventsChannel, LeadCreatedEvent } from 'src/hooks';
 import {
   Modal,
   ModalBody,
@@ -39,6 +39,8 @@ export const Header = () => {
     }
   >();
   const { channel } = useChannel(`events:${page.props.tenant.id}`);
+  const { getUrlState } = useUrlState<UrlState>();
+  const { stage } = getUrlState();
 
   const [isOpen, setIsOpen] = useState(false);
   const [displayProfile, setDisplayProfile] = useState(false);
@@ -48,16 +50,14 @@ export const Header = () => {
   const domain = page.props.tenant?.domain;
 
   useEventsChannel<LeadCreatedEvent>(event => {
-    if (event.type === 'lead_created') {
+    if (event.type === 'lead_created' && event.payload.stage === stage) {
       setCreatedLeadIcons(prev => [...prev, event.payload.icon_url]);
     }
   });
 
   const handleClick = () => {
     setCreatedLeadIcons([]);
-    router.visit('/leads', {
-      only: ['leads'],
-    });
+    router.reload();
   };
 
   const leadCount = useMemo(() => {

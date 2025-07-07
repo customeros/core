@@ -41,8 +41,6 @@ export default function Leads({ leads, stage_counts, max_count }: LeadsProps) {
 
   const handleOpenLead = useCallback(
     (lead: { id: string; stage: Stage }) => {
-      if (lead.stage === 'customer') return;
-
       setUrlState(({ lead: currentLead, ...rest }) => {
         if (lead.id === currentLead) {
           return {
@@ -105,7 +103,7 @@ export default function Leads({ leads, stage_counts, max_count }: LeadsProps) {
               />
               <ScrollAreaRoot>
                 <ScrollAreaViewport
-                  className="absolute [&>div]:!block "
+                  className="absolute [&>div]:!block"
                   onScroll={e => {
                     startTransition(() => {
                       if (e.target instanceof HTMLElement) {

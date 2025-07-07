@@ -20,7 +20,8 @@ defmodule Core.Crm.Leads.LeadNotifier do
       type: :lead_created,
       payload: %{
         id: lead.id,
-        icon_url: icon_url
+        icon_url: icon_url,
+        stage: lead.stage
       }
     })
   end

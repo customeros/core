@@ -27,7 +27,6 @@ export const LeadItem = ({ lead, isSeen, handleOpenLead, handleStageClick }: Lea
   );
 
   const isSelected = selectedLead === lead.id;
-  const isCustomer = lead.stage === 'customer';
 
   const leadDate = new Date(lead.inserted_at);
   const now = new Date();
@@ -61,7 +60,7 @@ export const LeadItem = ({ lead, isSeen, handleOpenLead, handleStageClick }: Lea
       >
         {lead.icon ? (
           <div
-            className={cn('relative size-6 flex', isCustomer ? 'cursor-default' : 'cursor-pointer')}
+            className={cn('relative size-6 flex cursor-pointer')}
             onClick={() => {
               handleOpenLead({ id: lead.id, stage: lead.stage });
             }}
@@ -84,8 +83,7 @@ export const LeadItem = ({ lead, isSeen, handleOpenLead, handleStageClick }: Lea
         ) : (
           <div
             className={cn(
-              'relative size-6 flex items-center justify-center border border-gray-200 rounded flex-shrink-0',
-              isCustomer ? 'cursor-default' : 'cursor-pointer'
+              'relative size-6 flex items-center justify-center border border-gray-200 rounded flex-shrink-0 cursor-pointer'
             )}
           >
             <Icon
@@ -104,10 +102,7 @@ export const LeadItem = ({ lead, isSeen, handleOpenLead, handleStageClick }: Lea
           </div>
         )}
         <p
-          className={cn(
-            'py-2 px-2 font-medium truncate',
-            isCustomer ? 'cursor-default' : 'cursor-pointer'
-          )}
+          className={cn('py-2 px-2 font-medium truncate cursor-pointer')}
           onClick={() => {
             handleOpenLead({ id: lead.id, stage: lead.stage });
             setSeen(prev => ({ ...prev, [lead.id]: true }));
@@ -117,7 +112,7 @@ export const LeadItem = ({ lead, isSeen, handleOpenLead, handleStageClick }: Lea
         </p>
         {!isSeen && !isOlderThan24Hours && (
           <div ref={longHoverRef} className="p-3 rounded-sm hover:bg-gray-100 transition-colors">
-            <div className="size-1 bg-blue-light-500 rounded-full" />
+            <div className="size-1 bg-primary-500 rounded-full" />
           </div>
         )}
       </div>

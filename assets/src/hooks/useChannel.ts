@@ -39,11 +39,7 @@ export const useChannel = (channelName: string) => {
         console.error(err);
       }
     })();
-
-    return () => {
-      channel?.leave();
-    };
-  }, [socket, user_id, username, createChannel, channelName]);
+  });
 
   return { channel };
 };

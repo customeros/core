@@ -2,7 +2,7 @@ import { useEffect } from 'react';
 import { usePage } from '@inertiajs/react';
 
 import { PageProps } from '@inertiajs/core';
-import { Lead, User, Tenant } from 'src/types';
+import { Lead, User, Stage, Tenant } from 'src/types';
 
 import { useChannel } from './useChannel';
 
@@ -13,7 +13,10 @@ type Event<K extends EventType = EventType, T extends object = object> = {
   payload: T;
 };
 
-export type LeadCreatedEvent = Event<'lead_created', { id: string; icon_url: string }>;
+export type LeadCreatedEvent = Event<
+  'lead_created',
+  { id: string; icon_url: string; stage: Exclude<Stage, 'customer'> }
+>;
 
 export type LeadUpdatedEvent = Event<'lead_updated', { id: string }>;
 
@@ -31,14 +34,16 @@ export const useEventsChannel = <E extends Event>(
   const { channel } = useChannel(`events:${channelName ?? tenantId}`);
 
   useEffect(() => {
-    if (channel) {
-      channel.on('event', (event: E) => {
-        onEvent(event);
-      });
-    }
+    if (!channel) return;
+
+    const handleEvent = (event: E) => {
+      onEvent(event);
+    };
+
+    const listener = channel.on('event', handleEvent);
 
     return () => {
-      channel?.off('event');
+      channel.off('event', listener);
     };
   }, [channel, onEvent]);
 };
