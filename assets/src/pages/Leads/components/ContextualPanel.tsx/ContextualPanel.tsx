@@ -215,7 +215,7 @@ export const ContextualPanel = () => {
                 </div>
               )}
 
-              {currentLead?.document_id && viewDoc ? (
+              {currentLead?.document_id && viewDoc === 'true' ? (
                 <Editor
                   size="sm"
                   useYjs={true}
