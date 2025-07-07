@@ -40,7 +40,7 @@ defmodule Core.Utils.CalculateTimeInPosition do
 
     cond do
       years > 0 and months > 0 ->
-        "#{years} #{if years == 1, do: "year", else: "years"} and #{months} #{if months == 1, do: "month", else: "months"}"
+        "#{years} #{if years == 1, do: "year", else: "years"}, #{months} #{if months == 1, do: "month", else: "months"}"
 
       years > 0 ->
         "#{years} #{if years == 1, do: "year", else: "years"}"

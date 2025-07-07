@@ -3,6 +3,8 @@ import { usePage } from '@inertiajs/react';
 import { Icon } from 'src/components/Icon';
 import { Avatar } from 'src/components/Avatar';
 import { Lead, TargetPersona } from 'src/types';
+import { IconButton } from 'src/components/IconButton';
+import { toastSuccess } from 'src/components/Toast/success';
 import { FeaturedIcon } from 'src/components/FeaturedIcon/FeaturedIcon';
 
 export const ContactCard = () => {
@@ -11,12 +13,12 @@ export const ContactCard = () => {
 
   if (personas.length === 0) {
     return (
-      <div className="flex flex-col items-center justify-center py-12 w-full">
-        <FeaturedIcon size="sm" className="mb-4">
-          <Icon name="user-03" className="text-violet-600 size-8" />
+      <div className="flex flex-col items-center justify-center  w-full">
+        <FeaturedIcon className="mb-6 mt-[40px]">
+          <Icon name="user-03" />
         </FeaturedIcon>
         <div className="font-medium mb-2">No contacts yet</div>
-        <div className="text-gray-500 max-w-md text-center text-base">
+        <div className="max-w-[340px] text-center">
           We haven't found any contacts for this company yet. As soon as we find the right ones to
           talk to, we'll add them here.
         </div>
@@ -31,6 +33,7 @@ export const ContactCard = () => {
           <div className="flex items-center gap-3 mb-2">
             <Avatar
               size="sm"
+              variant="outlineCircle"
               icon={<Icon name="user-03" className="text-grayModern-700 size-6" />}
             />
             <div>
@@ -63,21 +66,62 @@ export const ContactCard = () => {
                 </>
               )}
             </div>
-            {persona.work_email && (
-              <div className="flex items-center gap-2 text-sm ml-10">
-                <Icon name="mail-02" className="text-gray-500 mr-1" />
-                <span>{persona.work_email}</span>
-              </div>
-            )}
-            {persona.phone_number && (
-              <div className="flex items-center gap-2 text-sm ml-10">
-                <Icon name="phone" className="text-gray-500 mr-1" />
-                <span>{persona.phone_number}</span>
-              </div>
-            )}
+
+            <div className="flex items-center gap-2 text-sm ml-10 group">
+              <Icon name="mail-02" className="text-gray-500 mr-1" />
+              {persona.work_email ? (
+                <>
+                  <p>{persona.work_email}</p>
+                  <IconButton
+                    size="xxs"
+                    variant="ghost"
+                    aria-label="copy-email"
+                    icon={<Icon name="copy-03" />}
+                    className="group-hover:opacity-100 opacity-0"
+                    onClick={() => {
+                      if (persona.work_email) {
+                        navigator.clipboard.writeText(persona.work_email);
+                        toastSuccess('Email copied', 'email-copied');
+                      }
+                    }}
+                  />
+                </>
+              ) : (
+                <p className="text-gray-500">Not found yet</p>
+              )}
+            </div>
+            <div className="flex items-center gap-2 text-sm ml-10 group/phone">
+              <Icon name="phone" className="text-gray-500 mr-1" />
+              {persona.phone_number ? (
+                <>
+                  <p>{persona.phone_number}</p>
+                  <IconButton
+                    size="xxs"
+                    variant="ghost"
+                    aria-label="copy-phone-number"
+                    icon={<Icon name="copy-03" />}
+                    className="group-hover/phone:opacity-100 opacity-0"
+                    onClick={() => {
+                      if (persona.phone_number) {
+                        navigator.clipboard.writeText(persona.phone_number);
+                        toastSuccess('Phone number copied', 'phone-number-copied');
+                      }
+                    }}
+                  />
+                </>
+              ) : (
+                <p className="text-gray-500">Not found yet</p>
+              )}
+            </div>
             {persona.linkedin && (
               <div className="flex items-center gap-2 text-sm ml-10">
-                <Icon name="linkedin-solid" className="text-gray-500 mr-1" />
+                <Icon
+                  stroke="none"
+                  fill="#667085"
+                  fillRule="evenodd"
+                  name="linkedin-solid"
+                  className="text-gray-500 mr-1"
+                />
                 <a
                   target="_blank"
                   href={persona.linkedin}
