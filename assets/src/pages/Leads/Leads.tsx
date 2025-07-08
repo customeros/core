@@ -27,7 +27,7 @@ interface LeadsProps {
 }
 
 const ContextualPanel = lazy(() =>
-  import('./components/ContextualPanel.tsx/ContextualPanel').then(module => ({
+  import('./components/ContextualPanel/ContextualPanel').then(module => ({
     default: module.ContextualPanel,
   }))
 );
