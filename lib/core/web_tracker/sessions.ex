@@ -158,6 +158,14 @@ defmodule Core.WebTracker.Sessions do
     |> Repo.all()
   end
 
+  def stream_unclassified_sessions do
+    from(s in Session,
+      where: is_nil(s.channel),
+      order_by: [asc: s.inserted_at]
+    )
+    |> Repo.stream()
+  end
+
   # ===========================================================================
   # UPDATE OPERATIONS
   # ===========================================================================

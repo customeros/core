@@ -27,7 +27,7 @@ defmodule Core.WebTracker.ChannelClassifier do
          {:ok, event} <- Events.get_first_event(session_id),
          {:ok, tenant_domains} <-
            Tenants.get_tenant_domains(tenant.id) do
-      referrer = String.trim_trailing(event.referrer, "/")
+      referrer = event.referrer |> to_string() |> String.trim_trailing("/")
 
       classification =
         classify_traffic(
@@ -47,6 +47,41 @@ defmodule Core.WebTracker.ChannelClassifier do
 
         @err_unable_to_classify
     end
+  end
+
+  def classify_all_sessions do
+    alias Core.Repo
+
+    Repo.transaction(
+      fn ->
+        Sessions.stream_unclassified_sessions()
+        |> Stream.chunk_every(100)
+        |> Stream.each(fn batch ->
+          batch
+          |> Task.async_stream(
+            fn session ->
+              {session.id, classify_session(session.id)}
+            end,
+            max_concurrency: 10,
+            timeout: 30_000
+          )
+          |> Enum.each(fn
+            {:ok, {session_id, {:ok, _}}} ->
+              Logger.info("Successfully classified session #{session_id}")
+
+            {:ok, {session_id, {:error, reason}}} ->
+              Logger.error(
+                "Failed to classify session #{session_id}: #{reason}"
+              )
+
+            {:exit, reason} ->
+              Logger.error("Task exited: #{inspect(reason)}")
+          end)
+        end)
+        |> Stream.run()
+      end,
+      timeout: :infinity
+    )
   end
 
   defp classify_traffic(tenant_domains, referrer, query_params, user_agent) do
