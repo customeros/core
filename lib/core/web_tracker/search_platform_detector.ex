@@ -186,7 +186,9 @@ defmodule Core.WebTracker.SearchPlatformDetector do
     "qwant.com" => :qwant,
     "www.qwant.com" => :qwant,
     "mojeek.com" => :mojeek,
-    "www.mojeek.com" => :mojeek
+    "www.mojeek.com" => :mojeek,
+    "seznam.cz" => :seznam,
+    "www.seznam.cz" => :seznam
   }
 
   @domain_patterns [

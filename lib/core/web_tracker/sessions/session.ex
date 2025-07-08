@@ -70,6 +70,7 @@ defmodule Core.WebTracker.Sessions.Session do
     :reddit,
     :salesforce,
     :searx,
+    :seznam,
     :slack,
     :snapchat,
     :stackoverflow,

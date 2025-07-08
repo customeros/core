@@ -23,13 +23,16 @@ defmodule Core.WebTracker.ChannelClassifier do
 
   def classify_session(session_id) do
     with {:ok, session} <- Sessions.get_session_by_id(session_id),
-         tenant_id = session.tenant,
+         {:ok, tenant} <- Tenants.get_tenant_by_name(session.tenant),
          {:ok, event} <- Events.get_first_event(session_id),
-         {:ok, tenant_domains} <- Tenants.get_tenant_domains(tenant_id) do
+         {:ok, tenant_domains} <-
+           Tenants.get_tenant_domains(tenant.id) do
+      referrer = String.trim_trailing(event.referrer, "/")
+
       classification =
         classify_traffic(
           tenant_domains,
-          event.referrer,
+          referrer,
           event.search,
           event.user_agent
         )

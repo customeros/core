@@ -4,18 +4,21 @@ defmodule Core.Crm.Leads do
   """
 
   import Ecto.Query, warn: false
-  require OpenTelemetry.Tracer
+
   require Logger
+  require OpenTelemetry.Tracer
+
   alias Ecto.Repo
   alias Core.Repo
-  alias Core.Crm.Leads.{Lead, LeadView, LeadContext}
   alias Core.Auth.Tenants
-  alias Core.Auth.Tenants.Tenant
   alias Core.Crm.Companies
-  alias Core.Crm.Companies.Company
-  alias Core.Utils.Media.Images
   alias Core.Utils.Tracing
+  alias Core.Utils.Media.Images
+  alias Core.Auth.Tenants.Tenant
+  alias Core.Crm.Companies.Company
   alias Core.Crm.Leads.LeadNotifier
+  alias Core.WebTracker.Sessions.Session
+  alias Core.Crm.Leads.{Lead, LeadView, LeadContext}
 
   @type order_by ::
           [desc: :inserted_at]
@@ -28,6 +31,8 @@ defmodule Core.Crm.Leads do
           | [asc: :industry]
           | [desc: :country]
           | [asc: :country]
+
+  @err_not_found {:error, "tenant not found"}
 
   # Public functions
 
@@ -120,6 +125,34 @@ defmodule Core.Crm.Leads do
     case Repo.get_by(Lead, tenant_id: tenant_id, ref_id: ref_id, type: :company) do
       %Lead{} = lead -> {:ok, lead}
       nil -> {:error, :not_found}
+    end
+  end
+
+  @doc """
+  Returns channel (first touch) attribution for a lead.
+  returns {:ok, :channel, :platform, "referrer"} or {:error, reason}
+  """
+
+  def get_channel_attribution(tenant_id, lead_id) do
+    with {:ok, tenant} <- Tenants.get_tenant_by_id(tenant_id),
+         {:ok, lead} <- get_by_id(tenant_id, lead_id) do
+      attribution =
+        Session
+        |> where([s], s.company_id == ^lead.ref_id and s.tenant == ^tenant.name)
+        |> order_by([s], asc: s.inserted_at)
+        |> limit(1)
+        |> Repo.one()
+
+      case attribution do
+        nil ->
+          @err_not_found
+
+        _ ->
+          {:ok, attribution.channel, attribution.platform, attribution.referrer}
+      end
+    else
+      {:error, :not_found} ->
+        @err_not_found
     end
   end
 
