@@ -80,6 +80,7 @@ defmodule Core.WebTracker.SessionAnalyzer do
            Leads.get_by_ref_id(tenant.id, company_id) do
       cond do
         lead.stage == :ready_to_buy -> {:stop, :already_ready_to_buy}
+        lead.stage == :customer -> {:stop, :already_customer}
         lead.icp_fit == :not_a_fit -> {:stop, :not_icp_fit}
         lead.icp_fit == :unknown -> {:stop, :unknown_icp_fit}
         true -> {:ok, :proceed}

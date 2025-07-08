@@ -42,7 +42,7 @@ defmodule Core.Researcher.IcpFitEvaluator do
     OpenTelemetry.Tracer.with_span "icp_fit_evaluator.evaluate" do
       case PrimaryDomainFinder.get_primary_domain(domain) do
         {:ok, primary_domain} ->
-          evaluate_icp_fit(primary_domain, lead, opts)
+          evaluate_icp_fit_and_update_lead(primary_domain, lead, opts)
 
         {:error, reason} ->
           Tracing.error(reason)
@@ -59,12 +59,12 @@ defmodule Core.Researcher.IcpFitEvaluator do
     {:error, "Expected Lead struct, got: #{inspect(invalid_lead)}"}
   end
 
-  defp evaluate_icp_fit(domain, %Leads.Lead{} = lead, opts) do
-    OpenTelemetry.Tracer.with_span "icp_fit_evaluator.evaluate_icp_fit" do
+  defp evaluate_icp_fit_and_update_lead(domain, %Leads.Lead{} = lead, opts) do
+    OpenTelemetry.Tracer.with_span "icp_fit_evaluator.evaluate_icp_fit_and_update_lead" do
       OpenTelemetry.Tracer.set_attributes([
-        {"lead.id", lead.id},
-        {"tenant.id", lead.tenant_id},
-        {"domain", domain}
+        {"param.lead.id", lead.id},
+        {"param.tenant.id", lead.tenant_id},
+        {"param.domain", domain}
       ])
 
       with {:ok, icp} <- IcpProfiles.get_by_tenant_id(lead.tenant_id),
@@ -75,9 +75,13 @@ defmodule Core.Researcher.IcpFitEvaluator do
         {:ok, evaluation}
       else
         {:error, :no_business_pages_found} ->
+          OpenTelemetry.Tracer.set_attributes([
+            {"result.icp_fit", :not_a_fit},
+            {"result.reason", :no_business_pages_found}
+          ])
           evaluation = %{
             icp_fit: :not_a_fit,
-            icp_disqualification_reason: [:unable_to_determine_fit]
+            icp_disqualification_reason: [:no_business_pages_found]
           }
 
           update_lead(lead, evaluation)
@@ -96,9 +100,9 @@ defmodule Core.Researcher.IcpFitEvaluator do
        }) do
     OpenTelemetry.Tracer.with_span "icp_fit_evaluator.update_lead" do
       OpenTelemetry.Tracer.set_attributes([
-        {"lead.id", lead.id},
-        {"icp_fit", fit},
-        {"disqualification_reasons", reasons}
+        {"param.lead.id", lead.id},
+        {"param.icp_fit", fit},
+        {"param.icp_disqualification_reason", reasons}
       ])
 
       update_attrs = %{
