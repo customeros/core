@@ -9,7 +9,9 @@ export type Lead = {
   domain: string;
   country: string;
   industry: string;
+  updated_at: string;
   document_id: string;
+  inserted_at: string;
   country_name: string;
   icp_fit: 'strong' | 'moderate';
 };
@@ -64,8 +66,8 @@ export type UrlState = {
   viewMode?: 'default' | 'focus';
   pipeline?: 'hidden' | 'visible';
   group?: 'stage' | 'industry' | 'country' | 'none';
-  asc?: 'inserted_at' | 'name' | 'industry' | 'stage' | 'country';
-  desc?: 'inserted_at' | 'name' | 'industry' | 'stage' | 'country';
+  asc?: 'updated_at' | 'name' | 'industry' | 'stage' | 'country';
+  desc?: 'updated_at' | 'name' | 'industry' | 'stage' | 'country';
 };
 
 export type IcpProfile = {

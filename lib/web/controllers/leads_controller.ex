@@ -51,7 +51,7 @@ defmodule Web.LeadsController do
 
   def download(conn, _params) do
     %{tenant_id: tenant_id, id: user_id} = conn.assigns.current_user
-    %{data: leads} = Leads.list_view_by_tenant_id(tenant_id)
+    leads = Leads.list_all_view_by_tenant_id(tenant_id)
 
     base_url = "#{conn.scheme}://#{get_req_header(conn, "host")}"
 
@@ -149,7 +149,7 @@ defmodule Web.LeadsController do
   defp get_filter_by(params) do
     case params do
       %{"stage" => stage} -> [stage: stage]
-      _ -> nil
+      _ -> [stage: "target"]
     end
   end
 
@@ -157,14 +157,14 @@ defmodule Web.LeadsController do
     order_mapping = %{
       "asc" => %{
         "stage" => [asc: :stage],
-        "inserted_at" => [asc: :inserted_at],
+        "updated_at" => [asc: :updated_at],
         "name" => [asc: :name],
         "industry" => [asc: :industry],
         "country" => [asc: :country]
       },
       "desc" => %{
         "stage" => [desc: :stage],
-        "inserted_at" => [desc: :inserted_at],
+        "updated_at" => [desc: :updated_at],
         "name" => [desc: :name],
         "industry" => [desc: :industry],
         "country" => [desc: :country]
@@ -173,15 +173,15 @@ defmodule Web.LeadsController do
 
     case params do
       %{"asc" => field}
-      when field in ["stage", "inserted_at", "name", "industry", "country"] ->
-        order_mapping["asc"][field] || [desc: :inserted_at]
+      when field in ["stage", "updated_at", "name", "industry", "country"] ->
+        order_mapping["asc"][field] || [desc: :updated_at]
 
       %{"desc" => field}
-      when field in ["stage", "inserted_at", "name", "industry", "country"] ->
-        order_mapping["desc"][field] || [desc: :inserted_at]
+      when field in ["stage", "updated_at", "name", "industry", "country"] ->
+        order_mapping["desc"][field] || [desc: :updated_at]
 
       _ ->
-        [desc: :inserted_at]
+        [desc: :updated_at]
     end
   end
 
@@ -189,7 +189,7 @@ defmodule Web.LeadsController do
     case params do
       %{"group" => "stage"} -> :stage
       %{"group" => "none"} -> nil
-      _ -> :stage
+      _ -> nil
     end
   end
 
