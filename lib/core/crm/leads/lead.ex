@@ -53,6 +53,7 @@ defmodule Core.Crm.Leads.Lead do
           error_message: String.t(),
           icp_fit_evaluation_attempt_at: DateTime.t(),
           icp_fit_evaluation_attempts: integer(),
+          stage_evaluation_attempt_at: DateTime.t(),
           brief_create_attempt_at: DateTime.t(),
           brief_create_attempts: integer(),
           just_created: boolean(),
@@ -109,6 +110,7 @@ defmodule Core.Crm.Leads.Lead do
     field(:error_message, :string)
     field(:icp_fit_evaluation_attempt_at, :utc_datetime)
     field(:icp_fit_evaluation_attempts, :integer, default: 0)
+    field(:stage_evaluation_attempt_at, :utc_datetime)
     field(:brief_create_attempt_at, :utc_datetime)
     field(:brief_create_attempts, :integer, default: 0)
 
@@ -130,6 +132,7 @@ defmodule Core.Crm.Leads.Lead do
     :error_message,
     :icp_fit_evaluation_attempt_at,
     :icp_fit_evaluation_attempts,
+    :stage_evaluation_attempt_at,
     :brief_create_attempt_at,
     :brief_create_attempts,
     :just_created,

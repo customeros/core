@@ -30,6 +30,7 @@ defmodule Core.Application do
       Core.Crm.Leads.LeadCreator,
       Core.Crm.TargetPersonas.TargetPersonaLinkedinProcessor,
       Core.Crm.Leads.IcpFitEvaluator,
+      Core.Crm.Leads.StageEvaluator,
       Core.Crm.Leads.DailyLeadSummarySender,
       Core.Crm.Leads.BriefCreator,
       Core.Integrations.Providers.HubSpot.CompaniesSyncJob,
