@@ -32,7 +32,7 @@ export const useUrlState = <T extends Record<string, string>>(options?: UrlState
           ...Object.fromEntries(params.entries()),
         },
         {
-          only: options?.revalidate || _options.revalidate,
+          only: options?.revalidate || _options.revalidate || [],
           replace: true,
           preserveState: true,
         }
