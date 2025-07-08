@@ -4,6 +4,7 @@ defmodule Core.WebTracker.SessionAnalyzer do
   """
 
   require Logger
+  require OpenTelemetry.Tracer
   alias Core.Utils.UrlFormatter
   alias Core.Researcher.Webpages.Intent
   alias Core.Crm.Leads
@@ -34,14 +35,16 @@ defmodule Core.WebTracker.SessionAnalyzer do
   end
 
   def analyze_session(session_id) do
-    Logger.info("Starting session analysis for #{session_id}",
-      session_id: session_id
-    )
+    OpenTelemetry.Tracer.with_span "session_analyzer.analyze_session" do
+      OpenTelemetry.Tracer.set_attributes([
+        {"param.session.id", session_id}
+      ])
 
-    session_id
-    |> session_details()
-    |> determine_lead_stage()
-    |> create_brief()
+      session_id
+      |> session_details()
+      |> determine_lead_stage()
+      |> create_brief()
+    end
   end
 
   defp session_details(session_id) do

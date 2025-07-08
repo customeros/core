@@ -79,6 +79,7 @@ defmodule Core.Researcher.IcpFitEvaluator do
             {"result.icp_fit", :not_a_fit},
             {"result.reason", :no_business_pages_found}
           ])
+
           evaluation = %{
             icp_fit: :not_a_fit,
             icp_disqualification_reason: [:no_business_pages_found]
