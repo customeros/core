@@ -1,9 +1,9 @@
-defmodule Core.Crm.Leads.IcpFitEvaluator do
+defmodule Core.Crm.Leads.StageEvaluator do
   @moduledoc """
-  GenServer responsible for evaluating and setting proper icp fit for leads.
+  GenServer responsible for evaluating and setting proper stages for leads.
 
   This module:
-  * Monitors leads that need icp fit evaluation
+  * Monitors leads that need stage evaluation
   """
 
   use GenServer
@@ -14,20 +14,20 @@ defmodule Core.Crm.Leads.IcpFitEvaluator do
   alias Core.Crm.Leads.Lead
   alias Core.Repo
   alias Core.Utils.Tracing
-  alias Core.Crm.Leads.NewLeadPipeline
   alias Core.Utils.CronLocks
   alias Core.Utils.Cron.CronLock
+  alias Core.WebTracker.Sessions.Session
+  alias Core.Auth.Tenants.Tenant
 
-  # Constants
-  @default_interval 2 * 60 * 1000
-  @default_batch_size 5
+  @default_interval 10 * 60 * 1000
+  @default_batch_size 10
   @stuck_lock_duration_minutes 30
-  @max_attempts 5
-  @delay_between_checks_hours 12
-  @delay_from_lead_creation_minutes 30
+  @delay_between_checks_hours 24
+  @delay_from_lead_creation_minutes 60
+  @session_not_older_than_days 15
 
   @doc """
-  Starts the icp fit evaluator process.
+  Starts the stage evaluator process.
   """
   def start_link(_opts) do
     crons_enabled = Application.get_env(:core, :crons)[:enabled] || false
@@ -44,20 +44,20 @@ defmodule Core.Crm.Leads.IcpFitEvaluator do
 
   @impl true
   def init(_) do
-    CronLocks.register_cron(:cron_icp_fit_evaluator)
+    CronLocks.register_cron(:cron_stage_evaluator)
     schedule_initial_check()
     {:ok, %{}}
   end
 
   @impl true
-  def handle_info(:check_pending_leads, state) do
-    OpenTelemetry.Tracer.with_span "icp_fit_evaluator.check_pending_leads" do
+  def handle_info(:check_leads_for_stage_evaluation, state) do
+    OpenTelemetry.Tracer.with_span "stage_evaluator.check_leads_for_stage_evaluation" do
       lock_uuid = Ecto.UUID.generate()
 
-      case CronLocks.acquire_lock(:cron_icp_fit_evaluator, lock_uuid) do
+      case CronLocks.acquire_lock(:cron_stage_evaluator, lock_uuid) do
         %CronLock{} ->
           # Lock acquired, proceed with evaluation
-          leads = fetch_leads_for_icp_fit_evaluation()
+          leads = fetch_target_leads_with_closed_sessions()
 
           OpenTelemetry.Tracer.set_attributes([
             {"batch_size", @default_batch_size},
@@ -79,16 +79,16 @@ defmodule Core.Crm.Leads.IcpFitEvaluator do
           end)
 
           # Release the lock after processing
-          CronLocks.release_lock(:cron_icp_fit_evaluator, lock_uuid)
+          CronLocks.release_lock(:cron_stage_evaluator, lock_uuid)
 
         nil ->
           # Lock not acquired, try to force release if stuck
           Logger.info(
-            "ICP fit evaluator lock not acquired, attempting to release any stuck locks"
+            "Stage evaluator lock not acquired, attempting to release any stuck locks"
           )
 
           case CronLocks.force_release_stuck_lock(
-                 :cron_icp_fit_evaluator,
+                 :cron_stage_evaluator,
                  @stuck_lock_duration_minutes
                ) do
             :ok ->
@@ -109,7 +109,7 @@ defmodule Core.Crm.Leads.IcpFitEvaluator do
   @impl true
   def handle_info(msg, state) do
     Logger.warning(
-      "IcpFitEvaluator received unexpected message: #{inspect(msg)}"
+      "StageEvaluator received unexpected message: #{inspect(msg)}"
     )
 
     {:noreply, state}
@@ -117,28 +117,31 @@ defmodule Core.Crm.Leads.IcpFitEvaluator do
 
   # Private Functions
   defp evaluate_lead(%Lead{} = lead) do
-    OpenTelemetry.Tracer.with_span "icp_fit_evaluator.evaluate_lead" do
+    OpenTelemetry.Tracer.with_span "stage_evaluator.evaluate_lead" do
       OpenTelemetry.Tracer.set_attributes([
-        {"lead.id", lead.id},
-        {"tenant.id", lead.tenant_id}
+        {"param.lead.id", lead.id},
+        {"param.tenant.id", lead.tenant_id}
       ])
 
       Logger.info(
         "Evaluating lead, lead_id: #{lead.id}, attempt: #{lead.icp_fit_evaluation_attempts + 1}"
       )
 
-      case mark_icp_fit_evaluation_attempt(lead) do
+      case mark_stage_evaluation_attempt(lead) do
         :ok ->
-          case NewLeadPipeline.start(lead.id, lead.tenant_id) do
-            {:ok, _} ->
-              Tracing.ok()
+          case get_latest_closed_session_id(lead.tenant_id, lead.ref_id) do
+            session_id when is_binary(session_id) ->
+              Core.WebTracker.SessionAnalyzer.analyze_session(session_id)
               :ok
+            nil ->
+              Logger.error("No closed sessions found for lead #{lead.id}")
+              {:error, :no_sessions_found}
           end
 
         {:error, :update_failed} ->
           Tracing.error(
             :update_failed,
-            "Failed to mark ICP fit attempt",
+            "Failed to mark stage evaluation attempt",
             lead_id: lead.id
           )
 
@@ -147,11 +150,10 @@ defmodule Core.Crm.Leads.IcpFitEvaluator do
     end
   end
 
-  defp mark_icp_fit_evaluation_attempt(%Lead{} = lead) do
+  defp mark_stage_evaluation_attempt(%Lead{} = lead) do
     case Repo.update_all(
            from(l in Lead, where: l.id == ^lead.id),
-           set: [icp_fit_evaluation_attempt_at: DateTime.utc_now()],
-           inc: [icp_fit_evaluation_attempts: 1]
+           set: [stage_evaluation_attempt_at: DateTime.utc_now()]
          ) do
       {0, _} ->
         Tracing.error(
@@ -168,34 +170,55 @@ defmodule Core.Crm.Leads.IcpFitEvaluator do
   end
 
   defp schedule_initial_check do
-    Process.send_after(self(), :check_pending_leads, @default_interval)
+    Process.send_after(self(), :check_leads_for_stage_evaluation, @default_interval)
   end
 
   defp schedule_next_check do
-    Process.send_after(self(), :check_pending_leads, @default_interval)
+    Process.send_after(self(), :check_leads_for_stage_evaluation, @default_interval)
   end
 
-  defp fetch_leads_for_icp_fit_evaluation() do
+  defp get_latest_closed_session_id(tenant_id, company_id) do
+    Session
+    |> join(:inner, [s], t in Tenant, on: s.tenant == t.name)
+    |> where([s, t], t.id == ^tenant_id)
+    |> where([s, t], s.company_id == ^company_id)
+    |> where([s, t], s.active == false)
+    |> order_by([s, t], desc: s.inserted_at)
+    |> limit(1)
+    |> select([s, t], s.id)
+    |> Repo.one()
+  end
+
+  defp fetch_target_leads_with_closed_sessions() do
     last_check_cutoff =
       DateTime.utc_now()
       |> DateTime.add(-@delay_between_checks_hours, :hour)
 
-    created_cutoff =
+    lead_created_cutoff =
       DateTime.utc_now()
       |> DateTime.add(-@delay_from_lead_creation_minutes, :minute)
 
+    session_not_older_than_cutoff =
+      DateTime.utc_now()
+      |> DateTime.add(-@session_not_older_than_days, :day)
+
     Lead
-    |> where([l], l.type == :company)
-    |> where([l], is_nil(l.icp_fit))
-    |> where([l], l.icp_fit_evaluation_attempts < ^@max_attempts)
+    |> join(:inner, [l], t in Tenant, on: l.tenant_id == t.id)
+    |> join(:inner, [l, t], s in Session, on: s.company_id == l.ref_id and s.tenant == t.name and s.active == false)
+    |> where([l, t, s], l.type == :company)
+    |> where([l, t, s], l.stage == :target)
+    |> where([l, t, s], l.icp_fit in [:moderate, :strong])
     |> where(
-      [l],
-      is_nil(l.icp_fit_evaluation_attempt_at) or
-        l.icp_fit_evaluation_attempt_at < ^last_check_cutoff
+      [l, t, s],
+      is_nil(l.stage_evaluation_attempt_at) or
+        l.stage_evaluation_attempt_at < ^last_check_cutoff
     )
-    |> where([l], l.inserted_at < ^created_cutoff)
-    |> order_by([l], asc_nulls_first: l.icp_fit_evaluation_attempt_at)
+    |> where([l, t, s], l.inserted_at < ^lead_created_cutoff)
+    |> where([l, t, s], s.inserted_at > ^session_not_older_than_cutoff)
+    |> distinct([l, t, s], l.id)
+    |> order_by([l, t, s], asc_nulls_first: l.stage_evaluation_attempt_at)
     |> limit(^@default_batch_size)
+    |> select([l, t, s], l)
     |> Repo.all()
   end
 end
