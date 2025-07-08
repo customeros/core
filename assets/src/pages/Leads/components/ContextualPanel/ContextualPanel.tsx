@@ -126,7 +126,7 @@ export const ContextualPanel = () => {
         };
       },
       {
-        revalidate: ['personas'],
+        revalidate: ['personas', 'attribution'],
       }
     );
   };

@@ -40,22 +40,27 @@ export default function Leads({ leads, stage_counts, max_count }: LeadsProps) {
 
   const handleOpenLead = useCallback(
     (lead: { id: string; stage: Stage }) => {
-      setUrlState(({ lead: currentLead, ...rest }) => {
-        if (lead.id === currentLead) {
+      setUrlState(
+        ({ lead: currentLead, ...rest }) => {
+          if (lead.id === currentLead) {
+            return {
+              ...rest,
+              viewMode: 'default',
+              viewDoc: true,
+            };
+          }
+
           return {
             ...rest,
+            lead: lead.id,
             viewMode: 'default',
             viewDoc: true,
           };
+        },
+        {
+          revalidate: ['personas', 'attribution'],
         }
-
-        return {
-          ...rest,
-          lead: lead.id,
-          viewMode: 'default',
-          viewDoc: true,
-        };
-      });
+      );
     },
     [setUrlState]
   );

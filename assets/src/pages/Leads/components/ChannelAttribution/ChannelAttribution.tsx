@@ -1,4 +1,4 @@
-import { usePage } from '@inertiajs/react';
+import { usePage, WhenVisible } from '@inertiajs/react';
 
 import { match } from 'ts-pattern';
 import { Tooltip } from 'src/components/Tooltip';
@@ -79,9 +79,11 @@ export const ChannelAttribution = () => {
   );
 
   return showTooltip ? (
-    <Tooltip side="bottom" label={tooltipLabel}>
-      {content}
-    </Tooltip>
+    <WhenVisible fallback={<></>} data="attribution">
+      <Tooltip side="bottom" label={tooltipLabel}>
+        {content}
+      </Tooltip>
+    </WhenVisible>
   ) : (
     content
   );
