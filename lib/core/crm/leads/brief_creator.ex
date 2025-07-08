@@ -24,6 +24,8 @@ defmodule Core.Crm.Leads.BriefCreator do
   @default_batch_size 10
   @stuck_lock_duration_minutes 30
   @max_attempts 3
+  @delay_between_checks_hours 4
+  @delay_from_lead_creation_minutes 30
 
   @doc """
   Starts the stage evaluator process.
@@ -122,7 +124,7 @@ defmodule Core.Crm.Leads.BriefCreator do
   defp handle_lead_processing(lead) do
     case Documents.get_documents_by_ref_id(lead.id) do
       [] -> create_brief_for_lead(lead)
-      documents -> log_existing_documents(lead, documents)
+      documents -> check_for_account_brief(lead, documents)
     end
   end
 
@@ -134,12 +136,16 @@ defmodule Core.Crm.Leads.BriefCreator do
     )
   end
 
-  defp create_brief_for_lead(lead) do
-    Logger.info("No existing documents found for lead #{lead.id}")
+  defp create_brief_for_lead(%Lead{} = lead) do
+    OpenTelemetry.Tracer.with_span "brief_creator.create_brief_for_lead" do
+      OpenTelemetry.Tracer.set_attributes([
+        {"param.lead.id", lead.id}
+      ])
 
-    case get_company_domain(lead.ref_id) do
-      nil -> :ok
-      domain -> create_brief_document(lead, domain)
+      case get_company_domain(lead.ref_id) do
+        nil -> :ok
+        domain -> create_brief_document(lead, domain)
+      end
     end
   end
 
@@ -155,35 +161,54 @@ defmodule Core.Crm.Leads.BriefCreator do
     end
   end
 
-  defp create_brief_document(lead, domain) do
-    case BriefWriter.create_brief(lead.tenant_id, lead.id, domain) do
-      {:ok, _document} ->
-        Logger.info("Document created for lead #{lead.id}")
+  defp create_brief_document(%Lead{} = lead, domain) do
+    OpenTelemetry.Tracer.with_span "brief_creator.create_brief_document" do
+      OpenTelemetry.Tracer.set_attributes([
+        {"param.lead.id", lead.id},
+        {"param.company.domain", domain}
+      ])
 
-      {:error, :closed_sessions_not_found} ->
-        Tracing.warning(
-          :closed_sessions_not_found,
-          "Closed sessions not found",
-          lead_id: lead.id,
-          url: domain,
-          tenant_id: lead.tenant_id
-        )
+      case BriefWriter.create_brief(lead.tenant_id, lead.id, domain) do
+        {:ok, _document} ->
+          Tracing.ok()
+          Logger.info("Document created for lead #{lead.id}")
 
-      {:error, reason} ->
-        Tracing.error(reason, "Document creation failed",
-          lead_id: lead.id,
-          url: domain,
-          tenant_id: lead.tenant_id
-        )
+        {:error, :closed_sessions_not_found} ->
+          Tracing.warning(
+            :closed_sessions_not_found,
+            "Closed sessions not found",
+            lead_id: lead.id,
+            url: domain,
+            tenant_id: lead.tenant_id
+          )
+
+        {:error, reason} ->
+          Tracing.error(reason, "Document creation failed",
+            lead_id: lead.id,
+            url: domain,
+            tenant_id: lead.tenant_id
+          )
+      end
     end
   end
 
-  defp log_existing_documents(lead, documents) do
-    Logger.info(
-      "Found #{length(documents)} existing document(s) for lead #{lead.ref_id}"
-    )
+  defp check_for_account_brief(lead, documents) do
+    case Enum.find(documents, fn doc -> doc.name == "Account Brief" end) do
+      nil ->
+        Logger.info(
+          "Found #{length(documents)} existing document(s) for lead #{lead.id}, but no Account Brief"
+        )
 
-    Logger.info("Skipping document creation as document(s) already exist")
+        Logger.info("Creating Account Brief as it doesn't exist")
+        create_brief_for_lead(lead)
+
+      _account_brief ->
+        Logger.info(
+          "Found #{length(documents)} existing document(s) for lead #{lead.id}, including Account Brief"
+        )
+
+        Logger.info("Skipping brief creation as Account Brief already exists")
+    end
   end
 
   defp schedule_initial_check do
@@ -195,11 +220,20 @@ defmodule Core.Crm.Leads.BriefCreator do
   end
 
   defp fetch_leads_without_briefs() do
-    hours_ago_2 = DateTime.add(DateTime.utc_now(), -4 * 60 * 60)
-    minutes_ago_30 = DateTime.add(DateTime.utc_now(), -30 * 60)
+    last_check_cutoff =
+      DateTime.add(
+        DateTime.utc_now(),
+        -1 * @delay_between_checks_hours * 60 * 60
+      )
+
+    created_cutoff =
+      DateTime.add(
+        DateTime.utc_now(),
+        -1 * @delay_from_lead_creation_minutes * 60
+      )
 
     Lead
-    |> where([l], l.inserted_at < ^minutes_ago_30)
+    |> where([l], l.inserted_at < ^created_cutoff)
     |> where([l], l.stage not in [:pending, :customer])
     |> where([l], not is_nil(l.stage))
     |> where([l], l.icp_fit in [:strong, :moderate])
@@ -207,7 +241,7 @@ defmodule Core.Crm.Leads.BriefCreator do
     |> where(
       [l],
       is_nil(l.brief_create_attempt_at) or
-        l.brief_create_attempt_at < ^hours_ago_2
+        l.brief_create_attempt_at < ^last_check_cutoff
     )
     |> join(:left, [l], rd in "refs_documents", on: rd.ref_id == l.id)
     |> where([l, rd], is_nil(rd.ref_id))
