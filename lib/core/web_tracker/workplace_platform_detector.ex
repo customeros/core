@@ -81,13 +81,15 @@ defmodule Core.WebTracker.WorkplacePlatformDetector do
     "marketo.com" => :marketo,
 
     # Document & File Sharing
-    "drive.google.com" => :google_drive,
-    "docs.google.com" => :google_drive,
-    "sheets.google.com" => :google_drive,
+    "drive.google.com" => :google_workspace,
+    "docs.google.com" => :google_workspace,
+    "sheets.google.com" => :google_workspace,
+    "slides.google.com" => :google_workspace,
     "dropbox.com" => :dropbox,
     "box.com" => :box,
-    "sharepoint.com" => :microsoft_sharepoint,
-    "onedrive.com" => :microsoft_onedrive,
+    "sharepoint.com" => :microsoft_office,
+    "onedrive.com" => :microsoft_office,
+    "cloud.microsoft" => :microsoft_office,
 
     # Enterprise Social
     "yammer.com" => :yammer,
@@ -98,6 +100,21 @@ defmodule Core.WebTracker.WorkplacePlatformDetector do
     # Microsoft Teams (catches CDN and subdomain variations)
     {~r/teams.*\.microsoft\.com/, :teams},
     {~r/.*teams.*\.office\.net/, :teams},
+    {~r/.*officeapps.*\.live\.com/, :microsoft_office},
+
+    # Google docs
+    {~r/^docs\.google\.com$/, :google_workspace},
+    {~r/.*\.docs\.google\.com/, :google_workspace},
+    {~r/^sheets\.google\.com$/, :google_workspace},
+    {~r/.*\.sheets\.google\.com/, :google_workspace},
+    {~r/^slides\.google\.com$/, :google_workspace},
+    {~r/.*\.slides\.google\.com/, :google_workspace},
+    {~r/^drive\.google\.com$/, :google_workspace},
+    {~r/.*\.drive\.google\.com/, :google_workspace},
+    {~r/^sites\.google\.com$/, :google_workspace},
+    {~r/.*\.sites\.google\.com/, :google_workspace},
+    {~r/^forms\.google\.com$/, :google_workspace},
+    {~r/.*\.forms\.google\.com/, :google_workspace},
 
     # Salesforce patterns
     {~r/.*\.lightning\.force\.com/, :salesforce},
@@ -113,8 +130,8 @@ defmodule Core.WebTracker.WorkplacePlatformDetector do
     {~r/.*\.hs-sites\.com/, :hubspot},
 
     # Microsoft patterns
-    {~r/.*\.sharepoint\.com/, :microsoft_sharepoint},
-    {~r/.*\.onedrive\.com/, :microsoft_onedrive},
+    {~r/.*\.sharepoint\.com/, :microsoft_office},
+    {~r/.*\.onedrive\.com/, :microsoft_office},
 
     # Atlassian patterns
     {~r/.*\.atlassian\.net/, :jira},
@@ -249,7 +266,6 @@ defmodule Core.WebTracker.WorkplacePlatformDetector do
       %URI{host: host} when is_binary(host) ->
         case check_domain_patterns(host) do
           :none ->
-            # Fallback to base domain check
             case Core.Utils.DomainExtractor.extract_base_domain(referrer) do
               {:ok, domain} -> check_base_domain(domain)
               {:error, _} -> :not_found
