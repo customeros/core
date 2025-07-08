@@ -186,7 +186,10 @@ export const ContextualPanel = () => {
                           e.stopPropagation();
 
                           axios.post(`/leads/${currentLead?.id}/disqualify`).then(() => {
-                            toastSuccess('Lead disqualified', 'lead-disqualified');
+                            toastSuccess(
+                              "Noted. We'll tune how we qualify leads.",
+                              'lead-disqualified'
+                            );
                           });
                         }}
                       />
