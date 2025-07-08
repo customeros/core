@@ -12,6 +12,7 @@ defmodule Core.Crm.Contacts.Enricher.BetterContactJobs do
   alias Core.Repo
   alias Core.Utils.BackoffCalculator
   alias Core.Crm.Contacts.Enricher.BetterContactJob
+  alias Core.Utils.Tracing
 
   @err_create_job {:error, "failed to create job"}
   @err_update_job {:error, "failed to update job"}
@@ -34,11 +35,13 @@ defmodule Core.Crm.Contacts.Enricher.BetterContactJobs do
       {:ok, record} ->
         {:ok, record}
 
-      {:error, _changeset} ->
-        Logger.error("Failed to create BetterContact job", %{
+      {:error, changeset} ->
+        Tracing.error(
+          inspect(changeset.errors),
+          "Failed to create BetterContact job",
           job_id: job_id,
           contact_id: contact_id
-        })
+        )
 
         @err_create_job
     end

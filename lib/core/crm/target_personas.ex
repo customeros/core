@@ -61,54 +61,70 @@ defmodule Core.Crm.TargetPersonas do
   end
 
   def create(tenant_id, contact_id) do
-    attrs = %{
-      tenant_id: tenant_id,
-      contact_id: contact_id
-    }
+    OpenTelemetry.Tracer.with_span "target_personas.create" do
+      OpenTelemetry.Tracer.set_attributes([
+        {"param.tenant.id", tenant_id},
+        {"param.contact.id", contact_id}
+      ])
 
-    result =
-      %TargetPersona{}
-      |> TargetPersona.changeset(attrs)
-      |> Repo.insert(
-        on_conflict: :nothing,
-        conflict_target: [:tenant_id, :contact_id]
-      )
+      attrs = %{
+        tenant_id: tenant_id,
+        contact_id: contact_id
+      }
 
-    case result do
-      {:ok, persona} when not is_nil(persona) ->
-        # Trigger enrichment for the new target persona
-        Task.start(fn ->
-          case Contacts.start_email_and_phone_enrichment(contact_id) do
-            {:ok, :enrichment_started} ->
-              Logger.info("Started enrichment for target persona", %{
-                tenant_id: tenant_id,
-                contact_id: contact_id
-              })
+      result =
+        %TargetPersona{}
+        |> TargetPersona.changeset(attrs)
+        |> Repo.insert(
+          on_conflict: :nothing,
+          conflict_target: [:tenant_id, :contact_id]
+        )
 
-            {:error, reason} ->
-              Logger.warning("Failed to start enrichment for target persona", %{
-                tenant_id: tenant_id,
-                contact_id: contact_id,
-                reason: reason
-              })
+      case result do
+        {:ok, persona} when not is_nil(persona) ->
+          span_ctx = OpenTelemetry.Ctx.get_current()
+
+          Task.Supervisor.start_child(
+            Core.TaskSupervisor,
+            fn ->
+              OpenTelemetry.Ctx.attach(span_ctx)
+
+              case Contacts.start_email_and_phone_enrichment(contact_id) do
+                {:ok, :enrichment_started} ->
+                  Logger.info("Started enrichment for target persona", %{
+                    tenant_id: tenant_id,
+                    contact_id: contact_id
+                  })
+
+                {:error, reason} ->
+                  Logger.warning(
+                    "Failed to start enrichment for target persona",
+                    %{
+                      tenant_id: tenant_id,
+                      contact_id: contact_id,
+                      reason: reason
+                    }
+                  )
+              end
+            end
+          )
+
+          {:ok, persona}
+
+        {:ok, nil} ->
+          case get_persona(tenant_id, contact_id) do
+            {:ok, persona} -> {:ok, persona}
+            :not_found -> @err_persona_creation_failed
           end
-        end)
 
-        {:ok, persona}
+        {:error, _changeset} ->
+          Logger.error("Failed to create target persona", %{
+            tenant_id: tenant_id,
+            contact_id: contact_id
+          })
 
-      {:ok, nil} ->
-        case get_persona(tenant_id, contact_id) do
-          {:ok, persona} -> {:ok, persona}
-          :not_found -> @err_persona_creation_failed
-        end
-
-      {:error, _changeset} ->
-        Logger.error("Failed to create target persona", %{
-          tenant_id: tenant_id,
-          contact_id: contact_id
-        })
-
-        @err_persona_creation_failed
+          @err_persona_creation_failed
+      end
     end
   end
 
