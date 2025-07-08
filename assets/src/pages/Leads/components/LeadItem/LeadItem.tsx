@@ -53,7 +53,7 @@ export const LeadItem = ({ lead, isSeen, handleOpenLead, handleStageClick }: Lea
       </div>
       <div
         className={cn(
-          'flex items-center gap-2 ml-2 min-w-0 flex-1 md:flex-none md:flex-shrink-0 bg-white group-hover:bg-gray-50',
+          'flex items-center gap-2 ml-2 flex-1 md:flex-none md:flex-shrink-0 bg-white group-hover:bg-gray-50',
           isSelected && 'bg-gray-50',
           (group === 'stage' || !group) && 'ml-5'
         )}

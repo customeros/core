@@ -38,6 +38,31 @@ defmodule Web.LeadsController do
             Contacts.get_taget_persona_contacts_by_lead_id(tenant_id, lead_id)
         end
 
+      attribution =
+        case params["lead"] do
+          nil ->
+            nil
+
+          lead_id ->
+            case Leads.get_channel_attribution(tenant_id, lead_id) do
+              {:ok, channel, platform, referrer} ->
+                %{
+                  "channel" => channel,
+                  "platform" => platform,
+                  "referrer" => referrer
+                }
+
+              {:error, reason} ->
+                %{"error" => reason}
+
+              nil ->
+                nil
+
+              other ->
+                other
+            end
+        end
+
       conn
       |> assign_prop(:page_title, "Leads | CustomerOS")
       |> assign_prop(:leads, leads)
@@ -45,6 +70,7 @@ defmodule Web.LeadsController do
       |> assign_prop(:stage_counts, stage_counts)
       |> assign_prop(:max_count, max_count)
       |> assign_prop(:personas, personas)
+      |> assign_prop(:attribution, attribution)
       |> render_inertia("Leads")
     end
   end

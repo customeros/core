@@ -84,3 +84,9 @@ export type TargetPersona = {
   company_name: string | null;
   time_current_position: string;
 };
+
+export type ChannelAttribution = {
+  channel: string;
+  platform: string;
+  referrer: string;
+};

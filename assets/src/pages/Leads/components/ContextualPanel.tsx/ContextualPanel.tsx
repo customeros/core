@@ -1,4 +1,4 @@
-import { useMemo, useEffect } from 'react';
+import { useMemo } from 'react';
 import { router, usePage } from '@inertiajs/react';
 
 import axios from 'axios';
@@ -22,6 +22,7 @@ import {
 } from 'src/components/ScrollArea';
 
 import { ContactCard } from '../ContactCard/ContactCard';
+import { ChannelAttribution } from '../ChannelAttribution/ChannelAttribution';
 
 export const ContextualPanel = () => {
   const page = usePage<
@@ -130,30 +131,15 @@ export const ContextualPanel = () => {
     );
   };
 
-  useEffect(() => {
-    if (!currentLead) {
-      return;
-    }
-
-    const params = new URLSearchParams(window.location.search);
-    const leadUrlParam = params.get('lead');
-
-    if (leadUrlParam === currentLead?.id) {
-      return;
-    } else {
-      router.reload({ only: ['leads'] });
-    }
-  }, [currentLead]);
-
   return (
     <>
       <ScrollAreaRoot>
         <ScrollAreaViewport>
           <div className="w-full bg-white px-4 md:px-6">
             <div className="relative bg-white h-full mx-auto w-full md:min-w-[680px] max-w-[680px]">
-              <div className="flex items-center justify-between sticky top-0 bg-white z-10 py-0.5">
+              <div className="flex items-center justify-between sticky top-0 bg-white z-10 py-0.5 mt-[5px]">
                 {currentLead && (
-                  <div className="flex items-center w-full justify-start gap-2 min-w-0">
+                  <div className="flex items-center w-full justify-start gap-2 group/section">
                     {currentLead?.icon ? (
                       <img
                         loading="lazy"
@@ -166,21 +152,23 @@ export const ContextualPanel = () => {
                         <Icon name="building-06" />
                       </div>
                     )}
-                    <p className="text-[16px] font-medium text-gray-900 truncate min-w-fit">
+                    <p className="text-[16px] font-medium text-gray-900 truncate w-[300px] sm:w-full md:w-full lg:w-full xl:w-full 2xl:w-full">
                       {currentLead?.name}
                     </p>
                     {currentLead?.icp_fit === 'strong' && (
-                      <div className="bg-error-100 w-fit px-2 py-1 rounded-[4px] max-w-[100px] truncate flex items-center gap-1 flex-shrink-0">
+                      <div className="bg-error-100 w-fit px-2 py-1.5 rounded-[4px] max-w-[100px] truncate items-center gap-1 flex-shrink-0 hidden sm:flex md:flex lg:flex xl:flex 2xl:flex">
                         <Icon name="flame" className="w-[14px] h-[14px] text-error-500" />
                         <span className="text-error-700 text-xs">Strong fit</span>
                       </div>
                     )}
+                    <ChannelAttribution />
                     <Tooltip asChild side="bottom" label="Lead is not a fit">
                       <IconButton
                         size="xs"
                         variant="ghost"
                         aria-label="unqualify-lead"
                         icon={<Icon name="thumbs-down" />}
+                        className="group-hover/section:opacity-100 opacity-0 hidden sm:flex md:flex lg:flex xl:flex 2xl:flex"
                         onClick={async e => {
                           e.preventDefault();
                           e.stopPropagation();
@@ -225,22 +213,7 @@ export const ContextualPanel = () => {
                       </Tooltip>
                     </>
                   )}
-                  <Tabs variant="enclosed">
-                    <Button
-                      size="xs"
-                      onClick={handleTabClick}
-                      data-state={viewDoc === 'true' ? 'active' : 'inactive'}
-                    >
-                      Account brief
-                    </Button>
-                    <Button
-                      size="xs"
-                      onClick={handleTabClick}
-                      data-state={viewDoc === 'false' ? 'active' : 'inactive'}
-                    >
-                      Contacts
-                    </Button>
-                  </Tabs>
+
                   <IconButton
                     size="xs"
                     variant="ghost"
@@ -250,6 +223,27 @@ export const ContextualPanel = () => {
                   />
                 </div>
               </div>
+              <div className="w-fit mt-2">
+                <Tabs className="w-fit" variant="enclosed">
+                  <Button
+                    size="xs"
+                    className="w-fit"
+                    onClick={handleTabClick}
+                    data-state={viewDoc === 'true' ? 'active' : 'inactive'}
+                  >
+                    Account brief
+                  </Button>
+                  <Button
+                    size="xs"
+                    className="w-fit"
+                    onClick={handleTabClick}
+                    data-state={viewDoc === 'false' ? 'active' : 'inactive'}
+                  >
+                    Contacts
+                  </Button>
+                </Tabs>
+              </div>
+
               {viewDoc === 'false' && (
                 <div className="flex items-center justify-start w-full">
                   <ContactCard />
