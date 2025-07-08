@@ -434,13 +434,22 @@ defmodule Core.Crm.Leads do
   {:error, :not_found} = Leads.update_lead(lead, %{stage: :target})
   ```
   """
-  @spec update_lead(Lead.t(), attrs :: map()) ::
+  @spec update_lead(Lead.t(), attrs :: map(), notify? :: boolean) ::
           {:ok, Lead.t()} | {:error, :not_found}
-  def update_lead(%Lead{} = lead, attrs) do
-    lead
-    |> Lead.changeset(attrs)
-    |> Repo.update()
-    |> tap(fn {:ok, result} -> LeadNotifier.notify_lead_updated(result) end)
+  def update_lead(%Lead{} = lead, attrs, notify? \\ true) do
+    result =
+      lead
+      |> Lead.changeset(attrs)
+      |> Repo.update()
+
+    if notify? do
+      case result do
+        {:ok, updated_lead} -> LeadNotifier.notify_lead_updated(updated_lead)
+        _ -> :noop
+      end
+    end
+
+    result
   end
 
   def disqualify_lead(tenant_id, lead_id) do
@@ -452,10 +461,14 @@ defmodule Core.Crm.Leads do
 
       case get_by_id(tenant_id, lead_id) do
         {:ok, lead} ->
-          update_lead(lead, %{
-            icp_fit: :not_a_fit,
-            icp_disqualification_reason: [:user_feedback]
-          })
+          update_lead(
+            lead,
+            %{
+              icp_fit: :not_a_fit,
+              icp_disqualification_reason: [:user_feedback]
+            },
+            false
+          )
 
         {:error, reason} ->
           {:error, reason}

@@ -111,9 +111,28 @@ defmodule Web.LeadsController do
 
     case Leads.disqualify_lead(tenant_id, lead_id) do
       {:ok, lead} ->
+        lead_map =
+          Map.take(lead, [
+            :id,
+            :tenant_id,
+            :ref_id,
+            :type,
+            :stage,
+            :icp_fit,
+            :icp_disqualification_reason,
+            :error_message,
+            :icp_fit_evaluation_attempt_at,
+            :icp_fit_evaluation_attempts,
+            :brief_create_attempt_at,
+            :brief_create_attempts,
+            :just_created,
+            :inserted_at,
+            :updated_at
+          ])
+
         conn
         |> put_status(:ok)
-        |> json(%{success: true, lead: lead})
+        |> json(%{success: true, lead: lead_map})
 
       {:error, :not_found} ->
         conn
