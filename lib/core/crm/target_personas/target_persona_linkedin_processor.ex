@@ -2,8 +2,8 @@ defmodule Core.Crm.TargetPersonas.TargetPersonaLinkedinProcessor do
   @moduledoc """
   Job responsible for processing target persona LinkedIn queue records.
   """
-
   use GenServer
+  import Ecto.Query
   require Logger
   require OpenTelemetry.Tracer
   alias Core.Crm.TargetPersonas
@@ -14,17 +14,17 @@ defmodule Core.Crm.TargetPersonas.TargetPersonaLinkedinProcessor do
   alias Core.Utils.CronLocks
   alias Core.Utils.Cron.CronLock
 
-  @default_interval 2 * 60 * 1000
+  @default_interval 2 * 10 * 1000
   @batch_size 10
   @stuck_lock_duration_minutes 30
   @max_retries 5
-  @retry_delay_hours 24
+  @delay_between_checks_hours 24
 
   @doc """
   Starts the target persona LinkedIn processor process.
   """
   def start_link(_opts) do
-    crons_enabled = Application.get_env(:core, :crons)[:enabled] || false
+    crons_enabled = Application.get_env(:core, :crons)[:enabled] || true
 
     if crons_enabled do
       GenServer.start_link(__MODULE__, %{}, name: __MODULE__)
@@ -103,6 +103,15 @@ defmodule Core.Crm.TargetPersonas.TargetPersonaLinkedinProcessor do
     end
   end
 
+  @impl true
+  def handle_info(msg, state) do
+    Logger.warning(
+      "TargetPersonaLinkedinProcessor received unexpected message: #{inspect(msg)}"
+    )
+
+    {:noreply, state}
+  end
+
   # Private Functions
 
   defp process_queue_record(%TargetPersonaLinkedinQueue{} = queue_record) do
@@ -178,18 +187,16 @@ defmodule Core.Crm.TargetPersonas.TargetPersonaLinkedinProcessor do
   end
 
   defp fetch_target_persona_linkedin_queues_to_process() do
-    retry_delay_threshold =
+    last_check_cutoff =
       DateTime.utc_now()
-      |> DateTime.add(-@retry_delay_hours * 60 * 60, :second)
-
-    import Ecto.Query
+      |> DateTime.add(-@delay_between_checks_hours, :hour)
 
     TargetPersonaLinkedinQueue
     |> where([q], is_nil(q.completed_at))
     |> where([q], q.attempts < ^@max_retries)
     |> where(
       [q],
-      is_nil(q.last_attempt_at) or q.last_attempt_at < ^retry_delay_threshold
+      is_nil(q.last_attempt_at) or q.last_attempt_at < ^last_check_cutoff
     )
     |> order_by([q], asc_nulls_first: q.last_attempt_at)
     |> limit(^@batch_size)

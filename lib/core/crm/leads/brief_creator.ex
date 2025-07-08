@@ -102,6 +102,13 @@ defmodule Core.Crm.Leads.BriefCreator do
     end
   end
 
+  @impl true
+  def handle_info(msg, state) do
+    Logger.warning("BriefCreator received unexpected message: #{inspect(msg)}")
+
+    {:noreply, state}
+  end
+
   # Private Functions
   defp process_lead(%Lead{} = lead) do
     OpenTelemetry.Tracer.with_span "brief_creator.process_lead" do
@@ -221,16 +228,12 @@ defmodule Core.Crm.Leads.BriefCreator do
 
   defp fetch_leads_without_briefs() do
     last_check_cutoff =
-      DateTime.add(
-        DateTime.utc_now(),
-        -1 * @delay_between_checks_hours * 60 * 60
-      )
+      DateTime.utc_now()
+      |> DateTime.add(-@delay_between_checks_hours, :hour)
 
     created_cutoff =
-      DateTime.add(
-        DateTime.utc_now(),
-        -1 * @delay_from_lead_creation_minutes * 60
-      )
+      DateTime.utc_now()
+      |> DateTime.add(-@delay_from_lead_creation_minutes, :minute)
 
     Lead
     |> where([l], l.inserted_at < ^created_cutoff)

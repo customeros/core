@@ -1042,7 +1042,6 @@ defmodule Core.Crm.Contacts do
       %BetterContactRequest{} = valid_request ->
         case BetterContact.start_search(valid_request) do
           {:ok, _job_record} ->
-            # Only mark as requested after successful job creation
             case mark_enrichment_requested(contact.id, search_type) do
               {:ok, _} ->
                 {:ok, :enrichment_started}

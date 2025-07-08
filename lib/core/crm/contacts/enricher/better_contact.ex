@@ -121,12 +121,15 @@ defmodule Core.Crm.Contacts.Enricher.BetterContact do
       {:ok, body}
     else
       {:ok, %Finch.Response{status: status, body: body}} ->
+        Logger.error("Failed to make better contact post call: HTTP #{status}: #{body}")
         {:error, "HTTP #{status}: #{body}"}
 
       {:error, %Mint.TransportError{reason: reason}} ->
+        Logger.error("Failed to make better contact post call: #{inspect(reason)}")
         {:error, "Network error: #{inspect(reason)}"}
 
       {:error, reason} ->
+        Logger.error("Failed to make better contact post call: #{inspect(reason)}")
         {:error, reason}
     end
   end

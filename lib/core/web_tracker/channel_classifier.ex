@@ -48,7 +48,7 @@ defmodule Core.WebTracker.ChannelClassifier do
 
   defp classify_traffic(tenant_domains, referrer, query_params, user_agent) do
     cond do
-      is_direct_traffic?(tenant_domains, referrer, query_params) ->
+      direct_traffic?(tenant_domains, referrer, query_params) ->
         {:direct, nil}
 
       SearchPlatformDetector.paid_search?(query_params) ->
@@ -125,7 +125,7 @@ defmodule Core.WebTracker.ChannelClassifier do
     end
   end
 
-  defp is_direct_traffic?(tenant_domains, referrer, query_params) do
+  defp direct_traffic?(tenant_domains, referrer, query_params) do
     cond do
       QueryParamAnalyzer.has_utm_params?(query_params) -> false
       is_nil(referrer) or referrer == "" -> true
