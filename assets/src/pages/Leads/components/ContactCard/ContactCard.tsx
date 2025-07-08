@@ -21,7 +21,7 @@ const EmptyState = () => {
       <FeaturedIcon className="mb-6 mt-[40px]">
         <Icon name="user-03" />
       </FeaturedIcon>
-      <div className="font-medium mb-2">No contacts yet</div>
+      <div className="font-medium text-base mb-2">No contacts yet</div>
       <div className="max-w-[340px] text-center">
         We haven't found any contacts for this company yet. As soon as we find the right ones to
         talk to, we'll add them here.
@@ -41,7 +41,7 @@ function ContactCardContent() {
   return (
     <div className="flex w-full flex-col gap-2 mt-4">
       {personas.map((persona, index) => (
-        <div key={persona.id} className="flex flex-col px-2 py-1 bg-white">
+        <div key={persona.id} className="flex flex-col px-2 bg-white">
           <div className="flex items-center gap-3 mb-2">
             <Avatar
               size="sm"
@@ -54,7 +54,7 @@ function ContactCardContent() {
             </div>
           </div>
           <div className="flex flex-col ml-2 gap-2">
-            <div className="flex items-center gap-2 text-sm">
+            <div className="flex items-center gap-4 text-sm">
               {persona.location && (
                 <>
                   <Icon name="globe-05" className="text-gray-500 mr-1" />
@@ -62,7 +62,7 @@ function ContactCardContent() {
                 </>
               )}
             </div>
-            <div className="flex items-center gap-2 text-sm">
+            <div className="flex items-center gap-4 text-sm">
               {persona.time_current_position && (
                 <>
                   <Icon name="git-timeline" className="text-gray-500 mr-1" />
@@ -79,7 +79,7 @@ function ContactCardContent() {
               )}
             </div>
 
-            <div className="flex items-center gap-2 text-sm group">
+            <div className="flex items-center gap-4 text-sm group">
               <Icon name="mail-02" className="text-gray-500 mr-1" />
               {persona.work_email ? (
                 <>
@@ -102,7 +102,7 @@ function ContactCardContent() {
                 <p className="text-gray-500">Not found yet</p>
               )}
             </div>
-            <div className="flex items-center gap-2 text-sm group/phone">
+            <div className="flex items-center gap-4 text-sm group/phone">
               <Icon name="phone" className="text-gray-500 mr-1" />
               {persona.phone_number ? (
                 <>
@@ -126,7 +126,7 @@ function ContactCardContent() {
               )}
             </div>
             {persona.linkedin && (
-              <div className="flex items-center gap-2 text-sm">
+              <div className="flex items-center gap-4 text-sm">
                 <Icon
                   stroke="none"
                   fill="#667085"

@@ -148,7 +148,23 @@ defmodule Core.Crm.Leads do
           @err_not_found
 
         _ ->
-          {:ok, attribution.channel, attribution.platform, attribution.referrer}
+          # Defensive: treat empty string as nil for enum fields
+          channel =
+            if attribution.channel in [nil, ""],
+              do: nil,
+              else: attribution.channel
+
+          platform =
+            if attribution.platform in [nil, ""],
+              do: nil,
+              else: attribution.platform
+
+          referrer =
+            if attribution.referrer in [nil, ""],
+              do: nil,
+              else: attribution.referrer
+
+          {:ok, channel, platform, referrer}
       end
     else
       {:error, :not_found} ->
