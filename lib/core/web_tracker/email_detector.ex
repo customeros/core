@@ -9,6 +9,19 @@ defmodule Core.WebTracker.EmailDetector do
 
   alias Core.Utils.DomainExtractor
 
+  # Mobile email app referrers
+  @mobile_email_apps %{
+    "android-app://com.google.android.gm" => :gmail,
+    "android-app://com.microsoft.office.outlook" => :outlook,
+    "android-app://com.yahoo.mobile.client.android.mail" => :yahoo_mail,
+    "android-app://com.apple.mobilemail" => :icloud,
+    "android-app://com.aol.mobile.aolapp" => :aol,
+    "android-app://ch.protonmail.android" => :protonmail,
+    "ios-app://1176895641" => :outlook,
+    "ios-app://310633997" => :whatsapp,
+    "ios-app://1489321253" => :protonmail
+  }
+
   # UTM medium values that indicate email traffic
   @email_mediums [
     "email",
@@ -156,19 +169,12 @@ defmodule Core.WebTracker.EmailDetector do
   Returns true if traffic appears to come from an email source.
   """
   def email_traffic?(referrer, query_params) do
-    case parse_query_string(query_params) do
-      {:ok, param_map} ->
-        utm_medium = Map.get(param_map, "utm_medium", "") |> String.downcase()
-
-        cond do
-          utm_medium in @email_mediums -> true
-          has_email_referrer?(referrer) -> true
-          has_email_tracking_params?(param_map) -> true
-          true -> false
-        end
-
-      {:error, _} ->
-        has_email_referrer?(referrer)
+    cond do
+      is_mobile_email_app?(referrer) -> true
+      has_email_utm_medium?(query_params) -> true
+      has_email_referrer?(referrer) -> true
+      has_email_tracking_params?(query_params) -> true
+      true -> false
     end
   end
 
@@ -242,17 +248,23 @@ defmodule Core.WebTracker.EmailDetector do
   Returns {:ok, :mailchimp} or :not_found
   """
   def get_platform(referrer, query_params \\ nil) do
-    case get_platform_from_referrer(referrer) do
-      {:ok, platform} ->
-        {:ok, platform}
+    cond do
+      is_mobile_email_app?(referrer) ->
+        {:ok, get_mobile_email_platform(referrer)}
 
-      :not_found ->
-        case parse_query_string(query_params) do
-          {:ok, param_map} ->
-            get_platform_from_params(param_map)
+      true ->
+        case get_platform_from_referrer(referrer) do
+          {:ok, platform} ->
+            {:ok, platform}
 
-          {:error, _} ->
-            :not_found
+          :not_found ->
+            case parse_query_string(query_params) do
+              {:ok, param_map} ->
+                get_platform_from_params(param_map)
+
+              {:error, _} ->
+                :not_found
+            end
         end
     end
   end
@@ -495,80 +507,28 @@ defmodule Core.WebTracker.EmailDetector do
     "hsCtaTracking" => :hubspot_email
   }
 
-  # Generic email tracking parameters
-  @generic_email_tracking_params [
-    "email_id",
-    "message_id",
-    "subscriber_id",
-    "list_id",
-    "campaign_id",
-    "tracking_id",
-    "mail_id",
-    "newsletter_id",
-    "broadcast_id"
-  ]
-
-  # Marketing ESP platforms
-  @marketing_esp_platforms [
-    :mailchimp,
-    :constant_contact,
-    :campaign_monitor,
-    :klaviyo,
-    :aweber,
-    :getresponse,
-    :activecampaign,
-    :convertkit,
-    :drip,
-    :sendinblue,
-    :mailerlite
-  ]
-
-  # Transactional email platforms
-  @transactional_platforms [
-    :sendgrid,
-    :mailgun,
-    :mandrill,
-    :ses,
-    :postmark,
-    :sparkpost,
-    :mailjet
-  ]
-
-  # Campaign indicators in UTM parameters
-  @campaign_indicators [
-    "campaign",
-    "promo",
-    "sale",
-    "offer",
-    "discount",
-    "newsletter",
-    "announcement",
-    "launch",
-    "webinar",
-    "event"
-  ]
-
-  # Transactional keywords
-  @transactional_keywords [
-    "welcome",
-    "confirmation",
-    "receipt",
-    "invoice",
-    "password",
-    "reset",
-    "verification",
-    "activate",
-    "shipping",
-    "delivery",
-    "order",
-    "payment",
-    "account",
-    "notification",
-    "alert",
-    "reminder"
-  ]
-
   # Private helper functions
+
+  defp is_mobile_email_app?(referrer) when is_binary(referrer) do
+    Map.has_key?(@mobile_email_apps, referrer)
+  end
+
+  defp is_mobile_email_app?(_), do: false
+
+  defp get_mobile_email_platform(referrer) when is_binary(referrer) do
+    Map.get(@mobile_email_apps, referrer, :unknown_email_app)
+  end
+
+  defp has_email_utm_medium?(query_params) do
+    case parse_query_string(query_params) do
+      {:ok, param_map} ->
+        utm_medium = Map.get(param_map, "utm_medium", "") |> String.downcase()
+        utm_medium in @email_mediums
+
+      {:error, _} ->
+        false
+    end
+  end
 
   defp parse_query_string(query_params) when is_binary(query_params) do
     try do
@@ -640,19 +600,25 @@ defmodule Core.WebTracker.EmailDetector do
     end
   end
 
-  defp has_email_tracking_params?(param_map) do
-    platform_tracking =
-      Enum.any?(@email_tracking_params, fn {param_name, _platform} ->
-        Map.has_key?(param_map, param_name) and
-          Map.get(param_map, param_name) != ""
-      end)
+  defp has_email_tracking_params?(query_params) do
+    case parse_query_string(query_params) do
+      {:ok, param_map} ->
+        platform_tracking =
+          Enum.any?(@email_tracking_params, fn {param_name, _platform} ->
+            Map.has_key?(param_map, param_name) and
+              Map.get(param_map, param_name) != ""
+          end)
 
-    generic_tracking =
-      Enum.any?(@generic_email_tracking_params, fn param ->
-        Map.has_key?(param_map, param) and Map.get(param_map, param) != ""
-      end)
+        generic_tracking =
+          Enum.any?(@generic_email_tracking_params, fn param ->
+            Map.has_key?(param_map, param) and Map.get(param_map, param) != ""
+          end)
 
-    platform_tracking or generic_tracking
+        platform_tracking or generic_tracking
+
+      {:error, _} ->
+        false
+    end
   end
 
   defp has_marketing_tracking_params?(param_map) do
