@@ -116,7 +116,6 @@ defmodule Core.WebTracker.ChannelClassifier do
   defp update_session_classification(session_id, {channel, platform_result}) do
     case platform_result do
       {:ok, platform} ->
-        dbg(platform)
 
         Sessions.set_channel_classification(session_id, channel, %{
           platform: platform
