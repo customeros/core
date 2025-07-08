@@ -37,7 +37,7 @@ defmodule Core.Crm.Contacts.Enricher.BetterContact do
 
   @doc """
   Fetches the results of a BetterContact search.
-  Returns {:ok, email, phone}, {:ok, :processing}, or {:error, reason}
+  Returns {:ok, email, phone, response}, {:ok, :processing}, or {:error, reason}
   If email or phone are not found, they will return the atom :not_found
   """
   def fetch_results(job_id) do
@@ -139,7 +139,7 @@ defmodule Core.Crm.Contacts.Enricher.BetterContact do
          true <- job_finished?(data),
          {:ok, email} <- parse_email_address(data),
          {:ok, phone_number} <- parse_phone_number(data) do
-      {:ok, email, phone_number}
+      {:ok, email, phone_number, response}
     else
       false -> {:ok, :processing}
       {:error, reason} -> {:error, reason}

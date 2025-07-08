@@ -21,6 +21,7 @@ defmodule Core.Crm.Contacts.Enricher.BetterContactJob do
 
     field(:completed_attempts, :integer, default: 0)
     field(:next_check_at, :utc_datetime)
+    field(:response, :string)
 
     timestamps(type: :utc_datetime)
   end
@@ -33,7 +34,8 @@ defmodule Core.Crm.Contacts.Enricher.BetterContactJob do
     :contact_id,
     :status,
     :completed_attempts,
-    :next_check_at
+    :next_check_at,
+    :response
   ]
 
   @type job_status :: :processing | :completed | :failed
@@ -43,7 +45,8 @@ defmodule Core.Crm.Contacts.Enricher.BetterContactJob do
           contact_id: String.t() | nil,
           status: job_status,
           completed_attempts: integer() | nil,
-          next_check_at: DateTime.t() | nil
+          next_check_at: DateTime.t() | nil,
+          response: String.t() | nil
         }
 
   def changeset(%__MODULE__{} = job, attrs) do
