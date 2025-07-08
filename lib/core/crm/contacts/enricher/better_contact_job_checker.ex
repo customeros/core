@@ -75,9 +75,9 @@ defmodule Core.Crm.Contacts.Enricher.BetterContactJobChecker do
       {:ok, :processing} ->
         retry_or_fail(job_record)
 
-      {:ok, email, phone_number} ->
+      {:ok, email, phone_number, response} ->
         update_contact(job_record.contact_id, email, phone_number)
-        BetterContactJobs.mark_job_completed(job_record.job_id)
+        BetterContactJobs.mark_job_completed_with_response(job_record.job_id, response)
 
       {:error, reason} ->
         Logger.error("Failed to process BetterContact job", %{

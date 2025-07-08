@@ -58,10 +58,11 @@ defmodule Core.Crm.Contacts.Enricher.BetterContactJobs do
     |> Repo.all()
   end
 
-  def mark_job_completed(job_id) do
+  def mark_job_completed_with_response(job_id, response) do
     attrs = %{
       status: :completed,
-      next_check_at: nil
+      next_check_at: nil,
+      response: response
     }
 
     update_job(job_id, attrs)
