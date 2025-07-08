@@ -19,12 +19,12 @@ defmodule Core.Crm.Leads.IcpFitEvaluator do
   alias Core.Utils.Cron.CronLock
 
   # Constants
-  # 2 minutes in milliseconds
   @default_interval 2 * 60 * 1000
-  # Number of leads to process in each batch
   @default_batch_size 5
-  # Duration in minutes after which a lock is considered stuck
   @stuck_lock_duration_minutes 30
+  @max_attempts 5
+  @delay_between_checks_hours 12
+  @delay_from_lead_creation_minutes 30
 
   @doc """
   Starts the stage evaluator process.
@@ -106,6 +106,15 @@ defmodule Core.Crm.Leads.IcpFitEvaluator do
     end
   end
 
+  @impl true
+  def handle_info(msg, state) do
+    Logger.warning(
+      "IcpFitEvaluator received unexpected message: #{inspect(msg)}"
+    )
+
+    {:noreply, state}
+  end
+
   # Private Functions
   defp evaluate_lead(%Lead{} = lead) do
     OpenTelemetry.Tracer.with_span "icp_fit_evaluator.evaluate_lead" do
@@ -118,7 +127,7 @@ defmodule Core.Crm.Leads.IcpFitEvaluator do
         "Evaluating lead, lead_id: #{lead.id}, attempt: #{lead.icp_fit_evaluation_attempts + 1}"
       )
 
-      case Leads.mark_icp_fit_attempt(lead.id) do
+      case mark_icp_fit_evaluation_attempt(lead) do
         :ok ->
           case NewLeadPipeline.start(lead.id, lead.tenant_id) do
             {:ok, _} ->
@@ -138,6 +147,25 @@ defmodule Core.Crm.Leads.IcpFitEvaluator do
     end
   end
 
+  defp mark_icp_fit_evaluation_attempt(%Lead{} = lead) do
+    case Repo.update_all(
+           from(l in Lead, where: l.id == ^lead.id),
+           set: [icp_fit_evaluation_attempt_at: DateTime.utc_now()],
+           inc: [icp_fit_evaluation_attempts: 1]
+         ) do
+      {0, _} ->
+        Tracing.error(
+          :update_failed,
+          "Failed to mark attempt for lead #{lead.id}",
+          lead_id: lead.id
+        )
+        {:error, :update_failed}
+
+      {_count, _} ->
+        :ok
+    end
+  end
+
   defp schedule_initial_check do
     Process.send_after(self(), :check_pending_leads, @default_interval)
   end
@@ -147,20 +175,24 @@ defmodule Core.Crm.Leads.IcpFitEvaluator do
   end
 
   defp fetch_leads_for_icp_fit_evaluation() do
-    hours_ago_24 = DateTime.add(DateTime.utc_now(), -24 * 60 * 60)
-    minutes_ago_10 = DateTime.add(DateTime.utc_now(), -10 * 60)
-    max_attempts = 5
+    last_check_cutoff =
+      DateTime.utc_now()
+      |> DateTime.add(-@delay_between_checks_hours, :hour)
+
+    created_cutoff =
+      DateTime.utc_now()
+      |> DateTime.add(-@delay_from_lead_creation_minutes, :minute)
 
     Lead
     |> where([l], l.type == :company)
     |> where([l], is_nil(l.icp_fit))
-    |> where([l], l.icp_fit_evaluation_attempts < ^max_attempts)
+    |> where([l], l.icp_fit_evaluation_attempts < ^@max_attempts)
     |> where(
       [l],
       is_nil(l.icp_fit_evaluation_attempt_at) or
-        l.icp_fit_evaluation_attempt_at < ^hours_ago_24
+        l.icp_fit_evaluation_attempt_at < ^last_check_cutoff
     )
-    |> where([l], l.inserted_at < ^minutes_ago_10)
+    |> where([l], l.inserted_at < ^created_cutoff)
     |> order_by([l], asc_nulls_first: l.icp_fit_evaluation_attempt_at)
     |> limit(^@default_batch_size)
     |> Repo.all()

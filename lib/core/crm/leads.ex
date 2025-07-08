@@ -509,34 +509,6 @@ defmodule Core.Crm.Leads do
     end
   end
 
-  @doc """
-  Marks an attempt for a lead by updating the attempt timestamp and incrementing the attempts counter.
-
-  Example:
-
-  ```elixir
-  {:ok, :ok} = Leads.mark_icp_fit_attempt("lead_id")
-  {:error, :update_failed} = Leads.mark_icp_fit_attempt("lead_id")
-  ```
-  """
-  @spec mark_icp_fit_attempt(lead_id :: String.t()) ::
-          :ok | {:error, :update_failed}
-  def mark_icp_fit_attempt(lead_id) do
-    case Repo.update_all(
-           from(l in Lead, where: l.id == ^lead_id),
-           set: [icp_fit_evaluation_attempt_at: DateTime.utc_now()],
-           inc: [icp_fit_evaluation_attempts: 1]
-         ) do
-      {0, _} ->
-        Tracing.error(:update_failed)
-        Logger.error("Failed to mark attempt for lead #{lead_id}")
-        {:error, :update_failed}
-
-      {_count, _} ->
-        :ok
-    end
-  end
-
   def mark_brief_create_attempt(lead_id) do
     case Repo.update_all(
            from(l in Lead, where: l.id == ^lead_id),

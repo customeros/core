@@ -24,7 +24,7 @@ defmodule Core.Crm.TargetPersonas.TargetPersonaLinkedinProcessor do
   Starts the target persona LinkedIn processor process.
   """
   def start_link(_opts) do
-    crons_enabled = Application.get_env(:core, :crons)[:enabled] || true
+    crons_enabled = Application.get_env(:core, :crons)[:enabled] || false
 
     if crons_enabled do
       GenServer.start_link(__MODULE__, %{}, name: __MODULE__)
