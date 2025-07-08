@@ -59,7 +59,8 @@ export type IconName =
   | 'linkedin-solid'
   | 'lock-01'
   | 'copy-03'
-  | 'user-03';
+  | 'user-03'
+  | 'thumbs-down';
 
 export const Icon = ({
   name,

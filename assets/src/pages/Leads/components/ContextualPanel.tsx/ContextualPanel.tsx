@@ -1,6 +1,7 @@
-import { useMemo } from 'react';
+import { useMemo, useEffect } from 'react';
 import { router, usePage } from '@inertiajs/react';
 
+import axios from 'axios';
 import { Icon } from 'src/components/Icon';
 import { PageProps } from '@inertiajs/core';
 import { Tabs } from 'src/components/Tabs/Tabs';
@@ -112,23 +113,44 @@ export const ContextualPanel = () => {
   };
 
   const handleTabClick = () => {
-    setUrlState(state => {
-      const newViewDoc = state.viewDoc === 'true' ? 'false' : 'true';
+    setUrlState(
+      state => {
+        const newViewDoc = state.viewDoc === 'true' ? 'false' : 'true';
 
-      return {
-        ...state,
-        viewDoc: newViewDoc,
-        viewMode: newViewDoc === 'false' && state.viewMode === 'focus' ? 'default' : state.viewMode,
-      };
-    });
+        return {
+          ...state,
+          viewDoc: newViewDoc,
+          viewMode:
+            newViewDoc === 'false' && state.viewMode === 'focus' ? 'default' : state.viewMode,
+        };
+      },
+      {
+        revalidate: ['personas'],
+      }
+    );
   };
+
+  useEffect(() => {
+    if (!currentLead) {
+      return;
+    }
+
+    const params = new URLSearchParams(window.location.search);
+    const leadUrlParam = params.get('lead');
+
+    if (leadUrlParam === currentLead?.id) {
+      return;
+    } else {
+      router.reload({ only: ['leads'] });
+    }
+  }, [currentLead]);
 
   return (
     <>
       <ScrollAreaRoot>
         <ScrollAreaViewport>
           <div className="w-full bg-white px-4 md:px-6">
-            <div className="relative bg-white h-full mx-auto  w-full md:min-w-[680px] max-w-[680px]">
+            <div className="relative bg-white h-full mx-auto w-full md:min-w-[680px] max-w-[680px]">
               <div className="flex items-center justify-between sticky top-0 bg-white z-10 py-0.5">
                 {currentLead && (
                   <div className="flex items-center w-full justify-start gap-2 min-w-0">
@@ -153,10 +175,26 @@ export const ContextualPanel = () => {
                         <span className="text-error-700 text-xs">Strong fit</span>
                       </div>
                     )}
+                    <Tooltip asChild side="bottom" label="Lead is not a fit">
+                      <IconButton
+                        size="xs"
+                        variant="ghost"
+                        aria-label="unqualify-lead"
+                        icon={<Icon name="thumbs-down" />}
+                        onClick={async e => {
+                          e.preventDefault();
+                          e.stopPropagation();
+
+                          axios.post(`/leads/${currentLead?.id}/disqualify`).then(() => {
+                            toastSuccess('Lead disqualified', 'lead-disqualified');
+                          });
+                        }}
+                      />
+                    </Tooltip>
                   </div>
                 )}
 
-                <div className="flex items-center w-full justify-end mb-3 gap-2">
+                <div className="flex items-center w-full justify-end gap-2 ">
                   {currentLead?.document_id && viewDoc === 'true' && (
                     <>
                       {/* <Tooltip side="bottom" label="Focus mode">

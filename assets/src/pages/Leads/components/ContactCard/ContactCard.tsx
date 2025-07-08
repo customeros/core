@@ -1,29 +1,41 @@
-import { usePage } from '@inertiajs/react';
+import { usePage, WhenVisible } from '@inertiajs/react';
 
+import { TargetPersona } from 'src/types';
 import { Icon } from 'src/components/Icon';
 import { Avatar } from 'src/components/Avatar';
-import { Lead, TargetPersona } from 'src/types';
 import { IconButton } from 'src/components/IconButton';
 import { toastSuccess } from 'src/components/Toast/success';
 import { FeaturedIcon } from 'src/components/FeaturedIcon/FeaturedIcon';
 
 export const ContactCard = () => {
-  const page = usePage<{ leads: Lead[]; personas: TargetPersona[] }>();
+  return (
+    <WhenVisible data="personas" fallback={<div></div>}>
+      <ContactCardContent />
+    </WhenVisible>
+  );
+};
+
+const EmptyState = () => {
+  return (
+    <div className="flex flex-col items-center justify-center  w-full">
+      <FeaturedIcon className="mb-6 mt-[40px]">
+        <Icon name="user-03" />
+      </FeaturedIcon>
+      <div className="font-medium mb-2">No contacts yet</div>
+      <div className="max-w-[340px] text-center">
+        We haven't found any contacts for this company yet. As soon as we find the right ones to
+        talk to, we'll add them here.
+      </div>
+    </div>
+  );
+};
+
+function ContactCardContent() {
+  const page = usePage<{ personas?: TargetPersona[] }>();
   const personas: TargetPersona[] = page.props.personas || [];
 
-  if (personas.length === 0) {
-    return (
-      <div className="flex flex-col items-center justify-center  w-full">
-        <FeaturedIcon className="mb-6 mt-[40px]">
-          <Icon name="user-03" />
-        </FeaturedIcon>
-        <div className="font-medium mb-2">No contacts yet</div>
-        <div className="max-w-[340px] text-center">
-          We haven't found any contacts for this company yet. As soon as we find the right ones to
-          talk to, we'll add them here.
-        </div>
-      </div>
-    );
+  if (personas?.length === 0) {
+    return <EmptyState />;
   }
 
   return (
@@ -41,8 +53,8 @@ export const ContactCard = () => {
               <div>{persona.job_title}</div>
             </div>
           </div>
-          <div className="flex flex-col gap-2">
-            <div className="flex items-center gap-2 text-sm ml-10">
+          <div className="flex flex-col ml-2 gap-2">
+            <div className="flex items-center gap-2 text-sm">
               {persona.location && (
                 <>
                   <Icon name="globe-05" className="text-gray-500 mr-1" />
@@ -50,7 +62,7 @@ export const ContactCard = () => {
                 </>
               )}
             </div>
-            <div className="flex items-center gap-2 text-sm  ml-10">
+            <div className="flex items-center gap-2 text-sm">
               {persona.time_current_position && (
                 <>
                   <Icon name="git-timeline" className="text-gray-500 mr-1" />
@@ -67,7 +79,7 @@ export const ContactCard = () => {
               )}
             </div>
 
-            <div className="flex items-center gap-2 text-sm ml-10 group">
+            <div className="flex items-center gap-2 text-sm group">
               <Icon name="mail-02" className="text-gray-500 mr-1" />
               {persona.work_email ? (
                 <>
@@ -90,7 +102,7 @@ export const ContactCard = () => {
                 <p className="text-gray-500">Not found yet</p>
               )}
             </div>
-            <div className="flex items-center gap-2 text-sm ml-10 group/phone">
+            <div className="flex items-center gap-2 text-sm group/phone">
               <Icon name="phone" className="text-gray-500 mr-1" />
               {persona.phone_number ? (
                 <>
@@ -114,7 +126,7 @@ export const ContactCard = () => {
               )}
             </div>
             {persona.linkedin && (
-              <div className="flex items-center gap-2 text-sm ml-10">
+              <div className="flex items-center gap-2 text-sm">
                 <Icon
                   stroke="none"
                   fill="#667085"
@@ -138,4 +150,4 @@ export const ContactCard = () => {
       ))}
     </div>
   );
-};
+}

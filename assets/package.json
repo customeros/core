@@ -14,7 +14,7 @@
   "private": "true",
   "dependencies": {
     "@floating-ui/dom": "^1.7.0",
-    "@inertiajs/react": "^1.2.0",
+    "@inertiajs/react": "2.0.14",
     "@lexical/link": "^0.19.0",
     "@lexical/react": "^0.19.0",
     "@radix-ui/react-alert-dialog": "^1.0.5",
