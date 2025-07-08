@@ -152,7 +152,7 @@ export const ContextualPanel = () => {
                         <Icon name="building-06" />
                       </div>
                     )}
-                    <p className="text-[16px] font-medium text-gray-900 truncate w-[300px] sm:w-full md:w-full lg:w-full xl:w-full 2xl:w-full">
+                    <p className="text-[16px] font-medium text-gray-900 truncate w-fit min-w-fit sm:w-full md:w-full lg:w-full xl:w-full 2xl:w-full">
                       {currentLead?.name}
                     </p>
                     {currentLead?.icp_fit === 'strong' && (
