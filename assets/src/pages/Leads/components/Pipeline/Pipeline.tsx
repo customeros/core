@@ -6,7 +6,7 @@ import { cn } from 'src/utils/cn';
 import { Icon } from 'src/components/Icon/Icon';
 import { useUrlState, useEventsChannel, LeadCreatedEvent } from 'src/hooks';
 
-import { stageIcons, stageOptionsWithoutCustomer } from '../util';
+import { stageIcons, stageOptions } from '../util';
 
 interface PipelineProps {
   maxCount: number;
@@ -22,7 +22,7 @@ export const Pipeline = ({
   onStageClick,
 }: PipelineProps) => {
   const { getUrlState } = useUrlState<UrlState>();
-  const { pipeline, stage: selectedStage, group, lead } = getUrlState();
+  const { pipeline, stage: selectedStage = 'target', group } = getUrlState();
   const [newLead, setNewLead] = useState<Record<Stage, number>>({
     target: 0,
     education: 0,
@@ -56,11 +56,11 @@ export const Pipeline = ({
   return (
     <div
       className={cn(
-        'w-full items-center justify-center mb-2 mt-2 p-1 hidden md:flex max-w-[800px] mx-auto bg-primary-25 rounded-[8px] transition-all duration-200',
+        'w-full items-center justify-center mb-2 mt-2 p-1 flex max-w-[800px] mx-auto bg-primary-25 rounded-[8px] transition-all duration-200',
         scrollProgress > 0.2 && 'rounded-md'
       )}
     >
-      {stageOptionsWithoutCustomer.map((stage, index) => {
+      {stageOptions.map((stage, index) => {
         const count = stageCounts[stage.value] || 0;
 
         return (
@@ -69,8 +69,6 @@ export const Pipeline = ({
             style={{
               height: getHeight(count),
               zIndex: 10 - index,
-              maxHeight: '100px',
-              minHeight: '20px',
             }}
             onClick={e => {
               e.stopPropagation();
@@ -81,32 +79,38 @@ export const Pipeline = ({
               }));
             }}
             className={cn(
-              'flex-1 flex items-center justify-center bg-primary-100 cursor-pointer hover:bg-primary-200 duration-300',
+              'flex-1 flex items-center justify-center bg-primary-100 cursor-pointer hover:bg-primary-200 duration-300 max-h-[20px] min-h-[20px] md:max-h-[100px]',
               index === 0 && 'rounded-l-md',
-              index === stageOptionsWithoutCustomer.length - 1 && 'rounded-r-md',
+              index === stageOptions.length - 1 && 'rounded-r-md',
               selectedStage === stage.value && 'bg-primary-200',
               count === 0 && 'cursor-not-allowed hover:bg-primary-100'
             )}
           >
-            <div className="flex text-center text-primary-700 select-none items-center">
+            <div
+              className={cn(
+                'flex text-center text-primary-700 select-none items-center',
+                newLead[stage.value] > 0 && 'animate-pulse md:animate-none'
+              )}
+            >
               <Icon
                 name={stageIcons[stage.value]}
                 className={cn(
-                  'size-[14px] text-primary-700 mr-2 transition-all duration-300',
+                  'size-[14px] text-primary-700 mr-2 transition-all duration-300 hidden md:block',
                   group !== 'stage' && 'animate-fadeIn w-[14px] opacity-100',
                   group === 'stage' && 'animate-fadeOut w-0 opacity-0'
                 )}
               />
-              <div className={cn('flex items-center gap-2', lead && 'truncate max-w-[70px]')}>
-                {stage.label}
-                {!lead && (
-                  <>
-                    <span>{count}</span>
-                    {newLead[stage.value] > 0 && (
-                      <div className="size-1 bg-primary-500 rounded-full" />
-                    )}
-                  </>
-                )}
+              <div className="flex relative items-center gap-2">
+                <span className="line-clamp-1 truncate">{stage.label}</span>
+                <span
+                  className={cn(
+                    'hidden md:inline',
+                    newLead[stage.value] > 0 &&
+                      'after:content-[""] after:size-1 after:bg-primary-500 after:hidden md:after:block after:rounded-full after:absolute after:left-full after:top-1/2 after:-translate-y-1/2 after:ml-1'
+                  )}
+                >
+                  {count}
+                </span>
               </div>
             </div>
           </div>

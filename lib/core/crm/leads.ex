@@ -145,6 +145,84 @@ defmodule Core.Crm.Leads do
   end
 
   @doc """
+  Get stage counts for a tenant using database queries.
+  This function is not affected by query limits and provides accurate counts.
+  """
+  @spec get_stage_counts_by_tenant_id(tenant_id :: String.t()) ::
+          %{Lead.lead_stage() => integer()}
+  def get_stage_counts_by_tenant_id(tenant_id) do
+    OpenTelemetry.Tracer.with_span "core.crm.leads:get_stage_counts_by_tenant_id" do
+      OpenTelemetry.Tracer.set_attributes([
+        {"tenant.id", tenant_id}
+      ])
+
+      # Get counts for each stage using database aggregation
+      stage_counts_query =
+        from l in Lead,
+          where: l.tenant_id == ^tenant_id,
+          where: l.type == :company,
+          where: l.stage not in [:pending],
+          where: not is_nil(l.stage),
+          where: not is_nil(l.icp_fit),
+          where: l.icp_fit not in [:not_a_fit, :unknown],
+          where: l.stage != :customer,
+          group_by: l.stage,
+          select: {l.stage, count(l.id)}
+
+      Repo.all(stage_counts_query)
+      |> Map.new()
+    end
+  end
+
+  @doc """
+  Get all LeadView data for a tenant without limits or stage filtering.
+  This function returns all qualifying leads regardless of stage.
+
+  Example:
+
+  ```elixir
+  [%LeadView{}, ...] = Leads.list_all_view_by_tenant_id("123")
+  [%LeadView{}, ...] = Leads.list_all_view_by_tenant_id("123", [desc: :stage])
+  [%LeadView{}, ...] = Leads.list_all_view_by_tenant_id("123", [asc: :stage])
+  [%LeadView{}, ...] = Leads.list_all_view_by_tenant_id("123", [desc: :inserted_at])
+
+  [] = Leads.list_all_view_by_tenant_id("unknown_tenant_id")
+  ```
+  """
+  @spec list_all_view_by_tenant_id(
+          tenant_id :: String.t(),
+          order_by :: order_by()
+        ) ::
+          [LeadView.t()]
+  def list_all_view_by_tenant_id(
+        tenant_id,
+        order_by \\ [desc: :updated_at]
+      ) do
+    OpenTelemetry.Tracer.with_span "core.crm.leads:list_all_view_by_tenant_id" do
+      OpenTelemetry.Tracer.set_attributes([
+        {"tenant.id", tenant_id}
+      ])
+
+      query_leads_view()
+      |> where([l], l.tenant_id == ^tenant_id)
+      |> where([l], l.type == :company)
+      |> where([l], l.stage not in [:pending])
+      |> where([l], not is_nil(l.stage))
+      |> where([l], not is_nil(l.icp_fit))
+      |> where([l], l.icp_fit not in [:not_a_fit, :unknown])
+      |> order(order_by)
+      |> Repo.all()
+      |> then(fn
+        [] ->
+          []
+
+        leads ->
+          Enum.map(leads, &parse_lead_view/1)
+      end)
+    end
+  end
+
+  @doc """
   Get a LeadView for a tenant. LeadView is a joined view of a lead with the necessary data to render in the UI.
 
   Example:
@@ -178,7 +256,7 @@ defmodule Core.Crm.Leads do
             }
   def list_view_by_tenant_id(
         tenant_id,
-        order_by \\ [desc: :inserted_at],
+        order_by \\ [desc: :updated_at],
         group_by \\ nil,
         filter_by \\ nil
       ) do
@@ -187,66 +265,41 @@ defmodule Core.Crm.Leads do
         {"tenant.id", tenant_id}
       ])
 
+      stage_counts = get_stage_counts_by_tenant_id(tenant_id)
+      stage = filter_by[:stage] |> String.to_atom()
+
       query_leads_view()
       |> where([l], l.tenant_id == ^tenant_id)
       |> where([l], l.type == :company)
-      |> where([l], l.stage not in [:pending])
+      |> where([l], l.stage in [^stage])
       |> where([l], not is_nil(l.stage))
       |> where([l], not is_nil(l.icp_fit))
       |> where([l], l.icp_fit not in [:not_a_fit, :unknown])
       |> order(order_by)
+      |> limit(250)
       |> Repo.all()
       |> then(fn
         [] ->
-          %{data: [], stage_counts: get_stage_counts([]), max_count: 0}
+          %{data: [], stage_counts: stage_counts, max_count: 0}
 
         leads ->
           output = Enum.map(leads, &parse_lead_view/1)
 
-          stage_counts =
-            case group_by do
-              :stage ->
-                output
-                |> Enum.filter(&(&1.stage != :customer))
-                |> Enum.group_by(& &1.stage)
-                |> Enum.map(fn {stage, leads} -> {stage, Enum.count(leads)} end)
-                |> Map.new()
-
-              _ ->
-                Enum.reduce(output, %{}, fn lead, acc ->
-                  if lead.stage != :customer do
-                    Map.update(acc, lead.stage, 1, &(&1 + 1))
-                  else
-                    acc
-                  end
-                end)
-            end
-
-          filtered_output =
-            case filter_by do
-              [stage: stage] ->
-                Enum.filter(
-                  output,
-                  &(&1.stage == String.to_existing_atom(stage))
-                )
-
-              _ ->
-                output
-            end
-
           data =
             case group_by do
               :stage ->
-                Enum.group_by(filtered_output, & &1.stage)
+                Enum.group_by(output, & &1.stage)
 
               _ ->
-                filtered_output
+                output
             end
+
+          max_count = Map.values(stage_counts) |> Enum.sum()
 
           %{
             data: data,
             stage_counts: stage_counts,
-            max_count: Enum.count(output)
+            max_count: max_count
           }
       end)
     end
@@ -596,18 +649,19 @@ defmodule Core.Crm.Leads do
         country: c.country_a2,
         icon_key: c.icon_key,
         document_id: rd.document_id,
-        inserted_at: l.inserted_at
+        inserted_at: l.inserted_at,
+        updated_at: l.updated_at
       }
     )
   end
 
   defp order(query, by) do
     case by do
-      [desc: :inserted_at] ->
-        order_by(query, [l], desc: l.inserted_at)
+      [desc: :updated_at] ->
+        order_by(query, [l], desc: l.updated_at)
 
-      [asc: :inserted_at] ->
-        order_by(query, [l], asc: l.inserted_at)
+      [asc: :updated_at] ->
+        order_by(query, [l], asc: l.updated_at)
 
       [desc: :stage] ->
         order_by(query, [l], desc: l.stage)
@@ -622,7 +676,7 @@ defmodule Core.Crm.Leads do
         order_by_nullable_field(query, :desc, field)
 
       _ ->
-        order_by(query, [l], desc: l.inserted_at)
+        order_by(query, [l], desc: l.updated_at)
     end
   end
 
@@ -725,12 +779,6 @@ defmodule Core.Crm.Leads do
   end
 
   defp parse_lead_view(_), do: {:error, :invalid_lead_view}
-
-  defp get_stage_counts(leads) do
-    Enum.reduce(leads, %{}, fn lead, acc ->
-      Map.update(acc, lead.stage, 1, &(&1 + 1))
-    end)
-  end
 
   defp has_unique_constraint_error?(errors) do
     Enum.any?(errors, fn

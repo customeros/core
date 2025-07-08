@@ -4,9 +4,8 @@ import { lazy, useState, useEffect, useCallback, startTransition } from 'react';
 import { cn } from 'src/utils/cn';
 import { useLocalstorageState } from 'rooks';
 import { RootLayout } from 'src/layouts/Root';
+import { Button } from 'src/components/Button';
 import { useUrlState } from 'src/hooks/useUrlState';
-import { Icon, IconName } from 'src/components/Icon';
-import { SegmentedView } from 'src/components/SegmentedView';
 import { LeadUpdatedEvent, useEventsChannel } from 'src/hooks';
 import { Lead, User, Stage, Tenant, Profile, UrlState } from 'src/types';
 import {
@@ -16,7 +15,7 @@ import {
   ScrollAreaScrollbar,
 } from 'src/components/ScrollArea';
 
-import { Header, Pipeline, LeadItem, EmptyState, stageIcons, stageOptions } from './components';
+import { Header, Pipeline, LeadItem, EmptyState } from './components';
 
 interface LeadsProps {
   tenant: Tenant;
@@ -36,7 +35,7 @@ const ContextualPanel = lazy(() =>
 export default function Leads({ leads, stage_counts, max_count }: LeadsProps) {
   const [scroll_progress, setScrollProgress] = useState(0);
   const { getUrlState, setUrlState } = useUrlState<UrlState>({ revalidate: ['leads'] });
-  const { viewMode, group, lead, stage: selectedStage, asc } = getUrlState();
+  const { viewMode, lead } = getUrlState();
   const [seen] = useLocalstorageState<Record<string, boolean>>('seen-leads', {});
 
   const handleOpenLead = useCallback(
@@ -116,79 +115,40 @@ export default function Leads({ leads, stage_counts, max_count }: LeadsProps) {
                     });
                   }}
                 >
-                  <div>
-                    {(group === 'stage' || !group) && !Array.isArray(leads) ? (
-                      Object.entries(leads)
-                        .sort(sortByStage(!!asc))
-                        .map(([stage, groupedLeads], index) => (
-                          <div key={stage} className="flex flex-col w-full">
-                            <SegmentedView
-                              isSelected={selectedStage === stage}
-                              count={stage_counts[stage as Stage] || 0}
-                              onClick={() => handleStageClick(stage as Stage)}
-                              handleClearFilter={() => handleStageClick(stage as Stage)}
-                              label={stageOptions.find(s => s.value === stage)?.label || stage}
-                              className={cn(
-                                'sticky top-0 z-30',
-                                index === 0 ? 'mt-1.5' : '',
-                                lead && 'md:rounded-r-none'
-                              )}
-                              icon={
-                                <Icon
-                                  className="text-gray-500"
-                                  name={stageOptions.find(s => s.value === stage)?.icon as IconName}
-                                />
-                              }
-                            />
-                            {Array.isArray(groupedLeads)
-                              ? groupedLeads.map(lead => (
-                                  <LeadItem
-                                    lead={lead}
-                                    key={lead.id}
-                                    isSeen={seen[lead.id]}
-                                    handleOpenLead={handleOpenLead}
-                                    handleStageClick={handleStageClick}
-                                  />
-                                ))
-                              : null}
-                          </div>
-                        ))
-                    ) : Array.isArray(leads) ? (
-                      <div className="flex flex-col w-full">
-                        <SegmentedView
-                          isSelected={!!selectedStage}
-                          handleClearFilter={() => handleStageClick(selectedStage as Stage)}
-                          className={cn('sticky top-0 z-30 mt-o', lead && 'md:rounded-r-none')}
-                          count={selectedStage ? stage_counts[selectedStage] || 0 : max_count || 0}
-                          label={
-                            selectedStage
-                              ? stageOptions.find(s => s.value === selectedStage)?.label ||
-                                selectedStage
-                              : 'All leads'
-                          }
-                          icon={
-                            <Icon
-                              className="text-gray-500"
-                              name={
-                                selectedStage
-                                  ? (stageIcons[selectedStage as Stage] as IconName)
-                                  : 'layers-three-01'
-                              }
-                            />
-                          }
+                  <div className="flex flex-col w-full border-t-1 border-gray-200">
+                    {Array.isArray(leads) &&
+                      leads.map(lead => (
+                        <LeadItem
+                          lead={lead}
+                          key={lead.id}
+                          isSeen={seen[lead.id]}
+                          handleOpenLead={handleOpenLead}
+                          handleStageClick={handleStageClick}
                         />
-                        {leads.map(lead => (
-                          <LeadItem
-                            lead={lead}
-                            key={lead.id}
-                            isSeen={seen[lead.id]}
-                            handleOpenLead={handleOpenLead}
-                            handleStageClick={handleStageClick}
-                          />
-                        ))}
-                      </div>
-                    ) : null}
+                      ))}
                   </div>
+                  {Array.isArray(leads) && leads.length >= 250 && (
+                    <div className="flex flex-col items-center justify-center gap-2 p-4 bg-linear-to-b from-gray-50 to-transparent border-t border-gray-200">
+                      <div className="text-sm">
+                        You’ve unlocked the{' '}
+                        <span className="font-semibold bg-linear-270 from-[#6A11CB] to-[#2575FC] bg-clip-text text-transparent">
+                          Turbo Scroll Badge
+                        </span>
+                        ! Need more leads?
+                      </div>
+
+                      <Button
+                        size="xs"
+                        colorScheme="primary"
+                        onClick={() => {
+                          window.location.href =
+                            "mailto:hello@customeros.ai?subject=I%20Unlocked%20the%20Turbo%20Scroll%20Badge!&body=Hey%20team%2C%0A%0AI've%20just%20scrolled%20to%20the%20ends%20of%20the%20earth%20(or%20at%20least%20your%20leads%20table)%20and%20earned%20the%20Turbo%20Scroll%20Badge.%20Clearly%2C%20I'm%20on%20a%20mission.%0A%0AMore%20leads%2C%20please!%20Fuel%20me%20up.%0A%0AThanks%2C%0A%5BYour%20Name%5D";
+                        }}
+                      >
+                        Email us
+                      </Button>
+                    </div>
+                  )}
                 </ScrollAreaViewport>
                 <ScrollAreaScrollbar className="z-40" orientation="horizontal">
                   <ScrollAreaThumb />
@@ -224,17 +184,4 @@ const EventSubscriber = () => {
   });
 
   return null;
-};
-
-const sortByStage = (asc: boolean) => (a: [string, Lead[]], b: [string, Lead[]]) => {
-  const stageOrder: Record<string, number> = {
-    target: asc ? 5 : 0,
-    education: asc ? 4 : 1,
-    solution: asc ? 3 : 2,
-    evaluation: asc ? 2 : 3,
-    ready_to_buy: asc ? 1 : 4,
-    customer: asc ? 0 : 5,
-  };
-
-  return stageOrder[a[0]] - stageOrder[b[0]];
 };

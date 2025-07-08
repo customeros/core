@@ -8,7 +8,7 @@ import { IconButton } from 'src/components/IconButton';
 import { Popover, PopoverContent, PopoverTrigger } from 'src/components/Popover';
 
 const orderByOptions = [
-  { label: 'Updated', value: 'inserted_at' },
+  { label: 'Updated', value: 'updated_at' },
   { label: 'Name', value: 'name' },
   { label: 'Industry', value: 'industry' },
   { label: 'Stage', value: 'stage' },
@@ -83,7 +83,7 @@ export const Display = () => {
               menuWidth="fit-item"
               placeholder="Order by"
               options={orderByOptions}
-              value={orderByOptions.find(option => option.value === (orderBy || 'inserted_at'))}
+              value={orderByOptions.find(option => option.value === (orderBy || 'updated_at'))}
               onChange={value => {
                 setUrlState(({ desc, asc, ...rest }) => {
                   if (value.value === desc || value.value === asc) {
@@ -127,7 +127,7 @@ export const Display = () => {
 
                   return {
                     ...rest,
-                    asc: 'inserted_at',
+                    asc: 'updated_at',
                   };
                 });
               }}

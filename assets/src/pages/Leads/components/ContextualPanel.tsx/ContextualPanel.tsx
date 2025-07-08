@@ -1,4 +1,4 @@
-import { useMemo, useEffect } from 'react';
+import { useMemo } from 'react';
 import { router, usePage } from '@inertiajs/react';
 
 import axios from 'axios';
@@ -129,21 +129,6 @@ export const ContextualPanel = () => {
       }
     );
   };
-
-  useEffect(() => {
-    if (!currentLead) {
-      return;
-    }
-
-    const params = new URLSearchParams(window.location.search);
-    const leadUrlParam = params.get('lead');
-
-    if (leadUrlParam === currentLead?.id) {
-      return;
-    } else {
-      router.reload({ only: ['leads'] });
-    }
-  }, [currentLead]);
 
   return (
     <>

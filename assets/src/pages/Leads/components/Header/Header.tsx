@@ -23,7 +23,6 @@ import {
   ModalCloseButton,
 } from 'src/components/Modal/Modal';
 
-import { Display } from './components';
 import { TenantSwitcher } from '../TenantSwitcher';
 import { UserPresence } from '../UserPresence/UserPresence';
 
@@ -148,7 +147,6 @@ export const Header = () => {
               </>
             ) : (
               <>
-                <Display />
                 {page.props.max_count > 0 && (
                   <Button
                     size="xs"
