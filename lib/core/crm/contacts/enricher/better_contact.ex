@@ -13,6 +13,9 @@ defmodule Core.Crm.Contacts.Enricher.BetterContact do
 
   alias Core.Crm.Contacts.Enricher.BetterContactRequest
   alias Core.Crm.Contacts.Enricher.BetterContactJobs
+  alias Core.Logger.ApiLogger
+
+  @vendor "better_contact"
 
   @err_empty_api_key {:error, "better contact API key is empty"}
   @err_empty_api_path {:error, "better contact API path is empty"}
@@ -97,7 +100,7 @@ defmodule Core.Crm.Contacts.Enricher.BetterContact do
          headers = [{"Accept", "application/json"}],
          req = Finch.build(:get, url, headers),
          {:ok, %Finch.Response{status: status, body: body}}
-         when status in 200..299 <- Finch.request(req, Core.Finch) do
+         when status in 200..299 <- ApiLogger.request(req, @vendor) do
       {:ok, body}
     else
       {:ok, %Finch.Response{status: status, body: body}} ->
@@ -117,19 +120,28 @@ defmodule Core.Crm.Contacts.Enricher.BetterContact do
          headers = [{"Content-Type", "application/json"}],
          req = Finch.build(:post, url, headers, Jason.encode!(payload)),
          {:ok, %Finch.Response{status: status, body: body}}
-         when status in 200..299 <- Finch.request(req, Core.Finch) do
+         when status in 200..299 <- ApiLogger.request(req, @vendor) do
       {:ok, body}
     else
       {:ok, %Finch.Response{status: status, body: body}} ->
-        Logger.error("Failed to make better contact post call: HTTP #{status}: #{body}")
+        Logger.error(
+          "Failed to make better contact post call: HTTP #{status}: #{body}"
+        )
+
         {:error, "HTTP #{status}: #{body}"}
 
       {:error, %Mint.TransportError{reason: reason}} ->
-        Logger.error("Failed to make better contact post call: #{inspect(reason)}")
+        Logger.error(
+          "Failed to make better contact post call: #{inspect(reason)}"
+        )
+
         {:error, "Network error: #{inspect(reason)}"}
 
       {:error, reason} ->
-        Logger.error("Failed to make better contact post call: #{inspect(reason)}")
+        Logger.error(
+          "Failed to make better contact post call: #{inspect(reason)}"
+        )
+
         {:error, reason}
     end
   end
