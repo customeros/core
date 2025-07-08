@@ -11,4 +11,11 @@
 # and so on) as they will fail if something goes wrong.
 
 # Execute SQL files using the repo directly
-Core.Repo.query!(File.read!("priv/repo/seeds/companies.sql"))
+try do
+  Core.Repo.query!(File.read!("priv/repo/seeds/tenants.sql"))
+  Core.Repo.query!(File.read!("priv/repo/seeds/companies.sql"))
+  Core.Repo.query!(File.read!("priv/repo/seeds/leads.sql"))
+rescue
+  e ->
+    IO.puts("Error: #{inspect(e)}")
+end
