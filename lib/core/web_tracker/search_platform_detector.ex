@@ -4,7 +4,8 @@ defmodule Core.WebTracker.SearchPlatformDetector do
 
   This module analyzes referrer URLs and query parameters to identify search
   platforms (Google, Bing, Yahoo, etc.) and determine whether traffic comes
-  from paid advertising campaigns or organic search results.
+  from paid advertising campaigns or organic search results. It also handles
+  mobile app referrers from search platforms.
   """
 
   alias Core.Utils.DomainExtractor
@@ -191,6 +192,67 @@ defmodule Core.WebTracker.SearchPlatformDetector do
     "www.seznam.cz" => :seznam
   }
 
+  # Mobile app referrers that indicate search traffic
+  @mobile_app_referrers %{
+    # Google mobile apps
+    "android-app://com.google.android.googlequicksearchbox" => :google,
+    "android-app://com.google.android.googlequicksearchbox/" => :google,
+    "android-app://com.google.android.gm" => :google,
+    "android-app://com.google.android.apps.searchlite" => :google,
+    "android-app://com.chrome.beta" => :google,
+    "android-app://com.chrome.canary" => :google,
+    "android-app://com.chrome.dev" => :google,
+    "android-app://com.android.chrome" => :google,
+    "ios-app://585027354" => :google,
+    "ios-app://535886823" => :google,
+
+    # Microsoft/Bing mobile apps
+    "android-app://com.microsoft.bing" => :bing,
+    "android-app://com.microsoft.cortana" => :bing,
+    "android-app://com.microsoft.emmx" => :bing,
+    "ios-app://345323231" => :bing,
+    "ios-app://1288723196" => :bing,
+
+    # Yahoo mobile apps
+    "android-app://com.yahoo.mobile.client.android.search" => :yahoo,
+    "android-app://com.yahoo.mobile.client.android.mail" => :yahoo,
+    "ios-app://577586159" => :yahoo,
+    "ios-app://284910350" => :yahoo,
+
+    # DuckDuckGo mobile apps
+    "android-app://com.duckduckgo.mobile.android" => :duckduckgo,
+    "ios-app://663592361" => :duckduckgo,
+
+    # Brave mobile apps
+    "android-app://com.brave.browser" => :brave,
+    "ios-app://1052879175" => :brave,
+
+    # Yandex mobile apps
+    "android-app://ru.yandex.searchplugin" => :yandex,
+    "android-app://com.yandex.browser" => :yandex,
+    "ios-app://483693909" => :yandex,
+
+    # Baidu mobile apps
+    "android-app://com.baidu.searchbox" => :baidu,
+    "android-app://com.baidu.BaiduMap" => :baidu,
+    "ios-app://382201985" => :baidu,
+
+    # AI Search mobile apps
+    "android-app://com.openai.chatgpt" => :chatgpt,
+    "ios-app://6448311069" => :chatgpt,
+    "android-app://com.anthropic.claude" => :claude,
+    "ios-app://6736252404" => :claude,
+
+    # Other search engines mobile apps
+    "android-app://org.ecosia.android" => :ecosia,
+    "ios-app://670881887" => :ecosia,
+    "android-app://com.startpage.search" => :startpage,
+    "ios-app://1450889070" => :startpage,
+    "android-app://com.swisscows.search" => :swisscows,
+    "android-app://com.qwant.liberty" => :qwant,
+    "ios-app://924470452" => :qwant
+  }
+
   @domain_patterns [
     {~r/.*\.google\./, :google},
     {~r/.*\.bing\./, :bing},
@@ -270,22 +332,14 @@ defmodule Core.WebTracker.SearchPlatformDetector do
   ]
 
   # Platform-specific tracking parameters that indicate the source
+  # HubSpot Ads parameters removed - handled by SocialPlatformDetector
   @platform_indicators %{
     # Google Ads indicators
     "gclid" => :google,
     "gclsrc" => :google,
 
     # Microsoft/Bing indicators
-    "msclkid" => :bing,
-
-    # HubSpot Ads indicators
-    "hsa_acc" => :hubspot_managed,
-    "hsa_cam" => :hubspot_managed,
-    "hsa_grp" => :hubspot_managed,
-    "hsa_ad" => :hubspot_managed,
-    "hsa_src" => :hubspot_managed,
-    "hsa_tgt" => :hubspot_managed,
-    "hsa_kw" => :hubspot_managed
+    "msclkid" => :bing
   }
 
   # Private helper functions
@@ -358,9 +412,13 @@ defmodule Core.WebTracker.SearchPlatformDetector do
     utm_medium = Map.get(param_map, "utm_medium", "") |> String.downcase()
     utm_source = Map.get(param_map, "utm_source", "") |> String.downcase()
 
+    # Only consider it paid search if:
+    # 1. UTM medium indicates search advertising
+    # 2. UTM source is a search platform (not social)
     utm_medium in @search_mediums and
       (Map.has_key?(@utm_source_mapping, utm_source) or
-         has_search_source_keywords?(utm_source))
+         has_search_source_keywords?(utm_source)) and
+      not is_social_source?(utm_source)
   end
 
   defp has_search_source_keywords?(utm_source) do
@@ -379,13 +437,30 @@ defmodule Core.WebTracker.SearchPlatformDetector do
     end)
   end
 
+  defp is_social_source?(utm_source) do
+    social_keywords = [
+      "linkedin",
+      "facebook",
+      "instagram",
+      "twitter",
+      "tiktok",
+      "pinterest",
+      "snapchat",
+      "reddit",
+      # YouTube is often used for video ads, not search
+      "youtube",
+      "social"
+    ]
+
+    Enum.any?(social_keywords, fn keyword ->
+      String.contains?(utm_source, keyword)
+    end)
+  end
+
   defp get_platform_from_params(param_map) do
     case detect_from_platform_indicators(param_map) do
       {:ok, true, platform} ->
-        case resolve_actual_platform(platform, param_map) do
-          {:ok, true, resolved_platform} -> {:ok, resolved_platform}
-          {:ok, false} -> :not_found
-        end
+        {:ok, platform}
 
       {:ok, false} ->
         case detect_from_utm_params(param_map) do
@@ -395,16 +470,48 @@ defmodule Core.WebTracker.SearchPlatformDetector do
     end
   end
 
-  defp get_platform_from_referrer(referrer) do
-    case DomainExtractor.extract_base_domain(referrer) do
-      {:ok, domain} ->
-        case check_domain(domain) do
-          :none -> :not_found
+  def get_platform_from_referrer(referrer) do
+    cond do
+      # Check for mobile app referrers first
+      is_mobile_app_referrer?(referrer) ->
+        get_platform_from_mobile_app(referrer)
+
+      # Then check regular web domains
+      true ->
+        case DomainExtractor.extract_base_domain(referrer) do
+          {:ok, domain} ->
+            case check_domain(domain) do
+              :none -> :not_found
+              platform -> {:ok, platform}
+            end
+
+          {:error, _} ->
+            :not_found
+        end
+    end
+  end
+
+  defp is_mobile_app_referrer?(referrer) when is_binary(referrer) do
+    String.starts_with?(referrer, "android-app://") or
+      String.starts_with?(referrer, "ios-app://")
+  end
+
+  defp is_mobile_app_referrer?(_), do: false
+
+  defp get_platform_from_mobile_app(referrer) do
+    # Remove trailing slash for consistent matching
+    clean_referrer = String.trim_trailing(referrer, "/")
+
+    case Map.get(@mobile_app_referrers, clean_referrer) do
+      nil ->
+        # Try with trailing slash if not found
+        case Map.get(@mobile_app_referrers, clean_referrer <> "/") do
+          nil -> :not_found
           platform -> {:ok, platform}
         end
 
-      {:error, _} ->
-        :not_found
+      platform ->
+        {:ok, platform}
     end
   end
 
@@ -418,23 +525,6 @@ defmodule Core.WebTracker.SearchPlatformDetector do
       nil -> {:ok, false}
       platform -> {:ok, true, platform}
     end
-  end
-
-  defp resolve_actual_platform(:hubspot_managed, param_map) do
-    case Map.get(param_map, "hsa_src") do
-      "g" ->
-        {:ok, true, :google}
-
-      "b" ->
-        {:ok, true, :bing}
-
-      _ ->
-        detect_from_utm_params(param_map)
-    end
-  end
-
-  defp resolve_actual_platform(platform, _param_map) do
-    {:ok, true, platform}
   end
 
   defp detect_from_utm_params(param_map) do

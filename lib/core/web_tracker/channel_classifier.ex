@@ -25,6 +25,7 @@ defmodule Core.WebTracker.ChannelClassifier do
     with {:ok, session} <- Sessions.get_session_by_id(session_id),
          {:ok, tenant} <- Tenants.get_tenant_by_name(session.tenant),
          {:ok, event} <- Events.get_first_event(session_id),
+         dbg(event),
          {:ok, tenant_domains} <-
            Tenants.get_tenant_domains(tenant.id) do
       referrer = event.referrer |> to_string() |> String.trim_trailing("/")
@@ -40,7 +41,7 @@ defmodule Core.WebTracker.ChannelClassifier do
       update_session_classification(session_id, classification)
     else
       {:error, reason} ->
-        Logger.error("unable to determine channel for session", %{
+        Logger.error("unable to determine channel for session: #{reason}", %{
           session_id: session_id,
           reason: reason
         })
@@ -49,45 +50,16 @@ defmodule Core.WebTracker.ChannelClassifier do
     end
   end
 
-  def classify_all_sessions do
-    alias Core.Repo
-
-    Repo.transaction(
-      fn ->
-        Sessions.stream_unclassified_sessions()
-        |> Stream.chunk_every(100)
-        |> Stream.each(fn batch ->
-          batch
-          |> Task.async_stream(
-            fn session ->
-              {session.id, classify_session(session.id)}
-            end,
-            max_concurrency: 10,
-            timeout: 30_000
-          )
-          |> Enum.each(fn
-            {:ok, {session_id, {:ok, _}}} ->
-              Logger.info("Successfully classified session #{session_id}")
-
-            {:ok, {session_id, {:error, reason}}} ->
-              Logger.error(
-                "Failed to classify session #{session_id}: #{reason}"
-              )
-
-            {:exit, reason} ->
-              Logger.error("Task exited: #{inspect(reason)}")
-          end)
-        end)
-        |> Stream.run()
-      end,
-      timeout: :infinity
-    )
-  end
-
   defp classify_traffic(tenant_domains, referrer, query_params, user_agent) do
     cond do
       direct_traffic?(tenant_domains, referrer, query_params) ->
         {:direct, nil}
+
+      WorkplacePlatformDetector.workplace?(referrer) ->
+        platform =
+          WorkplacePlatformDetector.get_platform(referrer, query_params)
+
+        {:workplace_tools, platform}
 
       SearchPlatformDetector.paid_search?(query_params) ->
         platform = SearchPlatformDetector.get_platform(referrer, query_params)
@@ -121,12 +93,6 @@ defmodule Core.WebTracker.ChannelClassifier do
       EmailDetector.email_traffic?(referrer, query_params) ->
         {:email, nil}
 
-      WorkplacePlatformDetector.workplace?(referrer) ->
-        platform =
-          WorkplacePlatformDetector.get_platform(referrer, query_params)
-
-        {:workplace_tools, platform}
-
       has_valid_referrer?(referrer) ->
         referrer_domain = DomainExtractor.extract_base_domain(referrer)
         {:referral, referrer_domain}
@@ -151,6 +117,8 @@ defmodule Core.WebTracker.ChannelClassifier do
   defp update_session_classification(session_id, {channel, platform_result}) do
     case platform_result do
       {:ok, platform} ->
+        dbg(platform)
+
         Sessions.set_channel_classification(session_id, channel, %{
           platform: platform
         })
@@ -168,15 +136,24 @@ defmodule Core.WebTracker.ChannelClassifier do
       QueryParamAnalyzer.has_utm_params?(query_params) -> false
       is_nil(referrer) or referrer == "" -> true
       self_referral?(tenant_domains, referrer) -> true
+      is_amp_self_referral?(referrer, tenant_domains) -> true
+      is_internal_tool_referrer?(referrer) -> true
       true -> false
     end
   end
 
   defp has_valid_referrer?(referrer)
        when is_binary(referrer) and referrer != "" do
-    case URI.parse(referrer) do
-      %URI{host: host} when is_binary(host) and host != "" -> true
-      _ -> false
+    cond do
+      String.starts_with?(referrer, "android-app://") or
+          String.starts_with?(referrer, "ios-app://") ->
+        false
+
+      true ->
+        case URI.parse(referrer) do
+          %URI{host: host} when is_binary(host) and host != "" -> true
+          _ -> false
+        end
     end
   end
 
@@ -195,5 +172,31 @@ defmodule Core.WebTracker.ChannelClassifier do
 
         false
     end
+  end
+
+  defp is_amp_self_referral?(referrer, tenant_domains) do
+    case URI.parse(referrer || "") do
+      %URI{host: host} when is_binary(host) ->
+        String.contains?(host, "ampproject.org") and
+          Enum.any?(tenant_domains, fn domain ->
+            String.contains?(host, String.replace(domain, ".", "-"))
+          end)
+
+      _ ->
+        false
+    end
+  end
+
+  defp is_internal_tool_referrer?(referrer) do
+    hubspot_internal_patterns = [
+      "hubspotpreview-na1.com",
+      "hubspotpreview-eu1.com",
+      "hubspot.com/preview",
+      "_preview=true"
+    ]
+
+    Enum.any?(hubspot_internal_patterns, fn pattern ->
+      String.contains?(referrer || "", pattern)
+    end)
   end
 end

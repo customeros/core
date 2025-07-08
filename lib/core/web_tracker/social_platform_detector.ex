@@ -149,13 +149,13 @@ defmodule Core.WebTracker.SocialPlatformDetector do
     "instagr.am" => :instagram,
 
     # Twitter/X
-    "twitter.com" => :twitter,
-    "www.twitter.com" => :twitter,
-    "m.twitter.com" => :twitter,
-    "mobile.twitter.com" => :twitter,
-    "t.co" => :twitter,
-    "x.com" => :twitter,
-    "www.x.com" => :twitter,
+    "twitter.com" => :x,
+    "www.twitter.com" => :x,
+    "m.twitter.com" => :x,
+    "mobile.twitter.com" => :x,
+    "t.co" => :x,
+    "x.com" => :x,
+    "www.x.com" => :x,
 
     # LinkedIn
     "linkedin.com" => :linkedin,
@@ -239,10 +239,128 @@ defmodule Core.WebTracker.SocialPlatformDetector do
     "www.tumblr.com" => :tumblr
   }
 
+  @mobile_app_referrers %{
+    # Facebook/Meta mobile apps
+    "android-app://com.facebook.katana" => :facebook,
+    "android-app://com.facebook.katana/" => :facebook,
+    "android-app://com.facebook.lite" => :facebook,
+    "android-app://com.facebook.orca" => :facebook,
+    "android-app://com.facebook.mlite" => :facebook,
+    "ios-app://284882215" => :facebook,
+    "ios-app://454638411" => :facebook,
+
+    # Instagram mobile apps
+    "android-app://com.instagram.android" => :instagram,
+    "android-app://com.instagram.android/" => :instagram,
+    "android-app://com.instagram.lite" => :instagram,
+    "ios-app://389801252" => :instagram,
+
+    # Twitter/X mobile apps
+    "android-app://com.twitter.android" => :x,
+    "android-app://com.twitter.android/" => :x,
+    "ios-app://333903271" => :x,
+
+    # LinkedIn mobile apps
+    "android-app://com.linkedin.android" => :linkedin,
+    "android-app://com.linkedin.android/" => :linkedin,
+    "ios-app://288429040" => :linkedin,
+
+    # YouTube mobile apps
+    "android-app://com.google.android.youtube" => :youtube,
+    "android-app://com.google.android.youtube/" => :youtube,
+    "android-app://com.google.android.apps.youtube.music" => :youtube,
+    "ios-app://544007664" => :youtube,
+    "ios-app://1017329803" => :youtube,
+
+    # TikTok mobile apps
+    "android-app://com.zhiliaoapp.musically" => :tiktok,
+    "android-app://com.zhiliaoapp.musically/" => :tiktok,
+    "android-app://com.ss.android.ugc.trill" => :tiktok,
+    "ios-app://835599320" => :tiktok,
+
+    # Pinterest mobile apps
+    "android-app://com.pinterest" => :pinterest,
+    "android-app://com.pinterest/" => :pinterest,
+    "ios-app://429047995" => :pinterest,
+
+    # Snapchat mobile apps
+    "android-app://com.snapchat.android" => :snapchat,
+    "android-app://com.snapchat.android/" => :snapchat,
+    "ios-app://447188370" => :snapchat,
+
+    # Reddit mobile apps
+    "android-app://com.reddit.frontpage" => :reddit,
+    "android-app://com.reddit.frontpage/" => :reddit,
+    "ios-app://1064216828" => :reddit,
+
+    # Discord mobile apps
+    "android-app://com.discord" => :discord,
+    "android-app://com.discord/" => :discord,
+    "ios-app://985746746" => :discord,
+
+    # Telegram mobile apps
+    "android-app://org.telegram.messenger" => :telegram,
+    "android-app://org.telegram.messenger/" => :telegram,
+    "android-app://org.telegram.plus" => :telegram,
+    "ios-app://686449807" => :telegram,
+
+    # WhatsApp mobile apps
+    "android-app://com.whatsapp" => :whatsapp,
+    "android-app://com.whatsapp/" => :whatsapp,
+    "android-app://com.whatsapp.w4b" => :whatsapp,
+    "ios-app://310633997" => :whatsapp,
+    "ios-app://1123187079" => :whatsapp,
+
+    # Twitch mobile apps
+    "android-app://tv.twitch.android.app" => :twitch,
+    "android-app://tv.twitch.android.app/" => :twitch,
+    "ios-app://460177396" => :twitch,
+
+    # LINE mobile apps
+    "android-app://jp.naver.line.android" => :line,
+    "android-app://jp.naver.line.android/" => :line,
+    "ios-app://443904275" => :line,
+
+    # Vimeo mobile apps
+    "android-app://com.vimeo.android.videoapp" => :vimeo,
+    "android-app://com.vimeo.android.videoapp/" => :vimeo,
+    "ios-app://425194759" => :vimeo,
+
+    # Tumblr mobile apps
+    "android-app://com.tumblr" => :tumblr,
+    "android-app://com.tumblr/" => :tumblr,
+    "ios-app://305343404" => :tumblr,
+
+    # VK mobile apps
+    "android-app://com.vkontakte.android" => :vkontakte,
+    "android-app://com.vkontakte.android/" => :vkontakte,
+    "ios-app://564177498" => :vkontakte,
+
+    # Weibo mobile apps
+    "android-app://com.sina.weibo" => :weibo,
+    "android-app://com.sina.weibo/" => :weibo,
+    "ios-app://350962117" => :weibo,
+
+    # Medium mobile apps
+    "android-app://com.medium.reader" => :medium,
+    "android-app://com.medium.reader/" => :medium,
+    "ios-app://828256236" => :medium,
+
+    # Clubhouse mobile apps
+    "android-app://com.clubhouse.app" => :clubhouse,
+    "android-app://com.clubhouse.app/" => :clubhouse,
+    "ios-app://1503133294" => :clubhouse,
+
+    # Quora mobile apps
+    "android-app://com.quora.android" => :quora,
+    "android-app://com.quora.android/" => :quora,
+    "ios-app://456034437" => :quora
+  }
+
   @domain_patterns [
     {~r/.*\.facebook\./, :facebook},
     {~r/.*\.instagram\./, :instagram},
-    {~r/.*\.twitter\./, :twitter},
+    {~r/.*\.twitter\./, :x},
     {~r/.*\.linkedin\./, :linkedin},
     {~r/.*\.youtube\./, :youtube},
     {~r/.*\.tiktok\./, :tiktok},
@@ -274,13 +392,13 @@ defmodule Core.WebTracker.SocialPlatformDetector do
     "instagramads" => :instagram,
 
     # Twitter/X variants
-    "twitter" => :twitter,
-    "twitter.com" => :twitter,
-    "twitter-ads" => :twitter,
-    "twitter_ads" => :twitter,
-    "twitterads" => :twitter,
-    "x" => :twitter,
-    "x.com" => :twitter,
+    "twitter" => :x,
+    "twitter.com" => :x,
+    "twitter-ads" => :x,
+    "twitter_ads" => :x,
+    "twitterads" => :x,
+    "x" => :x,
+    "x.com" => :x,
 
     # LinkedIn variants
     "linkedin" => :linkedin,
@@ -365,7 +483,6 @@ defmodule Core.WebTracker.SocialPlatformDetector do
     "social_video"
   ]
 
-  # Platform-specific tracking parameters that indicate paid social
   @platform_indicators %{
     # Facebook/Meta indicators
     "fbclid" => :facebook,
@@ -375,15 +492,17 @@ defmodule Core.WebTracker.SocialPlatformDetector do
     "ig_source" => :instagram,
 
     # Twitter/X indicators
-    "twclid" => :twitter,
-    "twitter_source" => :twitter,
-    "ref_src" => :twitter,
-    "ref_url" => :twitter,
+    "twclid" => :x,
+    "twitter_source" => :x,
+    "ref_src" => :x,
+    "ref_url" => :x,
 
     # LinkedIn indicators
     "li_source" => :linkedin,
     "linkedin_source" => :linkedin,
     "trk" => :linkedin,
+    # LinkedIn click tracking ID
+    "li_ed" => :linkedin,
 
     # YouTube indicators
     "yt_source" => :youtube,
@@ -405,7 +524,17 @@ defmodule Core.WebTracker.SocialPlatformDetector do
 
     # Reddit indicators
     "reddit_source" => :reddit,
-    "rd_source" => :reddit
+    "rd_source" => :reddit,
+
+    # HubSpot Ads indicators (these need special handling)
+    "hsa_acc" => :hubspot_managed,
+    "hsa_cam" => :hubspot_managed,
+    "hsa_grp" => :hubspot_managed,
+    "hsa_ad" => :hubspot_managed,
+    "hsa_src" => :hubspot_managed,
+    "hsa_tgt" => :hubspot_managed,
+    "hsa_kw" => :hubspot_managed,
+    "hsa_net" => :hubspot_managed
   }
 
   # Paid social campaign indicators in URLs
@@ -476,6 +605,47 @@ defmodule Core.WebTracker.SocialPlatformDetector do
     end
   end
 
+  defp resolve_hubspot_platform(param_map) do
+    case Map.get(param_map, "hsa_net", "") |> String.downcase() do
+      "linkedin" ->
+        {:ok, :linkedin}
+
+      "facebook" ->
+        {:ok, :facebook}
+
+      "instagram" ->
+        {:ok, :instagram}
+
+      "twitter" ->
+        {:ok, :x}
+
+      "x" ->
+        {:ok, :x}
+
+      "youtube" ->
+        {:ok, :youtube}
+
+      "tiktok" ->
+        {:ok, :tiktok}
+
+      "pinterest" ->
+        {:ok, :pinterest}
+
+      "snapchat" ->
+        {:ok, :snapchat}
+
+      "reddit" ->
+        {:ok, :reddit}
+
+      _ ->
+        # Fallback to checking utm_source if hsa_net is not clear
+        case detect_from_utm_params(param_map) do
+          {:ok, platform} -> {:ok, platform}
+          :not_found -> :not_found
+        end
+    end
+  end
+
   defp has_paid_social_indicators?(param_map) when is_map(param_map) do
     cond do
       has_platform_tracking_params?(param_map) -> true
@@ -496,9 +666,17 @@ defmodule Core.WebTracker.SocialPlatformDetector do
     utm_medium = Map.get(param_map, "utm_medium", "") |> String.downcase()
     utm_source = Map.get(param_map, "utm_source", "") |> String.downcase()
 
-    utm_medium in @social_mediums and
-      (Map.has_key?(@utm_source_mapping, utm_source) or
-         has_social_source_keywords?(utm_source))
+    social_medium = utm_medium in @social_mediums
+
+    social_source =
+      Map.has_key?(@utm_source_mapping, utm_source) or
+        has_social_source_keywords?(utm_source)
+
+    hubspot_managed =
+      Map.has_key?(param_map, "hsa_net") and
+        Map.get(param_map, "hsa_net", "") != ""
+
+    (social_medium and social_source) or hubspot_managed
   end
 
   defp has_paid_campaign_indicators?(param_map) do
@@ -544,15 +722,22 @@ defmodule Core.WebTracker.SocialPlatformDetector do
   end
 
   defp get_platform_from_referrer(referrer) do
-    case DomainExtractor.extract_base_domain(referrer) do
-      {:ok, domain} ->
-        case check_domain(domain) do
-          :none -> :not_found
-          platform -> {:ok, platform}
-        end
+    cond do
+      # Check for mobile app referrers first
+      is_mobile_app_referrer?(referrer) ->
+        get_platform_from_mobile_app(referrer)
 
-      {:error, _} ->
-        :not_found
+      true ->
+        case DomainExtractor.extract_base_domain(referrer) do
+          {:ok, domain} ->
+            case check_domain(domain) do
+              :none -> :not_found
+              platform -> {:ok, platform}
+            end
+
+          {:error, _} ->
+            :not_found
+        end
     end
   end
 
@@ -575,7 +760,7 @@ defmodule Core.WebTracker.SocialPlatformDetector do
         String.contains?(user_agent_lower, "twitterandroid") or
           String.contains?(user_agent_lower, "twitteriphone") or
             String.contains?(user_agent_lower, "twitter for") ->
-          :twitter
+          :x
 
         String.contains?(user_agent_lower, "linkedinapp") or
             String.contains?(user_agent_lower, "linkedin") ->
@@ -627,6 +812,7 @@ defmodule Core.WebTracker.SocialPlatformDetector do
 
     case platform_param do
       nil -> :not_found
+      :hubspot_managed -> resolve_hubspot_platform(param_map)
       platform -> {:ok, platform}
     end
   end
@@ -653,7 +839,7 @@ defmodule Core.WebTracker.SocialPlatformDetector do
 
       String.contains?(utm_source, "twitter") or
           String.contains?(utm_source, "x.com") ->
-        {:ok, :twitter}
+        {:ok, :x}
 
       String.contains?(utm_source, "linkedin") ->
         {:ok, :linkedin}
@@ -684,6 +870,28 @@ defmodule Core.WebTracker.SocialPlatformDetector do
 
       true ->
         :not_found
+    end
+  end
+
+  defp is_mobile_app_referrer?(referrer) when is_binary(referrer) do
+    String.starts_with?(referrer, "android-app://") or
+      String.starts_with?(referrer, "ios-app://")
+  end
+
+  defp is_mobile_app_referrer?(_), do: false
+
+  defp get_platform_from_mobile_app(referrer) do
+    clean_referrer = String.trim_trailing(referrer, "/")
+
+    case Map.get(@mobile_app_referrers, clean_referrer) do
+      nil ->
+        case Map.get(@mobile_app_referrers, clean_referrer <> "/") do
+          nil -> :not_found
+          platform -> {:ok, platform}
+        end
+
+      platform ->
+        {:ok, platform}
     end
   end
 end
