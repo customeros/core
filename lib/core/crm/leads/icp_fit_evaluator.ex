@@ -159,6 +159,7 @@ defmodule Core.Crm.Leads.IcpFitEvaluator do
           "Failed to mark attempt for lead #{lead.id}",
           lead_id: lead.id
         )
+
         {:error, :update_failed}
 
       {_count, _} ->
