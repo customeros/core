@@ -536,19 +536,17 @@ defmodule Core.Crm.Leads do
   {:error, :not_found} = Leads.update_lead(lead, %{stage: :target})
   ```
   """
-  @spec update_lead(Lead.t(), attrs :: map(), notify? :: boolean) ::
+  @spec update_lead(Lead.t(), attrs :: map()) ::
           {:ok, Lead.t()} | {:error, :not_found}
-  def update_lead(%Lead{} = lead, attrs, notify? \\ true) do
+  def update_lead(%Lead{} = lead, attrs) do
     result =
       lead
       |> Lead.changeset(attrs)
       |> Repo.update()
 
-    if notify? do
-      case result do
-        {:ok, updated_lead} -> LeadNotifier.notify_lead_updated(updated_lead)
-        _ -> :noop
-      end
+    case result do
+      {:ok, updated_lead} -> LeadNotifier.notify_lead_updated(updated_lead)
+      _ -> :noop
     end
 
     result
@@ -568,8 +566,7 @@ defmodule Core.Crm.Leads do
             %{
               icp_fit: :not_a_fit,
               icp_disqualification_reason: [:user_feedback]
-            },
-            false
+            }
           )
 
         {:error, reason} ->

@@ -184,7 +184,10 @@ export default function Leads({ leads, stage_counts, max_count }: LeadsProps) {
 const EventSubscriber = () => {
   useEventsChannel<LeadUpdatedEvent>(event => {
     if (event.type === 'lead_updated') {
-      router.reload({ only: ['leads'] });
+      //this was added to not instant reload with same parameters so you can be able to control the url state
+      setTimeout(() => {
+        router.reload({ only: ['leads'] });
+      }, 500);
     }
   });
 
