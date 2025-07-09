@@ -18,6 +18,7 @@ defmodule Core.Researcher.BriefWriter do
   require Logger
   require OpenTelemetry.Tracer
 
+  alias Core.Crm.Leads
   alias Core.Utils.Tracing
   alias Core.Crm.Documents
   alias Core.Researcher.BriefWriter.AccountResearcher
@@ -33,6 +34,7 @@ defmodule Core.Researcher.BriefWriter do
 
       with {:ok, account_overview} <-
              AccountResearcher.account_overview(tenant_id, lead_domain),
+           :ok <- validate_account_overview(account_overview),
            {:ok, engagement_summary} <-
              EngagementProfiler.engagement_summary(tenant_id, lead_id) do
         build_and_save_document(
@@ -42,6 +44,12 @@ defmodule Core.Researcher.BriefWriter do
           engagement_summary
         )
       else
+        :not_a_fit ->
+          case Leads.disqualify_lead_by_brief_writer(tenant_id, lead_id) do
+            {:ok, _lead} -> {:ok, :not_a_fit}
+            {:error, reason} -> {:error, reason}
+          end
+
         {:error, :closed_sessions_not_found} ->
           Tracing.warning(
             :closed_sessions_not_found,
@@ -59,6 +67,13 @@ defmodule Core.Researcher.BriefWriter do
 
           {:error, reason}
       end
+    end
+  end
+
+  defp validate_account_overview(account_overview) do
+    case String.contains?(account_overview, "not_a_fit") do
+      true -> :not_a_fit
+      false -> :ok
     end
   end
 

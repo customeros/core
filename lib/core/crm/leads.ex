@@ -552,7 +552,7 @@ defmodule Core.Crm.Leads do
     result
   end
 
-  def disqualify_lead(tenant_id, lead_id) do
+  def disqualify_lead_by_user(tenant_id, lead_id) do
     OpenTelemetry.Tracer.with_span "leads.disqualify_lead" do
       OpenTelemetry.Tracer.set_attributes([
         {"param.tenant.id", tenant_id},
@@ -572,6 +572,22 @@ defmodule Core.Crm.Leads do
         {:error, reason} ->
           {:error, reason}
       end
+    end
+  end
+
+  def disqualify_lead_by_brief_writer(tenant_id, lead_id) do
+    case get_by_id(tenant_id, lead_id) do
+      {:ok, lead} ->
+        update_lead(
+          lead,
+          %{
+            icp_fit: :not_a_fit,
+            icp_disqualification_reason: [:brief_writer]
+          }
+        )
+
+      {:error, reason} ->
+        {:error, reason}
     end
   end
 
