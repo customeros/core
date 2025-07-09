@@ -10,14 +10,14 @@ export const ChannelAttribution = () => {
 
   const channelDisplay = match(channelAttribution?.channel)
     .with('paid_social', () => (
-      <div className="flex items-center gap-1">
-        <p className="size-1 bg-warning-500 rounded-full" />
+      <div className="flex items-center gap-1.5">
+        <p className="size-2 bg-warning-500 rounded-full" />
         <span className="text-xs">Paid Social</span>
       </div>
     ))
     .with('organic_social', () => (
-      <div className="flex items-center gap-1">
-        <p className="size-1 bg-orange-dark-500 rounded-full" />
+      <div className="flex items-center gap-1.5">
+        <p className="size-2 bg-orange-dark-500 rounded-full" />
         <span className="text-xs">Organic Social</span>
       </div>
     ))
@@ -30,7 +30,7 @@ export const ChannelAttribution = () => {
     .with('referral', () => (
       <div className="flex items-center gap-1.5">
         <p className="size-2 bg-pink-500 rounded-full" />
-        <span className="text-xs">Referrals</span>
+        <span className="text-xs">Referral</span>
       </div>
     ))
     .with('paid_search', () => (
@@ -60,14 +60,14 @@ export const ChannelAttribution = () => {
   let tooltipLabel = '';
 
   if (channelAttribution?.referrer && channelAttribution?.platform) {
-    tooltipLabel = `Via ${channelAttribution.platform} · ${channelAttribution.referrer}`;
+    tooltipLabel = `via ${channelAttribution.platform} · ${channelAttribution.referrer}`;
   } else if (channelAttribution?.referrer) {
-    tooltipLabel = `Via ${channelAttribution.referrer}`;
+    tooltipLabel = `from ${channelAttribution.referrer}`;
   } else if (channelAttribution?.platform) {
-    tooltipLabel = `Via ${channelAttribution.platform}`;
+    tooltipLabel = `via ${channelAttribution.platform}`;
   }
 
-  const content = channelAttribution?.channel ? (
+  const content = channelDisplay ? (
     <div className="bg-gray-100 min-w-fit rounded-sm text-sm px-2 py-1.5 cursor-default hidden sm:flex md:flex lg:flex xl:flex 2xl:flex">
       {channelDisplay}
     </div>

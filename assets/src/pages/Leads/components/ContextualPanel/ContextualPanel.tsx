@@ -179,6 +179,11 @@ export const ContextualPanel = () => {
                               'lead-disqualified'
                             );
                           });
+
+                          setUrlState(state => ({
+                            ...state,
+                            lead: '',
+                          }));
                         }}
                       />
                     </Tooltip>
