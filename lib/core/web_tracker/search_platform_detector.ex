@@ -418,7 +418,7 @@ defmodule Core.WebTracker.SearchPlatformDetector do
     utm_medium in @search_mediums and
       (Map.has_key?(@utm_source_mapping, utm_source) or
          has_search_source_keywords?(utm_source)) and
-      not is_social_source?(utm_source)
+      not social_source?(utm_source)
   end
 
   defp has_search_source_keywords?(utm_source) do
@@ -437,7 +437,7 @@ defmodule Core.WebTracker.SearchPlatformDetector do
     end)
   end
 
-  defp is_social_source?(utm_source) do
+  defp social_source?(utm_source) do
     social_keywords = [
       "linkedin",
       "facebook",
@@ -473,7 +473,7 @@ defmodule Core.WebTracker.SearchPlatformDetector do
   def get_platform_from_referrer(referrer) do
     cond do
       # Check for mobile app referrers first
-      is_mobile_app_referrer?(referrer) ->
+      mobile_app_referrer?(referrer) ->
         get_platform_from_mobile_app(referrer)
 
       # Then check regular web domains
@@ -491,12 +491,12 @@ defmodule Core.WebTracker.SearchPlatformDetector do
     end
   end
 
-  defp is_mobile_app_referrer?(referrer) when is_binary(referrer) do
+  defp mobile_app_referrer?(referrer) when is_binary(referrer) do
     String.starts_with?(referrer, "android-app://") or
       String.starts_with?(referrer, "ios-app://")
   end
 
-  defp is_mobile_app_referrer?(_), do: false
+  defp mobile_app_referrer?(_), do: false
 
   defp get_platform_from_mobile_app(referrer) do
     # Remove trailing slash for consistent matching

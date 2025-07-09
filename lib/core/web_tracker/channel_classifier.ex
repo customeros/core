@@ -136,8 +136,8 @@ defmodule Core.WebTracker.ChannelClassifier do
       QueryParamAnalyzer.has_utm_params?(query_params) -> false
       is_nil(referrer) or referrer == "" -> true
       self_referral?(tenant_domains, referrer) -> true
-      is_amp_self_referral?(referrer, tenant_domains) -> true
-      is_internal_tool_referrer?(referrer) -> true
+      amp_self_referral?(referrer, tenant_domains) -> true
+      internal_tool_referrer?(referrer) -> true
       true -> false
     end
   end
@@ -174,7 +174,7 @@ defmodule Core.WebTracker.ChannelClassifier do
     end
   end
 
-  defp is_amp_self_referral?(referrer, tenant_domains) do
+  defp amp_self_referral?(referrer, tenant_domains) do
     case URI.parse(referrer || "") do
       %URI{host: host} when is_binary(host) ->
         String.contains?(host, "ampproject.org") and
@@ -187,7 +187,7 @@ defmodule Core.WebTracker.ChannelClassifier do
     end
   end
 
-  defp is_internal_tool_referrer?(referrer) do
+  defp internal_tool_referrer?(referrer) do
     hubspot_internal_patterns = [
       "hubspotpreview-na1.com",
       "hubspotpreview-eu1.com",

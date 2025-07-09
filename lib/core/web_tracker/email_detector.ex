@@ -2,8 +2,8 @@ defmodule Core.WebTracker.EmailDetector do
   @moduledoc """
   Detects email platform traffic and distinguishes between marketing emails and personal email shares.
 
-  This module analyzes referrer URLs and query parameters to identify email service 
-  providers (Mailchimp, Klaviyo, Gmail, etc.) and determine whether traffic comes 
+  This module analyzes referrer URLs and query parameters to identify email service
+  providers (Mailchimp, Klaviyo, Gmail, etc.) and determine whether traffic comes
   from marketing email campaigns, transactional emails, or personal email shares.
   """
 
@@ -170,7 +170,7 @@ defmodule Core.WebTracker.EmailDetector do
   """
   def email_traffic?(referrer, query_params) do
     cond do
-      is_mobile_email_app?(referrer) -> true
+      mobile_email_app?(referrer) -> true
       has_email_utm_medium?(query_params) -> true
       has_email_referrer?(referrer) -> true
       has_email_tracking_params?(query_params) -> true
@@ -249,7 +249,7 @@ defmodule Core.WebTracker.EmailDetector do
   """
   def get_platform(referrer, query_params \\ nil) do
     cond do
-      is_mobile_email_app?(referrer) ->
+      mobile_email_app?(referrer) ->
         {:ok, get_mobile_email_platform(referrer)}
 
       true ->
@@ -469,7 +469,7 @@ defmodule Core.WebTracker.EmailDetector do
     "mc_cid" => :mailchimp,
     "mc_eid" => :mailchimp,
 
-    # Klaviyo  
+    # Klaviyo
     "_ke" => :klaviyo,
     "kx" => :klaviyo,
 
@@ -509,11 +509,11 @@ defmodule Core.WebTracker.EmailDetector do
 
   # Private helper functions
 
-  defp is_mobile_email_app?(referrer) when is_binary(referrer) do
+  defp mobile_email_app?(referrer) when is_binary(referrer) do
     Map.has_key?(@mobile_email_apps, referrer)
   end
 
-  defp is_mobile_email_app?(_), do: false
+  defp mobile_email_app?(_), do: false
 
   defp get_mobile_email_platform(referrer) when is_binary(referrer) do
     Map.get(@mobile_email_apps, referrer, :unknown_email_app)
