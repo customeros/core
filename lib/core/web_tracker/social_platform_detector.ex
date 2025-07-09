@@ -2,9 +2,9 @@ defmodule Core.WebTracker.SocialPlatformDetector do
   @moduledoc """
   Detects social platforms and distinguishes between paid and organic social traffic.
 
-  This module analyzes referrer URLs, query parameters, and user agent strings to 
-  identify social media platforms (Facebook, Instagram, Twitter, LinkedIn, etc.) 
-  and determine whether traffic comes from paid advertising campaigns or organic 
+  This module analyzes referrer URLs, query parameters, and user agent strings to
+  identify social media platforms (Facebook, Instagram, Twitter, LinkedIn, etc.)
+  and determine whether traffic comes from paid advertising campaigns or organic
   social media posts.
   """
 
@@ -724,7 +724,7 @@ defmodule Core.WebTracker.SocialPlatformDetector do
   defp get_platform_from_referrer(referrer) do
     cond do
       # Check for mobile app referrers first
-      is_mobile_app_referrer?(referrer) ->
+      mobile_app_referrer?(referrer) ->
         get_platform_from_mobile_app(referrer)
 
       true ->
@@ -873,12 +873,12 @@ defmodule Core.WebTracker.SocialPlatformDetector do
     end
   end
 
-  defp is_mobile_app_referrer?(referrer) when is_binary(referrer) do
+  defp mobile_app_referrer?(referrer) when is_binary(referrer) do
     String.starts_with?(referrer, "android-app://") or
       String.starts_with?(referrer, "ios-app://")
   end
 
-  defp is_mobile_app_referrer?(_), do: false
+  defp mobile_app_referrer?(_), do: false
 
   defp get_platform_from_mobile_app(referrer) do
     clean_referrer = String.trim_trailing(referrer, "/")

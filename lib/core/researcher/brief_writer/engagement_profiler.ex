@@ -189,6 +189,14 @@ defmodule Core.Researcher.BriefWriter.EngagementProfiler do
            ) do
       {:ok, sessions}
     else
+      {:error, :closed_sessions_not_found} ->
+        Tracing.warning(
+          :closed_sessions_not_found,
+          "No closed sessions found for lead"
+        )
+
+        {:error, :closed_sessions_not_found}
+
       {:error, reason} ->
         Tracing.error(reason, "Failed to lookup sessions for lead",
           tenant_id: tenant_id,
