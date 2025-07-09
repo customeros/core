@@ -523,27 +523,50 @@ defmodule Core.Crm.Contacts do
   end
 
   def update_business_email(business_email, status, contact_id) do
-    update_contact_field(
-      contact_id,
-      %{business_email: business_email, business_email_status: status},
-      "business email"
-    )
+    OpenTelemetry.Tracer.with_span "contacts.update_business_email" do
+      OpenTelemetry.Tracer.set_attributes([
+        {"param.contact.id", contact_id},
+        {"param.email", business_email},
+        {"param.status", status}
+      ])
+
+      update_contact_field(
+        contact_id,
+        %{business_email: business_email, business_email_status: status},
+        "business email"
+      )
+    end
   end
 
   def update_personal_email(personal_email, status, contact_id) do
-    update_contact_field(
-      contact_id,
-      %{personal_email: personal_email, personal_email_status: status},
-      "personal email"
-    )
+    OpenTelemetry.Tracer.with_span "contacts.update_personal_email" do
+      OpenTelemetry.Tracer.set_attributes([
+        {"param.contact.id", contact_id},
+        {"param.email", personal_email},
+        {"param.status", status}
+      ])
+
+      update_contact_field(
+        contact_id,
+        %{personal_email: personal_email, personal_email_status: status},
+        "personal email"
+      )
+    end
   end
 
   def update_mobile_phone(mobile_phone, contact_id) do
-    update_contact_field(
-      contact_id,
-      %{mobile_phone: mobile_phone},
-      "mobile phone"
-    )
+    OpenTelemetry.Tracer.with_span "contacts.update_mobile_phone" do
+      OpenTelemetry.Tracer.set_attributes([
+        {"param.contact.id", contact_id},
+        {"param.mobile_phone", mobile_phone}
+      ])
+
+      update_contact_field(
+        contact_id,
+        %{mobile_phone: mobile_phone},
+        "mobile phone"
+      )
+    end
   end
 
   @doc """
@@ -589,10 +612,9 @@ defmodule Core.Crm.Contacts do
             {:ok, updated_contact}
 
           {:error, changeset} ->
-            Logger.error("Failed to update contact #{field_name}", %{
-              contact_id: contact_id,
-              errors: changeset.errors
-            })
+            Tracing.error(changeset.errors, "Failed to update contact #{field_name}",
+              contact_id: contact_id
+            )
 
             {:error, "Failed to update #{field_name}"}
         end

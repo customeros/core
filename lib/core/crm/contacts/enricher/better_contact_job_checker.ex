@@ -10,6 +10,7 @@ defmodule Core.Crm.Contacts.Enricher.BetterContactJobChecker do
 
   use GenServer
   require Logger
+  require OpenTelemetry.Tracer
 
   alias Core.Crm.Contacts
   alias Core.Utils.CronLocks
@@ -17,10 +18,11 @@ defmodule Core.Crm.Contacts.Enricher.BetterContactJobChecker do
   alias Core.Researcher.EmailValidator
   alias Core.Crm.Contacts.Enricher.BetterContact
   alias Core.Crm.Contacts.Enricher.BetterContactJobs
+  alias Core.Utils.Tracing
 
   @cron :cron_better_contact_job_checker
-  @default_interval 60_000
-  @stuck_lock_duration 300_000
+  @default_interval 1 * 60 * 1000
+  @stuck_lock_duration_minutes 30
   @max_attempts 12
 
   def start_link(_opts) do
@@ -43,22 +45,24 @@ defmodule Core.Crm.Contacts.Enricher.BetterContactJobChecker do
 
   @impl true
   def handle_info(:check_better_contact_jobs, state) do
-    lock_uuid = Ecto.UUID.generate()
+    OpenTelemetry.Tracer.with_span "better_contact_job_checker.check_better_contact_jobs" do
+      lock_uuid = Ecto.UUID.generate()
 
-    case CronLocks.acquire_lock(@cron, lock_uuid) do
-      %CronLock{} ->
-        run_cron()
-        CronLocks.release_lock(@cron, lock_uuid)
+      case CronLocks.acquire_lock(@cron, lock_uuid) do
+        %CronLock{} ->
+          run_cron()
+          CronLocks.release_lock(@cron, lock_uuid)
 
-      nil ->
-        CronLocks.force_release_stuck_lock(
-          @cron,
-          @stuck_lock_duration
-        )
+        nil ->
+          CronLocks.force_release_stuck_lock(
+            @cron,
+            @stuck_lock_duration_minutes
+          )
+      end
+
+      schedule_next_check()
+      {:noreply, state}
     end
-
-    schedule_next_check()
-    {:noreply, state}
   end
 
   defp schedule_next_check do
@@ -71,25 +75,37 @@ defmodule Core.Crm.Contacts.Enricher.BetterContactJobChecker do
   end
 
   defp process_job(job_record) do
-    case BetterContact.fetch_results(job_record.job_id) do
-      {:ok, :processing} ->
-        retry_or_fail(job_record)
+    OpenTelemetry.Tracer.with_span "better_contact_job_checker.process_job" do
+      OpenTelemetry.Tracer.set_attributes([
+        {"param.job.id", job_record.job_id},
+        {"param.contact.id", job_record.contact_id}
+      ])
 
-      {:ok, email, phone_number, response} ->
-        update_contact(job_record.contact_id, email, phone_number)
+      case BetterContact.fetch_results(job_record.job_id) do
+        {:ok, :processing} ->
+          retry_or_fail(job_record)
 
-        BetterContactJobs.mark_job_completed_with_response(
-          job_record.job_id,
-          response
-        )
+        {:ok, email, phone_number, response} ->
+          OpenTelemetry.Tracer.set_attributes([
+            {"result.email", email},
+            {"result.phone_number", phone_number}
+          ])
 
-      {:error, reason} ->
-        Logger.error("Failed to process BetterContact job", %{
-          job_id: job_record.job_id,
-          error: reason
-        })
+          update_contact(job_record.contact_id, email, phone_number)
 
-        retry_or_fail(job_record)
+          BetterContactJobs.mark_job_completed_with_response(
+            job_record.job_id,
+            response
+          )
+
+        {:error, reason} ->
+          Logger.error("Failed to process BetterContact job", %{
+            job_id: job_record.job_id,
+            error: reason
+          })
+
+          retry_or_fail(job_record)
+      end
     end
   end
 
@@ -117,27 +133,33 @@ defmodule Core.Crm.Contacts.Enricher.BetterContactJobChecker do
   end
 
   defp validate_and_update_email(contact_id, email) do
-    with {:ok, result} <- EmailValidator.validate_email(email),
-         clean_email <- EmailValidator.best_email(result),
-         status <- EmailValidator.deliverable_status(result) do
-      case EmailValidator.business_email?(result) do
-        true ->
-          # Save as business email
-          Contacts.update_business_email(clean_email, status, contact_id)
+    OpenTelemetry.Tracer.with_span "better_contact_job_checker.validate_and_update_email" do
+      OpenTelemetry.Tracer.set_attributes([
+        {"param.contact.id", contact_id},
+        {"param.email", email}
+      ])
 
-        false ->
-          # Save as personal email
-          Contacts.update_personal_email(clean_email, status, contact_id)
+      with {:ok, result} <- EmailValidator.validate_email(email),
+           clean_email <- EmailValidator.best_email(result),
+           status <- EmailValidator.deliverable_status(result) do
+        case EmailValidator.business_email?(result) do
+          true ->
+            # Save as business email
+            Contacts.update_business_email(clean_email, to_string(status), contact_id)
+
+          false ->
+            # Save as personal email
+            Contacts.update_personal_email(clean_email, to_string(status), contact_id)
+        end
+      else
+        {:error, reason} ->
+          Tracing.error(reason, "Failed to validate email from BetterContact",
+            contact_id: contact_id,
+            email: email
+          )
+
+          {:error, reason}
       end
-    else
-      {:error, reason} ->
-        Logger.error("Failed to validate email from BetterContact", %{
-          contact_id: contact_id,
-          email: email,
-          reason: reason
-        })
-
-        {:error, reason}
     end
   end
 

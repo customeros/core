@@ -17,6 +17,8 @@ defmodule Core.Utils.Tracing do
     reason_str = to_reason_string(reason)
 
     if message && String.trim(message) != "" do
+      message = "#{message}. Reason: #{reason_str}"
+
       Logger.error(message, Keyword.put_new(metadata, :reason, reason_str))
     end
 
@@ -47,6 +49,8 @@ defmodule Core.Utils.Tracing do
     reason_str = to_reason_string(reason)
 
     if message && String.trim(message) != "" do
+      message = "#{message}. Reason: #{reason_str}"
+
       Logger.warning(message, Keyword.put_new(metadata, :reason, reason_str))
     end
 

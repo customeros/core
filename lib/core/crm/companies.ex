@@ -233,7 +233,8 @@ defmodule Core.Crm.Companies do
       ])
 
       # Get all companies with this LinkedIn ID
-      companies = Repo.all(from c in Company, where: c.linkedin_id == ^linkedin_id)
+      companies =
+        Repo.all(from c in Company, where: c.linkedin_id == ^linkedin_id)
 
       case companies do
         [] ->
@@ -279,9 +280,10 @@ defmodule Core.Crm.Companies do
   defp find_company_with_matching_domain(companies, linkedin_id) do
     case get_scrapin_company_domain(linkedin_id) do
       {:ok, scrapin_domain} when is_binary(scrapin_domain) ->
-        matching_company = Enum.find(companies, fn company ->
-          company.primary_domain == scrapin_domain
-        end)
+        matching_company =
+          Enum.find(companies, fn company ->
+            company.primary_domain == scrapin_domain
+          end)
 
         if matching_company do
           {:ok, matching_company}

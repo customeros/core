@@ -216,7 +216,10 @@ defmodule Core.Crm.Documents do
       Core.Crm.Documents.YDoc.insert_update(doc_id, output)
     else
       {error_output, _exit_code} ->
-        Logger.error("Error converting lexical state to Yjs: #{inspect(error_output)}")
+        Logger.error(
+          "Error converting lexical state to Yjs: #{inspect(error_output)}"
+        )
+
         {:error, "Could not convert lexical state to Yjs document"}
     end
   end

@@ -56,7 +56,8 @@ defmodule Core.Researcher.BriefWriter.EngagementProfiler do
         {:error, :closed_sessions_not_found}
 
       {:error, reason} ->
-        Logger.error("Failed to generate engagement summary: #{inspect(reason)}",
+        Logger.error(
+          "Failed to generate engagement summary: #{inspect(reason)}",
           tenant_id: tenant_id,
           lead_id: lead_id
         )

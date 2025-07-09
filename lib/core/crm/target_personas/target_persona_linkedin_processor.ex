@@ -14,7 +14,7 @@ defmodule Core.Crm.TargetPersonas.TargetPersonaLinkedinProcessor do
   alias Core.Utils.CronLocks
   alias Core.Utils.Cron.CronLock
 
-  @default_interval 2 * 10 * 1000
+  @default_interval 2 * 60 * 1000
   @batch_size 10
   @stuck_lock_duration_minutes 30
   @max_retries 5
