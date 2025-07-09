@@ -40,7 +40,7 @@ defmodule Core.WebTracker.ChannelClassifier do
       update_session_classification(session_id, classification)
     else
       {:error, reason} ->
-        Logger.error("unable to determine channel for session: #{reason}", %{
+        Logger.error("unable to determine channel for session: #{inspect(reason)}", %{
           session_id: session_id,
           reason: reason
         })
