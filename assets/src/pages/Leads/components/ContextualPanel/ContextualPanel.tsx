@@ -137,7 +137,7 @@ export const ContextualPanel = () => {
         <ScrollAreaViewport>
           <div className="w-full bg-white px-4 md:px-6">
             <div className="relative bg-white h-full mx-auto w-full md:min-w-[680px] max-w-[680px]">
-              <div className="flex items-center justify-between sticky top-0 bg-white z-10 py-0.5 mt-[5px]">
+              <div className="flex items-center justify-between sticky top-0 bg-white z-20 py-0.5 mt-[5px]">
                 {currentLead && (
                   <div className="flex items-center w-full justify-start gap-2 group/section">
                     {currentLead?.icon ? (
@@ -224,7 +224,7 @@ export const ContextualPanel = () => {
                 </div>
               </div>
               <div className="w-fit mt-2">
-                <Tabs className="w-fit" variant="enclosed">
+                <Tabs variant="enclosed" className="w-fit z-[1]">
                   <Button
                     size="xs"
                     className="w-fit"
