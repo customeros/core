@@ -88,6 +88,7 @@ defmodule Core.Crm.Leads.Lead do
 
     field(:icp_disqualification_reason, {:array, Ecto.Enum},
       values: [
+        :brief_writer,
         :company_too_small,
         :company_too_large,
         :company_declining,
