@@ -112,8 +112,8 @@ defmodule Core.Crm.Companies.CompanyScrapinEnricher do
         fetch_companies_for_scrapin_enrichment(@default_batch_size)
 
       OpenTelemetry.Tracer.set_attributes([
-        {"companies.found", length(companies_for_scrapin_enrichment)},
-        {"batch.size", @default_batch_size}
+        {"result.companies.found", length(companies_for_scrapin_enrichment)},
+        {"param.batch.size", @default_batch_size}
       ])
 
       # Enrich each company's icon

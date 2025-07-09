@@ -152,39 +152,44 @@ defmodule Core.Crm.Contacts do
          common_fields,
          %ScrapinContactPosition{} = position
        ) do
-    position_fields = extract_position_fields(position)
-    contact_attrs = Map.merge(common_fields, position_fields)
+    OpenTelemetry.Tracer.with_span "contacts.create_or_update_contact_for_position" do
+      OpenTelemetry.Tracer.set_attributes([
+        {"param.position.company_linkedin_id", position.linked_in_id}
+      ])
 
-    case find_existing_contact_by_linkedin_id_and_company_id(
-           contact_attrs.linkedin_id,
-           contact_attrs.linkedin_company_id
-         ) do
-      nil ->
-        case create_contact(%Contact{}, contact_attrs) do
-          {:ok, contact} ->
-            # Set company information for new contact
-            {:ok, set_company_info_for_contact(contact)}
+      position_fields = extract_position_fields(position)
+      contact_attrs = Map.merge(common_fields, position_fields)
 
-          {:error, reason} ->
-            {:error, reason}
-        end
+      case find_existing_contact_by_linkedin_id_and_company_id(
+             contact_attrs.linkedin_id,
+             contact_attrs.linkedin_company_id
+           ) do
+        nil ->
+          case create_contact(%Contact{}, contact_attrs) do
+            {:ok, contact} ->
+              {:ok, set_company_info_for_contact(contact)}
 
-      existing_contact ->
-        result =
-          if should_update_contact(existing_contact, contact_attrs) do
-            update_contact_with_position(existing_contact, contact_attrs)
-          else
-            {:ok, existing_contact}
+            {:error, reason} ->
+              {:error, reason}
           end
 
-        case result do
-          {:ok, contact} ->
-            # Set company information for updated/existing contact
-            {:ok, set_company_info_for_contact(contact)}
+        existing_contact ->
+          result =
+            if should_update_contact(existing_contact, contact_attrs) do
+              update_contact_with_position(existing_contact, contact_attrs)
+            else
+              {:ok, existing_contact}
+            end
 
-          {:error, reason} ->
-            {:error, reason}
-        end
+          case result do
+            {:ok, contact} ->
+              # Set company information for updated/existing contact
+              {:ok, set_company_info_for_contact(contact)}
+
+            {:error, reason} ->
+              {:error, reason}
+          end
+      end
     end
   end
 
@@ -316,11 +321,9 @@ defmodule Core.Crm.Contacts do
   end
 
   defp set_company_info_for_contact(contact) do
-    # Only set company info if company_id is missing
     if is_nil(contact.company_id) do
       set_company_info_if_needed(contact)
     else
-      # Company ID already exists, return contact as is
       contact
     end
   end
@@ -328,7 +331,6 @@ defmodule Core.Crm.Contacts do
   defp set_company_info_if_needed(contact) do
     case contact.linkedin_company_id do
       nil ->
-        # No company LinkedIn ID, return contact as is
         contact
 
       linkedin_company_id ->
@@ -337,33 +339,53 @@ defmodule Core.Crm.Contacts do
   end
 
   defp find_or_create_company_and_update_contact(contact, linkedin_company_id) do
-    # Step 1: Try to find existing company by LinkedIn ID
-    case Companies.get_by_linkedin_id(linkedin_company_id) do
-      {:ok, company} ->
-        # Company found, update contact with company info
-        update_contact_company_info(contact, company)
+    OpenTelemetry.Tracer.with_span "contacts.find_or_create_company_and_update_contact" do
+      OpenTelemetry.Tracer.set_attributes([
+        {"param.contact.id", contact.id},
+        {"param.linkedin_company_id", linkedin_company_id}
+      ])
 
-      {:error, :not_found} ->
-        # Company not found, try to create it
-        create_company_and_update_contact(contact, linkedin_company_id)
+      case Companies.get_by_linkedin_id(linkedin_company_id) do
+        {:ok, company} ->
+          update_contact_company_info(contact, company)
+
+        {:error, :not_found} ->
+          create_company_and_update_contact(contact, linkedin_company_id)
+      end
     end
   end
 
   defp create_company_and_update_contact(contact, linkedin_company_id) do
-    case Companies.create_company_by_linkedin_id(linkedin_company_id) do
-      {:ok, company} ->
-        # Company created successfully, update contact
-        update_contact_company_info(contact, company)
+    OpenTelemetry.Tracer.with_span "contacts.create_company_and_update_contact" do
+      OpenTelemetry.Tracer.set_attributes([
+        {"param.contact.id", contact.id},
+        {"param.linkedin_company_id", linkedin_company_id}
+      ])
 
-      {:error, reason} ->
-        # Failed to create company, log error and return contact as is
-        Logger.warning("Failed to create company for contact", %{
-          contact_id: contact.id,
-          linkedin_company_id: linkedin_company_id,
-          reason: reason
-        })
+      case Companies.create_company_by_linkedin_id(linkedin_company_id) do
+        {:ok, company} ->
+          if company.linkedin_id == linkedin_company_id do
+            update_contact_company_info(contact, company)
+          else
+            Tracing.warning(
+              :linkedin_id_mismatch,
+              "Company created but LinkedIn ID not set, skipping contact association",
+              contact_id: contact.id,
+              linkedin_company_id: linkedin_company_id,
+              company_linkedin_id: company.linkedin_id
+            )
 
-        contact
+            contact
+          end
+
+        {:error, reason} ->
+          Tracing.warning(reason, "Failed to create company for contact",
+            contact_id: contact.id,
+            linkedin_company_id: linkedin_company_id
+          )
+
+          contact
+      end
     end
   end
 

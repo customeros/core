@@ -16,6 +16,7 @@ defmodule Core.ScrapinCompany do
     field(:linkedin_id, :string)
     field(:linkedin_alias, :string)
     field(:domain, :string)
+    field(:linkedin_domain, :string)
     field(:request_param, :string)
     field(:data, :string)
     field(:success, :boolean, default: false)
@@ -29,6 +30,7 @@ defmodule Core.ScrapinCompany do
           linkedin_id: String.t() | nil,
           linkedin_alias: String.t() | nil,
           domain: String.t() | nil,
+          linkedin_domain: String.t() | nil,
           request_param: String.t(),
           data: String.t() | nil,
           success: boolean(),
@@ -46,6 +48,7 @@ defmodule Core.ScrapinCompany do
       :linkedin_id,
       :linkedin_alias,
       :domain,
+      :linkedin_domain,
       :request_param,
       :data,
       :success,
