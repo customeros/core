@@ -232,21 +232,81 @@ defmodule Core.Crm.Companies do
         {"param.linkedin_id", linkedin_id}
       ])
 
-      case Repo.get_by(Company, linkedin_id: linkedin_id) do
-        nil ->
+      # Get all companies with this LinkedIn ID
+      companies = Repo.all(from c in Company, where: c.linkedin_id == ^linkedin_id)
+
+      case companies do
+        [] ->
           OpenTelemetry.Tracer.set_attributes([
             {"result.found", false}
           ])
 
           {:error, :not_found}
 
-        %Company{} = company ->
+        [company] ->
           OpenTelemetry.Tracer.set_attributes([
             {"result.found", true}
           ])
 
           {:ok, company}
+
+        companies when length(companies) > 1 ->
+          case find_company_with_matching_domain(companies, linkedin_id) do
+            {:ok, company} ->
+              OpenTelemetry.Tracer.set_attributes([
+                {"result.found", true},
+                {"result.multiple_found", true},
+                {"result.domain_matched", true}
+              ])
+
+              {:ok, company}
+
+            {:error, :no_domain_match} ->
+              company = List.first(companies)
+
+              OpenTelemetry.Tracer.set_attributes([
+                {"result.found", true},
+                {"result.multiple_found", true},
+                {"result.domain_matched", false}
+              ])
+
+              {:ok, company}
+          end
       end
+    end
+  end
+
+  defp find_company_with_matching_domain(companies, linkedin_id) do
+    case get_scrapin_company_domain(linkedin_id) do
+      {:ok, scrapin_domain} when is_binary(scrapin_domain) ->
+        matching_company = Enum.find(companies, fn company ->
+          company.primary_domain == scrapin_domain
+        end)
+
+        if matching_company do
+          {:ok, matching_company}
+        else
+          {:error, :no_domain_match}
+        end
+
+      _ ->
+        # No scrapin domain found or it's nil
+        {:error, :no_domain_match}
+    end
+  end
+
+  defp get_scrapin_company_domain(linkedin_id) do
+    import Ecto.Query
+
+    case Repo.one(
+           from sc in Core.ScrapinCompany,
+             where: sc.linkedin_id == ^linkedin_id,
+             order_by: [desc: sc.inserted_at],
+             limit: 1,
+             select: sc.domain
+         ) do
+      nil -> {:error, :not_found}
+      domain -> {:ok, domain}
     end
   end
 
