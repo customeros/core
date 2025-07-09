@@ -52,7 +52,7 @@ defmodule Core.Crm.Contacts.Enricher.BetterContactJobs do
 
     from(job in BetterContactJob,
       where: job.status == :processing,
-      where: job.next_check_at <= ^now,
+      where: is_nil(job.next_check_at) or job.next_check_at <= ^now,
       order_by: [asc: job.next_check_at]
     )
     |> Repo.all()
