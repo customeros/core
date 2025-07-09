@@ -98,14 +98,19 @@ defmodule Core.Crm.Companies do
       linkedin_url = "https://www.linkedin.com/company/#{linkedin_id}"
 
       case ScrapinCompanies.profile_company_with_scrapin(linkedin_url) do
-        {:ok, company_details} ->
+        {:ok, scrapin_company_details} ->
           case ScrapinCompanies.get_scrapin_company_record_by_linkedin_id(
-                 company_details.linked_in_id
+                 scrapin_company_details.linked_in_id
                ) do
             {:ok, scrapin_company_record} ->
               case get_or_create_by_domain(scrapin_company_record.domain) do
                 {:ok, company} ->
-                  set_company_linkedin_id(company, linkedin_id)
+                  if scrapin_company_record.domain ==
+                       scrapin_company_record.linkedin_domain do
+                    set_company_linkedin_id_if_missing(company, linkedin_id)
+                  else
+                    {:ok, company}
+                  end
 
                 {:error, reason} ->
                   {:error, reason}
@@ -340,7 +345,7 @@ defmodule Core.Crm.Companies do
     end
   end
 
-  def set_company_linkedin_id(company, linkedin_id) do
+  def set_company_linkedin_id_if_missing(company, linkedin_id) do
     if is_nil(company.linkedin_id) do
       case Repo.update_all(
              from(c in Company, where: c.id == ^company.id),
@@ -350,7 +355,6 @@ defmodule Core.Crm.Companies do
           {:error, :update_failed}
 
         {_count, _} ->
-          # Return the updated company with the new LinkedIn ID
           {:ok, %{company | linkedin_id: linkedin_id}}
       end
     else

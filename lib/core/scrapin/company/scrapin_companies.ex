@@ -7,6 +7,7 @@ defmodule Core.ScrapinCompanies do
   """
 
   import Ecto.Query
+  require OpenTelemetry.Tracer
 
   alias Core.{
     Repo,
@@ -39,7 +40,13 @@ defmodule Core.ScrapinCompanies do
   Returns {:ok, %ScrapinCompanyDetails{}} or {:error, :not_found}.
   """
   def profile_company_with_scrapin(linkedin_url) when is_binary(linkedin_url) do
-    do_scrapin(:company_profile, linkedin_url)
+    OpenTelemetry.Tracer.with_span "scrapin_companies.profile_company_with_scrapin" do
+      OpenTelemetry.Tracer.set_attributes([
+        {"param.linkedin_url", linkedin_url}
+      ])
+
+      do_scrapin(:company_profile, linkedin_url)
+    end
   end
 
   @doc """
@@ -106,13 +113,15 @@ defmodule Core.ScrapinCompanies do
 
           case company_struct do
             %ScrapinCompanyDetails{} = company ->
-              {:ok, domain} = extract_domain(company.website_url)
+              {:ok, domain} = extract_primary_domain(company.website_url)
+              {:ok, linkedin_domain} = extract_base_domain(company.website_url)
 
               record_attrs = %{
                 id: IdGenerator.generate_id_21(ScrapinCompany.id_prefix()),
                 linkedin_id: company.linked_in_id,
                 linkedin_alias: company.universal_name,
                 domain: domain,
+                linkedin_domain: linkedin_domain,
                 request_param: request_param,
                 data: Jason.encode!(response),
                 success: true,
@@ -245,9 +254,9 @@ defmodule Core.ScrapinCompanies do
     end
   end
 
-  defp extract_domain(nil), do: {:ok, nil}
+  defp extract_primary_domain(nil), do: {:ok, nil}
 
-  defp extract_domain(website_url) when is_binary(website_url) do
+  defp extract_primary_domain(website_url) when is_binary(website_url) do
     case Core.Utils.DomainExtractor.extract_base_domain(website_url) do
       {:ok, website_domain} ->
         case PrimaryDomainFinder.get_primary_domain(website_domain) do
@@ -260,6 +269,15 @@ defmodule Core.ScrapinCompanies do
           {:ok, domain} when is_binary(domain) -> {:ok, domain}
           _ -> {:ok, nil}
         end
+    end
+  end
+
+  defp extract_base_domain(nil), do: {:ok, nil}
+
+  defp extract_base_domain(website_url) when is_binary(website_url) do
+    case Core.Utils.DomainExtractor.extract_base_domain(website_url) do
+      {:ok, domain} when is_binary(domain) -> {:ok, domain}
+      _ -> {:ok, nil}
     end
   end
 end
