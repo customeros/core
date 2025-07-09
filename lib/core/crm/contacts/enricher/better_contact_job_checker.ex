@@ -145,11 +145,19 @@ defmodule Core.Crm.Contacts.Enricher.BetterContactJobChecker do
         case EmailValidator.business_email?(result) do
           true ->
             # Save as business email
-            Contacts.update_business_email(clean_email, to_string(status), contact_id)
+            Contacts.update_business_email(
+              clean_email,
+              to_string(status),
+              contact_id
+            )
 
           false ->
             # Save as personal email
-            Contacts.update_personal_email(clean_email, to_string(status), contact_id)
+            Contacts.update_personal_email(
+              clean_email,
+              to_string(status),
+              contact_id
+            )
         end
       else
         {:error, reason} ->

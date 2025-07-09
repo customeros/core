@@ -190,7 +190,7 @@ defmodule Core.Researcher.BriefWriter.EngagementProfiler do
       {:ok, sessions}
     else
       {:error, reason} ->
-        Logger.error("Failed to lookup sessions for lead",
+        Tracing.error(reason, "Failed to lookup sessions for lead",
           tenant_id: tenant_id,
           company_id: company_id
         )

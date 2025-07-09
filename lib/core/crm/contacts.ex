@@ -612,7 +612,9 @@ defmodule Core.Crm.Contacts do
             {:ok, updated_contact}
 
           {:error, changeset} ->
-            Tracing.error(changeset.errors, "Failed to update contact #{field_name}",
+            Tracing.error(
+              changeset.errors,
+              "Failed to update contact #{field_name}",
               contact_id: contact_id
             )
 
