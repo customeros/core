@@ -200,7 +200,10 @@ defmodule Core.WebTracker.SessionAnalyzer do
               {:ok, url, intent}
 
             {:error, reason} ->
-              Logger.error("Failed to process #{url} for intent: #{inspect(reason)}")
+              Logger.error(
+                "Failed to process #{url} for intent: #{inspect(reason)}"
+              )
+
               {:error, reason}
           end
         else

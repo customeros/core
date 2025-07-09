@@ -24,7 +24,8 @@ defmodule Core.Crm.Leads.StageEvaluator do
   @stuck_lock_duration_minutes 30
   @delay_between_checks_hours 48
   @delay_from_lead_creation_minutes 60
-  @session_not_older_than_days 60 # TODO: change to 15
+  # TODO: change to 15
+  @session_not_older_than_days 60
 
   @doc """
   Starts the stage evaluator process.
@@ -133,6 +134,7 @@ defmodule Core.Crm.Leads.StageEvaluator do
             session_id when is_binary(session_id) ->
               Core.WebTracker.SessionAnalyzer.analyze_session(session_id)
               :ok
+
             nil ->
               Logger.error("No closed sessions found for lead #{lead.id}")
               {:error, :no_sessions_found}
@@ -170,11 +172,19 @@ defmodule Core.Crm.Leads.StageEvaluator do
   end
 
   defp schedule_initial_check do
-    Process.send_after(self(), :check_leads_for_stage_evaluation, @default_interval)
+    Process.send_after(
+      self(),
+      :check_leads_for_stage_evaluation,
+      @default_interval
+    )
   end
 
   defp schedule_next_check do
-    Process.send_after(self(), :check_leads_for_stage_evaluation, @default_interval)
+    Process.send_after(
+      self(),
+      :check_leads_for_stage_evaluation,
+      @default_interval
+    )
   end
 
   defp get_latest_closed_session_id(tenant_id, company_id) do
@@ -204,7 +214,9 @@ defmodule Core.Crm.Leads.StageEvaluator do
 
     Lead
     |> join(:inner, [l], t in Tenant, on: l.tenant_id == t.id)
-    |> join(:inner, [l, t], s in Session, on: s.company_id == l.ref_id and s.tenant == t.name and s.active == false)
+    |> join(:inner, [l, t], s in Session,
+      on: s.company_id == l.ref_id and s.tenant == t.name and s.active == false
+    )
     |> where([l, t, s], l.type == :company)
     |> where([l, t, s], l.stage == :target)
     |> where([l, t, s], l.icp_fit in [:moderate, :strong])
