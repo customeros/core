@@ -14,7 +14,7 @@ defmodule Core.Crm.TargetPersonas.TargetPersonaLinkedinProcessor do
   alias Core.Utils.CronLocks
   alias Core.Utils.Cron.CronLock
 
-  @default_interval 2 * 10 * 1000
+  @default_interval 2 * 60 * 1000
   @batch_size 10
   @stuck_lock_duration_minutes 30
   @max_retries 5
@@ -24,7 +24,7 @@ defmodule Core.Crm.TargetPersonas.TargetPersonaLinkedinProcessor do
   Starts the target persona LinkedIn processor process.
   """
   def start_link(_opts) do
-    crons_enabled = Application.get_env(:core, :crons)[:enabled] || true
+    crons_enabled = Application.get_env(:core, :crons)[:enabled] || false
 
     if crons_enabled do
       GenServer.start_link(__MODULE__, %{}, name: __MODULE__)
