@@ -22,9 +22,9 @@ defmodule Core.Crm.Leads.StageEvaluator do
   @default_interval 10 * 60 * 1000
   @default_batch_size 10
   @stuck_lock_duration_minutes 30
-  @delay_between_checks_hours 24
+  @delay_between_checks_hours 48
   @delay_from_lead_creation_minutes 60
-  @session_not_older_than_days 15
+  @session_not_older_than_days 60 # TODO: change to 15
 
   @doc """
   Starts the stage evaluator process.
