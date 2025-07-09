@@ -30,7 +30,7 @@ export const ChannelAttribution = () => {
     .with('referral', () => (
       <div className="flex items-center gap-1.5">
         <p className="size-2 bg-pink-500 rounded-full" />
-        <span className="text-xs">Referrals</span>
+        <span className="text-xs">Referral</span>
       </div>
     ))
     .with('paid_search', () => (
@@ -60,11 +60,11 @@ export const ChannelAttribution = () => {
   let tooltipLabel = '';
 
   if (channelAttribution?.referrer && channelAttribution?.platform) {
-    tooltipLabel = `Via ${channelAttribution.platform} · ${channelAttribution.referrer}`;
+    tooltipLabel = `via ${channelAttribution.platform} · ${channelAttribution.referrer}`;
   } else if (channelAttribution?.referrer) {
-    tooltipLabel = `Via ${channelAttribution.referrer}`;
+    tooltipLabel = `from ${channelAttribution.referrer}`;
   } else if (channelAttribution?.platform) {
-    tooltipLabel = `Via ${channelAttribution.platform}`;
+    tooltipLabel = `via ${channelAttribution.platform}`;
   }
 
   const content = channelAttribution?.channel ? (
