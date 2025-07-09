@@ -145,6 +145,9 @@ defmodule Core.Researcher.BriefWriter.AccountResearcher do
     Every section should connect back to: "Here's why our solution would matter to THIS specific company's business results."
     If you can't draw that line clearly, you need to dig deeper into their business model and operating challenges.
     Remember: The goal isn't just to show you did research. It's to demonstrate that you understand their business well enough to have a strategic conversation about improving it.
+
+    CRITICALLY IMPORTANT: if at any point in your analysis you determine this company is not an ICP fit, DO NOT generate the brief. Simply return the string below, nothing else:
+      not_a_fit
     """
 
     prompt = """

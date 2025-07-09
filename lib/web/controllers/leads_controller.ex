@@ -135,7 +135,7 @@ defmodule Web.LeadsController do
   def disqualify(conn, %{"id" => lead_id}) do
     %{tenant_id: tenant_id} = conn.assigns.current_user
 
-    case Leads.disqualify_lead(tenant_id, lead_id) do
+    case Leads.disqualify_lead_by_user(tenant_id, lead_id) do
       {:ok, lead} ->
         lead_map =
           Map.take(lead, [

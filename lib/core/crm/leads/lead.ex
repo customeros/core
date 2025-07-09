@@ -24,7 +24,8 @@ defmodule Core.Crm.Leads.Lead do
           | :customer
   @type icp_fit :: :strong | :moderate | :not_a_fit | :unknown
   @type disqualification_reason ::
-          :company_too_small
+          :brief_writer
+          | :company_too_small
           | :company_too_large
           | :company_declining
           | :competitor
