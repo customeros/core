@@ -200,7 +200,7 @@ defmodule Core.WebTracker.SessionAnalyzer do
               {:ok, url, intent}
 
             {:error, reason} ->
-              Logger.error("Failed to process #{url} for intent: #{reason}")
+              Logger.error("Failed to process #{url} for intent: #{inspect(reason)}")
               {:error, reason}
           end
         else
@@ -208,7 +208,7 @@ defmodule Core.WebTracker.SessionAnalyzer do
         end
 
       {:error, reason} ->
-        Logger.error("Failed to process #{url} for intent: #{reason}")
+        Logger.error("Failed to process #{url} for intent: #{inspect(reason)}")
         {:error, reason}
     end
   end
@@ -290,7 +290,7 @@ defmodule Core.WebTracker.SessionAnalyzer do
         {:ok, company.primary_domain}
 
       {:error, reason} ->
-        Logger.error("Company not found: #{reason}")
+        Logger.error("Company not found: #{inspect(reason)}")
         {:error, reason}
     end
   end

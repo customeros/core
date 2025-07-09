@@ -56,7 +56,7 @@ defmodule Web.HubspotController do
         handle_successful_oauth(conn, code, redirect_uri, tenant_id)
 
       %{"error" => error, "error_description" => description} ->
-        Logger.error("HubSpot OAuth error: #{error} - #{description}")
+        Logger.error("HubSpot OAuth error: #{inspect(error)} - #{inspect(description)}")
 
         conn
         |> put_flash(:error, "HubSpot authorization failed: #{description}")

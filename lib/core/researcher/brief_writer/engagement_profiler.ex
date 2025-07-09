@@ -56,7 +56,7 @@ defmodule Core.Researcher.BriefWriter.EngagementProfiler do
         {:error, :closed_sessions_not_found}
 
       {:error, reason} ->
-        Logger.error("Failed to generate engagement summary: #{reason}",
+        Logger.error("Failed to generate engagement summary: #{inspect(reason)}",
           tenant_id: tenant_id,
           lead_id: lead_id
         )
@@ -75,7 +75,7 @@ defmodule Core.Researcher.BriefWriter.EngagementProfiler do
       {:ok, company, lead.stage}
     else
       {:error, reason} ->
-        Logger.error("Failed to get company and stage: #{reason}",
+        Logger.error("Failed to get company and stage: #{inspect(reason)}",
           tenant_id: tenant_id,
           lead_id: lead_id
         )
@@ -122,7 +122,7 @@ defmodule Core.Researcher.BriefWriter.EngagementProfiler do
         webpage
 
       {:error, reason} ->
-        Logger.error("Failed to get page visits: #{reason}")
+        Logger.error("Failed to get page visits: #{inspect(reason)}")
         nil
     end
   end

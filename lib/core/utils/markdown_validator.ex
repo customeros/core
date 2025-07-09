@@ -35,7 +35,7 @@ defmodule Core.Utils.MarkdownValidator do
     {:ok, cleaned_text}
   rescue
     reason ->
-      Logger.error("Cleaning emoji's failed: #{reason}")
+      Logger.error("Cleaning emoji's failed: #{inspect(reason)}")
       @err_processing_failed
   end
 
