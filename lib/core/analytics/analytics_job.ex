@@ -30,7 +30,7 @@ defmodule Core.Analytics.AnalyticsJob do
           id: binary(),
           job_type: job_type,
           tenant_id: String.t(),
-          scheduled_at: Datetime.t(),
+          scheduled_at: DateTime.t(),
           status: job_status,
           inserted_at: DateTime.t(),
           updated_at: DateTime.t()
