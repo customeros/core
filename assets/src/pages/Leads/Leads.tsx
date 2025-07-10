@@ -7,7 +7,7 @@ import { RootLayout } from 'src/layouts/Root';
 import { Button } from 'src/components/Button';
 import { useUrlState } from 'src/hooks/useUrlState';
 import { LeadUpdatedEvent, useEventsChannel } from 'src/hooks';
-import { Lead, User, Stage, Tenant, Profile, UrlState } from 'src/types';
+import { Lead, User, Stage, Tenant, Profile, UrlState, ChannelAttribution } from 'src/types';
 import {
   ScrollAreaRoot,
   ScrollAreaThumb,
@@ -22,8 +22,10 @@ interface LeadsProps {
   profile: Profile;
   max_count: number;
   current_user: User;
+  attribution: ChannelAttribution;
   stage_counts: Record<Stage, number>;
   leads: Lead[] | Record<Stage, Lead[]>;
+  attributions_list: ChannelAttribution[];
 }
 
 const ContextualPanel = lazy(() =>
@@ -58,7 +60,7 @@ export default function Leads({ leads, stage_counts, max_count }: LeadsProps) {
           };
         },
         {
-          revalidate: ['personas', 'attribution'],
+          revalidate: ['personas', 'attribution', 'attributions_list'],
         }
       );
     },

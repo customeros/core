@@ -88,7 +88,10 @@ export type TargetPersona = {
 };
 
 export type ChannelAttribution = {
+  city: string;
   channel: string;
+  country: string;
   platform: string;
   referrer: string;
+  inserted_at: string;
 };
