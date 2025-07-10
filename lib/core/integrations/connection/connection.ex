@@ -24,7 +24,7 @@ defmodule Core.Integrations.Connection do
   use Ecto.Schema
   import Ecto.Changeset
 
-  @type provider :: :hubspot
+  @type provider :: :hubspot | :google_ads
   @type status ::
           :pending | :active | :inactive | :error | :refreshing | :disconnected
   @type t :: %__MODULE__{
@@ -50,7 +50,7 @@ defmodule Core.Integrations.Connection do
   schema "integration_connections" do
     # Primary fields
     field(:tenant_id, :string)
-    field(:provider, Ecto.Enum, values: [:hubspot])
+    field(:provider, Ecto.Enum, values: [:hubspot, :google_ads])
 
     field(:status, Ecto.Enum,
       values: [:pending, :active, :inactive, :error, :refreshing, :disconnected],

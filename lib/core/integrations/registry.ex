@@ -14,7 +14,9 @@ defmodule Core.Integrations.Registry do
 
   alias Core.Integrations.Connections
   alias Core.Integrations.OAuth.Providers.HubSpot, as: HubSpotOAuth
+  alias Core.Integrations.OAuth.Providers.GoogleAds, as: GoogleAdsOAuth
   alias Core.Integrations.Providers.HubSpot.{Client, Company, Webhook}
+  alias Core.Integrations.Providers.GoogleAds.{Client, as: GoogleAdsClient}
 
   @doc """
   Gets a connection for a tenant and provider.
@@ -43,6 +45,7 @@ defmodule Core.Integrations.Registry do
       {:error, :not_found}
   """
   def get_oauth(:hubspot), do: {:ok, HubSpotOAuth}
+  def get_oauth(:google_ads), do: {:ok, GoogleAdsOAuth}
   def get_oauth(_), do: {:error, :not_found}
 
   @doc """
@@ -57,6 +60,7 @@ defmodule Core.Integrations.Registry do
       {:error, :not_found}
   """
   def get_client(:hubspot), do: {:ok, Client}
+  def get_client(:google_ads), do: {:ok, GoogleAdsClient}
   def get_client(_), do: {:error, :not_found}
 
   @doc """
