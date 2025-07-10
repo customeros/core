@@ -37,6 +37,7 @@ defmodule Core.Application do
       Core.WebTracker.SessionCloser,
       Core.Crm.Industries,
       Core.Crm.Contacts.Enricher.BetterContactJobChecker,
+      Core.Analytics.JobProcessor,
       Web.Endpoint,
       Web.Presence,
       Web.Telemetry,

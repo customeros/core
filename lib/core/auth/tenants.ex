@@ -54,6 +54,13 @@ defmodule Core.Auth.Tenants do
 
   def get_tenant_domains(_tenant_id), do: @err_invalid_tenant_id
 
+  def get_all_tenant_ids do
+    case Repo.all(from t in Tenant, select: t.id) do
+      [] -> @err_not_found
+      tenant_ids -> {:ok, tenant_ids}
+    end
+  end
+
   ## Tenant updates
 
   @spec set_tenant_workspace_name(binary(), binary()) :: :ok | {:error, any()}

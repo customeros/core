@@ -22,6 +22,8 @@ defmodule Core.Analytics.Builder do
            get_icp_qualified_sessions(tenant_id, start_time_utc, end_time_utc),
          {:ok, companies} <-
            get_unique_companies(tenant_id, start_time_utc, end_time_utc),
+         {:ok, new_companies} <-
+           get_unique_new_companies(tenant_id, start_time_utc, end_time_utc),
          {:ok, new_leads} <-
            get_new_icp_fit_leads(tenant_id, start_time_utc, end_time_utc) do
       LeadGeneration.create(%{
@@ -31,6 +33,7 @@ defmodule Core.Analytics.Builder do
         identified_sessions: sessions.identified_sessions,
         icp_fit_sessions: icp_sessions.icp_qualified_sessions,
         unique_companies: companies.unique_companies,
+        unique_new_companies: new_companies.unique_new_companies,
         new_icp_fit_leads: new_leads.new_icp_fit_leads
       })
     else
@@ -131,6 +134,40 @@ defmodule Core.Analytics.Builder do
     end
   end
 
+  def get_unique_new_companies(tenant_id, start_time_utc, end_time_utc) do
+    existing_companies_query =
+      from(l in Lead,
+        where:
+          l.tenant_id == ^tenant_id and
+            l.inserted_at < ^start_time_utc and
+            not is_nil(l.ref_id),
+        select: l.ref_id,
+        distinct: true
+      )
+
+    results =
+      from(ws in Session,
+        join: t in Tenant,
+        on: ws.tenant == t.name,
+        where:
+          t.id == ^tenant_id and
+            ws.started_at >= ^start_time_utc and
+            ws.started_at < ^end_time_utc and
+            ws.active == false and
+            not is_nil(ws.company_id) and
+            ws.company_id not in subquery(existing_companies_query),
+        select: %{
+          unique_new_companies: count(ws.company_id, :distinct)
+        }
+      )
+      |> Repo.one()
+
+    case results do
+      nil -> {:ok, %{unique_new_companies: 0}}
+      _ -> {:ok, results}
+    end
+  end
+
   @doc """
   Gets new icp_fit leads created during a time period for a company
   Returns :not_found or {:ok, %{new_icp_fit_leads: count}}
@@ -144,7 +181,8 @@ defmodule Core.Analytics.Builder do
           t.id == ^tenant_id and
             l.inserted_at >= ^start_time_utc and
             l.inserted_at < ^end_time_utc and
-            l.icp_fit in [:strong, :moderate],
+            l.icp_fit in [:strong, :moderate] and
+            l.stage in [:education, :solution, :evaluation, :ready_to_buy],
         select: %{
           new_icp_fit_leads: count(l.id)
         }
