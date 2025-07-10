@@ -39,10 +39,59 @@ defmodule Core.Utils.PrimaryDomainFinder do
   @err_circular_domain {:error, "circular domain reference"}
   @err_cannot_resolve_to_primary_domain {:error,
                                          :cannot_resolve_to_primary_domain}
+  @err_platform_url_not_allowed {:error, "app/social media URL not allowed"}
 
   # Configuration constants
   @max_retries 3
   @max_redirects 3
+
+  # Regex patterns for platform/social media URLs that should be rejected
+  @platform_url_patterns [
+    # Social Media Platforms
+    ~r/^(https?:\/\/)?(www\.)?facebook\.com\/[^\/]+/i,
+    ~r/^(https?:\/\/)?(www\.)?instagram\.com\/[^\/]+/i,
+    ~r/^(https?:\/\/)?(www\.)?twitter\.com\/[^\/]+/i,
+    ~r/^(https?:\/\/)?(www\.)?x\.com\/[^\/]+/i,
+    ~r/^(https?:\/\/)?(www\.)?linkedin\.com\/(in|company)\/[^\/]+/i,
+    ~r/^(https?:\/\/)?(www\.)?youtube\.com\/(channel|user|c)\/[^\/]+/i,
+    ~r/^(https?:\/\/)?(www\.)?tiktok\.com\/@[^\/]+/i,
+    ~r/^(https?:\/\/)?(www\.)?snapchat\.com\/add\/[^\/]+/i,
+    ~r/^(https?:\/\/)?(www\.)?pinterest\.com\/[^\/]+/i,
+    ~r/^(https?:\/\/)?(www\.)?reddit\.com\/r\/[^\/]+/i,
+    ~r/^(https?:\/\/)?(www\.)?discord\.com\/invite\/[^\/]+/i,
+    ~r/^(https?:\/\/)?(www\.)?telegram\.me\/[^\/]+/i,
+    ~r/^(https?:\/\/)?(www\.)?whatsapp\.com\/[^\/]+/i,
+
+    # App Stores
+    ~r/^(https?:\/\/)?(apps\.apple\.com|itunes\.apple\.com)\/[^\/]+/i,
+    ~r/^(https?:\/\/)?(play\.google\.com|play\.google\.com\/store)\/[^\/]+/i,
+    ~r/^(https?:\/\/)?(www\.)?microsoft\.com\/en-us\/p\/[^\/]+/i,
+
+    # E-commerce Platforms
+    ~r/^(https?:\/\/)?(www\.)?amazon\.com\/[^\/]+\/[^\/]+/i,
+    ~r/^(https?:\/\/)?(www\.)?ebay\.com\/[^\/]+\/[^\/]+/i,
+    ~r/^(https?:\/\/)?(www\.)?etsy\.com\/shop\/[^\/]+/i,
+    ~r/^(https?:\/\/)?(www\.)?shopify\.com\/[^\/]+/i,
+
+    # Professional Networks
+    ~r/^(https?:\/\/)?(www\.)?behance\.net\/[^\/]+/i,
+    ~r/^(https?:\/\/)?(www\.)?dribbble\.com\/[^\/]+/i,
+    ~r/^(https?:\/\/)?(www\.)?github\.com\/[^\/]+/i,
+    ~r/^(https?:\/\/)?(www\.)?gitlab\.com\/[^\/]+/i,
+    ~r/^(https?:\/\/)?(www\.)?stackoverflow\.com\/users\/[^\/]+/i,
+
+    # Content Platforms
+    ~r/^(https?:\/\/)?(www\.)?medium\.com\/@[^\/]+/i,
+    ~r/^(https?:\/\/)?(www\.)?substack\.com\/@[^\/]+/i,
+    ~r/^(https?:\/\/)?(www\.)?patreon\.com\/[^\/]+/i,
+    ~r/^(https?:\/\/)?(www\.)?kickstarter\.com\/projects\/[^\/]+/i,
+
+    # Other Platforms
+    ~r/^(https?:\/\/)?(www\.)?fiverr\.com\/[^\/]+/i,
+    ~r/^(https?:\/\/)?(www\.)?upwork\.com\/[^\/]+\/[^\/]+/i,
+    ~r/^(https?:\/\/)?(www\.)?freelancer\.com\/[^\/]+\/[^\/]+/i,
+    ~r/^(https?:\/\/)?(www\.)?99designs\.com\/[^\/]+\/[^\/]+/i
+  ]
 
   @doc """
   Checks if a domain is a primary domain. It checks if current domain is redirecting to the primary domain.
@@ -91,10 +140,7 @@ defmodule Core.Utils.PrimaryDomainFinder do
           check_www(url)
 
         {:error, _reason} ->
-          Retry.with_delay(
-            fn -> try_get_primary_domain_https(url) end,
-            @max_retries
-          )
+          @err_cannot_resolve_to_primary_domain
       end
     end
   end
@@ -119,18 +165,6 @@ defmodule Core.Utils.PrimaryDomainFinder do
   defp try_get_primary_domain(url) do
     with {:ok, clean_domain} <- safe_clean_domain(url) do
       follow_domain_chain(clean_domain, MapSet.new(), @max_redirects)
-    end
-  end
-
-  defp try_get_primary_domain_https(domain) do
-    case UrlFormatter.to_https(domain) do
-      {:ok, https_domain} ->
-        with {:ok, clean_domain} <- safe_clean_domain(https_domain) do
-          follow_domain_chain(clean_domain, MapSet.new(), @max_redirects)
-        end
-
-      {:error, reason} ->
-        {:error, reason}
     end
   end
 
@@ -170,6 +204,7 @@ defmodule Core.Utils.PrimaryDomainFinder do
   defp primary_domain_check(url) do
     url
     |> prepare_domain()
+    |> ok(&check_platform_url_validity/1)
     |> ok(&check_domain_validity/1)
     |> ok(&check_domain_accessibility/1)
     |> ok(&check_domain_redirects/1)
@@ -287,6 +322,23 @@ defmodule Core.Utils.PrimaryDomainFinder do
     end
   end
 
+  defp check_platform_url_validity(url) do
+    Logger.info("Checking platform URL validity for #{url}")
+
+    # Check if URL matches any of the platform/social media patterns
+    is_platform_url =
+      Enum.any?(@platform_url_patterns, fn pattern ->
+        Regex.match?(pattern, url)
+      end)
+
+    if is_platform_url do
+      Logger.warning("Platform/social media URL detected and rejected: #{url}")
+      @err_platform_url_not_allowed
+    else
+      {:ok, url}
+    end
+  end
+
   defp check_domain_validity(domain) do
     Logger.info("Checking domain validity for #{domain}")
 
@@ -363,7 +415,6 @@ defmodule Core.Utils.PrimaryDomainFinder do
       {:ok, dns_info} ->
         is_primary =
           dns_info.cname == "" &&
-            length(dns_info.mx) >= 0 && # MX records are not required as many legitimate websites use external email services or don't have email configured on their domain.
             dns_info.has_a
 
         {:ok, {domain, root, subdomain, is_primary}}
@@ -377,7 +428,9 @@ defmodule Core.Utils.PrimaryDomainFinder do
     do: {:ok, {is_primary, domain}}
 
   defp determine_primary_domain_status({domain, root, subdomain, is_primary}) do
-    Logger.info("Determining primary domain status for #{domain}, root: #{root}, subdomain: #{subdomain}, is_primary: #{is_primary}")
+    Logger.info(
+      "Determining primary domain status for #{domain}, root: #{root}, subdomain: #{subdomain}, is_primary: #{is_primary}"
+    )
 
     cond do
       is_primary && subdomain == "" ->
