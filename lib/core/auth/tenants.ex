@@ -54,6 +54,19 @@ defmodule Core.Auth.Tenants do
 
   def get_tenant_domains(_tenant_id), do: @err_invalid_tenant_id
 
+  def get_tenant_by_domain(domain) do
+    query =
+      from t in Tenant,
+        where:
+          t.primary_domain == ^domain or
+            fragment("? = ANY(?)", ^domain, t.domains)
+
+    case Repo.one(query) do
+      nil -> @err_not_found
+      tenant -> {:ok, tenant}
+    end
+  end
+
   def get_all_tenant_ids do
     case Repo.all(from t in Tenant, select: t.id) do
       [] -> @err_not_found
