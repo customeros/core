@@ -41,38 +41,14 @@ defmodule Core.Utils.PrimaryDomainFinder do
   @max_retries 3
   @max_redirects 3
 
-  # Known URL shorteners that should be treated as invalid domains
-  @url_shorteners [
-    "linktr.ee",
-    "bit.ly",
-    "tinyurl.com",
-    "goo.gl",
-    "t.co",
-    "is.gd",
-    "v.gd",
-    "ow.ly",
-    "buff.ly",
-    "adf.ly",
-    "sh.st",
-    "shorturl.at",
-    "rb.gy",
-    "cutt.ly",
-    "short.to",
-    "tiny.cc",
-    "short.ly",
-    "snip.ly",
-    "shorturl.com",
-    "tiny.one"
-  ]
-
   @doc """
   Checks if a domain is a primary domain. It checks if current domain is redirecting to the primary domain.
   """
-  def primary_domain?(domain) do
-    case get_primary_domain(domain) do
+  def primary_domain?(url) do
+    case get_primary_domain(url) do
       {:ok, primary_domain} ->
         if DomainExtractor.extract_base_domain(primary_domain) ==
-             DomainExtractor.extract_base_domain(domain) do
+             DomainExtractor.extract_base_domain(url) do
           true
         else
           false
@@ -89,13 +65,13 @@ defmodule Core.Utils.PrimaryDomainFinder do
   If the input domain is not primary, this function attempts to find
   the actual primary domain (e.g., root domain or redirect target).
   """
-  def get_primary_domain(domain)
-      when is_binary(domain) and byte_size(domain) > 0 do
+  def get_primary_domain(url)
+      when is_binary(url) and byte_size(url) > 0 do
     OpenTelemetry.Tracer.with_span "primary_domain_finder.get_primary_domain" do
-      OpenTelemetry.Tracer.set_attributes([{"domain", domain}])
+      OpenTelemetry.Tracer.set_attributes([{"param.url", url}])
 
       case Retry.with_delay(
-             fn -> try_get_primary_domain(domain) end,
+             fn -> try_get_primary_domain(url) end,
              @max_retries
            ) do
         {:ok, :no_primary_domain} ->
@@ -109,11 +85,11 @@ defmodule Core.Utils.PrimaryDomainFinder do
           {:ok, primary_domain}
 
         @err_invalid_ssl ->
-          check_www(domain)
+          check_www(url)
 
         {:error, _reason} ->
           Retry.with_delay(
-            fn -> try_get_primary_domain_https(domain) end,
+            fn -> try_get_primary_domain_https(url) end,
             @max_retries
           )
       end
@@ -137,8 +113,8 @@ defmodule Core.Utils.PrimaryDomainFinder do
     end
   end
 
-  defp try_get_primary_domain(domain) do
-    with {:ok, clean_domain} <- safe_clean_domain(domain) do
+  defp try_get_primary_domain(url) do
+    with {:ok, clean_domain} <- safe_clean_domain(url) do
       follow_domain_chain(clean_domain, MapSet.new(), @max_redirects)
     end
   end
@@ -181,15 +157,15 @@ defmodule Core.Utils.PrimaryDomainFinder do
     end
   end
 
-  defp safe_clean_domain(domain) do
-    case DomainExtractor.clean_domain(domain) do
+  defp safe_clean_domain(url) do
+    case DomainExtractor.clean_domain(url) do
       cleaned when is_binary(cleaned) and cleaned != "" -> {:ok, cleaned}
       _ -> @err_invalid_domain
     end
   end
 
-  defp primary_domain_check(domain) do
-    domain
+  defp primary_domain_check(url) do
+    url
     |> prepare_domain()
     |> ok(&check_domain_validity/1)
     |> ok(&check_domain_accessibility/1)
@@ -296,12 +272,12 @@ defmodule Core.Utils.PrimaryDomainFinder do
     end
   end
 
-  defp prepare_domain(domain) do
-    Logger.info("Preparing domain #{domain}")
+  defp prepare_domain(url) do
+    Logger.info("Preparing url #{url}")
 
-    case UrlExpander.expand_short_url(domain) do
-      {:ok, expanded_domain} ->
-        {:ok, expanded_domain}
+    case UrlExpander.expand_short_url(url) do
+      {:ok, expanded_url} ->
+        {:ok, expanded_url}
 
       {:error, reason} ->
         {:error, reason}
@@ -314,11 +290,11 @@ defmodule Core.Utils.PrimaryDomainFinder do
     case DomainValidator.valid_domain?(domain) do
       true ->
         case parse_domain(domain) do
-          {:ok, {root, _subdomain}} when root in @url_shorteners ->
-            @err_invalid_domain
-
           {:ok, {root, subdomain}} ->
-            {:ok, {domain, root, subdomain}}
+            case root in UrlExpander.url_shorteners() do
+              true -> @err_invalid_domain
+              false -> {:ok, {domain, root, subdomain}}
+            end
 
           {:error, _} ->
             @err_invalid_domain
