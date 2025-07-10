@@ -51,7 +51,12 @@ export const ChannelAttribution = () => {
         <span className="text-xs">Direct</span>
       </div>
     ))
-    .otherwise(() => null);
+    .otherwise(() => (
+      <div className="flex items-center gap-1.5">
+        <p className="size-2 bg-gray-500 rounded-full" />
+        <span className="text-xs">Direct</span>
+      </div>
+    ));
   const showTooltip =
     channelAttribution?.channel !== 'direct' &&
     channelAttribution?.channel !== 'email' &&
@@ -67,11 +72,11 @@ export const ChannelAttribution = () => {
     tooltipLabel = `via ${channelAttribution.platform}`;
   }
 
-  const content = channelDisplay ? (
+  const content = (
     <div className="bg-gray-100 min-w-fit rounded-sm text-sm px-2 py-1.5 cursor-default hidden sm:flex md:flex lg:flex xl:flex 2xl:flex">
       {channelDisplay}
     </div>
-  ) : null;
+  );
 
   return showTooltip ? (
     <WhenVisible fallback={<></>} data="attribution">

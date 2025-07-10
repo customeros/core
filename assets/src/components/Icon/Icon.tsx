@@ -60,6 +60,7 @@ export type IconName =
   | 'lock-01'
   | 'copy-03'
   | 'user-03'
+  | 'corner-down-right'
   | 'thumbs-down';
 
 export const Icon = ({
