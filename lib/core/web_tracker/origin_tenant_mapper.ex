@@ -2,18 +2,12 @@ defmodule Core.WebTracker.OriginTenantMapper do
   @moduledoc """
   Manages the mapping between whitelisted origins and their corresponding tenants.
   """
+  alias Core.Auth.Tenants
 
   @err_invalid_origin {:error, "invalid origin"}
+  @err_origin_blocked {:error, "origin blocked"}
   @err_origin_not_provided {:error, "origin not provided"}
   @err_origin_not_configured {:error, :origin_not_configured}
-
-  # TODO: Move this to db later
-  @whitelisted_origins %{
-    "getkanda.com" => "getkandacom",
-    "infinity.co" => "infinityco",
-    "customeros.ai" => "customerosai",
-    "shapeshift.co.za" => "shapeshiftcoza"
-  }
 
   @doc """
   Checks if given origin is whitelisted and returns its associated tenant.
@@ -35,14 +29,21 @@ defmodule Core.WebTracker.OriginTenantMapper do
   def get_tenant_for_origin(_), do: @err_invalid_origin
 
   defp find_tenant_for_domain(domain) do
-    case Map.get(@whitelisted_origins, domain) do
+    case Tenants.get_tenant_by_domain(domain) do
       nil -> @err_origin_not_configured
+      {:error, "tenant not found"} -> @err_origin_not_configured
       tenant -> {:ok, tenant}
     end
   end
 
   defp check_subdomain_tenant(domain) do
     case Core.Utils.DomainValidator.parse_root_and_subdomain(domain) do
+      {:ok, %{subdomain: "careers"}} ->
+        @err_origin_blocked
+
+      {:ok, %{subdomain: "jobs"}} ->
+        @err_origin_blocked
+
       {:ok, %{domain: domain, tld: tld}} ->
         root_domain = "#{domain}.#{tld}"
         find_tenant_for_domain(root_domain)
