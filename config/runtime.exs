@@ -240,6 +240,14 @@ config :core, :hubspot,
     System.get_env("HUBSPOT_WEBHOOK_URI") ||
       "https://app.customeros.ai/hubspot/webhook"
 
+config :core, :google_ads,
+  client_id: System.get_env("GOOGLE_ADS_CLIENT_ID"),
+  client_secret: System.get_env("GOOGLE_ADS_CLIENT_SECRET"),
+  scopes: String.split(System.get_env("GOOGLE_ADS_SCOPES", "https://www.googleapis.com/auth/adwords"), " "),
+  api_base_url: "https://googleads.googleapis.com/v14",
+  auth_base_url: "https://accounts.google.com",
+  token_base_url: "https://oauth2.googleapis.com"
+
 config :core, :scrapin,
   scrapin_api_key: System.get_env("SCRAPIN_API_KEY"),
   scrapin_base_url:
@@ -253,14 +261,16 @@ config :core, :customeros,
 if config_env() == :prod do
   required_env_vars = [
     "HUBSPOT_CLIENT_ID",
-    "HUBSPOT_CLIENT_SECRET"
+    "HUBSPOT_CLIENT_SECRET",
+    "GOOGLE_ADS_CLIENT_ID",
+    "GOOGLE_ADS_CLIENT_SECRET"
   ]
 
   Enum.each(required_env_vars, fn var ->
     if is_nil(System.get_env(var)) do
       raise """
       environment variable #{var} is missing.
-      This variable is required for HubSpot integration in production.
+      This variable is required for integrations in production.
       """
     end
   end)

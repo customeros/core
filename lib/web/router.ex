@@ -132,6 +132,13 @@ defmodule Web.Router do
       get "/disconnect", HubspotController, :disconnect
     end
 
+    scope "/google-ads" do
+      get "/connect", GoogleAdsController, :connect
+      get "/callback", GoogleAdsController, :callback
+      get "/disconnect", GoogleAdsController, :disconnect
+      get "/campaigns", GoogleAdsController, :list_campaigns
+    end
+
     scope "/contacts" do
       get "/", ContactsController, :index
     end

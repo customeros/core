@@ -48,7 +48,9 @@ defmodule Core.Application do
       {Finch,
        name: Core.Finch,
        pools: %{
-         default: [size: 40, count: 4]
+         default: [size: 40, count: 4],
+         hubspot: [size: 20, count: 2],
+         google_ads: [size: 20, count: 2]
        }}
     ]
 
