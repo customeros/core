@@ -16,7 +16,7 @@ defmodule Core.Integrations.Registry do
   alias Core.Integrations.OAuth.Providers.HubSpot, as: HubSpotOAuth
   alias Core.Integrations.OAuth.Providers.GoogleAds, as: GoogleAdsOAuth
   alias Core.Integrations.Providers.HubSpot.{Client, Company, Webhook}
-  alias Core.Integrations.Providers.GoogleAds.{Client, as: GoogleAdsClient}
+  alias Core.Integrations.Providers.GoogleAds.Client, as: GoogleAdsClient
 
   @doc """
   Gets a connection for a tenant and provider.
