@@ -13,7 +13,7 @@ defmodule Core.Analytics.JobProcessor do
   @stuck_lock_duration_minutes 30
 
   def start_link(_opts) do
-    crons_enabled = Application.get_env(:core, :crons)[:enabled] || true
+    crons_enabled = Application.get_env(:core, :crons)[:enabled] || false
 
     if crons_enabled do
       GenServer.start_link(__MODULE__, %{}, name: __MODULE__)
@@ -107,26 +107,22 @@ defmodule Core.Analytics.JobProcessor do
   end
 
   defp execute_job(%AnalyticsJob{job_type: :hourly_lead_generation_agg} = job) do
-    Logger.info(
-      "Job scheduled_at: #{inspect(job.scheduled_at)} (type: #{inspect(job.scheduled_at.__struct__)})"
-    )
+    Logger.info("Processing job #{job.id} for tenant #{job.tenant_id}")
 
-    start_hour =
-      DateTime.add(job.scheduled_at, -1, :hour)
-      |> DateTime.truncate(:hour)
+    start_hour = truncate_to_hour(DateTime.add(job.scheduled_at, -1, :hour))
 
     case Builder.build_hourly_aggregate_stats(job.tenant_id, start_hour) do
       {:ok, _data} ->
         AnalyticsJobs.mark_completed(job)
+        Logger.info("Successfully completed job #{job.id}")
 
       {:error, reason} ->
         AnalyticsJobs.mark_failed(job)
-
-        Logger.error("Analytics job execution failed: #{reason}", %{
-          job_type: :hourly_lead_generation_agg,
-          tenant_id: job.tenant_id,
-          reason: reason
-        })
+        Logger.error("Analytics job execution failed: #{inspect(reason)}")
     end
+  end
+
+  defp truncate_to_hour(%DateTime{} = dt) do
+    %{dt | minute: 0, second: 0, microsecond: {0, 0}}
   end
 end
