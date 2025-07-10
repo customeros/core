@@ -3,11 +3,14 @@ defmodule Core.Utils.PrimaryDomainFinder do
   Utilities for determining if a domain is a primary domain and finding redirect targets.
 
   A primary domain is defined as a domain that:
-  - Has valid DNS records (A/AAAA records and MX records)
+  - Has valid DNS records (A/AAAA records)
   - Does not have a CNAME record (indicating it's not an alias)
   - Is the root domain (no subdomain)
   - Does not redirect to another domain
   - Is directly accessible
+
+  Note: MX records are not required as many legitimate websites use external email services
+  or don't have email configured on their domain.
 
   This module provides functions to check these conditions and determine the primary
   domain status of any given domain.
@@ -360,7 +363,7 @@ defmodule Core.Utils.PrimaryDomainFinder do
       {:ok, dns_info} ->
         is_primary =
           dns_info.cname == "" &&
-            length(dns_info.mx) > 0 &&
+            length(dns_info.mx) >= 0 && # MX records are not required as many legitimate websites use external email services or don't have email configured on their domain.
             dns_info.has_a
 
         {:ok, {domain, root, subdomain, is_primary}}
@@ -374,7 +377,7 @@ defmodule Core.Utils.PrimaryDomainFinder do
     do: {:ok, {is_primary, domain}}
 
   defp determine_primary_domain_status({domain, root, subdomain, is_primary}) do
-    Logger.info("Determining primary domain status for #{domain}")
+    Logger.info("Determining primary domain status for #{domain}, root: #{root}, subdomain: #{subdomain}, is_primary: #{is_primary}")
 
     cond do
       is_primary && subdomain == "" ->
