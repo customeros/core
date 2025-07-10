@@ -38,29 +38,14 @@ defmodule Web.LeadsController do
             Contacts.get_taget_persona_contacts_by_lead_id(tenant_id, lead_id)
         end
 
-      attribution =
+      {attribution, attributions_list} =
         case params["lead"] do
           nil ->
-            nil
+            {nil, []}
 
           lead_id ->
-            case Leads.get_channel_attribution(tenant_id, lead_id) do
-              {:ok, channel, platform, referrer} ->
-                %{
-                  "channel" => channel,
-                  "platform" => platform,
-                  "referrer" => referrer
-                }
-
-              {:error, reason} ->
-                %{"error" => reason}
-
-              nil ->
-                nil
-
-              other ->
-                other
-            end
+            data = Leads.get_channel_attribution(tenant_id, lead_id)
+            {data |> Enum.at(0), data}
         end
 
       conn
@@ -71,6 +56,7 @@ defmodule Web.LeadsController do
       |> assign_prop(:max_count, max_count)
       |> assign_prop(:personas, personas)
       |> assign_prop(:attribution, attribution)
+      |> assign_prop(:attributions_list, attributions_list)
       |> render_inertia("Leads")
     end
   end

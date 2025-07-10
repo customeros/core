@@ -18,6 +18,7 @@ defmodule Core.Crm.Leads do
   alias Core.Crm.Companies.Company
   alias Core.Crm.Leads.LeadNotifier
   alias Core.WebTracker.Sessions.Session
+  alias Core.Crm.Attribution.AttributionView
   alias Core.Crm.Leads.{Lead, LeadView, LeadContext}
 
   @type order_by ::
@@ -136,39 +137,25 @@ defmodule Core.Crm.Leads do
   def get_channel_attribution(tenant_id, lead_id) do
     with {:ok, tenant} <- Tenants.get_tenant_by_id(tenant_id),
          {:ok, lead} <- get_by_id(tenant_id, lead_id) do
-      attribution =
-        Session
-        |> where([s], s.company_id == ^lead.ref_id and s.tenant == ^tenant.name)
-        |> order_by([s], asc: s.inserted_at)
-        |> limit(1)
-        |> Repo.one()
-
-      case attribution do
-        nil ->
-          @err_not_found
-
-        _ ->
-          # Defensive: treat empty string as nil for enum fields
-          channel =
-            if attribution.channel in [nil, ""],
-              do: nil,
-              else: attribution.channel
-
-          platform =
-            if attribution.platform in [nil, ""],
-              do: nil,
-              else: attribution.platform
-
-          referrer =
-            if attribution.referrer in [nil, ""],
-              do: nil,
-              else: attribution.referrer
-
-          {:ok, channel, platform, referrer}
-      end
+      from(s in Session,
+        where: s.company_id == ^lead.ref_id and s.tenant == ^tenant.name,
+        order_by: [asc: s.inserted_at],
+        select: %{
+          id: s.id,
+          channel: s.channel,
+          platform: s.platform,
+          referrer: s.referrer,
+          city: s.city,
+          country_code: s.country_code,
+          inserted_at: s.inserted_at
+        }
+      )
+      |> Repo.all()
+      |> Enum.map(fn session ->
+        struct(AttributionView, session)
+      end)
     else
-      {:error, :not_found} ->
-        @err_not_found
+      _ -> []
     end
   end
 
