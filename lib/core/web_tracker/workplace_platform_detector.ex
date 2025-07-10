@@ -96,6 +96,210 @@ defmodule Core.WebTracker.WorkplacePlatformDetector do
     "workplace.com" => :meta_workplace
   }
 
+  @mobile_app_referrers %{
+    # Slack mobile apps
+    "android-app://com.slack" => :slack,
+    "android-app://com.slack/" => :slack,
+    "android-app://com.Slack" => :slack,
+    "android-app://com.Slack/" => :slack,
+    "ios-app://618783545" => :slack,
+
+    # Microsoft Teams mobile apps
+    "android-app://com.microsoft.teams" => :teams,
+    "android-app://com.microsoft.teams/" => :teams,
+    "android-app://com.microsoft.skype.teams.ipphone" => :teams,
+    "android-app://com.microsoft.skype.teams.ipphone/" => :teams,
+    "ios-app://1113153706" => :teams,
+
+    # Zoom mobile apps
+    "android-app://us.zoom.videomeetings" => :zoom,
+    "android-app://us.zoom.videomeetings/" => :zoom,
+    "android-app://us.zoom.cloudmeetings" => :zoom,
+    "android-app://us.zoom.cloudmeetings/" => :zoom,
+    "ios-app://546505307" => :zoom,
+
+    # Google Meet/Workspace mobile apps
+    "android-app://com.google.android.apps.meetings" => :google_meet,
+    "android-app://com.google.android.apps.meetings/" => :google_meet,
+    "android-app://com.google.android.apps.docs.editors.docs" =>
+      :google_workspace,
+    "android-app://com.google.android.apps.docs.editors.docs/" =>
+      :google_workspace,
+    "android-app://com.google.android.apps.docs.editors.sheets" =>
+      :google_workspace,
+    "android-app://com.google.android.apps.docs.editors.sheets/" =>
+      :google_workspace,
+    "android-app://com.google.android.apps.docs.editors.slides" =>
+      :google_workspace,
+    "android-app://com.google.android.apps.docs.editors.slides/" =>
+      :google_workspace,
+    "android-app://com.google.android.apps.drive" => :google_workspace,
+    "android-app://com.google.android.apps.drive/" => :google_workspace,
+    "ios-app://1013254666" => :google_meet,
+    "ios-app://842842640" => :google_workspace,
+    "ios-app://842849113" => :google_workspace,
+    "ios-app://586449534" => :google_workspace,
+    "ios-app://507874739" => :google_workspace,
+
+    # Salesforce mobile apps
+    "android-app://com.salesforce.androidsdk.app" => :salesforce,
+    "android-app://com.salesforce.androidsdk.app/" => :salesforce,
+    "android-app://com.salesforce.chatter" => :salesforce,
+    "android-app://com.salesforce.chatter/" => :salesforce,
+    "ios-app://404249815" => :salesforce,
+    "ios-app://379434651" => :salesforce,
+
+    # HubSpot mobile apps
+    "android-app://com.hubspot.android" => :hubspot,
+    "android-app://com.hubspot.android/" => :hubspot,
+    "ios-app://467650485" => :hubspot,
+
+    # Asana mobile apps
+    "android-app://com.asana.app" => :asana,
+    "android-app://com.asana.app/" => :asana,
+    "ios-app://489969512" => :asana,
+
+    # Trello mobile apps
+    "android-app://com.trello" => :trello,
+    "android-app://com.trello/" => :trello,
+    "ios-app://461504587" => :trello,
+
+    # Monday.com mobile apps
+    "android-app://com.monday.monday" => :monday,
+    "android-app://com.monday.monday/" => :monday,
+    "ios-app://1298995828" => :monday,
+
+    # Notion mobile apps
+    "android-app://notion.id" => :notion,
+    "android-app://notion.id/" => :notion,
+    "ios-app://1232780281" => :notion,
+
+    # Jira mobile apps
+    "android-app://com.atlassian.android.jira.core" => :jira,
+    "android-app://com.atlassian.android.jira.core/" => :jira,
+    "ios-app://1006972087" => :jira,
+
+    # ClickUp mobile apps
+    "android-app://com.clickup.clickup" => :clickup,
+    "android-app://com.clickup.clickup/" => :clickup,
+    "ios-app://1123637736" => :clickup,
+
+    # Airtable mobile apps
+    "android-app://com.formagrid.airtable" => :airtable,
+    "android-app://com.formagrid.airtable/" => :airtable,
+    "ios-app://914172636" => :airtable,
+
+    # Zendesk mobile apps
+    "android-app://com.zendesk.chat" => :zendesk,
+    "android-app://com.zendesk.chat/" => :zendesk,
+    "android-app://com.zendesk.support" => :zendesk,
+    "android-app://com.zendesk.support/" => :zendesk,
+    "ios-app://1033077036" => :zendesk,
+
+    # Intercom mobile apps
+    "android-app://io.intercom.android" => :intercom,
+    "android-app://io.intercom.android/" => :intercom,
+    "ios-app://871879644" => :intercom,
+
+    # Freshworks mobile apps
+    "android-app://com.freshdesk.helpdesk" => :freshworks,
+    "android-app://com.freshdesk.helpdesk/" => :freshworks,
+    "ios-app://1142174994" => :freshworks,
+
+    # Pipedrive mobile apps
+    "android-app://com.pipedrive.app" => :pipedrive,
+    "android-app://com.pipedrive.app/" => :pipedrive,
+    "ios-app://468545814" => :pipedrive,
+
+    # Zoho mobile apps
+    "android-app://com.zoho.crm" => :zoho,
+    "android-app://com.zoho.crm/" => :zoho,
+    "android-app://com.zoho.mail" => :zoho,
+    "android-app://com.zoho.mail/" => :zoho,
+    "ios-app://523418889" => :zoho,
+    "ios-app://1230616235" => :zoho,
+
+    # Dropbox mobile apps
+    "android-app://com.dropbox.android" => :dropbox,
+    "android-app://com.dropbox.android/" => :dropbox,
+    "ios-app://327630330" => :dropbox,
+
+    # Box mobile apps
+    "android-app://com.box.android" => :box,
+    "android-app://com.box.android/" => :box,
+    "ios-app://290853822" => :box,
+
+    # Microsoft Office mobile apps
+    "android-app://com.microsoft.office.outlook" => :microsoft_office,
+    "android-app://com.microsoft.office.outlook/" => :microsoft_office,
+    "android-app://com.microsoft.office.word" => :microsoft_office,
+    "android-app://com.microsoft.office.word/" => :microsoft_office,
+    "android-app://com.microsoft.office.excel" => :microsoft_office,
+    "android-app://com.microsoft.office.excel/" => :microsoft_office,
+    "android-app://com.microsoft.office.powerpoint" => :microsoft_office,
+    "android-app://com.microsoft.office.powerpoint/" => :microsoft_office,
+    "android-app://com.microsoft.skydrive" => :microsoft_office,
+    "android-app://com.microsoft.skydrive/" => :microsoft_office,
+    "ios-app://586447913" => :microsoft_office,
+    "ios-app://462054704" => :microsoft_office,
+    "ios-app://456320037" => :microsoft_office,
+
+    # Mailchimp mobile apps
+    "android-app://com.mailchimp.mailchimp" => :mailchimp,
+    "android-app://com.mailchimp.mailchimp/" => :mailchimp,
+    "ios-app://593291631" => :mailchimp,
+
+    # Klaviyo mobile apps
+    "android-app://com.klaviyo.klaviyo" => :klaviyo,
+    "android-app://com.klaviyo.klaviyo/" => :klaviyo,
+    "ios-app://1537886371" => :klaviyo,
+
+    # Marketo mobile apps
+    "android-app://com.marketo.moments" => :marketo,
+    "android-app://com.marketo.moments/" => :marketo,
+    "ios-app://972105115" => :marketo,
+
+    # Basecamp mobile apps
+    "android-app://com.basecamp.bc3" => :basecamp,
+    "android-app://com.basecamp.bc3/" => :basecamp,
+    "ios-app://1015603248" => :basecamp,
+
+    # Drift mobile apps
+    "android-app://drift.com.drift" => :drift,
+    "android-app://drift.com.drift/" => :drift,
+    "ios-app://1278074418" => :drift,
+
+    # Constant Contact mobile apps
+    "android-app://com.constantcontact.marketing" => :constant_contact,
+    "android-app://com.constantcontact.marketing/" => :constant_contact,
+    "ios-app://1190563303" => :constant_contact,
+
+    # Campaign Monitor mobile apps
+    "android-app://com.campaignmonitor.insights" => :campaign_monitor,
+    "android-app://com.campaignmonitor.insights/" => :campaign_monitor,
+    "ios-app://1442989374" => :campaign_monitor,
+
+    # GoToMeeting mobile apps
+    "android-app://com.gotomeeting" => :gotomeeting,
+    "android-app://com.gotomeeting/" => :gotomeeting,
+    "ios-app://463892314" => :gotomeeting,
+
+    # Webex mobile apps
+    "android-app://com.cisco.webex.meetings" => :webex,
+    "android-app://com.cisco.webex.meetings/" => :webex,
+    "ios-app://298844386" => :webex,
+
+    # Yammer mobile apps
+    "android-app://com.yammer.v1" => :yammer,
+    "android-app://com.yammer.v1/" => :yammer,
+    "ios-app://289559439" => :yammer,
+
+    # Meta Workplace mobile apps
+    "android-app://com.facebook.work" => :meta_workplace,
+    "android-app://com.facebook.work/" => :meta_workplace,
+    "ios-app://944921229" => :meta_workplace
+  }
+
   @domain_patterns [
     # Microsoft Teams (catches CDN and subdomain variations)
     {~r/teams.*\.microsoft\.com/, :teams},
@@ -259,21 +463,50 @@ defmodule Core.WebTracker.WorkplacePlatformDetector do
   end
 
   defp get_platform_from_referrer(referrer) do
-    case URI.parse(referrer) do
-      %URI{host: nil} ->
-        :not_found
+    cond do
+      # Check for mobile app referrers first
+      mobile_app_referrer?(referrer) ->
+        get_platform_from_mobile_app(referrer)
 
-      %URI{host: host} when is_binary(host) ->
-        case check_domain_patterns(host) do
-          :none ->
-            case Core.Utils.DomainExtractor.extract_base_domain(referrer) do
-              {:ok, domain} -> check_base_domain(domain)
-              {:error, _} -> :not_found
+      true ->
+        case URI.parse(referrer) do
+          %URI{host: nil} ->
+            :not_found
+
+          %URI{host: host} when is_binary(host) ->
+            case check_domain_patterns(host) do
+              :none ->
+                case Core.Utils.DomainExtractor.extract_base_domain(referrer) do
+                  {:ok, domain} -> check_base_domain(domain)
+                  {:error, _} -> :not_found
+                end
+
+              platform ->
+                {:ok, platform}
             end
-
-          platform ->
-            {:ok, platform}
         end
+    end
+  end
+
+  defp mobile_app_referrer?(referrer) when is_binary(referrer) do
+    String.starts_with?(referrer, "android-app://") or
+      String.starts_with?(referrer, "ios-app://")
+  end
+
+  defp mobile_app_referrer?(_), do: false
+
+  defp get_platform_from_mobile_app(referrer) do
+    clean_referrer = String.trim_trailing(referrer, "/")
+
+    case Map.get(@mobile_app_referrers, clean_referrer) do
+      nil ->
+        case Map.get(@mobile_app_referrers, clean_referrer <> "/") do
+          nil -> :not_found
+          platform -> {:ok, platform}
+        end
+
+      platform ->
+        {:ok, platform}
     end
   end
 
