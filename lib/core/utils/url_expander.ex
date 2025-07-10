@@ -77,6 +77,7 @@ defmodule Core.Utils.UrlExpander do
 
     if shortener_found do
       Logger.info("Expanding short url: #{url}")
+
       case follow_single_redirect(url) do
         {:ok, expanded_url} ->
           case extract_domain_from_url(expanded_url) do
@@ -104,14 +105,16 @@ defmodule Core.Utils.UrlExpander do
     |> String.trim("/")
   end
 
-    defp follow_single_redirect(url) do
+  defp follow_single_redirect(url) do
     # Add protocol if missing
-    full_url = if String.starts_with?(url, "http"), do: url, else: "https://#{url}"
+    full_url =
+      if String.starts_with?(url, "http"), do: url, else: "https://#{url}"
 
     case DomainIO.test_redirect(full_url) do
       {:ok, {:redirect, headers}} ->
         # Extract location header for redirects
         location = find_location_header(headers)
+
         if location && location != "" do
           {:ok, location}
         else
