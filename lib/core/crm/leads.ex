@@ -137,7 +137,7 @@ defmodule Core.Crm.Leads do
          {:ok, lead} <- get_by_id(tenant_id, lead_id) do
       from(s in Session,
         where: s.company_id == ^lead.ref_id and s.tenant == ^tenant.name,
-        order_by: [desc: s.inserted_at],
+        order_by: [asc: s.inserted_at],
         select: %{
           id: s.id,
           channel: s.channel,

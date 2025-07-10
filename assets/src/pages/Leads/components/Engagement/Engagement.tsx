@@ -62,55 +62,61 @@ export const Engagement = () => {
     <div className="flex flex-col gap-2 mt-4">
       <p className="text-sm font-medium">Engagement summary</p>
       <div className="flex flex-col gap-2 mt-4">
-        {page.props.attributions_list.map((attribution, idx) => {
-          const channel = attribution.channel || 'direct';
-          const isLast = idx === page.props.attributions_list.length - 1;
+        {page.props.attributions_list
+          .sort((a, b) => {
+            return new Date(b.inserted_at).getTime() - new Date(a.inserted_at).getTime();
+          })
+          .map((attribution, idx) => {
+            const channel = attribution.channel || 'direct';
+            const isLast = idx === page.props.attributions_list.length - 1;
 
-          return (
-            <div key={idx} className="flex flex-row items-stretch">
-              <div className="flex flex-col items-center mr-2">
-                <div
-                  className={cn(
-                    'size-1.5 rounded-full mt-[7px]',
-                    dotBgMap[channel as keyof typeof dotBgMap]
-                  )}
-                />
-                {!isLast && <div className="w-px min-h-[16px] flex-1 bg-gray-200 my-1" />}
-              </div>
-              <div className="flex-1 flex flex-col gap-1">
-                <div className="flex flex-wrap items-center gap-1">
-                  <span className={cn('font-semibold', colorMap[channel as keyof typeof colorMap])}>
-                    {channelLabelMap[channel as keyof typeof channelLabelMap] || channel}
-                  </span>
-                  <span className="text-gray-500">•</span>
-                  <span>
-                    {attribution.city && attribution.country_code
-                      ? `${attribution.city}, ${attribution.country_code}`
-                      : attribution.city || attribution.country_code || ''}
-                  </span>
-                  <span className="text-gray-500">•</span>
-                  <span className="text-gray-500">{attribution.inserted_at}</span>
+            return (
+              <div key={idx} className="flex flex-row items-stretch">
+                <div className="flex flex-col items-center mr-2">
+                  <div
+                    className={cn(
+                      'size-1.5 rounded-full mt-[7px]',
+                      dotBgMap[channel as keyof typeof dotBgMap]
+                    )}
+                  />
+                  {!isLast && <div className="w-px min-h-[16px] flex-1 bg-gray-200 my-1" />}
                 </div>
-                <div className="pl-4 flex flex-col gap-0.5 text-sm">
-                  {(attribution.platform !== null ||
-                    (attribution.referrer && attribution.referrer !== '')) && (
-                    <div className="flex items-center gap-1">
-                      <Icon name="corner-down-right" />
-                      <span className="font-semibold text-gray-700">
-                        {attribution.platform !== null ? 'Platform:' : 'Referrer:'}
-                      </span>
-                      <span>
-                        {attribution.platform !== null
-                          ? attribution.platform
-                          : attribution.referrer}
-                      </span>
-                    </div>
-                  )}
+                <div className="flex-1 flex flex-col gap-1">
+                  <div className="flex flex-wrap items-center gap-1">
+                    <span
+                      className={cn('font-semibold', colorMap[channel as keyof typeof colorMap])}
+                    >
+                      {channelLabelMap[channel as keyof typeof channelLabelMap] || channel}
+                    </span>
+                    <span className="text-gray-500">•</span>
+                    <span>
+                      {attribution.city && attribution.country_code
+                        ? `${attribution.city}, ${attribution.country_code}`
+                        : attribution.city || attribution.country_code || ''}
+                    </span>
+                    <span className="text-gray-500">•</span>
+                    <span className="text-gray-500">{attribution.inserted_at}</span>
+                  </div>
+                  <div className="pl-4 flex flex-col gap-0.5 text-sm">
+                    {(attribution.platform !== null ||
+                      (attribution.referrer && attribution.referrer !== '')) && (
+                      <div className="flex items-center gap-1">
+                        <Icon name="corner-down-right" />
+                        <span className="font-semibold text-gray-700">
+                          {attribution.platform !== null ? 'Platform:' : 'Referrer:'}
+                        </span>
+                        <span>
+                          {attribution.platform !== null
+                            ? attribution.platform
+                            : attribution.referrer}
+                        </span>
+                      </div>
+                    )}
+                  </div>
                 </div>
               </div>
-            </div>
-          );
-        })}
+            );
+          })}
       </div>
     </div>
   );
