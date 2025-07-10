@@ -11,18 +11,19 @@ defmodule Core.Utils.Cron.CronLock do
   use Ecto.Schema
 
   @cron_names [
+    :cron_analytics_processor,
     :cron_better_contact_job_checker,
+    :cron_brief_creator,
     :cron_company_domain_processor,
     :cron_company_enricher,
     :cron_company_scrapin_enricher,
-    :cron_session_closer,
-    :cron_icp_fit_evaluator,
-    :cron_stage_evaluator,
     :cron_daily_lead_summary_sender,
     :cron_hubspot_company_sync,
-    :cron_brief_creator,
-    :cron_magic_link_usage_checker,
+    :cron_icp_fit_evaluator,
     :cron_lead_creator,
+    :cron_magic_link_usage_checker,
+    :cron_session_closer,
+    :cron_stage_evaluator,
     :cron_target_persona_linkedin_processor
   ]
 
