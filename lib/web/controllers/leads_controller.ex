@@ -48,6 +48,8 @@ defmodule Web.LeadsController do
             {data |> Enum.at(0), data}
         end
 
+      dbg(attributions_list)
+
       conn
       |> assign_prop(:page_title, "Leads | CustomerOS")
       |> assign_prop(:leads, leads)

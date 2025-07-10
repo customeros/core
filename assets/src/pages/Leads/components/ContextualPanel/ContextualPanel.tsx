@@ -7,13 +7,11 @@ import { PageProps } from '@inertiajs/core';
 import { Tabs } from 'src/components/Tabs/Tabs';
 import { useUrlState } from 'src/hooks/useUrlState';
 import { Lead, User, Stage, Tenant } from 'src/types';
-import { Editor } from 'src/components/Editor/Editor';
 import { Button } from 'src/components/Button/Button';
 import { IconButton } from 'src/components/IconButton';
 import { Tooltip } from 'src/components/Tooltip/Tooltip';
 import { toastSuccess } from 'src/components/Toast/success';
 import { usePresence } from 'src/providers/PresenceProvider';
-import { FeaturedIcon } from 'src/components/FeaturedIcon/FeaturedIcon';
 import {
   ScrollAreaRoot,
   ScrollAreaThumb,
@@ -21,7 +19,9 @@ import {
   ScrollAreaScrollbar,
 } from 'src/components/ScrollArea';
 
+import { Engagement } from '../Engagement/Engagement';
 import { ContactCard } from '../ContactCard/ContactCard';
+import { DocumentEditor } from '../DocumentEditor/DocumentEditor';
 import { ChannelAttribution } from '../ChannelAttribution/ChannelAttribution';
 
 export const ContextualPanel = () => {
@@ -34,7 +34,7 @@ export const ContextualPanel = () => {
 
   const { presentUsers, currentUserId } = usePresence();
   const { getUrlState, setUrlState } = useUrlState();
-  const { viewDoc } = getUrlState();
+  const { tab } = getUrlState();
 
   const currentLead = useMemo(() => {
     if (Array.isArray(page.props.leads)) {
@@ -42,6 +42,7 @@ export const ContextualPanel = () => {
     }
 
     const leads = page.props.leads as Record<Stage, Lead[]>;
+
     const targetStage = Object.keys(leads).find(key =>
       leads[key as Stage].some(lead => lead.id === leadId)
     );
@@ -92,7 +93,7 @@ export const ContextualPanel = () => {
 
     params.delete('lead');
     params.delete('viewMode');
-    params.delete('viewDoc');
+    params.delete('tab');
     router.get(
       '/leads',
       {
@@ -113,20 +114,16 @@ export const ContextualPanel = () => {
     toastSuccess('Document link copied', 'document-link-copied');
   };
 
-  const handleTabClick = () => {
+  const handleTabClick = (tab: 'account' | 'engagement' | 'contacts') => {
     setUrlState(
       state => {
-        const newViewDoc = state.viewDoc === 'true' ? 'false' : 'true';
-
         return {
           ...state,
-          viewDoc: newViewDoc,
-          viewMode:
-            newViewDoc === 'false' && state.viewMode === 'focus' ? 'default' : state.viewMode,
+          tab,
         };
       },
       {
-        revalidate: ['personas', 'attribution'],
+        revalidate: ['personas', 'attribution', 'attributions_list'],
       }
     );
   };
@@ -191,7 +188,7 @@ export const ContextualPanel = () => {
                 )}
 
                 <div className="flex items-center w-full justify-end gap-2 ">
-                  {currentLead?.document_id && viewDoc === 'true' && (
+                  {currentLead?.document_id && tab === 'account' && (
                     <>
                       {/* <Tooltip side="bottom" label="Focus mode">
                         <IconButton
@@ -233,61 +230,45 @@ export const ContextualPanel = () => {
                   <Button
                     size="xs"
                     className="w-fit"
-                    onClick={handleTabClick}
-                    data-state={viewDoc === 'true' ? 'active' : 'inactive'}
+                    onClick={() => handleTabClick('account')}
+                    data-state={tab === 'account' ? 'active' : 'inactive'}
                   >
                     Account brief
                   </Button>
                   <Button
                     size="xs"
                     className="w-fit"
-                    onClick={handleTabClick}
-                    data-state={viewDoc === 'false' ? 'active' : 'inactive'}
+                    onClick={() => handleTabClick('engagement')}
+                    data-state={tab === 'engagement' ? 'active' : 'inactive'}
+                  >
+                    Engagement
+                  </Button>
+                  <Button
+                    size="xs"
+                    className="w-fit"
+                    onClick={() => handleTabClick('contacts')}
+                    data-state={tab === 'contacts' ? 'active' : 'inactive'}
                   >
                     Contacts
                   </Button>
                 </Tabs>
               </div>
 
-              {viewDoc === 'false' && (
+              {tab === 'account' && (
+                <DocumentEditor
+                  userId={currentUserId}
+                  docId={currentLead?.document_id || ''}
+                  presenceUser={presenceUser || { username: '', cursorColor: '' }}
+                />
+              )}
+
+              {tab === 'engagement' && <Engagement />}
+
+              {tab === 'contacts' && (
                 <div className="flex items-center justify-start w-full">
                   <ContactCard />
                 </div>
               )}
-
-              {currentLead?.document_id && viewDoc === 'true' ? (
-                <Editor
-                  size="sm"
-                  useYjs={true}
-                  placeholder=""
-                  namespace="leads"
-                  user={presenceUser}
-                  user_id={currentUserId}
-                  key={currentLead?.document_id}
-                  documentId={currentLead?.document_id}
-                />
-              ) : (
-                viewDoc === 'true' && (
-                  <div className="flex items-center justify-start flex-col h-full">
-                    <div className="flex items-center justify-center">
-                      <FeaturedIcon className="mb-6 mt-[40px]">
-                        <Icon name="clock-fast-forward" />
-                      </FeaturedIcon>
-                    </div>
-                    <div className="flex flex-col items-center justify-center ">
-                      <p className="text-base font-medium mb-1">Preparing account brief</p>
-                      <div className="max-w-[340px] text-center gap-2 flex flex-col">
-                        <p>
-                          We're now busy analyzing and pulling together everything you need to know
-                          about this lead.
-                        </p>
-                        <p>Hang tight, the brief should be available in a moment.</p>
-                      </div>
-                    </div>
-                  </div>
-                )
-              )}
-
               <div className="h-20 w-full"></div>
             </div>
           </div>
@@ -299,16 +280,3 @@ export const ContextualPanel = () => {
     </>
   );
 };
-
-// const colorMap: Record<string, string[]> = {
-//   gray: ['hover:ring-gray-400', 'bg-gray-50', 'text-gray-500'],
-//   error: ['hover:ring-error-400', 'bg-error-50', 'text-error-500'],
-//   warning: ['hover:ring-warning-400', 'bg-warning-50', 'text-warning-500'],
-//   success: ['hover:ring-success-400', 'bg-success-50', 'text-success-500'],
-//   grayWarm: ['hover:ring-grayWarm-400', 'bg-grayWarm-50', 'text-grayWarm-500'],
-//   moss: ['hover:ring-moss-400', 'bg-moss-50', 'text-moss-500'],
-//   blueLight: ['hover:ring-blueLight-400', 'bg-blueLight-50', 'text-blueLight-500'],
-//   indigo: ['hover:ring-indigo-400', 'bg-indigo-50', 'text-indigo-500'],
-//   violet: ['hover:ring-violet-400', 'bg-violet-50', 'text-violet-500'],
-//   pink: ['hover:ring-pink-400', 'bg-pink-50', 'text-pink-500'],
-// };

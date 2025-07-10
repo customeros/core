@@ -41,14 +41,14 @@ export default function Leads({ leads, stage_counts, max_count }: LeadsProps) {
   const [seen] = useLocalstorageState<Record<string, boolean>>('seen-leads', {});
 
   const handleOpenLead = useCallback(
-    (lead: { id: string; stage: Stage }) => {
+    (lead: { id: string; stage: Stage }, tab: 'account' | 'engagement' | 'contacts') => {
       setUrlState(
         ({ lead: currentLead, ...rest }) => {
           if (lead.id === currentLead) {
             return {
               ...rest,
               viewMode: 'default',
-              viewDoc: true,
+              tab,
             };
           }
 
@@ -56,7 +56,7 @@ export default function Leads({ leads, stage_counts, max_count }: LeadsProps) {
             ...rest,
             lead: lead.id,
             viewMode: 'default',
-            viewDoc: true,
+            tab,
           };
         },
         {
@@ -129,8 +129,8 @@ export default function Leads({ leads, stage_counts, max_count }: LeadsProps) {
                           lead={lead}
                           key={lead.id}
                           isSeen={seen[lead.id]}
-                          handleOpenLead={handleOpenLead}
                           handleStageClick={handleStageClick}
+                          handleOpenLead={() => handleOpenLead(lead, 'account')}
                         />
                       ))}
                   </div>
