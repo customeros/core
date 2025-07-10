@@ -33,8 +33,6 @@ defmodule Core.Crm.Leads do
           | [desc: :country]
           | [asc: :country]
 
-  @err_not_found {:error, "tenant not found"}
-
   # Public functions
 
   @doc """
