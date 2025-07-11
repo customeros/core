@@ -29,4 +29,4 @@ defmodule HourlyStats do
   end
 end
 
-HourlyStats.run("tenant_4048efgi9ya6kzxt")
+HourlyStats.run("tenant_o37flpi7higycpsl")
