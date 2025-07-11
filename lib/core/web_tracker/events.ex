@@ -19,13 +19,6 @@ defmodule Core.WebTracker.Events do
   """
   def create(attrs) do
     OpenTelemetry.Tracer.with_span "events.create" do
-      OpenTelemetry.Tracer.set_attributes([
-        {"event.visitor_id", Map.get(attrs, :visitor_id)},
-        {"event.type", Map.get(attrs, :event_type)},
-        {"event.tenant", Map.get(attrs, :tenant)},
-        {"event.ip", Map.get(attrs, :ip)}
-      ])
-
       result =
         %Event{}
         |> Event.changeset(attrs |> MapUtils.to_snake_case_map())
@@ -94,7 +87,7 @@ defmodule Core.WebTracker.Events do
     if is_nil(session_id) do
       OpenTelemetry.Tracer.with_span "events.maybe_put_session_id" do
         OpenTelemetry.Tracer.set_attributes([
-          {"session.creation_type", "new_or_existing"}
+          {"param.session.creation_type", "new_or_existing"}
         ])
 
         case Sessions.get_or_create_session(
@@ -102,8 +95,8 @@ defmodule Core.WebTracker.Events do
              ) do
           {:ok, session} ->
             OpenTelemetry.Tracer.set_attributes([
-              {"session.id", session.id},
-              {"session.created", session.just_created}
+              {"result.session.id", session.id},
+              {"result.session.created", session.just_created}
             ])
 
             changeset
@@ -132,8 +125,8 @@ defmodule Core.WebTracker.Events do
     else
       OpenTelemetry.Tracer.with_span "events.maybe_put_session_id" do
         OpenTelemetry.Tracer.set_attributes([
-          {"session.creation_type", "existing"},
-          {"session.id", session_id}
+          {"param.session.creation_type", "existing"},
+          {"param.session.id", session_id}
         ])
 
         changeset
