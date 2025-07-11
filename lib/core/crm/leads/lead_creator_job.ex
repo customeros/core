@@ -114,7 +114,7 @@ defmodule Core.Crm.Leads.LeadCreator do
         with {:ok, db_company} <-
                Companies.get_or_create_by_domain(lead_domain_queue.domain),
              {:ok, lead} <-
-               Leads.get_or_create_with_tenant_id(
+               Leads.get_or_create(
                  lead_domain_queue.tenant_id,
                  %{
                    type: :company,

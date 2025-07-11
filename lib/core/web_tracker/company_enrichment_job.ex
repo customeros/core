@@ -153,7 +153,7 @@ defmodule Core.WebTracker.CompanyEnrichmentJob do
          {:ok, _session} <-
            Sessions.set_company_id(event.session_id, db_company.id),
          {:ok, _lead} <-
-           Leads.get_or_create(event.tenant, %{
+           Leads.get_or_create(event.tenant_id, %{
              type: :company,
              ref_id: db_company.id
            }) do
@@ -223,16 +223,16 @@ defmodule Core.WebTracker.CompanyEnrichmentJob do
   defp process_company_data(event, domain) do
     OpenTelemetry.Tracer.with_span "company_enrichment_job.process_company_data" do
       OpenTelemetry.Tracer.set_attributes([
-        {"company.domain", domain},
-        {"event.session_id", event.session_id},
-        {"event.tenant", event.tenant}
+        {"param.domain", domain},
+        {"param.session_id", event.session_id},
+        {"param.tenant.id", event.tenant_id}
       ])
 
       with {:ok, db_company} <- Companies.get_or_create_by_domain(domain),
            {:ok, _session} <-
              Sessions.set_company_id(event.session_id, db_company.id),
            {:ok, _lead} <-
-             Leads.get_or_create(event.tenant, %{
+             Leads.get_or_create(event.tenant_id, %{
                type: :company,
                ref_id: db_company.id
              }) do

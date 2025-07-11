@@ -121,9 +121,9 @@ defmodule Core.WebTracker.SessionCloser do
   defp close_session(session) do
     OpenTelemetry.Tracer.with_span "web_session_closer.close_session" do
       OpenTelemetry.Tracer.set_attributes([
-        {"session.id", session.id},
-        {"session.tenant", session.tenant},
-        {"session.visitor_id", session.visitor_id}
+        {"param.session.id", session.id},
+        {"param.session.tenant_id", session.tenant_id},
+        {"param.session.visitor_id", session.visitor_id}
       ])
 
       case Sessions.close(session) do
