@@ -35,26 +35,33 @@ defmodule Core.Integrations.Providers.GoogleAds.Campaigns do
   def list_campaigns(%Connection{} = connection) do
     customer_id = connection.external_system_id
 
-    case Client.get(connection, "/customers/#{customer_id}/googleAds:searchStream", %{
-           query: """
-           SELECT
-             campaign.id,
-             campaign.name,
-             campaign.status,
-             campaign.budget_amount_micros,
-             campaign.start_date,
-             campaign.end_date
-           FROM campaign
-           WHERE campaign.status != 'REMOVED'
-           ORDER BY campaign.name
-           """
-         }) do
+    case Client.get(
+           connection,
+           "/customers/#{customer_id}/googleAds:searchStream",
+           %{
+             query: """
+             SELECT
+               campaign.id,
+               campaign.name,
+               campaign.status,
+               campaign.budget_amount_micros,
+               campaign.start_date,
+               campaign.end_date
+             FROM campaign
+             WHERE campaign.status != 'REMOVED'
+             ORDER BY campaign.name
+             """
+           }
+         ) do
       {:ok, %{"results" => results}} ->
         campaigns = Enum.map(results, &extract_campaign_data/1)
         {:ok, campaigns}
 
       {:ok, response} ->
-        Logger.warning("Unexpected Google Ads API response format: #{inspect(response)}")
+        Logger.warning(
+          "Unexpected Google Ads API response format: #{inspect(response)}"
+        )
+
         {:ok, []}
 
       {:error, reason} ->
@@ -77,21 +84,25 @@ defmodule Core.Integrations.Providers.GoogleAds.Campaigns do
   def get_campaign(%Connection{} = connection, campaign_id) do
     customer_id = connection.external_system_id
 
-    case Client.get(connection, "/customers/#{customer_id}/googleAds:searchStream", %{
-           query: """
-           SELECT
-             campaign.id,
-             campaign.name,
-             campaign.status,
-             campaign.budget_amount_micros,
-             campaign.start_date,
-             campaign.end_date,
-             campaign.advertising_channel_type,
-             campaign.advertising_channel_sub_type
-           FROM campaign
-           WHERE campaign.id = #{campaign_id}
-           """
-         }) do
+    case Client.get(
+           connection,
+           "/customers/#{customer_id}/googleAds:searchStream",
+           %{
+             query: """
+             SELECT
+               campaign.id,
+               campaign.name,
+               campaign.status,
+               campaign.budget_amount_micros,
+               campaign.start_date,
+               campaign.end_date,
+               campaign.advertising_channel_type,
+               campaign.advertising_channel_sub_type
+             FROM campaign
+             WHERE campaign.id = #{campaign_id}
+             """
+           }
+         ) do
       {:ok, %{"results" => [campaign | _]}} ->
         {:ok, extract_campaign_data(campaign)}
 
@@ -99,7 +110,10 @@ defmodule Core.Integrations.Providers.GoogleAds.Campaigns do
         {:error, :not_found}
 
       {:error, reason} ->
-        Logger.error("Failed to get Google Ads campaign #{campaign_id}: #{inspect(reason)}")
+        Logger.error(
+          "Failed to get Google Ads campaign #{campaign_id}: #{inspect(reason)}"
+        )
+
         {:error, reason}
     end
   end

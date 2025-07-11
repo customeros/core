@@ -142,7 +142,10 @@ defmodule Web.GoogleAdsController do
         {:ok, connection}
 
       {:error, reason} ->
-        Logger.error("Failed to create Google Ads connection: #{inspect(reason)}")
+        Logger.error(
+          "Failed to create Google Ads connection: #{inspect(reason)}"
+        )
+
         {:error, :connection_creation_failed}
     end
   end
@@ -201,7 +204,9 @@ defmodule Web.GoogleAdsController do
 
     case Connections.get_connection(tenant_id, :google_ads) do
       {:ok, connection} ->
-        case Core.Integrations.Providers.GoogleAds.Campaigns.list_campaigns(connection) do
+        case Core.Integrations.Providers.GoogleAds.Campaigns.list_campaigns(
+               connection
+             ) do
           {:ok, campaigns} ->
             json(conn, %{
               success: true,
@@ -209,7 +214,9 @@ defmodule Web.GoogleAdsController do
             })
 
           {:error, reason} ->
-            Logger.error("Failed to list Google Ads campaigns: #{inspect(reason)}")
+            Logger.error(
+              "Failed to list Google Ads campaigns: #{inspect(reason)}"
+            )
 
             conn
             |> put_status(500)

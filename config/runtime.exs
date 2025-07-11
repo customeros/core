@@ -243,7 +243,14 @@ config :core, :hubspot,
 config :core, :google_ads,
   client_id: System.get_env("GOOGLE_ADS_CLIENT_ID"),
   client_secret: System.get_env("GOOGLE_ADS_CLIENT_SECRET"),
-  scopes: String.split(System.get_env("GOOGLE_ADS_SCOPES", "https://www.googleapis.com/auth/adwords"), " "),
+  scopes:
+    String.split(
+      System.get_env(
+        "GOOGLE_ADS_SCOPES",
+        "https://www.googleapis.com/auth/adwords"
+      ),
+      " "
+    ),
   api_base_url: "https://googleads.googleapis.com/v14",
   auth_base_url: "https://accounts.google.com",
   token_base_url: "https://oauth2.googleapis.com"

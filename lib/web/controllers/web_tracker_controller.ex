@@ -13,16 +13,24 @@ defmodule Web.WebTrackerController do
 
   def create(conn, params) do
     OpenTelemetry.Tracer.with_span "web_tracker_controller.create" do
-      # Early validation of origin and visitor_id
+      OpenTelemetry.Tracer.set_attributes([
+        {"param.origin", params["origin"]},
+        {"param.visitor_id", params["visitorId"]}
+      ])
+
       with :ok <- validate_origin(params["origin"]),
            {:ok, _} <- validate_visitor_id(params["visitorId"]) do
         case Events.create(params) do
           {:ok, _event} ->
+            Tracing.ok()
+
             conn
             |> put_status(:accepted)
             |> json(%{accepted: true})
 
           {:error, changeset} ->
+            Tracing.error(changeset.errors, "Web-tracker event creation failed")
+
             errors =
               changeset.errors
               |> Enum.map(fn {field, {message, _opts}} -> {field, message} end)
@@ -36,6 +44,10 @@ defmodule Web.WebTrackerController do
         end
       else
         {:error, :origin_ignored} ->
+          OpenTelemetry.Tracer.set_attributes([
+            {"result.error", "Origin is ignored"}
+          ])
+
           conn
           |> put_status(:forbidden)
           |> json(%{
@@ -44,6 +56,10 @@ defmodule Web.WebTrackerController do
           })
 
         {:error, :origin_not_configured} ->
+          OpenTelemetry.Tracer.set_attributes([
+            {"result.error", "Origin not configured"}
+          ])
+
           conn
           |> put_status(:forbidden)
           |> json(%{
@@ -52,6 +68,10 @@ defmodule Web.WebTrackerController do
           })
 
         {:error, :missing_visitor_id} ->
+          OpenTelemetry.Tracer.set_attributes([
+            {"result.error", "Visitor ID is required"}
+          ])
+
           conn
           |> put_status(:bad_request)
           |> json(%{

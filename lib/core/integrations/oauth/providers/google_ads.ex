@@ -149,7 +149,9 @@ defmodule Core.Integrations.OAuth.Providers.GoogleAds do
   def validate_token(%Connection{} = connection) do
     config = Application.get_env(:core, :google_ads)
     base_url = config[:api_base_url]
-    url = "#{base_url}/oauth2/v1/tokeninfo?access_token=#{connection.access_token}"
+
+    url =
+      "#{base_url}/oauth2/v1/tokeninfo?access_token=#{connection.access_token}"
 
     case make_http_get(url) do
       {:ok, %{"aud" => _audience}} ->

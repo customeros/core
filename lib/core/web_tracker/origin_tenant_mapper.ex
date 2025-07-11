@@ -2,6 +2,8 @@ defmodule Core.WebTracker.OriginTenantMapper do
   @moduledoc """
   Manages the mapping between whitelisted origins and their corresponding tenants.
   """
+  require OpenTelemetry.Tracer
+
   alias Core.Auth.Tenants
 
   @err_invalid_origin {:error, "invalid origin"}
@@ -16,11 +18,17 @@ defmodule Core.WebTracker.OriginTenantMapper do
   """
   def get_tenant_for_origin(origin)
       when is_binary(origin) and byte_size(origin) > 0 do
-    cleaned_origin = clean_origin(origin)
+    OpenTelemetry.Tracer.with_span "origin_tenant_mapper.get_tenant_for_origin" do
+      OpenTelemetry.Tracer.set_attributes([
+        {"param.origin", origin}
+      ])
 
-    case find_tenant_for_domain(cleaned_origin) do
-      {:ok, tenant} -> {:ok, tenant}
-      @err_origin_not_configured -> check_subdomain_tenant(cleaned_origin)
+      cleaned_origin = clean_origin(origin)
+
+      case find_tenant_for_domain(cleaned_origin) do
+        {:ok, tenant} -> {:ok, tenant}
+        @err_origin_not_configured -> check_subdomain_tenant(cleaned_origin)
+      end
     end
   end
 
