@@ -96,6 +96,7 @@ defmodule Core.WebTracker.Sessions.Session do
 
   schema "web_sessions" do
     field(:tenant, :string)
+    field(:tenant_id, :string)
     field(:visitor_id, :string)
     field(:origin, :string)
     field(:active, :boolean, default: true)
@@ -129,6 +130,7 @@ defmodule Core.WebTracker.Sessions.Session do
   @type t :: %__MODULE__{
           id: String.t(),
           tenant: String.t(),
+          tenant_id: String.t() | nil,
           visitor_id: String.t(),
           origin: String.t(),
           active: boolean(),
@@ -169,6 +171,7 @@ defmodule Core.WebTracker.Sessions.Session do
     |> cast(attrs, [
       :id,
       :tenant,
+      :tenant_id,
       :visitor_id,
       :origin,
       :active,

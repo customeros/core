@@ -119,6 +119,7 @@ defmodule Core.WebTracker.Events.Event do
     case OriginTenantMapper.get_tenant_for_origin(attrs[:origin]) do
       {:ok, %Core.Auth.Tenants.Tenant{id: tenant_id, name: tenant_name}} ->
         put_change(changeset, :tenant, tenant_name)
+        put_change(changeset, :tenant_id, tenant_id)
 
       {:error, _} ->
         put_change(changeset, :tenant, nil)
