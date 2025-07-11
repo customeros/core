@@ -56,7 +56,6 @@ export default function Leads({ leads, stage_counts, max_count }: LeadsProps) {
             ...rest,
             lead: lead.id,
             viewMode: 'default',
-            tab,
           };
         },
         {
@@ -146,6 +145,7 @@ export default function Leads({ leads, stage_counts, max_count }: LeadsProps) {
 
                       <Button
                         size="xs"
+                        id="test"
                         colorScheme="primary"
                         onClick={() => {
                           window.location.href =
