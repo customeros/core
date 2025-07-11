@@ -106,7 +106,7 @@ defmodule Core.Analytics.JobProcessor do
     end)
   end
 
-  defp execute_job(%AnalyticsJob{job_type: :hourly_lead_generation_agg} = job) do
+  def execute_job(%AnalyticsJob{job_type: :hourly_lead_generation_agg} = job) do
     Logger.info("Processing job #{job.id} for tenant #{job.tenant_id}")
 
     start_hour = truncate_to_hour(DateTime.add(job.scheduled_at, -1, :hour))

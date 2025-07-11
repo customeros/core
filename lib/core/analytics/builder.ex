@@ -26,7 +26,7 @@ defmodule Core.Analytics.Builder do
            get_unique_new_companies(tenant_id, start_time_utc, end_time_utc),
          {:ok, new_leads} <-
            get_new_icp_fit_leads(tenant_id, start_time_utc, end_time_utc) do
-      LeadGeneration.create(%{
+      LeadGeneration.upsert(%{
         bucket_start_at: start_time_utc,
         tenant_id: tenant_id,
         sessions: sessions.sessions,

@@ -30,7 +30,6 @@ defmodule Core.WebTracker.OriginTenantMapper do
 
   defp find_tenant_for_domain(domain) do
     case Tenants.get_tenant_by_domain(domain) do
-      nil -> @err_origin_not_configured
       {:error, "tenant not found"} -> @err_origin_not_configured
       tenant -> {:ok, tenant}
     end

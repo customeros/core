@@ -8,6 +8,7 @@ defmodule Core.Analytics.AnalyticsJobs do
   alias Core.Analytics.AnalyticsJob
 
   @err_create_job {:error, "failed to create analytics job"}
+  @err_not_found {:error, "job not found"}
 
   def create_job(tenant_id, job_type, scheduled_for_utc) do
     %{
@@ -31,6 +32,13 @@ defmodule Core.Analytics.AnalyticsJobs do
         )
 
         @err_create_job
+    end
+  end
+
+  def get_by_id(job_id) do
+    case Repo.get_by(AnalyticsJob, id: job_id) do
+      nil -> @err_not_found
+      %AnalyticsJob{} = job -> {:ok, job}
     end
   end
 
