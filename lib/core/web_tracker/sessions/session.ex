@@ -129,7 +129,7 @@ defmodule Core.WebTracker.Sessions.Session do
 
   @type t :: %__MODULE__{
           id: String.t(),
-          tenant: String.t(),
+          tenant: String.t() | nil,
           tenant_id: String.t() | nil,
           visitor_id: String.t(),
           origin: String.t(),
@@ -193,7 +193,7 @@ defmodule Core.WebTracker.Sessions.Session do
       :utm_id,
       :paid_id
     ])
-    |> validate_required([:id, :tenant, :visitor_id, :origin])
+    |> validate_required([:id, :visitor_id, :origin])
     |> validate_format(:id, @id_regex)
   end
 end

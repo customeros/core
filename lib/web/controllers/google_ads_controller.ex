@@ -76,7 +76,7 @@ defmodule Web.GoogleAdsController do
   defp handle_successful_oauth(conn, code, redirect_uri, tenant_id) do
     with {:ok, token} <- exchange_code_for_token(code, redirect_uri),
          {:ok, customer_id} <- GoogleAdsOAuth.get_customer_id(token.access_token),
-         {:ok, connection} <- create_google_ads_connection(token, customer_id, tenant_id) do
+         {:ok, _connection} <- create_google_ads_connection(token, customer_id, tenant_id) do
       conn
       |> put_flash(:success, "Successfully connected to Google Ads")
       |> redirect(to: ~p"/leads")
@@ -109,33 +109,33 @@ defmodule Web.GoogleAdsController do
   end
 
 
+  #TODO alexb un-comment this
+  # defp get_customer_id_and_update_connection(connection, token) do
+  #   case GoogleAdsOAuth.get_customer_id(token.access_token) do
+  #     {:ok, customer_id} ->
+  #       # Update the connection with the real customer ID
+  #       case Connections.update_connection(connection, %{
+  #              external_system_id: customer_id
+  #            }) do
+  #         {:ok, updated_connection} ->
+  #           Logger.info("Updated Google Ads connection with customer ID: #{customer_id}")
+  #           {:ok, customer_id}
 
-  defp get_customer_id_and_update_connection(connection, token) do
-    case GoogleAdsOAuth.get_customer_id(token.access_token) do
-      {:ok, customer_id} ->
-        # Update the connection with the real customer ID
-        case Connections.update_connection(connection, %{
-               external_system_id: customer_id
-             }) do
-          {:ok, updated_connection} ->
-            Logger.info("Updated Google Ads connection with customer ID: #{customer_id}")
-            {:ok, customer_id}
+  #         {:error, reason} ->
+  #           Logger.error("Failed to update connection with customer ID: #{inspect(reason)}")
+  #           {:error, :update_failed}
+  #       end
 
-          {:error, reason} ->
-            Logger.error("Failed to update connection with customer ID: #{inspect(reason)}")
-            {:error, :update_failed}
-        end
+  #     {:error, :no_customers_found} ->
+  #       # No accessible customers found
+  #       Logger.info("No accessible Google Ads customers found")
+  #       {:error, :no_customers_found}
 
-      {:error, :no_customers_found} ->
-        # No accessible customers found
-        Logger.info("No accessible Google Ads customers found")
-        {:error, :no_customers_found}
-
-      {:error, reason} ->
-        Logger.error("Failed to get Google Ads customer ID: #{inspect(reason)}")
-        {:error, :customer_id_failed}
-    end
-  end
+  #     {:error, reason} ->
+  #       Logger.error("Failed to get Google Ads customer ID: #{inspect(reason)}")
+  #       {:error, :customer_id_failed}
+  #   end
+  # end
 
   defp create_google_ads_connection(token, customer_id, tenant_id) do
     connection_params = %{

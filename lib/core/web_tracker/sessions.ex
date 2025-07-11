@@ -8,7 +8,6 @@ defmodule Core.WebTracker.Sessions do
 
   alias Core.Repo
   alias Plug.Session
-  alias Core.Auth.Tenants
   alias Core.Utils.IdGenerator
   alias Core.WebTracker.IPProfiler
   alias Core.WebTracker.Sessions.Session
@@ -94,14 +93,7 @@ defmodule Core.WebTracker.Sessions do
     result
   end
 
-  def get_tenant_id_for_session(session_id) do
-    with {:ok, session} <- get_session_by_id(session_id),
-         {:ok, tenant} <- Tenants.get_tenant_by_name(session.tenant) do
-      {:ok, tenant.id}
-    else
-      {:error, reason} -> {:error, reason}
-    end
-  end
+
 
   @doc """
   Returns all closed sessions for a lead
