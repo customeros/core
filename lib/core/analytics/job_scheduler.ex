@@ -1,4 +1,16 @@
 defmodule Core.Analytics.JobScheduler do
+  @moduledoc """
+  Analytics job scheduler module.
+
+  This module is responsible for scheduling analytics jobs for all tenants:
+  - Schedules hourly lead generation aggregation jobs for the next 24 hours
+  - Prevents duplicate job creation by checking existing jobs
+  - Distributes job scheduling across tenants
+  - Adds random minute offsets to prevent job clustering
+
+  Works with the analytics job processor to ensure timely data aggregation.
+  """
+
   require Logger
 
   alias Core.Auth.Tenants

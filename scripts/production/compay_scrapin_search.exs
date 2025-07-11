@@ -94,7 +94,7 @@ defmodule ScrapinCompanyMigrator do
               end
             attrs = %{
               id: IdGenerator.generate_id_21(Core.ScrapinCompany.id_prefix()),
-              linkedin_id: company_map["linkedInId"],
+              linkedin_ids: [company_map["linkedInId"]],
               linkedin_alias: company_map["universalName"],
               domain: domain,
               request_param: param1,

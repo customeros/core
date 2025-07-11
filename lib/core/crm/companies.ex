@@ -89,39 +89,47 @@ defmodule Core.Crm.Companies do
     end
   end
 
-  def create_company_by_linkedin_id(linkedin_id) do
-    OpenTelemetry.Tracer.with_span "company_service.create_company_by_linkedin_id" do
+  def get_or_create_company_by_linkedin_id(linkedin_id) do
+    OpenTelemetry.Tracer.with_span "company_service.get_or_create_company_by_linkedin_id" do
       OpenTelemetry.Tracer.set_attributes([
         {"param.linkedin_id", linkedin_id}
       ])
 
-      linkedin_url = "https://www.linkedin.com/company/#{linkedin_id}"
+      # First try to get existing company by linkedin_id
+      case get_by_linkedin_id(linkedin_id) do
+        {:ok, company} ->
+          {:ok, company}
 
-      case ScrapinCompanies.profile_company_with_scrapin(linkedin_url) do
-        {:ok, scrapin_company_details} ->
-          case ScrapinCompanies.get_scrapin_company_record_by_linkedin_id(
-                 scrapin_company_details.linked_in_id
-               ) do
-            {:ok, scrapin_company_record} ->
-              case get_or_create_by_domain(scrapin_company_record.domain) do
-                {:ok, company} ->
-                  if scrapin_company_record.domain ==
-                       scrapin_company_record.linkedin_domain do
-                    set_company_linkedin_id_if_missing(company, linkedin_id)
-                  else
-                    {:ok, company}
+        {:error, :not_found} ->
+          # Company not found, create new one
+          linkedin_url = "https://www.linkedin.com/company/#{linkedin_id}"
+
+          case ScrapinCompanies.profile_company_with_scrapin(linkedin_url) do
+            {:ok, scrapin_company_details} ->
+              case ScrapinCompanies.get_scrapin_company_record_by_linkedin_id(
+                     scrapin_company_details.linked_in_id
+                   ) do
+                {:ok, scrapin_company_record} ->
+                  case get_or_create_by_domain(scrapin_company_record.domain) do
+                    {:ok, company} ->
+                      if scrapin_company_record.domain ==
+                           scrapin_company_record.linkedin_domain do
+                        set_company_linkedin_id(company, linkedin_id)
+                      else
+                        {:ok, company}
+                      end
+
+                    {:error, reason} ->
+                      {:error, reason}
                   end
 
                 {:error, reason} ->
                   {:error, reason}
               end
 
-            {:error, reason} ->
-              {:error, reason}
+            {:error, :not_found} ->
+              {:error, :not_found}
           end
-
-        {:error, :not_found} ->
-          {:error, :not_found}
       end
     end
   end
@@ -237,9 +245,9 @@ defmodule Core.Crm.Companies do
         {"param.linkedin_id", linkedin_id}
       ])
 
-      # Get all companies with this LinkedIn ID
+      # Get all companies with this LinkedIn ID in their linkedin_ids array
       companies =
-        Repo.all(from c in Company, where: c.linkedin_id == ^linkedin_id)
+        Repo.all(from c in Company, where: ^linkedin_id in c.linkedin_ids)
 
       case companies do
         [] ->
@@ -345,17 +353,22 @@ defmodule Core.Crm.Companies do
     end
   end
 
-  def set_company_linkedin_id_if_missing(company, linkedin_id) do
-    if is_nil(company.linkedin_id) do
+  def set_company_linkedin_id(company, linkedin_id) do
+    # Add the linkedin_id to the linkedin_ids array if it's not already there
+    current_linkedin_ids = company.linkedin_ids || []
+
+    if linkedin_id not in current_linkedin_ids do
+      updated_linkedin_ids = [linkedin_id | current_linkedin_ids]
+
       case Repo.update_all(
              from(c in Company, where: c.id == ^company.id),
-             set: [linkedin_id: linkedin_id]
+             set: [linkedin_ids: updated_linkedin_ids]
            ) do
         {0, _} ->
           {:error, :update_failed}
 
         {_count, _} ->
-          {:ok, %{company | linkedin_id: linkedin_id}}
+          {:ok, %{company | linkedin_ids: updated_linkedin_ids}}
       end
     else
       {:ok, company}

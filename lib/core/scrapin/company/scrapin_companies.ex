@@ -276,7 +276,7 @@ defmodule Core.ScrapinCompanies do
 
   defp extract_base_domain(website_url) when is_binary(website_url) do
     case Core.Utils.DomainExtractor.extract_base_domain(website_url) do
-      {:ok, domain} when is_binary(domain) -> {:ok, domain}
+      {:ok, domain} when is_binary(domain) -> {:ok, String.downcase(domain)}
       _ -> {:ok, nil}
     end
   end
