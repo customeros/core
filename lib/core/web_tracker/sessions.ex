@@ -48,7 +48,7 @@ defmodule Core.WebTracker.Sessions do
   Returns an existing active session if found, or creates a new one.
   """
   def get_or_create_session(event) when is_map(event) do
-    case get_active_session(event.tenant, event.visitor_id, event.origin) do
+    case get_active_session(event.tenant_id, event.visitor_id, event.origin) do
       nil ->
         create_new_session_with_ip_validation(event)
 
@@ -74,15 +74,15 @@ defmodule Core.WebTracker.Sessions do
   end
 
   @doc """
-  Gets an active session for the given tenant, visitor_id and origin combination.
+  Gets latest active session for the given tenant_id, visitor_id and origin combination.
   Returns nil if no active session is found.
   """
-  def get_active_session(tenant, visitor_id, origin) do
+  def get_active_session(tenant_id, visitor_id, origin) do
     result =
       Repo.one(
         from s in Session,
           where:
-            s.tenant == ^tenant and
+            s.tenant_id == ^tenant_id and
               s.visitor_id == ^visitor_id and
               s.origin == ^origin and
               s.active == true,
@@ -92,8 +92,6 @@ defmodule Core.WebTracker.Sessions do
 
     result
   end
-
-
 
   @doc """
   Returns all closed sessions for a lead
@@ -298,7 +296,6 @@ defmodule Core.WebTracker.Sessions do
   # Create session with IP data
   defp create_session_with_ip_data(
          %{
-           tenant: tenant,
            tenant_id: tenant_id,
            visitor_id: visitor_id,
            origin: origin,
@@ -315,7 +312,6 @@ defmodule Core.WebTracker.Sessions do
          ip_data
        ) do
     session_attrs = %{
-      tenant: tenant,
       tenant_id: tenant_id,
       visitor_id: visitor_id,
       origin: origin,

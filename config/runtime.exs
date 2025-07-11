@@ -244,7 +244,14 @@ config :core, :google_ads,
   client_id: System.get_env("GOOGLE_ADS_CLIENT_ID"),
   client_secret: System.get_env("GOOGLE_ADS_CLIENT_SECRET"),
   developer_token: System.get_env("GOOGLE_ADS_DEVELOPER_TOKEN"),
-  scopes: String.split(System.get_env("GOOGLE_ADS_SCOPES", "https://www.googleapis.com/auth/adwords"), " "),
+  scopes:
+    String.split(
+      System.get_env(
+        "GOOGLE_ADS_SCOPES",
+        "https://www.googleapis.com/auth/adwords"
+      ),
+      " "
+    ),
   api_base_url: "https://googleads.googleapis.com/v14",
   api_base_url_no_version: "https://googleads.googleapis.com",
   auth_base_url: "https://accounts.google.com",

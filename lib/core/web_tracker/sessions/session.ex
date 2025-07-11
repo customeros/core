@@ -95,7 +95,6 @@ defmodule Core.WebTracker.Sessions.Session do
   ]
 
   schema "web_sessions" do
-    field(:tenant, :string)
     field(:tenant_id, :string)
     field(:visitor_id, :string)
     field(:origin, :string)
@@ -129,7 +128,6 @@ defmodule Core.WebTracker.Sessions.Session do
 
   @type t :: %__MODULE__{
           id: String.t(),
-          tenant: String.t() | nil,
           tenant_id: String.t() | nil,
           visitor_id: String.t(),
           origin: String.t(),
@@ -170,7 +168,6 @@ defmodule Core.WebTracker.Sessions.Session do
     session
     |> cast(attrs, [
       :id,
-      :tenant,
       :tenant_id,
       :visitor_id,
       :origin,
@@ -193,7 +190,7 @@ defmodule Core.WebTracker.Sessions.Session do
       :utm_id,
       :paid_id
     ])
-    |> validate_required([:id, :visitor_id, :origin])
+    |> validate_required([:id, :visitor_id, :origin, :tenant_id])
     |> validate_format(:id, @id_regex)
   end
 end
