@@ -32,7 +32,7 @@ defmodule Core.Integrations.Providers.GoogleAds.Campaigns do
         }
       ]}
   """
-    def list_campaigns(%Connection{} = connection) do
+  def list_campaigns(%Connection{} = connection) do
     customer_id = connection.external_system_id
 
     case Client.get(

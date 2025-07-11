@@ -24,7 +24,8 @@ defmodule Core.WebTracker.ChannelClassifier do
   def classify_session(session_id) do
     with {:ok, session} <- Sessions.get_session_by_id(session_id),
          {:ok, event} <- Events.get_first_event(session_id),
-         {:ok, tenant_domains} when not is_nil(session.tenant_id) <- Tenants.get_tenant_domains(session.tenant_id) do
+         {:ok, tenant_domains} when not is_nil(session.tenant_id) <-
+           Tenants.get_tenant_domains(session.tenant_id) do
       referrer = event.referrer |> to_string() |> String.trim_trailing("/")
 
       classification =

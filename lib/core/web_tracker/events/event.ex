@@ -22,7 +22,6 @@ defmodule Core.WebTracker.Events.Event do
 
   schema "web_tracker_events" do
     # Required fields
-    field(:tenant, :string) #deprecated
     field(:tenant_id, :string)
     field(:session_id, :string)
 
@@ -51,7 +50,6 @@ defmodule Core.WebTracker.Events.Event do
 
   @type t :: %__MODULE__{
           id: String.t(),
-          tenant: String.t() | nil,
           tenant_id: String.t() | nil,
           session_id: String.t(),
           ip: String.t() | nil,
@@ -100,7 +98,6 @@ defmodule Core.WebTracker.Events.Event do
       :cookies_enabled,
       :screen_resolution,
       :with_new_session,
-      :tenant,
       :tenant_id
     ])
     |> put_id(attrs)
@@ -122,14 +119,12 @@ defmodule Core.WebTracker.Events.Event do
 
   def put_tenant(changeset, attrs) do
     case OriginTenantMapper.get_tenant_for_origin(attrs[:origin]) do
-      {:ok, %Core.Auth.Tenants.Tenant{id: tenant_id, name: tenant_name}} ->
+      {:ok, %Core.Auth.Tenants.Tenant{id: tenant_id}} ->
         changeset
         |> put_change(:tenant_id, tenant_id)
-        |> put_change(:tenant, tenant_name)
 
       {:error, _} ->
         changeset
-        |> put_change(:tenant, nil)
         |> add_error(:origin, "Invalid origin")
     end
   end

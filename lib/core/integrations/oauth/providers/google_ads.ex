@@ -161,7 +161,7 @@ defmodule Core.Integrations.OAuth.Providers.GoogleAds do
     end
   end
 
-      @doc """
+  @doc """
   Gets Google Ads customer ID using the access token.
   Returns the customer_id for the authenticated user.
 
@@ -170,12 +170,15 @@ defmodule Core.Integrations.OAuth.Providers.GoogleAds do
   """
   def get_customer_id(access_token) do
     # Use the correct Google Ads API endpoint for listing accessible customers (non-versioned)
-    base_url = Core.Integrations.Providers.GoogleAds.Client.base_url_no_version()
+    base_url =
+      Core.Integrations.Providers.GoogleAds.Client.base_url_no_version()
+
     url = "#{base_url}/customers:listAccessibleCustomers"
 
     headers = [
       {"authorization", "Bearer #{access_token}"},
-      {"developer-token", Application.get_env(:core, :google_ads)[:developer_token]}
+      {"developer-token",
+       Application.get_env(:core, :google_ads)[:developer_token]}
     ]
 
     case make_http_get_with_headers(url, headers) do

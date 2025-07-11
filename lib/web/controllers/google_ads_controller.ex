@@ -75,20 +75,32 @@ defmodule Web.GoogleAdsController do
 
   defp handle_successful_oauth(conn, code, redirect_uri, tenant_id) do
     with {:ok, token} <- exchange_code_for_token(code, redirect_uri),
-         {:ok, customer_id} <- GoogleAdsOAuth.get_customer_id(token.access_token),
-         {:ok, _connection} <- create_google_ads_connection(token, customer_id, tenant_id) do
+         {:ok, customer_id} <-
+           GoogleAdsOAuth.get_customer_id(token.access_token),
+         {:ok, _connection} <-
+           create_google_ads_connection(token, customer_id, tenant_id) do
       conn
       |> put_flash(:success, "Successfully connected to Google Ads")
       |> redirect(to: ~p"/leads")
     else
       {:error, :no_customers_found} ->
         conn
-        |> put_flash(:error, "No accessible Google Ads customer accounts found for this user.")
+        |> put_flash(
+          :error,
+          "No accessible Google Ads customer accounts found for this user."
+        )
         |> redirect(to: ~p"/leads")
+
       {:error, reason} ->
-        Logger.error("Failed to complete Google Ads integration: #{inspect(reason)}")
+        Logger.error(
+          "Failed to complete Google Ads integration: #{inspect(reason)}"
+        )
+
         conn
-        |> put_flash(:error, "Failed to complete Google Ads integration: #{inspect(reason)}")
+        |> put_flash(
+          :error,
+          "Failed to complete Google Ads integration: #{inspect(reason)}"
+        )
         |> redirect(to: ~p"/leads")
     end
   end
@@ -108,8 +120,7 @@ defmodule Web.GoogleAdsController do
     end
   end
 
-
-  #TODO alexb un-comment this
+  # TODO alexb un-comment this
   # defp get_customer_id_and_update_connection(connection, token) do
   #   case GoogleAdsOAuth.get_customer_id(token.access_token) do
   #     {:ok, customer_id} ->
@@ -152,8 +163,12 @@ defmodule Web.GoogleAdsController do
 
     case Connections.create_connection(connection_params) do
       {:ok, connection} ->
-        Logger.info("Successfully created Google Ads connection: #{inspect(connection, pretty: true)}")
+        Logger.info(
+          "Successfully created Google Ads connection: #{inspect(connection, pretty: true)}"
+        )
+
         {:ok, connection}
+
       {:error, reason} ->
         Logger.error(
           "Failed to create Google Ads connection: #{inspect(reason)}"
