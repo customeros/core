@@ -2,7 +2,6 @@ Application.ensure_all_started(:core)
 
 defmodule StageSelector do
   alias Core.Crm.Leads
-  alias Core.Auth.Tenants
   alias Core.WebTracker.Sessions
   alias Core.WebTracker.SessionAnalyzer
 
@@ -10,19 +9,19 @@ defmodule StageSelector do
     IO.puts("Getting ICP fits without an evaluated stage...")
 
     case Leads.get_icp_fits_without_stage() do
-      {:error, :not_found} -> 
+      {:error, :not_found} ->
         IO.puts("No leads to evaluate.")
-        
+
       {:ok, leads} ->
         IO.puts("Processing #{length(leads)} leads...")
-        
+
         leads
         |> Enum.with_index(1)
         |> Enum.each(fn {lead, index} ->
           IO.puts("[#{index}/#{length(leads)}] Processing lead: #{lead.ref_id}")
           process_lead(lead)
         end)
-        
+
         IO.puts("Completed processing all leads.")
     end
   end
@@ -35,21 +34,20 @@ defmodule StageSelector do
   end
 
   defp process_lead(lead_record) do
-    with {:ok, tenant} <- Tenants.get_tenant_by_id(lead_record.tenant_id),
-         {:ok, sessions} <- Sessions.get_all_closed_sessions_by_tenant_and_company(tenant.name, lead_record.ref_id) do
-      
-      IO.puts("  Found #{length(sessions)} sessions for lead #{lead_record.ref_id}")
-      
-      Enum.each(sessions, fn session ->
-        IO.puts("    Starting analysis for session: #{session.id}")
-        SessionAnalyzer.analyze_session(session.id)
-      end)
-    else
-      {:error, :not_found} -> 
-        IO.puts("  ✗ Tenant #{lead_record.tenant_id} or Sessions not found for lead #{lead_record.ref_id}")
+    case Sessions.get_all_closed_sessions_by_tenant_and_company(lead_record.tenant_id, lead_record.ref_id) do
+      {:ok, sessions} ->
+        IO.puts("  Found #{length(sessions)} sessions for lead #{lead_record.ref_id}")
+
+        Enum.each(sessions, fn session ->
+          IO.puts("    Starting analysis for session: #{session.id}")
+          SessionAnalyzer.analyze_session(session.id)
+        end)
+
+      {:error, :closed_sessions_not_found} ->
+        IO.puts("  ✗ No closed sessions found for lead #{lead_record.ref_id}")
         # Set to target when no sessions found
         Leads.update_lead(lead_record, %{stage: :target})
-        
+
       {:error, reason} ->
         IO.puts("  ✗ Error processing lead #{lead_record.ref_id}: #{inspect(reason)}")
     end

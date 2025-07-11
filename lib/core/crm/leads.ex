@@ -131,29 +131,29 @@ defmodule Core.Crm.Leads do
   Returns channel (first touch) attribution for a lead.
   returns {:ok, :channel, :platform, "referrer"} or {:error, reason}
   """
-
   def get_channel_attribution(tenant_id, lead_id) do
-    with {:ok, tenant} <- Tenants.get_tenant_by_id(tenant_id),
-         {:ok, lead} <- get_by_id(tenant_id, lead_id) do
-      from(s in Session,
-        where: s.company_id == ^lead.ref_id and s.tenant == ^tenant.name,
-        order_by: [asc: s.inserted_at],
-        select: %{
-          id: s.id,
-          channel: s.channel,
-          platform: s.platform,
-          referrer: s.referrer,
-          city: s.city,
-          country_code: s.country_code,
-          inserted_at: s.inserted_at
-        }
-      )
-      |> Repo.all()
-      |> Enum.map(fn session ->
-        struct(AttributionView, session)
-      end)
-    else
-      _ -> []
+    case get_by_id(tenant_id, lead_id) do
+      {:ok, lead} ->
+        from(s in Session,
+          where: s.company_id == ^lead.ref_id and s.tenant_id == ^tenant_id,
+          order_by: [asc: s.inserted_at],
+          select: %{
+            id: s.id,
+            channel: s.channel,
+            platform: s.platform,
+            referrer: s.referrer,
+            city: s.city,
+            country_code: s.country_code,
+            inserted_at: s.inserted_at
+          }
+        )
+        |> Repo.all()
+        |> Enum.map(fn session ->
+          struct(AttributionView, session)
+        end)
+
+      _ ->
+        []
     end
   end
 

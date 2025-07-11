@@ -6,7 +6,6 @@ defmodule Core.Researcher.BriefWriter.EngagementProfiler do
   require Logger
   alias Core.Ai
   alias Core.Crm.Leads
-  alias Core.Auth.Tenants
   alias Core.Crm.Companies
   alias Core.Utils.TaskAwaiter
   alias Core.WebTracker.Events
@@ -181,14 +180,10 @@ defmodule Core.Researcher.BriefWriter.EngagementProfiler do
   end
 
   defp get_all_sessions_for_lead(tenant_id, company_id) do
-    with {:ok, tenant} <- Tenants.get_tenant_by_id(tenant_id),
-         {:ok, sessions} <-
-           Sessions.get_all_closed_sessions_by_tenant_and_company(
-             tenant.name,
-             company_id
-           ) do
-      {:ok, sessions}
-    else
+    case Sessions.get_all_closed_sessions_by_tenant_and_company(tenant_id, company_id) do
+      {:ok, sessions} ->
+        {:ok, sessions}
+
       {:error, :closed_sessions_not_found} ->
         Tracing.warning(
           :closed_sessions_not_found,
