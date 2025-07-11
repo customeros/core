@@ -405,70 +405,40 @@ defmodule Core.Crm.Leads do
   Example:
 
   ```elixir
-  {:ok, lead} = Leads.get_or_create("tenant_name", %{ref_id: "ref_id", type: :company})
-  {:ok, lead} = Leads.get_or_create("tenant_name", %{ref_id: "ref_id", type: :company}, &my_callback/1)
-  {:error, :not_found} = Leads.get_or_create("tenant_name", %{ref_id: "ref_id", type: :company})
-  {:error, :domain_matches_tenant} = Leads.get_or_create("tenant_name", %{ref_id: "ref_id", type: :company})
+  {:ok, lead} = Leads.get_or_create("tenant_id", %{ref_id: "ref_id", type: :company})
+  {:ok, lead} = Leads.get_or_create("tenant_id", %{ref_id: "ref_id", type: :company}, &my_callback/1)
+  {:error, :not_found} = Leads.get_or_create("tenant_id", %{ref_id: "ref_id", type: :company})
+  {:error, :domain_matches_tenant} = Leads.get_or_create("tenant_id", %{ref_id: "ref_id", type: :company})
   ```
   """
   @spec get_or_create(
-          tenant_name :: String.t(),
+          tenant_id :: String.t(),
           attrs :: map(),
           callback :: (Lead.t() -> any()) | nil,
           opts :: keyword() | nil
         ) ::
           {:ok, Lead.t()} | {:error, :not_found | :domain_matches_tenant}
-  def get_or_create(tenant_name, attrs, callback \\ nil, opts \\ []) do
-    OpenTelemetry.Tracer.with_span "leads.get_or_create_with_tenant_name" do
-      OpenTelemetry.Tracer.set_attributes([
-        {"param.tenant.name", tenant_name},
-        {"param.lead.ref_id", attrs.ref_id},
-        {"param.with_callback", !is_nil(callback)}
-      ])
-
-      case Tenants.get_tenant_by_name(tenant_name) do
-        {:error, :not_found} ->
-          Tracing.error(:not_found)
-          {:error, :not_found}
-
-        {:ok, tenant} ->
-          case get_by_ref_id(tenant.id, attrs.ref_id) do
-            {:error, :not_found} ->
-              create_lead(tenant, attrs, callback, opts)
-
-            {:ok, lead} ->
-              {:ok, lead}
-          end
-      end
-    end
-  end
-
-  def get_or_create_with_tenant_id(
-        tenant_id,
-        attrs,
-        callback \\ nil,
-        opts \\ []
-      ) do
-    OpenTelemetry.Tracer.with_span "leads.get_or_create_with_tenant_id" do
+  def get_or_create(tenant_id, attrs, callback \\ nil, opts \\ []) do
+    OpenTelemetry.Tracer.with_span "leads.get_or_create" do
       OpenTelemetry.Tracer.set_attributes([
         {"param.tenant.id", tenant_id},
         {"param.lead.ref_id", attrs.ref_id},
         {"param.with_callback", !is_nil(callback)}
       ])
 
-      case Tenants.get_tenant_by_id(tenant_id) do
+      case get_by_ref_id(tenant_id, attrs.ref_id) do
         {:error, :not_found} ->
-          Tracing.error(:not_found)
-          {:error, :not_found}
-
-        {:ok, tenant} ->
-          case get_by_ref_id(tenant.id, attrs.ref_id) do
-            {:error, :not_found} ->
+          case Tenants.get_tenant_by_id(tenant_id) do
+            {:ok, tenant} ->
               create_lead(tenant, attrs, callback, opts)
 
-            {:ok, lead} ->
-              {:ok, lead}
+            {:error, :not_found} ->
+              Tracing.error(:not_found)
+              {:error, :not_found}
           end
+
+        {:ok, lead} ->
+          {:ok, lead}
       end
     end
   end

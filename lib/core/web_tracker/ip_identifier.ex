@@ -118,7 +118,7 @@ defmodule Core.WebTracker.IpIdentifier do
     end
   end
 
-  defp build_ip_intelligence_attrs(domain, default_domain) do
+  defp  (domain, default_domain) do
     %{
       domain: domain || default_domain,
       domain_source: determine_domain_source(domain),
