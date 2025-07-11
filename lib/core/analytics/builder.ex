@@ -4,7 +4,6 @@ defmodule Core.Analytics.Builder do
 
   alias Core.Repo
   alias Core.Crm.Leads.Lead
-  alias Core.Auth.Tenants.Tenant
   alias Core.Analytics.LeadGeneration
   alias Core.WebTracker.Sessions.Session
 
@@ -56,10 +55,8 @@ defmodule Core.Analytics.Builder do
   def get_sessions(tenant_id, start_time_utc, end_time_utc) do
     results =
       from(ws in Session,
-        join: t in Tenant,
-        on: ws.tenant == t.name,
         where:
-          t.id == ^tenant_id and
+          ws.tenant_id == ^tenant_id and
             ws.started_at >= ^start_time_utc and
             ws.started_at < ^end_time_utc and
             ws.active == false,
@@ -84,12 +81,10 @@ defmodule Core.Analytics.Builder do
   def get_icp_qualified_sessions(tenant_id, start_time_utc, end_time_utc) do
     results =
       from(ws in Session,
-        join: t in Tenant,
-        on: ws.tenant == t.name,
         join: l in Lead,
-        on: l.tenant_id == t.id and l.ref_id == ws.company_id,
+        on: l.tenant_id == ws.tenant_id and l.ref_id == ws.company_id,
         where:
-          t.id == ^tenant_id and
+          ws.tenant_id == ^tenant_id and
             ws.started_at >= ^start_time_utc and
             ws.started_at < ^end_time_utc and
             ws.active == false and
@@ -114,10 +109,8 @@ defmodule Core.Analytics.Builder do
   def get_unique_companies(tenant_id, start_time_utc, end_time_utc) do
     results =
       from(ws in Session,
-        join: t in Tenant,
-        on: ws.tenant == t.name,
         where:
-          t.id == ^tenant_id and
+          ws.tenant_id == ^tenant_id and
             ws.started_at >= ^start_time_utc and
             ws.started_at < ^end_time_utc and
             ws.active == false and
@@ -147,10 +140,8 @@ defmodule Core.Analytics.Builder do
 
     results =
       from(ws in Session,
-        join: t in Tenant,
-        on: ws.tenant == t.name,
         where:
-          t.id == ^tenant_id and
+          ws.tenant_id == ^tenant_id and
             ws.started_at >= ^start_time_utc and
             ws.started_at < ^end_time_utc and
             ws.active == false and
@@ -175,10 +166,8 @@ defmodule Core.Analytics.Builder do
   def get_new_icp_fit_leads(tenant_id, start_time_utc, end_time_utc) do
     results =
       from(l in Lead,
-        join: t in Tenant,
-        on: l.tenant_id == t.id,
         where:
-          t.id == ^tenant_id and
+          l.tenant_id == ^tenant_id and
             l.inserted_at >= ^start_time_utc and
             l.inserted_at < ^end_time_utc and
             l.icp_fit in [:strong, :moderate] and

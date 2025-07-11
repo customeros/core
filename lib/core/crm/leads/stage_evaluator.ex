@@ -17,7 +17,6 @@ defmodule Core.Crm.Leads.StageEvaluator do
   alias Core.Utils.CronLocks
   alias Core.Utils.Cron.CronLock
   alias Core.WebTracker.Sessions.Session
-  alias Core.Auth.Tenants.Tenant
 
   @default_interval 10 * 60 * 1000
   @default_batch_size 10
@@ -189,13 +188,12 @@ defmodule Core.Crm.Leads.StageEvaluator do
 
   defp get_latest_closed_session_id(tenant_id, company_id) do
     Session
-    |> join(:inner, [s], t in Tenant, on: s.tenant == t.name)
-    |> where([s, t], t.id == ^tenant_id)
-    |> where([s, t], s.company_id == ^company_id)
-    |> where([s, t], s.active == false)
-    |> order_by([s, t], desc: s.inserted_at)
+    |> where([s], s.tenant_id == ^tenant_id)
+    |> where([s], s.company_id == ^company_id)
+    |> where([s], s.active == false)
+    |> order_by([s], desc: s.inserted_at)
     |> limit(1)
-    |> select([s, t], s.id)
+    |> select([s], s.id)
     |> Repo.one()
   end
 
@@ -213,24 +211,23 @@ defmodule Core.Crm.Leads.StageEvaluator do
       |> DateTime.add(-@session_not_older_than_days, :day)
 
     Lead
-    |> join(:inner, [l], t in Tenant, on: l.tenant_id == t.id)
-    |> join(:inner, [l, t], s in Session,
-      on: s.company_id == l.ref_id and s.tenant == t.name and s.active == false
+    |> join(:inner, [l], s in Session,
+      on: s.company_id == l.ref_id and s.tenant_id == l.tenant_id and s.active == false
     )
-    |> where([l, t, s], l.type == :company)
-    |> where([l, t, s], l.stage == :target)
-    |> where([l, t, s], l.icp_fit in [:moderate, :strong])
+    |> where([l, s], l.type == :company)
+    |> where([l, s], l.stage == :target)
+    |> where([l, s], l.icp_fit in [:moderate, :strong])
     |> where(
-      [l, t, s],
+      [l, s],
       is_nil(l.stage_evaluation_attempt_at) or
         l.stage_evaluation_attempt_at < ^last_check_cutoff
     )
-    |> where([l, t, s], l.inserted_at < ^lead_created_cutoff)
-    |> where([l, t, s], s.inserted_at > ^session_not_older_than_cutoff)
-    |> distinct([l, t, s], l.id)
-    |> order_by([l, t, s], asc_nulls_first: l.stage_evaluation_attempt_at)
+    |> where([l, s], l.inserted_at < ^lead_created_cutoff)
+    |> where([l, s], s.inserted_at > ^session_not_older_than_cutoff)
+    |> distinct([l, s], l.id)
+    |> order_by([l, s], asc_nulls_first: l.stage_evaluation_attempt_at)
     |> limit(^@default_batch_size)
-    |> select([l, t, s], l)
+    |> select([l, s], l)
     |> Repo.all()
   end
 end
