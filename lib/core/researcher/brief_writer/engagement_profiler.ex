@@ -180,7 +180,10 @@ defmodule Core.Researcher.BriefWriter.EngagementProfiler do
   end
 
   defp get_all_sessions_for_lead(tenant_id, company_id) do
-    case Sessions.get_all_closed_sessions_by_tenant_and_company(tenant_id, company_id) do
+    case Sessions.get_all_closed_sessions_by_tenant_and_company(
+           tenant_id,
+           company_id
+         ) do
       {:ok, sessions} ->
         {:ok, sessions}
 

@@ -1,4 +1,16 @@
 defmodule Core.Analytics.AnalyticsJob do
+  @moduledoc """
+  Schema module representing analytics jobs.
+
+  This schema stores analytics job records for scheduled data processing:
+  - Job types: hourly lead generation aggregation and channel analysis
+  - Job status tracking: pending, completed, failed
+  - Tenant-specific job scheduling
+  - Timestamp tracking for job lifecycle management
+
+  Jobs are used by the analytics system to coordinate data aggregation tasks.
+  """
+
   alias Jason.Encoder.DateTime
   use Ecto.Schema
   import Ecto.Changeset

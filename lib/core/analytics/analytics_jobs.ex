@@ -1,4 +1,17 @@
 defmodule Core.Analytics.AnalyticsJobs do
+  @moduledoc """
+  Analytics jobs management module.
+
+  This module provides functions to create, retrieve, and manage analytics jobs:
+  - Creating new analytics jobs for tenants
+  - Retrieving ready jobs for processing
+  - Checking for existing jobs to prevent duplicates
+  - Cleaning up old completed/failed jobs
+  - Marking jobs as completed or failed
+
+  Supports job scheduling and lifecycle management for analytics processing.
+  """
+
   import Ecto.Query
 
   require Logger

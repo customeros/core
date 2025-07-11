@@ -362,17 +362,16 @@ defmodule Core.Crm.Contacts do
         {"param.linkedin_company_id", linkedin_company_id}
       ])
 
-      case Companies.create_company_by_linkedin_id(linkedin_company_id) do
+      case Companies.get_or_create_company_by_linkedin_id(linkedin_company_id) do
         {:ok, company} ->
-          if company.linkedin_id == linkedin_company_id do
+          if linkedin_company_id in company.linkedin_ids do
             update_contact_company_info(contact, company)
           else
             Tracing.warning(
               :linkedin_id_mismatch,
               "Company created but LinkedIn ID not set, skipping contact association",
               contact_id: contact.id,
-              linkedin_company_id: linkedin_company_id,
-              company_linkedin_id: company.linkedin_id
+              linkedin_company_id: linkedin_company_id
             )
 
             contact

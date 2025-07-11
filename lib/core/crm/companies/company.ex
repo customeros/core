@@ -30,6 +30,9 @@ defmodule Core.Crm.Companies.Company do
     field(:icon_key, :string)
     field(:country_a2, :string)
 
+    # optional fields
+    field(:domains, {:array, :string}, default: [])
+
     # Enrichment attempt timestamps
     field(:domain_scrape_attempt_at, :utc_datetime)
     field(:industry_enrich_attempt_at, :utc_datetime)
@@ -49,8 +52,9 @@ defmodule Core.Crm.Companies.Company do
     field(:scrapin_enrichment_attempts, :integer, default: 0)
 
     # LinkedIn fields
+    # deprecated
     field(:linkedin_id, :string)
-    field(:linkedin_alias, :string)
+    field(:linkedin_ids, {:array, :string}, default: [])
 
     field(:homepage_scraped, :boolean, default: false)
 
@@ -89,7 +93,8 @@ defmodule Core.Crm.Companies.Company do
           business_model_enrichment_attempts: integer(),
           scrapin_enrichment_attempts: integer(),
           linkedin_id: String.t() | nil,
-          linkedin_alias: String.t() | nil,
+          linkedin_ids: {:array, :string},
+          domains: {:array, :string},
           homepage_scraped: boolean(),
           # Quantitative fields
           technologies_used: {:array, :string},
@@ -108,6 +113,7 @@ defmodule Core.Crm.Companies.Company do
     |> cast(attrs, [
       :id,
       :primary_domain,
+      :domains,
       :name,
       :industry_code,
       :industry,
@@ -128,7 +134,7 @@ defmodule Core.Crm.Companies.Company do
       :business_model_enrichment_attempts,
       :scrapin_enrichment_attempts,
       :linkedin_id,
-      :linkedin_alias,
+      :linkedin_ids,
       :homepage_scraped,
       :technologies_used,
       :city,

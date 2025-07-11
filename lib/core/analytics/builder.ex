@@ -1,4 +1,14 @@
 defmodule Core.Analytics.Builder do
+  @moduledoc """
+  Analytics builder module for aggregating lead generation metrics.
+
+  This module provides functions to build and compute analytics data for lead generation,
+  including session tracking, ICP qualification, company identification, and lead creation metrics.
+
+  The module aggregates data from web tracker sessions and CRM leads to provide insights
+  into lead generation performance across different time periods and tenants.
+  """
+
   import Ecto.Query
   require Logger
 

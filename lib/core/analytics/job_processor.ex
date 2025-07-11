@@ -1,4 +1,15 @@
 defmodule Core.Analytics.JobProcessor do
+  @moduledoc """
+  GenServer responsible for processing analytics jobs.
+
+  This module manages the execution of analytics jobs including:
+  - Processing ready jobs (every 10 minutes)
+  - Scheduling future jobs (every 4 hours)
+  - Cleaning up old jobs (every 24 hours)
+
+  Uses cron locks to prevent concurrent execution and handles stuck locks.
+  """
+
   use GenServer
   require Logger
 

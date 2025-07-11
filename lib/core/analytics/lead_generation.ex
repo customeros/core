@@ -1,4 +1,16 @@
 defmodule Core.Analytics.LeadGeneration do
+  @moduledoc """
+  Schema module representing lead generation analytics data.
+
+  This schema stores aggregated analytics data for lead generation metrics including:
+  - Session counts (total, identified, ICP fit)
+  - Company counts (unique, new)
+  - Lead generation metrics
+  - Time-bucketed data for trend analysis
+
+  Data is organized by tenant and time buckets for efficient querying and reporting.
+  """
+
   use Ecto.Schema
   import Ecto.Changeset
   alias Core.Repo

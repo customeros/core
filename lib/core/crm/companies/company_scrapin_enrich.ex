@@ -146,7 +146,7 @@ defmodule Core.Crm.Companies.CompanyScrapinEnrich do
   end
 
   defp update_linkedin_id(company, scrapin_company_details) do
-    case Core.Crm.Companies.set_company_linkedin_id_if_missing(
+    case Core.Crm.Companies.set_company_linkedin_id(
            company,
            scrapin_company_details.linked_in_id
          ) do

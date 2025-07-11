@@ -212,7 +212,9 @@ defmodule Core.Crm.Leads.StageEvaluator do
 
     Lead
     |> join(:inner, [l], s in Session,
-      on: s.company_id == l.ref_id and s.tenant_id == l.tenant_id and s.active == false
+      on:
+        s.company_id == l.ref_id and s.tenant_id == l.tenant_id and
+          s.active == false
     )
     |> where([l, s], l.type == :company)
     |> where([l, s], l.stage == :target)

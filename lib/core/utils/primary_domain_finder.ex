@@ -134,7 +134,7 @@ defmodule Core.Utils.PrimaryDomainFinder do
             {"result.primary_domain", primary_domain}
           ])
 
-          {:ok, primary_domain}
+          {:ok, String.downcase(primary_domain)}
 
         @err_invalid_ssl ->
           check_www(url)
@@ -157,7 +157,7 @@ defmodule Core.Utils.PrimaryDomainFinder do
       |> ok(&check_domain_redirects/1)
 
     case result do
-      {:ok, :no_redirect} -> {:ok, domain}
+      {:ok, :no_redirect} -> {:ok, String.downcase(domain)}
       _ -> @err_cannot_resolve_to_primary_domain
     end
   end
