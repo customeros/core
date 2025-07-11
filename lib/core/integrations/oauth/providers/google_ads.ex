@@ -148,10 +148,8 @@ defmodule Core.Integrations.OAuth.Providers.GoogleAds do
   @impl Base
   def validate_token(%Connection{} = connection) do
     config = Application.get_env(:core, :google_ads)
-    base_url = config[:api_base_url]
-
-    url =
-      "#{base_url}/oauth2/v1/tokeninfo?access_token=#{connection.access_token}"
+    base_url = config[:token_base_url]
+    url = "#{base_url}/v1/tokeninfo?access_token=#{connection.access_token}"
 
     case make_http_get(url) do
       {:ok, %{"aud" => _audience}} ->
@@ -163,22 +161,36 @@ defmodule Core.Integrations.OAuth.Providers.GoogleAds do
     end
   end
 
-  @doc """
-  Gets Google Ads account information using the access token.
-  Returns the customer_id and other account details.
-  """
-  def get_account_info(access_token) do
-    config = Application.get_env(:core, :google_ads)
-    base_url = config[:api_base_url]
-    url = "#{base_url}/oauth2/v1/tokeninfo?access_token=#{access_token}"
+      @doc """
+  Gets Google Ads customer ID using the access token.
+  Returns the customer_id for the authenticated user.
 
-    case make_http_get(url) do
-      {:ok, %{"aud" => audience}} ->
-        Logger.info("Token validation successful, audience: #{audience}")
-        {:ok, audience}
+  Uses the Google Ads API ListAccessibleCustomers endpoint to retrieve
+  the list of customer accounts accessible to the authenticated user.
+  """
+  def get_customer_id(access_token) do
+    # Use the correct Google Ads API endpoint for listing accessible customers (non-versioned)
+    base_url = Core.Integrations.Providers.GoogleAds.Client.base_url_no_version()
+    url = "#{base_url}/customers:listAccessibleCustomers"
+
+    headers = [
+      {"authorization", "Bearer #{access_token}"},
+      {"developer-token", Application.get_env(:core, :google_ads)[:developer_token]}
+    ]
+
+    case make_http_get_with_headers(url, headers) do
+      {:ok, %{"resourceNames" => [customer_resource | _]}} ->
+        # Extract customer ID from resource name like "customers/123456789"
+        customer_id = String.replace(customer_resource, "customers/", "")
+        Logger.info("Got Google Ads customer ID: #{customer_id}")
+        {:ok, customer_id}
+
+      {:ok, %{"resourceNames" => []}} ->
+        Logger.error("No accessible customers found")
+        {:error, :no_customers_found}
 
       {:error, reason} ->
-        Logger.error("Token validation failed: #{inspect(reason)}")
+        Logger.error("Failed to get customer ID: #{inspect(reason)}")
         {:error, reason}
     end
   end
@@ -195,7 +207,7 @@ defmodule Core.Integrations.OAuth.Providers.GoogleAds do
 
   defp post_token(base_url, params) do
     headers = [{"content-type", "application/x-www-form-urlencoded"}]
-    url = URI.parse("#{base_url}/oauth2/v4/token")
+    url = URI.parse("#{base_url}/token")
     body = URI.encode_query(params)
 
     case Finch.build(:post, url, headers, body) |> Finch.request(Core.Finch) do
@@ -214,6 +226,23 @@ defmodule Core.Integrations.OAuth.Providers.GoogleAds do
 
   defp make_http_get(url) do
     request = Finch.build(:get, url)
+
+    case Finch.request(request, Core.Finch) do
+      {:ok, %{status: 200, body: body}} ->
+        {:ok, Jason.decode!(body)}
+
+      {:ok, %{status: status, body: body}} ->
+        Logger.error("Failed to get Google Ads API: HTTP #{status}: #{body}")
+        {:error, "HTTP #{status}: #{body}"}
+
+      {:error, %{reason: reason}} ->
+        Logger.error("Failed to get Google Ads API: #{inspect(reason)}")
+        {:error, reason}
+    end
+  end
+
+  defp make_http_get_with_headers(url, headers) do
+    request = Finch.build(:get, url, headers)
 
     case Finch.request(request, Core.Finch) do
       {:ok, %{status: 200, body: body}} ->

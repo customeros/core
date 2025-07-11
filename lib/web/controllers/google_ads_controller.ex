@@ -75,20 +75,20 @@ defmodule Web.GoogleAdsController do
 
   defp handle_successful_oauth(conn, code, redirect_uri, tenant_id) do
     with {:ok, token} <- exchange_code_for_token(code, redirect_uri),
-         {:ok, customer_id} <- get_google_ads_customer_id(token),
-         {:ok, _connection} <-
-           create_google_ads_connection(token, customer_id, tenant_id) do
+         {:ok, customer_id} <- GoogleAdsOAuth.get_customer_id(token.access_token),
+         {:ok, connection} <- create_google_ads_connection(token, customer_id, tenant_id) do
       conn
       |> put_flash(:success, "Successfully connected to Google Ads")
       |> redirect(to: ~p"/leads")
     else
-      {:error, reason} ->
-        Logger.error(
-          "Failed to complete Google Ads integration: #{inspect(reason)}"
-        )
-
+      {:error, :no_customers_found} ->
         conn
-        |> put_flash(:error, "Failed to complete Google Ads integration")
+        |> put_flash(:error, "No accessible Google Ads customer accounts found for this user.")
+        |> redirect(to: ~p"/leads")
+      {:error, reason} ->
+        Logger.error("Failed to complete Google Ads integration: #{inspect(reason)}")
+        conn
+        |> put_flash(:error, "Failed to complete Google Ads integration: #{inspect(reason)}")
         |> redirect(to: ~p"/leads")
     end
   end
@@ -108,15 +108,32 @@ defmodule Web.GoogleAdsController do
     end
   end
 
-  defp get_google_ads_customer_id(token) do
-    case GoogleAdsOAuth.get_account_info(token.access_token) do
+
+
+  defp get_customer_id_and_update_connection(connection, token) do
+    case GoogleAdsOAuth.get_customer_id(token.access_token) do
       {:ok, customer_id} ->
-        Logger.info("Got Google Ads customer ID: #{customer_id}")
-        {:ok, customer_id}
+        # Update the connection with the real customer ID
+        case Connections.update_connection(connection, %{
+               external_system_id: customer_id
+             }) do
+          {:ok, updated_connection} ->
+            Logger.info("Updated Google Ads connection with customer ID: #{customer_id}")
+            {:ok, customer_id}
+
+          {:error, reason} ->
+            Logger.error("Failed to update connection with customer ID: #{inspect(reason)}")
+            {:error, :update_failed}
+        end
+
+      {:error, :no_customers_found} ->
+        # No accessible customers found
+        Logger.info("No accessible Google Ads customers found")
+        {:error, :no_customers_found}
 
       {:error, reason} ->
         Logger.error("Failed to get Google Ads customer ID: #{inspect(reason)}")
-        {:error, :account_info_failed}
+        {:error, :customer_id_failed}
     end
   end
 
@@ -135,12 +152,8 @@ defmodule Web.GoogleAdsController do
 
     case Connections.create_connection(connection_params) do
       {:ok, connection} ->
-        Logger.info(
-          "Successfully created Google Ads connection: #{inspect(connection, pretty: true)}"
-        )
-
+        Logger.info("Successfully created Google Ads connection: #{inspect(connection, pretty: true)}")
         {:ok, connection}
-
       {:error, reason} ->
         Logger.error(
           "Failed to create Google Ads connection: #{inspect(reason)}"
