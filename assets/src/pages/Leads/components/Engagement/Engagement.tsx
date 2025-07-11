@@ -4,6 +4,7 @@ import { cn } from 'src/utils/cn';
 import { Icon } from 'src/components/Icon';
 import { PageProps } from '@inertiajs/core';
 import { ChannelAttribution } from 'src/types';
+import { Tooltip } from 'src/components/Tooltip/Tooltip';
 import { FeaturedIcon } from 'src/components/FeaturedIcon/FeaturedIcon';
 
 const colorMap = {
@@ -60,7 +61,14 @@ export const Engagement = () => {
 
   return (
     <div className="flex flex-col gap-2 mt-4">
-      <p className="text-sm font-medium">Engagement summary</p>
+      <p className="text-sm font-medium">
+        Engagement summary <span className="text-gray-500">•</span>{' '}
+        <Tooltip label="Total engagement events tracked">
+          <span className="text-gray-500 bg-gray-100 rounded-full px-2 py-1">
+            {page.props.attributions_list.length}
+          </span>
+        </Tooltip>
+      </p>
       <div className="flex flex-col gap-2 mt-4">
         {page.props.attributions_list
           .sort((a, b) => {
