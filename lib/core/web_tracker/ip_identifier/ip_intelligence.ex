@@ -195,4 +195,46 @@ defmodule Core.WebTracker.IpIdentifier.IpIntelligence do
   end
 
   def create_if_not_exists(_), do: {:error, :invalid_arguments}
+
+  def upsert(attrs) when is_map(attrs) do
+    ip = Map.get(attrs, :ip) || Map.get(attrs, "ip")
+
+    case ip do
+      nil ->
+        {:error, :missing_ip}
+
+      ip_address when is_binary(ip_address) ->
+        case get_by_ip(ip_address) do
+          {:ok, nil} ->
+            # Create new record
+            id = IdGenerator.generate_id_21("ip")
+            attrs_with_id = Map.put(attrs, :id, id)
+
+            %__MODULE__{}
+            |> changeset(attrs_with_id)
+            |> Repo.insert()
+
+          {:ok, existing_record} ->
+            existing_record
+            |> changeset(attrs)
+            |> Repo.update()
+
+          {:error, reason} ->
+            {:error, reason}
+        end
+
+      _ ->
+        {:error, :invalid_ip}
+    end
+  rescue
+    e in Ecto.InvalidChangesetError ->
+      Logger.error("Invalid changeset in upsert: #{inspect(e)}")
+      {:error, :invalid_changeset}
+
+    e in Postgrex.Error ->
+      Logger.error("Database error in upsert: #{inspect(e)}")
+      {:error, :database_error}
+  end
+
+  def upsert(_), do: {:error, :invalid_arguments}
 end

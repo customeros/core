@@ -1,4 +1,3 @@
-# lib/core/web_tracker/company_enrichment_job.ex
 defmodule Core.WebTracker.CompanyEnrichmentJob do
   @moduledoc """
   Handles company enrichment jobs for web tracker events.
@@ -11,15 +10,18 @@ defmodule Core.WebTracker.CompanyEnrichmentJob do
   5. Creating leads for new companies
   """
 
+  require Logger
   require OpenTelemetry.Tracer
 
-  alias Core.WebTracker.IPProfiler
-  alias Core.Crm.Companies
   alias Core.Crm.Leads
-  alias Core.WebTracker.Sessions
+  alias Core.Crm.Companies
   alias Core.Utils.Tracing
+  alias Core.WebTracker.Sessions
+  alias Core.WebTracker.IPProfiler
   alias Core.Utils.DomainExtractor
+  alias Core.Utils.PrimaryDomainFinder
   alias Core.Auth.PersonalEmailProviders
+  alias Core.WebTracker.IpIdentifier.IpIntelligence
 
   @doc """
   Enqueues a company enrichment job for an event.
@@ -98,7 +100,6 @@ defmodule Core.WebTracker.CompanyEnrichmentJob do
     end
   end
 
-  @doc false
   defp process_identify_domain(event, domain) do
     OpenTelemetry.Tracer.with_span "company_enrichment_job.process_identify_domain" do
       OpenTelemetry.Tracer.set_attributes([
@@ -125,7 +126,6 @@ defmodule Core.WebTracker.CompanyEnrichmentJob do
     end
   end
 
-  @doc false
   defp check_if_reassociation_needed(session, domain) do
     case session.company_id do
       nil ->
@@ -177,7 +177,6 @@ defmodule Core.WebTracker.CompanyEnrichmentJob do
 
   # Private Functions
 
-  @doc false
   defp do_enrichment(event) do
     default_domain = extract_domain_from_event(event)
 
@@ -193,31 +192,54 @@ defmodule Core.WebTracker.CompanyEnrichmentJob do
     end
   end
 
-  @doc false
   defp extract_domain_from_event(%{
+         ip: ip_address,
          event_type: "identify",
          event_data: event_data
        }) do
-    case Jason.decode(event_data) do
-      {:ok, %{"email" => email}} ->
-        case DomainExtractor.extract_domain_from_email(email) do
-          {:ok, domain} ->
-            if PersonalEmailProviders.exists_by_domain?(domain) do
-              nil
-            else
-              domain
-            end
+    with {:ok, email} <- extract_email_from_event(event_data),
+         {:ok, domain} <- process_email_from_event(email) do
+      case IpIntelligence.upsert(%{
+             ip: ip_address,
+             domain_source: :tracker,
+             domain: domain
+           }) do
+        {:error, reason} ->
+          Logger.error(
+            "IpIntelligence upsert failed for #{ip_address}, #{domain}"
+          )
 
-          _ ->
-            nil
-        end
+        _ ->
+          :ok
+      end
 
+      domain
+    else
       _ ->
         nil
     end
   end
 
   defp extract_domain_from_event(_), do: nil
+
+  defp extract_email_from_event(event_data) do
+    case Jason.decode(event_data) do
+      {:ok, %{"email" => email}} -> {:ok, email}
+      _ -> nil
+    end
+  end
+
+  defp process_email_from_event(email) do
+    with {:ok, domain} <- DomainExtractor.extract_domain_from_email(email),
+         false <- PersonalEmailProviders.exists_by_domain?(domain),
+         {:ok, primary_domain} <-
+           PrimaryDomainFinder.get_primary_domain(domain) do
+      {:ok, primary_domain}
+    else
+      _ ->
+        nil
+    end
+  end
 
   @doc false
   defp process_company_data(event, domain) do

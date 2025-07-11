@@ -8,11 +8,13 @@ defmodule Core.WebTracker.Events do
   require OpenTelemetry.Tracer
 
   alias Core.Repo
-  alias Core.WebTracker.Events.Event
+  alias Core.Utils.Tracing
   alias Core.Utils.MapUtils
   alias Core.WebTracker.Sessions
+  alias Core.WebTracker.Events.Event
   alias Core.WebTracker.CompanyEnrichmentJob
-  alias Core.Utils.Tracing
+
+  @err_not_found {:error, "event not found"}
 
   @doc """
   Creates a new web tracker event.
@@ -64,6 +66,13 @@ defmodule Core.WebTracker.Events do
     case pathnames do
       [] -> {:error, :not_found}
       results -> {:ok, results}
+    end
+  end
+
+  def get_event_by_id(event_id) do
+    case Repo.get(Event, event_id) do
+      %Event{} = event -> {:ok, event}
+      nil -> @err_not_found
     end
   end
 
