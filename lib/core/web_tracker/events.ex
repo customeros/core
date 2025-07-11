@@ -90,9 +90,9 @@ defmodule Core.WebTracker.Events do
           {"param.session.creation_type", "new_or_existing"}
         ])
 
-        case Sessions.get_or_create_session(
-               Map.merge(changeset.data, changeset.changes)
-             ) do
+        event_data = Map.merge(changeset.data, changeset.changes)
+
+        case Sessions.get_or_create_session(event_data) do
           {:ok, session} ->
             OpenTelemetry.Tracer.set_attributes([
               {"result.session.id", session.id},
@@ -111,7 +111,7 @@ defmodule Core.WebTracker.Events do
 
             add_error(changeset, :session_id, :ip_is_threat)
 
-          {:error, changeset} ->
+          {:error, %Ecto.Changeset{} = changeset} ->
             Tracing.error(
               changeset.errors,
               "Failed to create/get session with changeset error"

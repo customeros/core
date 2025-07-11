@@ -307,6 +307,7 @@ defmodule Core.WebTracker.Sessions do
   defp create_session_with_ip_data(
          %{
            tenant: tenant,
+           tenant_id: tenant_id,
            visitor_id: visitor_id,
            origin: origin,
            ip: ip,
@@ -323,6 +324,7 @@ defmodule Core.WebTracker.Sessions do
        ) do
     session_attrs = %{
       tenant: tenant,
+      tenant_id: tenant_id,
       visitor_id: visitor_id,
       origin: origin,
       ip: ip,

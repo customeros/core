@@ -15,10 +15,7 @@ defmodule Core.Application do
 
     OpentelemetryPhoenix.setup(adapter: :bandit)
 
-    OpentelemetryEcto.setup([:core, :repo],
-      db_statement: :enabled,
-      log_parameters: true
-    )
+    OpentelemetryEcto.setup([:core, :repo], db_statement: :enabled)
 
     Logger.add_backend(Core.Notifications.CrashMonitor)
 

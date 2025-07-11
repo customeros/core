@@ -23,6 +23,7 @@ defmodule Core.WebTracker.Events.Event do
   schema "web_tracker_events" do
     # Required fields
     field(:tenant, :string)
+    field(:tenant_id, :string)
     field(:session_id, :string)
 
     # Event information
@@ -51,6 +52,7 @@ defmodule Core.WebTracker.Events.Event do
   @type t :: %__MODULE__{
           id: String.t(),
           tenant: String.t(),
+          tenant_id: String.t() | nil,
           session_id: String.t(),
           ip: String.t() | nil,
           visitor_id: String.t() | nil,
@@ -97,8 +99,13 @@ defmodule Core.WebTracker.Events.Event do
       :language,
       :cookies_enabled,
       :screen_resolution,
-      :with_new_session
+      :with_new_session,
+      :tenant,
+      :tenant_id
     ])
+    |> put_id(attrs)
+    |> put_tenant(attrs)
+    |> put_timestamp(attrs)
     |> validate_required([
       :ip,
       :visitor_id,
@@ -106,11 +113,10 @@ defmodule Core.WebTracker.Events.Event do
       :event_data,
       :href,
       :origin,
-      :user_agent
+      :user_agent,
+      :tenant,
+      :tenant_id
     ])
-    |> put_id(attrs)
-    |> put_tenant(attrs)
-    |> put_timestamp(attrs)
     |> detect_bot()
     |> detect_suspicious_referrer()
   end
@@ -118,12 +124,14 @@ defmodule Core.WebTracker.Events.Event do
   def put_tenant(changeset, attrs) do
     case OriginTenantMapper.get_tenant_for_origin(attrs[:origin]) do
       {:ok, %Core.Auth.Tenants.Tenant{id: tenant_id, name: tenant_name}} ->
-        put_change(changeset, :tenant, tenant_name)
-        put_change(changeset, :tenant_id, tenant_id)
+        changeset
+        |> put_change(:tenant_id, tenant_id)
+        |> put_change(:tenant, tenant_name)
 
       {:error, _} ->
-        put_change(changeset, :tenant, nil)
-        add_error(changeset, :origin, "Invalid origin")
+        changeset
+        |> put_change(:tenant, nil)
+        |> add_error(:origin, "Invalid origin")
     end
   end
 
