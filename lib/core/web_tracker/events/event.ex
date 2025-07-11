@@ -22,7 +22,7 @@ defmodule Core.WebTracker.Events.Event do
 
   schema "web_tracker_events" do
     # Required fields
-    field(:tenant, :string)
+    field(:tenant, :string) #deprecated
     field(:tenant_id, :string)
     field(:session_id, :string)
 
@@ -51,7 +51,7 @@ defmodule Core.WebTracker.Events.Event do
 
   @type t :: %__MODULE__{
           id: String.t(),
-          tenant: String.t(),
+          tenant: String.t() | nil,
           tenant_id: String.t() | nil,
           session_id: String.t(),
           ip: String.t() | nil,
@@ -114,7 +114,6 @@ defmodule Core.WebTracker.Events.Event do
       :href,
       :origin,
       :user_agent,
-      :tenant,
       :tenant_id
     ])
     |> detect_bot()
