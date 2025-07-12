@@ -554,6 +554,19 @@ defmodule Core.WebTracker.SocialPlatformDetector do
     "boost_post_id"
   ]
 
+  @hubspot_platform_mapping %{
+    "linkedin" => :linkedin,
+    "facebook" => :facebook,
+    "instagram" => :instagram,
+    "twitter" => :x,
+    "x" => :x,
+    "youtube" => :youtube,
+    "tiktok" => :tiktok,
+    "pinterest" => :pinterest,
+    "snapchat" => :snapchat,
+    "reddit" => :reddit
+  }
+
   # Private helper functions
 
   defp parse_query_string(query_params) when is_binary(query_params) do
@@ -606,43 +619,11 @@ defmodule Core.WebTracker.SocialPlatformDetector do
   end
 
   defp resolve_hubspot_platform(param_map) do
-    case Map.get(param_map, "hsa_net", "") |> String.downcase() do
-      "linkedin" ->
-        {:ok, :linkedin}
+    hsa_net = Map.get(param_map, "hsa_net", "") |> String.downcase()
 
-      "facebook" ->
-        {:ok, :facebook}
-
-      "instagram" ->
-        {:ok, :instagram}
-
-      "twitter" ->
-        {:ok, :x}
-
-      "x" ->
-        {:ok, :x}
-
-      "youtube" ->
-        {:ok, :youtube}
-
-      "tiktok" ->
-        {:ok, :tiktok}
-
-      "pinterest" ->
-        {:ok, :pinterest}
-
-      "snapchat" ->
-        {:ok, :snapchat}
-
-      "reddit" ->
-        {:ok, :reddit}
-
-      _ ->
-        # Fallback to checking utm_source if hsa_net is not clear
-        case detect_from_utm_params(param_map) do
-          {:ok, platform} -> {:ok, platform}
-          :not_found -> :not_found
-        end
+    case Map.get(@hubspot_platform_mapping, hsa_net) do
+      nil -> detect_from_utm_params(param_map)
+      platform -> {:ok, platform}
     end
   end
 
