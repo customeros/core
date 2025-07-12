@@ -52,64 +52,70 @@ defmodule Core.Researcher.IcpFinder do
         %IcpProfiles.Profile{} = profile,
         %Tenants.Tenant{} = tenant
       ) do
+    with {:ok, input} <- get_companies_filter_values(profile),
+         {:ok, topics_and_industries} <-
+           get_topics_and_industries(input),
+         {:ok, selected_topics_and_industries} <-
+           get_selected_topics_and_industries(topics_and_industries, profile) do
+      create_leads_from_companies(
+        selected_topics_and_industries,
+        input,
+        tenant
+      )
+    end
+  end
+
+  defp get_companies_filter_values(profile) do
     task =
       profile
       |> PromptBuilder.build_companies_filter_values_prompt()
       |> PromptBuilder.build_request()
       |> Ai.ask_supervised()
 
-    case TaskAwaiter.await(task, @icp_finder_timeout) do
-      {:ok, answer} ->
-        with {:ok, %CompaniesQueryInput{} = input} <- parse_answear(answer),
-             result <- QueryBuilder.get_industry_and_topic_values(input),
-             {:ok, %TopicsAndIndustriesInput{} = topics_and_industries} <-
-               parse_topics_and_industries_answear(result) do
-          second_task =
-            profile
-            |> PromptBuilder.build_scraped_webpages_distinct_data_prompt(
-              topics_and_industries
-            )
-            |> PromptBuilder.build_request()
-            |> Ai.ask_supervised()
+    with {:ok, answer} <- TaskAwaiter.await(task, @icp_finder_timeout) do
+      parse_answear(answer)
+    end
+  end
 
-          case TaskAwaiter.await(second_task, @icp_finder_timeout) do
-            {:ok, second_answer} ->
-              # Parse the second AI response and get matching companies
-              case parse_topics_and_industries_selection(second_answer) do
-                {:ok, selected_topics_and_industries} ->
-                  companies =
-                    QueryBuilder.find_matching_companies(
-                      input,
-                      selected_topics_and_industries
-                    )
+  defp get_topics_and_industries(input) do
+    result = QueryBuilder.get_industry_and_topic_values(input)
+    parse_topics_and_industries_answear(result)
+  end
 
-                  leads =
-                    Enum.map(companies, fn %{id: id, primary_domain: _} ->
-                      case Leads.get_or_create(tenant.name, %{
-                             ref_id: id,
-                             type: :company
-                           }) do
-                        {:ok, lead} -> lead
-                        {:error, reason} -> {:error, reason}
-                      end
-                    end)
+  defp get_selected_topics_and_industries(topics_and_industries, profile) do
+    task =
+      profile
+      |> PromptBuilder.build_scraped_webpages_distinct_data_prompt(
+        topics_and_industries
+      )
+      |> PromptBuilder.build_request()
+      |> Ai.ask_supervised()
 
-                  {:ok, leads}
+    with {:ok, answer} <- TaskAwaiter.await(task, @icp_finder_timeout) do
+      parse_topics_and_industries_selection(answer)
+    end
+  end
 
-                {:error, reason} ->
-                  {:error, reason}
-              end
+  defp create_leads_from_companies(
+         selected_topics_and_industries,
+         input,
+         tenant
+       ) do
+    companies =
+      QueryBuilder.find_matching_companies(
+        input,
+        selected_topics_and_industries
+      )
 
-            {:error, reason} ->
-              {:error, reason}
-          end
-        else
+    leads =
+      Enum.map(companies, fn %{id: id, primary_domain: _} ->
+        case Leads.get_or_create(tenant.name, %{ref_id: id, type: :company}) do
+          {:ok, lead} -> lead
           {:error, reason} -> {:error, reason}
         end
+      end)
 
-      {:error, reason} ->
-        {:error, reason}
-    end
+    {:ok, leads}
   end
 
   defp parse_answear(answer) do

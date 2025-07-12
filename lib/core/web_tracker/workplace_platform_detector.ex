@@ -466,22 +466,21 @@ defmodule Core.WebTracker.WorkplacePlatformDetector do
     if mobile_app_referrer?(referrer) do
       get_platform_from_mobile_app(referrer)
     else
-      case URI.parse(referrer) do
-        %URI{host: nil} ->
-          :not_found
+      get_platform_from_web_referrer(referrer)
+    end
+  end
 
-        %URI{host: host} when is_binary(host) ->
-          case check_domain_patterns(host) do
-            :none ->
-              case Core.Utils.DomainExtractor.extract_base_domain(referrer) do
-                {:ok, domain} -> check_base_domain(domain)
-                {:error, _} -> :not_found
-              end
-
-            platform ->
-              {:ok, platform}
-          end
-      end
+  defp get_platform_from_web_referrer(referrer) do
+    with %URI{host: host} when is_binary(host) <- URI.parse(referrer),
+         :none <- check_domain_patterns(host),
+         {:ok, domain} <-
+           Core.Utils.DomainExtractor.extract_base_domain(referrer) do
+      check_base_domain(domain)
+    else
+      %URI{host: nil} -> :not_found
+      %URI{host: _} -> :not_found
+      {:error, _} -> :not_found
+      platform when is_atom(platform) -> {:ok, platform}
     end
   end
 
