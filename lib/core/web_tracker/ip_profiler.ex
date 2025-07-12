@@ -4,12 +4,13 @@ defmodule Core.WebTracker.IPProfiler do
   Coordinates between IPData and Snitcher services for IP validation and company identification.
   """
 
-  alias Core.WebTracker.IpIdentifier
-  alias Core.WebTracker.IpIdentifier.IpIntelligence
-  alias Core.Repo
-  alias Core.Utils.IdGenerator
   require Logger
   require OpenTelemetry.Tracer
+
+  alias Core.Repo
+  alias Core.Utils.IdGenerator
+  alias Core.WebTracker.IpIdentifier
+  alias Core.WebTracker.IpIdentifier.IpIntelligence
 
   @doc """
   Gets IP data including location, threat assessment, and mobile carrier info.
@@ -46,11 +47,7 @@ defmodule Core.WebTracker.IPProfiler do
   Gets company information for an IP address using Snitcher.
   Returns a typed response with company details if found.
   """
-  @spec get_company_info(String.t(), String.t() | nil) ::
-          {:ok, map()} | {:error, term()}
-  def get_company_info(ip, default_domain \\ nil)
-
-  def get_company_info(ip, default_domain)
+  def get_company_info(ip)
       when is_binary(ip) do
     case IpIntelligence.get_domain_by_ip(ip) do
       {:ok, domain} ->
@@ -61,8 +58,8 @@ defmodule Core.WebTracker.IPProfiler do
            company: %{}
          }}
 
-      {:error, _} ->
-        IpIdentifier.identify_ip(ip, default_domain)
+      _ ->
+        IpIdentifier.identify_ip(ip)
     end
   end
 
@@ -100,7 +97,6 @@ defmodule Core.WebTracker.IPProfiler do
 
     case IpIntelligence.get_by_ip(ip) do
       {:ok, nil} ->
-        # Create new record with IP data
         %IpIntelligence{}
         |> IpIntelligence.changeset(
           Map.merge(attrs, %{
@@ -122,7 +118,6 @@ defmodule Core.WebTracker.IPProfiler do
         end
 
       {:ok, record} ->
-        # Update existing record with IP data
         record
         |> IpIntelligence.changeset(attrs)
         |> Repo.update()

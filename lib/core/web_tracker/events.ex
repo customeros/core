@@ -12,7 +12,8 @@ defmodule Core.WebTracker.Events do
   alias Core.Utils.MapUtils
   alias Core.WebTracker.Sessions
   alias Core.WebTracker.Events.Event
-  alias Core.WebTracker.CompanyEnrichmentJob
+  alias Core.WebTracker.CompanyEnricher
+  alias Core.WebTracker.IdentifyEventHandler
 
   @err_not_found {:error, "event not found"}
 
@@ -32,7 +33,7 @@ defmodule Core.WebTracker.Events do
         {:ok, event} ->
           # Handle special case for identify events with existing sessions
           if event.event_type == "identify" and not event.with_new_session do
-            CompanyEnrichmentJob.enqueue_identify_event(event)
+            IdentifyEventHandler.handle(event)
           end
 
           OpenTelemetry.Tracer.set_attributes([
@@ -152,7 +153,7 @@ defmodule Core.WebTracker.Events do
       ])
 
       Sessions.update_last_event(event.session_id, event.event_type)
-      CompanyEnrichmentJob.enqueue(event)
+      CompanyEnricher.enqueue(event)
       {:ok, event}
     end
   end
