@@ -719,6 +719,34 @@ defmodule Core.WebTracker.SocialPlatformDetector do
     end
   end
 
+  @user_agent_platform_mapping %{
+    # Facebook indicators
+    "fban" => :facebook,
+    "fbav" => :facebook,
+    "fbsv" => :facebook,
+    # Instagram
+    "instagram" => :instagram,
+    # Twitter/X indicators
+    "twitterandroid" => :x,
+    "twitteriphone" => :x,
+    "twitter for" => :x,
+    # LinkedIn
+    "linkedinapp" => :linkedin,
+    "linkedin" => :linkedin,
+    # TikTok
+    "tiktok" => :tiktok,
+    "musical_ly" => :tiktok,
+    # Other platforms
+    "pinterest" => :pinterest,
+    "snapchat" => :snapchat,
+    "line" => :line,
+    "whatsapp" => :whatsapp,
+    "telegram" => :telegram,
+    "discord" => :discord,
+    "reddit" => :reddit,
+    "tumblr" => :tumblr
+  }
+
   defp get_platform_from_user_agent(nil), do: :not_found
   defp get_platform_from_user_agent(""), do: :not_found
 
@@ -726,55 +754,9 @@ defmodule Core.WebTracker.SocialPlatformDetector do
     user_agent_lower = String.downcase(user_agent)
 
     platform =
-      cond do
-        String.contains?(user_agent_lower, "fban") or
-          String.contains?(user_agent_lower, "fbav") or
-            String.contains?(user_agent_lower, "fbsv") ->
-          :facebook
-
-        String.contains?(user_agent_lower, "instagram") ->
-          :instagram
-
-        String.contains?(user_agent_lower, "twitterandroid") or
-          String.contains?(user_agent_lower, "twitteriphone") or
-            String.contains?(user_agent_lower, "twitter for") ->
-          :x
-
-        String.contains?(user_agent_lower, "linkedinapp") or
-            String.contains?(user_agent_lower, "linkedin") ->
-          :linkedin
-
-        String.contains?(user_agent_lower, "tiktok") or
-            String.contains?(user_agent_lower, "musical_ly") ->
-          :tiktok
-
-        String.contains?(user_agent_lower, "pinterest") ->
-          :pinterest
-
-        String.contains?(user_agent_lower, "snapchat") ->
-          :snapchat
-
-        String.contains?(user_agent_lower, "line") ->
-          :line
-
-        String.contains?(user_agent_lower, "whatsapp") ->
-          :whatsapp
-
-        String.contains?(user_agent_lower, "telegram") ->
-          :telegram
-
-        String.contains?(user_agent_lower, "discord") ->
-          :discord
-
-        String.contains?(user_agent_lower, "reddit") ->
-          :reddit
-
-        String.contains?(user_agent_lower, "tumblr") ->
-          :tumblr
-
-        true ->
-          nil
-      end
+      Enum.find_value(@user_agent_platform_mapping, fn {keyword, platform} ->
+        if String.contains?(user_agent_lower, keyword), do: platform
+      end)
 
     case platform do
       nil -> :not_found
