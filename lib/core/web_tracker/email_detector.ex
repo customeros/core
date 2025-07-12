@@ -248,24 +248,22 @@ defmodule Core.WebTracker.EmailDetector do
   Returns {:ok, :mailchimp} or :not_found
   """
   def get_platform(referrer, query_params \\ nil) do
-    cond do
-      mobile_email_app?(referrer) ->
-        {:ok, get_mobile_email_platform(referrer)}
+    if mobile_email_app?(referrer) do
+      {:ok, get_mobile_email_platform(referrer)}
+    else
+      case get_platform_from_referrer(referrer) do
+        {:ok, platform} ->
+          {:ok, platform}
 
-      true ->
-        case get_platform_from_referrer(referrer) do
-          {:ok, platform} ->
-            {:ok, platform}
+        :not_found ->
+          case parse_query_string(query_params) do
+            {:ok, param_map} ->
+              get_platform_from_params(param_map)
 
-          :not_found ->
-            case parse_query_string(query_params) do
-              {:ok, param_map} ->
-                get_platform_from_params(param_map)
-
-              {:error, _} ->
-                :not_found
-            end
-        end
+            {:error, _} ->
+              :not_found
+          end
+      end
     end
   end
 

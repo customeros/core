@@ -2,8 +2,8 @@ defmodule Core.WebTracker.WorkplacePlatformDetector do
   @moduledoc """
   Detects workplace platforms and business tools traffic.
 
-  This module analyzes referrer URLs and query parameters to identify workplace 
-  communication tools (Teams, Slack), CRM systems (Salesforce, HubSpot), 
+  This module analyzes referrer URLs and query parameters to identify workplace
+  communication tools (Teams, Slack), CRM systems (Salesforce, HubSpot),
   project management tools (Asana, Trello), and other business software platforms.
   """
 
@@ -463,28 +463,25 @@ defmodule Core.WebTracker.WorkplacePlatformDetector do
   end
 
   defp get_platform_from_referrer(referrer) do
-    cond do
-      # Check for mobile app referrers first
-      mobile_app_referrer?(referrer) ->
-        get_platform_from_mobile_app(referrer)
+    if mobile_app_referrer?(referrer) do
+      get_platform_from_mobile_app(referrer)
+    else
+      case URI.parse(referrer) do
+        %URI{host: nil} ->
+          :not_found
 
-      true ->
-        case URI.parse(referrer) do
-          %URI{host: nil} ->
-            :not_found
+        %URI{host: host} when is_binary(host) ->
+          case check_domain_patterns(host) do
+            :none ->
+              case Core.Utils.DomainExtractor.extract_base_domain(referrer) do
+                {:ok, domain} -> check_base_domain(domain)
+                {:error, _} -> :not_found
+              end
 
-          %URI{host: host} when is_binary(host) ->
-            case check_domain_patterns(host) do
-              :none ->
-                case Core.Utils.DomainExtractor.extract_base_domain(referrer) do
-                  {:ok, domain} -> check_base_domain(domain)
-                  {:error, _} -> :not_found
-                end
-
-              platform ->
-                {:ok, platform}
-            end
-        end
+            platform ->
+              {:ok, platform}
+          end
+      end
     end
   end
 

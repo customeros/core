@@ -471,23 +471,19 @@ defmodule Core.WebTracker.SearchPlatformDetector do
   end
 
   def get_platform_from_referrer(referrer) do
-    cond do
-      # Check for mobile app referrers first
-      mobile_app_referrer?(referrer) ->
-        get_platform_from_mobile_app(referrer)
+    if mobile_app_referrer?(referrer) do
+      get_platform_from_mobile_app(referrer)
+    else
+      case DomainExtractor.extract_base_domain(referrer) do
+        {:ok, domain} ->
+          case check_domain(domain) do
+            :none -> :not_found
+            platform -> {:ok, platform}
+          end
 
-      # Then check regular web domains
-      true ->
-        case DomainExtractor.extract_base_domain(referrer) do
-          {:ok, domain} ->
-            case check_domain(domain) do
-              :none -> :not_found
-              platform -> {:ok, platform}
-            end
-
-          {:error, _} ->
-            :not_found
-        end
+        {:error, _} ->
+          :not_found
+      end
     end
   end
 

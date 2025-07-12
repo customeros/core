@@ -143,16 +143,14 @@ defmodule Core.WebTracker.ChannelClassifier do
 
   defp has_valid_referrer?(referrer)
        when is_binary(referrer) and referrer != "" do
-    cond do
-      String.starts_with?(referrer, "android-app://") or
-          String.starts_with?(referrer, "ios-app://") ->
-        false
-
-      true ->
-        case URI.parse(referrer) do
-          %URI{host: host} when is_binary(host) and host != "" -> true
-          _ -> false
-        end
+    if String.starts_with?(referrer, "android-app://") or
+         String.starts_with?(referrer, "ios-app://") do
+      false
+    else
+      case URI.parse(referrer) do
+        %URI{host: host} when is_binary(host) and host != "" -> true
+        _ -> false
+      end
     end
   end
 
