@@ -205,7 +205,8 @@ defmodule Core.WebTracker.CompanyEnrichmentJob do
              domain: domain
            }) do
         {:error, reason} ->
-          Logger.error(
+          Tracing.error(
+            reason,
             "IpIntelligence upsert failed for #{ip_address}, #{domain}"
           )
 
