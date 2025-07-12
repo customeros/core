@@ -703,22 +703,19 @@ defmodule Core.WebTracker.SocialPlatformDetector do
   end
 
   defp get_platform_from_referrer(referrer) do
-    cond do
-      # Check for mobile app referrers first
-      mobile_app_referrer?(referrer) ->
-        get_platform_from_mobile_app(referrer)
+    if mobile_app_referrer?(referrer) do
+      get_platform_from_mobile_app(referrer)
+    else
+      case DomainExtractor.extract_base_domain(referrer) do
+        {:ok, domain} ->
+          case check_domain(domain) do
+            :none -> :not_found
+            platform -> {:ok, platform}
+          end
 
-      true ->
-        case DomainExtractor.extract_base_domain(referrer) do
-          {:ok, domain} ->
-            case check_domain(domain) do
-              :none -> :not_found
-              platform -> {:ok, platform}
-            end
-
-          {:error, _} ->
-            :not_found
-        end
+        {:error, _} ->
+          :not_found
+      end
     end
   end
 
@@ -798,56 +795,47 @@ defmodule Core.WebTracker.SocialPlatformDetector do
     end
   end
 
+  @utm_source_keywords %{
+    "facebook" => :facebook,
+    "fb" => :facebook,
+    "instagram" => :instagram,
+    "ig" => :instagram,
+    "twitter" => :x,
+    "x.com" => :x,
+    "linkedin" => :linkedin,
+    "youtube" => :youtube,
+    "tiktok" => :tiktok,
+    "pinterest" => :pinterest,
+    "snapchat" => :snapchat,
+    "reddit" => :reddit,
+    "discord" => :discord,
+    "telegram" => :telegram,
+    "whatsapp" => :whatsapp
+  }
+
   defp detect_from_utm_params(param_map) do
     utm_source = Map.get(param_map, "utm_source", "") |> String.downcase()
     utm_medium = Map.get(param_map, "utm_medium", "") |> String.downcase()
 
-    cond do
-      utm_medium not in @social_mediums ->
-        :not_found
+    with true <- utm_medium in @social_mediums,
+         {:ok, platform} <- find_platform_from_utm_source(utm_source) do
+      {:ok, platform}
+    else
+      false -> :not_found
+      :not_found -> :not_found
+    end
+  end
 
-      Map.has_key?(@utm_source_mapping, utm_source) ->
-        platform = Map.get(@utm_source_mapping, utm_source)
+  defp find_platform_from_utm_source(utm_source) do
+    cond do
+      platform = Map.get(@utm_source_mapping, utm_source) ->
         {:ok, platform}
 
-      String.contains?(utm_source, "facebook") or
-          String.contains?(utm_source, "fb") ->
-        {:ok, :facebook}
-
-      String.contains?(utm_source, "instagram") or
-          String.contains?(utm_source, "ig") ->
-        {:ok, :instagram}
-
-      String.contains?(utm_source, "twitter") or
-          String.contains?(utm_source, "x.com") ->
-        {:ok, :x}
-
-      String.contains?(utm_source, "linkedin") ->
-        {:ok, :linkedin}
-
-      String.contains?(utm_source, "youtube") ->
-        {:ok, :youtube}
-
-      String.contains?(utm_source, "tiktok") ->
-        {:ok, :tiktok}
-
-      String.contains?(utm_source, "pinterest") ->
-        {:ok, :pinterest}
-
-      String.contains?(utm_source, "snapchat") ->
-        {:ok, :snapchat}
-
-      String.contains?(utm_source, "reddit") ->
-        {:ok, :reddit}
-
-      String.contains?(utm_source, "discord") ->
-        {:ok, :discord}
-
-      String.contains?(utm_source, "telegram") ->
-        {:ok, :telegram}
-
-      String.contains?(utm_source, "whatsapp") ->
-        {:ok, :whatsapp}
+      platform =
+          Enum.find_value(@utm_source_keywords, fn {keyword, platform} ->
+            if String.contains?(utm_source, keyword), do: platform
+          end) ->
+        {:ok, platform}
 
       true ->
         :not_found
