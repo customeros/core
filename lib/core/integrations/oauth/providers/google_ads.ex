@@ -74,7 +74,8 @@ defmodule Core.Integrations.OAuth.Providers.GoogleAds do
   @impl Base
   def refresh_token(%Connection{} = connection) do
     # Update connection status to refreshing
-    {:ok, connection} = Connections.update_connection(connection, %{status: :refreshing})
+    {:ok, connection} =
+      Connections.update_connection(connection, %{status: :refreshing})
 
     config = Application.get_env(:core, :google_ads)
     base_url = config[:token_base_url]
@@ -89,33 +90,44 @@ defmodule Core.Integrations.OAuth.Providers.GoogleAds do
     case post_token(base_url, params) do
       {:ok, token_data} ->
         with {:ok, token} <- Token.new(token_data),
-             {:ok, updated} <- Connections.update_connection(connection, %{
-               access_token: token.access_token,
-               refresh_token: token.refresh_token,
-               expires_at: token.expires_at,
-               scopes: config[:scopes] || [],
-               status: :active,
-               connection_error: nil # Clear any previous errors
-             }) do
-          Logger.info("Token refresh successful for connection #{inspect(updated.id)}. API health will be verified on next operation.")
+             {:ok, updated} <-
+               Connections.update_connection(connection, %{
+                 access_token: token.access_token,
+                 refresh_token: token.refresh_token,
+                 expires_at: token.expires_at,
+                 scopes: config[:scopes] || [],
+                 status: :active,
+                 # Clear any previous errors
+                 connection_error: nil
+               }) do
+          Logger.info(
+            "Token refresh successful for connection #{inspect(updated.id)}. API health will be verified on next operation."
+          )
+
           {:ok, updated}
         else
           {:error, reason} ->
             Logger.error("Failed to update connection: #{inspect(reason)}")
             # Set status to error but keep the new tokens
-            {:ok, _} = Connections.update_connection(connection, %{
-              status: :error,
-              connection_error: "Failed to update connection: #{inspect(reason)}"
-            })
+            {:ok, _} =
+              Connections.update_connection(connection, %{
+                status: :error,
+                connection_error:
+                  "Failed to update connection: #{inspect(reason)}"
+              })
+
             {:error, "Failed to update connection"}
         end
 
       {:error, reason} ->
         Logger.error("Failed to refresh token: #{inspect(reason)}")
-        {:ok, _updated} = Connections.update_connection(connection, %{
-          status: :error,
-          connection_error: "Token refresh failed: #{inspect(reason)}"
-        })
+
+        {:ok, _updated} =
+          Connections.update_connection(connection, %{
+            status: :error,
+            connection_error: "Token refresh failed: #{inspect(reason)}"
+          })
+
         {:error, "Token refresh failed"}
     end
   end
@@ -148,38 +160,32 @@ defmodule Core.Integrations.OAuth.Providers.GoogleAds do
     api_version = config[:api_version]
     base_url = config[:api_base_url]
     url = "#{base_url}/#{api_version}/customers:listAccessibleCustomers"
+
     headers = [
       {"Authorization", "Bearer #{access_token}"},
       {"developer-token", config[:developer_token]},
       {"Content-Type", "application/json"}
     ]
 
-    dbg(url: url)
-    dbg(headers: headers)
-
     case make_http_get_with_headers(url, headers) do
       {:ok, body} when is_map(body) ->
-        dbg(response_body: body)
         case body do
           %{"resourceNames" => [customer_resource | _]} ->
             # Extract customer ID from resource name like "customers/123456789"
             customer_id = String.replace(customer_resource, "customers/", "")
-            dbg(customer_id: customer_id)
             {:ok, customer_id}
+
           %{"resourceNames" => []} ->
-            dbg(no_customers: true)
             {:error, "No accessible customers found"}
+
           _ ->
-            dbg(unexpected_response: body)
             {:error, "Unexpected response format"}
         end
 
-      {:ok, body} ->
-        dbg(invalid_response_type: body)
+      {:ok, _body} ->
         {:error, "Invalid response format"}
 
       {:error, error} ->
-        dbg(request_error: error)
         {:error, "Request failed: #{inspect(error)}"}
     end
   end
