@@ -63,7 +63,7 @@ defmodule Core.Integrations.OAuth.Providers.GoogleAds do
 
     case post_token(base_url, params) do
       {:ok, token_data} ->
-        {:ok, Token.new(token_data)}
+        Token.new(token_data)
 
       {:error, reason} ->
         Logger.error("Failed to exchange code for token: #{inspect(reason)}")
@@ -74,8 +74,7 @@ defmodule Core.Integrations.OAuth.Providers.GoogleAds do
   @impl Base
   def refresh_token(%Connection{} = connection) do
     # Update connection status to refreshing
-    {:ok, connection} =
-      Connections.update_connection(connection, %{status: :refreshing})
+    {:ok, connection} = Connections.update_connection(connection, %{status: :refreshing})
 
     config = Application.get_env(:core, :google_ads)
     base_url = config[:token_base_url]
@@ -89,59 +88,35 @@ defmodule Core.Integrations.OAuth.Providers.GoogleAds do
 
     case post_token(base_url, params) do
       {:ok, token_data} ->
-        case Token.new(token_data) do
-          {:ok, token} ->
-            # Update connection with new tokens and set status to active temporarily
-            # Note: This indicates token refresh success, but API health will be verified
-            # by actual API operations
-            case Connections.update_connection(connection, %{
-                   access_token: token.access_token,
-                   refresh_token: token.refresh_token,
-                   expires_at: token.expires_at,
-                   scopes: config[:scopes] || [],
-                   status: :active,
-                   # Clear any previous errors
-                   connection_error: nil
-                 }) do
-              {:ok, updated} ->
-                Logger.info(
-                  "Token refresh successful for connection #{inspect(updated.id)}. " <>
-                    "API health will be verified on next operation."
-                )
-
-                {:ok, updated}
-
-              {:error, reason} ->
-                Logger.error(
-                  "Failed to update connection with new tokens: #{inspect(reason)}"
-                )
-
-                # Set status to error but keep the new tokens
-                {:ok, _} =
-                  Connections.update_connection(connection, %{
-                    status: :error,
-                    connection_error:
-                      "Failed to update connection: #{inspect(reason)}"
-                  })
-
-                {:error, :update_failed}
-            end
-
+        with {:ok, token} <- Token.new(token_data),
+             {:ok, updated} <- Connections.update_connection(connection, %{
+               access_token: token.access_token,
+               refresh_token: token.refresh_token,
+               expires_at: token.expires_at,
+               scopes: config[:scopes] || [],
+               status: :active,
+               connection_error: nil # Clear any previous errors
+             }) do
+          Logger.info("Token refresh successful for connection #{inspect(updated.id)}. API health will be verified on next operation.")
+          {:ok, updated}
+        else
           {:error, reason} ->
-            Logger.error("Failed to parse token: #{inspect(reason)}")
-            {:error, reason}
+            Logger.error("Failed to update connection: #{inspect(reason)}")
+            # Set status to error but keep the new tokens
+            {:ok, _} = Connections.update_connection(connection, %{
+              status: :error,
+              connection_error: "Failed to update connection: #{inspect(reason)}"
+            })
+            {:error, "Failed to update connection"}
         end
 
       {:error, reason} ->
         Logger.error("Failed to refresh token: #{inspect(reason)}")
-
-        {:ok, _updated} =
-          Connections.update_connection(connection, %{
-            status: :error,
-            connection_error: "Token refresh failed: #{inspect(reason)}"
-          })
-
-        {:error, reason}
+        {:ok, _updated} = Connections.update_connection(connection, %{
+          status: :error,
+          connection_error: "Token refresh failed: #{inspect(reason)}"
+        })
+        {:error, "Token refresh failed"}
     end
   end
 
@@ -169,32 +144,43 @@ defmodule Core.Integrations.OAuth.Providers.GoogleAds do
   the list of customer accounts accessible to the authenticated user.
   """
   def get_customer_id(access_token) do
-    # Use the correct Google Ads API endpoint for listing accessible customers (non-versioned)
-    base_url =
-      Core.Integrations.Providers.GoogleAds.Client.base_url_no_version()
-
-    url = "#{base_url}/customers:listAccessibleCustomers"
-
+    config = Application.get_env(:core, :google_ads)
+    api_version = config[:api_version]
+    base_url = config[:api_base_url]
+    url = "#{base_url}/#{api_version}/customers:listAccessibleCustomers"
     headers = [
-      {"authorization", "Bearer #{access_token}"},
-      {"developer-token",
-       Application.get_env(:core, :google_ads)[:developer_token]}
+      {"Authorization", "Bearer #{access_token}"},
+      {"developer-token", config[:developer_token]},
+      {"Content-Type", "application/json"}
     ]
 
+    dbg(url: url)
+    dbg(headers: headers)
+
     case make_http_get_with_headers(url, headers) do
-      {:ok, %{"resourceNames" => [customer_resource | _]}} ->
-        # Extract customer ID from resource name like "customers/123456789"
-        customer_id = String.replace(customer_resource, "customers/", "")
-        Logger.info("Got Google Ads customer ID: #{customer_id}")
-        {:ok, customer_id}
+      {:ok, body} when is_map(body) ->
+        dbg(response_body: body)
+        case body do
+          %{"resourceNames" => [customer_resource | _]} ->
+            # Extract customer ID from resource name like "customers/123456789"
+            customer_id = String.replace(customer_resource, "customers/", "")
+            dbg(customer_id: customer_id)
+            {:ok, customer_id}
+          %{"resourceNames" => []} ->
+            dbg(no_customers: true)
+            {:error, "No accessible customers found"}
+          _ ->
+            dbg(unexpected_response: body)
+            {:error, "Unexpected response format"}
+        end
 
-      {:ok, %{"resourceNames" => []}} ->
-        Logger.error("No accessible customers found")
-        {:error, :no_customers_found}
+      {:ok, body} ->
+        dbg(invalid_response_type: body)
+        {:error, "Invalid response format"}
 
-      {:error, reason} ->
-        Logger.error("Failed to get customer ID: #{inspect(reason)}")
-        {:error, reason}
+      {:error, error} ->
+        dbg(request_error: error)
+        {:error, "Request failed: #{inspect(error)}"}
     end
   end
 
@@ -253,7 +239,7 @@ defmodule Core.Integrations.OAuth.Providers.GoogleAds do
 
       {:ok, %{status: status, body: body}} ->
         Logger.error("Failed to get Google Ads API: HTTP #{status}: #{body}")
-        {:error, "HTTP #{status}: #{body}"}
+        {:error, "Google Ads API request failed with status #{status}"}
 
       {:error, %{reason: reason}} ->
         Logger.error("Failed to get Google Ads API: #{inspect(reason)}")

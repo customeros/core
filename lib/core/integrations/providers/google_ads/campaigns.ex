@@ -28,7 +28,11 @@ defmodule Core.Integrations.Providers.GoogleAds.Campaigns do
           "id" => "123456789",
           "name" => "Summer Sale Campaign",
           "status" => "ENABLED",
-          "budgetAmountMicros" => "1000000"
+          "budget_amount_micros" => "1000000",
+          "start_date" => "2023-01-01",
+          "end_date" => "2023-12-31",
+          "advertising_channel_type" => "SEARCH",
+          "advertising_channel_sub_type" => "SEARCH_MOBILE_APP"
         }
       ]}
   """
@@ -46,7 +50,9 @@ defmodule Core.Integrations.Providers.GoogleAds.Campaigns do
                campaign.status,
                campaign.budget_amount_micros,
                campaign.start_date,
-               campaign.end_date
+               campaign.end_date,
+               campaign.advertising_channel_type,
+               campaign.advertising_channel_sub_type
              FROM campaign
              WHERE campaign.status != 'REMOVED'
              ORDER BY campaign.name

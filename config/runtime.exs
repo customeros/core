@@ -244,6 +244,10 @@ config :core, :google_ads,
   client_id: System.get_env("GOOGLE_ADS_CLIENT_ID"),
   client_secret: System.get_env("GOOGLE_ADS_CLIENT_SECRET"),
   developer_token: System.get_env("GOOGLE_ADS_DEVELOPER_TOKEN"),
+  api_base_url: "https://googleads.googleapis.com",
+  api_version: System.get_env("GOOGLE_ADS_API_VERSION", "v20"),
+  auth_base_url: "https://accounts.google.com",
+  token_base_url: "https://oauth2.googleapis.com",
   scopes:
     String.split(
       System.get_env(
@@ -251,11 +255,7 @@ config :core, :google_ads,
         "https://www.googleapis.com/auth/adwords"
       ),
       " "
-    ),
-  api_base_url: "https://googleads.googleapis.com/v14",
-  api_base_url_no_version: "https://googleads.googleapis.com",
-  auth_base_url: "https://accounts.google.com",
-  token_base_url: "https://oauth2.googleapis.com"
+    )
 
 config :core, :scrapin,
   scrapin_api_key: System.get_env("SCRAPIN_API_KEY"),
