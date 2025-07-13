@@ -1,6 +1,46 @@
 # CustomerOS Core
 
-Qualified opportunity generation
+CustomerOS Core is the central backend and frontend application for CustomerOS, a platform for qualified opportunity generation. It is a powerful, extensible, and observable system designed to be the heart of your customer operations.
+
+## About the Project
+
+CustomerOS Core is a sophisticated Elixir and Phoenix-based application with a modern React frontend. It is designed to be more than just a simple web application; it's a robust platform that can be extended and integrated with other services.
+
+The backend is built with a focus on concurrency, fault tolerance, and observability, leveraging the full power of the BEAM. It communicates with other systems using a variety of protocols, including GraphQL, gRPC, and message queues (RabbitMQ/NATS).
+
+The frontend is a single-page application built with React and Inertia.js, providing a rich and interactive user experience. It includes features like a rich text editor with real-time collaboration, powered by Lexical and Yjs.
+
+## Key Features
+
+- **GraphQL API:** A comprehensive GraphQL API for interacting with the system, powered by Absinthe.
+- **Real-time Collaboration:** Collaborative rich text editing using Lexical and Yjs.
+- **Message-driven Architecture:** Uses RabbitMQ (AMQP) and NATS (Jetstream) for asynchronous communication.
+- **gRPC for Internal Services:** Efficient and strongly-typed communication with internal services using gRPC.
+- **Observability:** Integrated with OpenTelemetry for metrics, tracing, and logging.
+- **Phoenix LiveView:** For real-time features and interactive dashboards.
+- **Modern Frontend:** A responsive and interactive frontend built with React, Inertia.js, and Tailwind CSS.
+
+## Technology Stack
+
+### Backend
+
+- **Framework:** [Phoenix](https://www.phoenixframework.org/)
+- **Language:** [Elixir](https://elixir-lang.org/)
+- **Database:** [PostgreSQL](https://www.postgresql.org/) with [Ecto](https://hexdocs.pm/ecto/Ecto.html)
+- **API:** [GraphQL](https://graphql.org/) with [Absinthe](http://absinthe-graphql.org/)
+- **Messaging:** [RabbitMQ](https://www.rabbitmq.com/) and [NATS](https://nats.io/)
+- **RPC:** [gRPC](https://grpc.io/)
+- **Observability:** [OpenTelemetry](https://opentelemetry.io/)
+- **HTTP Client:** [Finch](https://github.com/sneako/finch)
+
+### Frontend
+
+- **Framework:** [React](https://reactjs.org/)
+- **Routing:** [Inertia.js](https://inertiajs.com/)
+- **Styling:** [Tailwind CSS](https://tailwindcss.com/)
+- **Rich Text Editor:** [Lexical](https://lexical.dev/)
+- **Real-time Collaboration:** [Yjs](https://yjs.dev/)
+- **Build Tool:** [esbuild](https://esbuild.github.io/)
 
 ## Prerequisites
 
@@ -41,10 +81,6 @@ docker compose ps
 ```bash
 # Install dependencies and setup database
 mix setup
-
-# This command runs:
-# - mix deps.get (install Elixir dependencies)
-# - mix ecto.setup (create database and run migrations)
 ```
 
 The `mix setup` command will automatically:
@@ -156,14 +192,6 @@ docker compose down -v
 - All public functions should have guards
 - All unused variables are named with underscore prefix
 
-## Standardized Libraries
-
-- **HTTP client**: Finch
-- **Database**: Ecto with PostgreSQL
-- **Web framework**: Phoenix
-- **Frontend**: React with Inertia.js
-- **CSS**: Tailwind CSS
-
 ## Troubleshooting
 
 ### PostgreSQL Connection Issues
@@ -189,3 +217,4 @@ If port 5555 (PostgreSQL) or 4000 (Phoenix) are in use:
 
 1. Check what's using the port: `lsof -i :5555` or `lsof -i :4000`
 2. Stop the conflicting service or modify the port in `compose.yml` or Phoenix config
+

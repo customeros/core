@@ -18,26 +18,23 @@ defmodule Core.WebTracker.IpIdentifier do
   require Logger
   require OpenTelemetry.Tracer
 
-  alias Core.Logger.ApiLogger, as: ApiLogger
-  alias Core.WebTracker.IpIdentifier.SnitcherPayload
-  alias Core.WebTracker.IpIdentifier.IpIntelligence
   alias Core.Repo
-  alias Core.Utils.IdGenerator
   alias Core.Utils.Tracing
+  alias Core.Utils.IdGenerator
+  alias Core.Logger.ApiLogger, as: ApiLogger
+  alias Core.WebTracker.IpIdentifier.IpIntelligence
+  alias Core.WebTracker.IpIdentifier.SnitcherPayload
 
   @vendor "snitcher"
 
-  def identify_ip(ip, default_domain \\ nil)
-
-  def identify_ip(ip, default_domain)
+  def identify_ip(ip)
       when is_binary(ip) and byte_size(ip) > 0 do
     with {:ok, config} <- get_config(),
          {:ok, response} <- make_request(config, ip),
          {:ok, snitcher_response} <- parse_response(response) do
       update_ip_intelligence_with_snitcher_response(
         ip,
-        snitcher_response,
-        default_domain
+        snitcher_response
       )
 
       {:ok, snitcher_response}
@@ -46,7 +43,7 @@ defmodule Core.WebTracker.IpIdentifier do
     end
   end
 
-  def identify_ip(_, _), do: {:error, "IP address must be a string"}
+  def identify_ip(_), do: {:error, "IP address must be a string"}
 
   defp make_request(config, ip) do
     url = "#{config.api_url}/company/find?ip=#{ip}"
@@ -100,7 +97,7 @@ defmodule Core.WebTracker.IpIdentifier do
     end
   end
 
-  defp update_ip_intelligence_with_snitcher_response(_ip, %{company: nil}, _),
+  defp update_ip_intelligence_with_snitcher_response(_ip, %{company: nil}),
     do: :ok
 
   defp update_ip_intelligence_with_snitcher_response(
@@ -108,28 +105,20 @@ defmodule Core.WebTracker.IpIdentifier do
          %{
            company: %{domain: company_domain},
            domain: domain
-         },
-         default_domain
+         }
        )
        when is_binary(company_domain) do
     OpenTelemetry.Tracer.with_span "ip_identifier.update_ip_intelligence_with_snitcher_response" do
-      attrs = build_ip_intelligence_attrs(domain, default_domain)
-      handle_ip_intelligence_update(ip, attrs)
+      %{
+        domain: domain,
+        domain_source: :snitcher,
+        updated_at: DateTime.utc_now() |> DateTime.truncate(:second)
+      }
+      |> handle_ip_intelligence_update(ip)
     end
   end
 
-  defp build_ip_intelligence_attrs(domain, default_domain) do
-    %{
-      domain: domain || default_domain,
-      domain_source: determine_domain_source(domain),
-      updated_at: DateTime.utc_now() |> DateTime.truncate(:second)
-    }
-  end
-
-  defp determine_domain_source(nil), do: :snitcher
-  defp determine_domain_source(_), do: :tracker
-
-  defp handle_ip_intelligence_update(ip, attrs) do
+  defp handle_ip_intelligence_update(attrs, ip) do
     case IpIntelligence.get_by_ip(ip) do
       {:ok, nil} -> create_ip_intelligence_record(ip, attrs)
       {:ok, record} -> update_ip_intelligence_record(record, attrs)
