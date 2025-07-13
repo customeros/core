@@ -92,15 +92,21 @@ defmodule Web.GoogleAdsController do
         Tracing.error(error, "Failed to complete Google Ads integration")
 
         conn
-        |> put_flash(:error, "Failed to complete Google Ads integration: #{error}")
+        |> put_flash(
+          :error,
+          "Failed to complete Google Ads integration: #{error}"
+        )
         |> redirect(to: ~p"/leads")
     end
   end
 
   defp exchange_code_for_token(code, redirect_uri) do
     case GoogleAdsOAuth.exchange_code(code, redirect_uri) do
-      {:ok, token} -> {:ok, token}
-      {:error, reason} -> {:error, "Failed to exchange code for token: #{inspect(reason)}"}
+      {:ok, token} ->
+        {:ok, token}
+
+      {:error, reason} ->
+        {:error, "Failed to exchange code for token: #{inspect(reason)}"}
     end
   end
 
@@ -109,12 +115,17 @@ defmodule Web.GoogleAdsController do
   end
 
   defp save_customer_id(connection, customer_id) do
-    case Connections.update_connection(connection, %{external_system_id: customer_id}) do
+    case Connections.update_connection(connection, %{
+           external_system_id: customer_id
+         }) do
       {:ok, updated_connection} ->
         {:ok, updated_connection}
 
       {:error, changeset} ->
-        Logger.error("Failed to update connection with customer_id: #{inspect(changeset.errors)}")
+        Logger.error(
+          "Failed to update connection with customer_id: #{inspect(changeset.errors)}"
+        )
+
         {:error, "Failed to update connection with customer ID"}
     end
   end
@@ -134,11 +145,17 @@ defmodule Web.GoogleAdsController do
 
     case Connections.create_connection(connection_params) do
       {:ok, connection} ->
-        Logger.info("Successfully created Google Ads connection: #{inspect(connection, pretty: true)}")
+        Logger.info(
+          "Successfully created Google Ads connection: #{inspect(connection, pretty: true)}"
+        )
+
         {:ok, connection}
 
       {:error, reason} ->
-        Logger.error("Failed to create Google Ads connection: #{inspect(reason)}")
+        Logger.error(
+          "Failed to create Google Ads connection: #{inspect(reason)}"
+        )
+
         {:error, "Failed to create Google Ads connection"}
     end
   end
