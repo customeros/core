@@ -26,20 +26,6 @@ defmodule Core.Integrations.Providers.GoogleAds.Client do
   end
 
   @doc """
-  Gets the base URL for Google Ads API calls without version prefix.
-  """
-  def base_url_no_version do
-    config = Application.get_env(:core, :google_ads)
-    base_url = config[:api_base_url_no_version]
-
-    unless base_url do
-      raise "Google Ads api_base_url_no_version is not configured. Please set it in your runtime config."
-    end
-
-    base_url
-  end
-
-  @doc """
   Makes a GET request to the Google Ads API.
 
   This function:
