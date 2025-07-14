@@ -63,7 +63,13 @@ defmodule Core.Integrations.OAuth.Providers.GoogleAds do
 
     case post_token(base_url, params) do
       {:ok, token_data} ->
-        Token.new(token_data)
+        Logger.info("Google Ads token exchange response: #{inspect(token_data, pretty: true)}")
+        case Token.new(token_data) do
+          {:ok, token} ->
+            Logger.info("Created token struct: #{inspect(token, pretty: true)}")
+            {:ok, token}
+          {:error, reason} -> {:error, reason}
+        end
 
       {:error, reason} ->
         Logger.error("Failed to exchange code for token: #{inspect(reason)}")
@@ -93,7 +99,7 @@ defmodule Core.Integrations.OAuth.Providers.GoogleAds do
              {:ok, updated} <-
                Connections.update_connection(connection, %{
                  access_token: token.access_token,
-                 refresh_token: token.refresh_token,
+                 refresh_token: token.refresh_token || connection.refresh_token,  # Keep old refresh token if not provided
                  expires_at: token.expires_at,
                  scopes: config[:scopes] || [],
                  status: :active,
@@ -128,7 +134,7 @@ defmodule Core.Integrations.OAuth.Providers.GoogleAds do
             connection_error: "Token refresh failed: #{inspect(reason)}"
           })
 
-        {:error, "Token refresh failed"}
+        {:error, "Token refresh failed: #{inspect(reason)}"}
     end
   end
 

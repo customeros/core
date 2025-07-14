@@ -131,6 +131,7 @@ defmodule Web.GoogleAdsController do
   end
 
   defp create_google_ads_connection(token, tenant_id, customer_id \\ nil) do
+    Logger.info("Creating Google Ads connection with token: #{inspect(token, pretty: true)}")
     connection_params = %{
       tenant_id: tenant_id,
       provider: :google_ads,
@@ -142,6 +143,7 @@ defmodule Web.GoogleAdsController do
       token_type: token.token_type,
       scopes: Application.get_env(:core, :google_ads)[:scopes] || []
     }
+    Logger.info("Connection params: #{inspect(connection_params, pretty: true)}")
 
     case Connections.create_connection(connection_params) do
       {:ok, connection} ->
