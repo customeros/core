@@ -52,8 +52,6 @@ defmodule Core.Crm.Companies.Company do
     field(:scrapin_enrichment_attempts, :integer, default: 0)
 
     # LinkedIn fields
-    # deprecated
-    field(:linkedin_id, :string)
     field(:linkedin_ids, {:array, :string}, default: [])
 
     field(:homepage_scraped, :boolean, default: false)
@@ -92,7 +90,6 @@ defmodule Core.Crm.Companies.Company do
           icon_enrichment_attempts: integer(),
           business_model_enrichment_attempts: integer(),
           scrapin_enrichment_attempts: integer(),
-          linkedin_id: String.t() | nil,
           linkedin_ids: {:array, :string},
           domains: {:array, :string},
           homepage_scraped: boolean(),
@@ -133,7 +130,6 @@ defmodule Core.Crm.Companies.Company do
       :icon_enrichment_attempts,
       :business_model_enrichment_attempts,
       :scrapin_enrichment_attempts,
-      :linkedin_id,
       :linkedin_ids,
       :homepage_scraped,
       :technologies_used,
