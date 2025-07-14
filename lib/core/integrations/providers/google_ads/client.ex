@@ -32,15 +32,16 @@ defmodule Core.Integrations.Providers.GoogleAds.Client do
     - connection - The integration connection
     - path - The API endpoint path
     - params - Optional query parameters
+    - customer_id - Optional customer ID to use for the request (defaults to connection.external_system_id)
 
   ## Returns
     - `{:ok, map()}` - The parsed JSON response
     - `{:error, term()}` - Error reason
   """
-  def get(%Connection{} = connection, path, params \\ %{}) do
+  def get(%Connection{} = connection, path, params \\ %{}, customer_id \\ nil) do
     with {:ok, connection} <- ensure_valid_token(connection),
          url = build_url(path, params),
-         headers = [{"authorization", "Bearer #{connection.access_token}"}],
+         headers = build_headers(connection, customer_id),
          {:ok, %{status: 200, body: body}} <-
            Finch.build(:get, url, headers, "")
            |> Finch.request(Core.Finch) do
@@ -69,26 +70,24 @@ defmodule Core.Integrations.Providers.GoogleAds.Client do
     - path - The API endpoint path
     - body - The request body
     - params - Optional query parameters
+    - customer_id - Optional customer ID to use for the request (defaults to connection.external_system_id)
 
   ## Returns
     - `{:ok, map()}` - The parsed JSON response
     - `{:error, term()}` - Error reason
   """
-  def post(%Connection{} = connection, path, body, params \\ %{}) do
+  def post(%Connection{} = connection, path, body, params \\ %{}, customer_id \\ nil) do
     with {:ok, connection} <- ensure_valid_token(connection),
          url = build_url(path, params),
-         config = Application.get_env(:core, :google_ads),
-         headers = [
-           {"authorization", "Bearer #{connection.access_token}"},
-           {"content-type", "application/json"},
-           {"developer-token", config[:developer_token]},
-           {"login-customer-id", connection.external_system_id}
-         ] do
-
-      case Finch.build(:post, url, headers, Jason.encode!(body))
+         headers = build_headers(connection, customer_id),
+         encoded_body = Jason.encode!(body) do
+      case Finch.build(:post, url, headers, encoded_body)
            |> Finch.request(Core.Finch) do
         {:ok, %{status: status, body: response_body}} when status in 200..299 ->
-          {:ok, Jason.decode!(response_body)}
+          case Jason.decode(response_body) do
+            {:ok, decoded} -> {:ok, decoded}
+            {:error, _} -> {:error, "Failed to decode response: #{response_body}"}
+          end
 
         {:ok, %{status: status, body: response_body}} ->
           Logger.error("Failed to post Google Ads API: HTTP #{status}: #{response_body}")
@@ -114,18 +113,16 @@ defmodule Core.Integrations.Providers.GoogleAds.Client do
     - path - The API endpoint path
     - body - The request body
     - params - Optional query parameters
+    - customer_id - Optional customer ID to use for the request (defaults to connection.external_system_id)
 
   ## Returns
     - `{:ok, map()}` - The parsed JSON response
     - `{:error, term()}` - Error reason
   """
-  def put(%Connection{} = connection, path, body, params \\ %{}) do
+  def put(%Connection{} = connection, path, body, params \\ %{}, customer_id \\ nil) do
     with {:ok, connection} <- ensure_valid_token(connection),
          url = build_url(path, params),
-         headers = [
-           {"authorization", "Bearer #{connection.access_token}"},
-           {"content-type", "application/json"}
-         ],
+         headers = build_headers(connection, customer_id),
          {:ok, %{status: status, body: body}} when status in 200..299 <-
            Finch.build(:put, url, headers, Jason.encode!(body))
            |> Finch.request(Core.Finch) do
@@ -153,15 +150,16 @@ defmodule Core.Integrations.Providers.GoogleAds.Client do
     - connection - The integration connection
     - path - The API endpoint path
     - params - Optional query parameters
+    - customer_id - Optional customer ID to use for the request (defaults to connection.external_system_id)
 
   ## Returns
     - `{:ok, map()}` - The parsed JSON response
     - `{:error, term()}` - Error reason
   """
-  def delete(%Connection{} = connection, path, params \\ %{}) do
+  def delete(%Connection{} = connection, path, params \\ %{}, customer_id \\ nil) do
     with {:ok, connection} <- ensure_valid_token(connection),
          url = build_url(path, params),
-         headers = [{"authorization", "Bearer #{connection.access_token}"}],
+         headers = build_headers(connection, customer_id),
          {:ok, %{status: status, body: body}} when status in 200..299 <-
            Finch.build(:delete, url, headers, "")
            |> Finch.request(Core.Finch) do
@@ -237,13 +235,31 @@ defmodule Core.Integrations.Providers.GoogleAds.Client do
   defp build_url(path, params) do
     url = "#{base_url()}#{path}"
 
-    query_string =
-      params
-      |> Enum.map_join("&", fn {key, value} ->
-        "#{key}=#{URI.encode_www_form(to_string(value))}"
-      end)
+    case Enum.empty?(params) do
+      true -> url
+      false ->
+        query_string =
+          params
+          |> Enum.map_join("&", fn {key, value} ->
+            "#{key}=#{URI.encode_www_form(to_string(value))}"
+          end)
+        "#{url}?#{query_string}"
+    end
+  end
 
-    final_url = if query_string == "", do: url, else: "#{url}?#{query_string}"
-    final_url
+  defp build_headers(connection, customer_id) do
+    config = Application.get_env(:core, :google_ads)
+    base_headers = [
+      {"authorization", "Bearer #{connection.access_token}"},
+      {"content-type", "application/json"},
+      {"developer-token", config[:developer_token]}
+    ]
+
+    # Add login-customer-id header only if customer_id is different from the connection's ID
+    case customer_id do
+      nil -> base_headers
+      id when id == connection.external_system_id -> base_headers
+      _ -> [{"login-customer-id", connection.external_system_id} | base_headers]
+    end
   end
 end
