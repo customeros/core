@@ -157,17 +157,22 @@ defmodule Core.WebTracker.ChannelClassifier do
   defp has_valid_referrer?(_), do: false
 
   defp self_referral?(tenant_domains, referrer) do
-    case DomainExtractor.extract_base_domain(referrer) do
-      {:ok, referrer_domain} ->
-        referrer_domain in tenant_domains
+    if String.starts_with?(referrer || "", "android-app://") or
+         String.starts_with?(referrer || "", "ios-app://") do
+      false
+    else
+      case DomainExtractor.extract_base_domain(referrer) do
+        {:ok, referrer_domain} ->
+          referrer_domain in tenant_domains
 
-      {:error, reason} ->
-        Logger.error("failed to determine if referrer is internal", %{
-          referrer: referrer,
-          reason: reason
-        })
+        {:error, reason} ->
+          Logger.error("failed to determine if referrer is internal", %{
+            referrer: referrer,
+            reason: reason
+          })
 
-        false
+          false
+      end
     end
   end
 
