@@ -461,8 +461,8 @@ defmodule Core.Crm.Contacts do
     end
   end
 
-  def get_taget_persona_contacts_by_lead_id(tenant_id, lead_id) do
-    OpenTelemetry.Tracer.with_span "contacts.get_taget_persona_contacts_by_lead_id" do
+  def get_tagret_persona_contacts_by_lead_id(tenant_id, lead_id) do
+    OpenTelemetry.Tracer.with_span "contacts.get_tagret_persona_contacts_by_lead_id" do
       OpenTelemetry.Tracer.set_attributes([
         {"param.tenant.id", tenant_id},
         {"param.lead.id", lead_id}

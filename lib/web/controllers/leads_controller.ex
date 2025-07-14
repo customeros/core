@@ -35,7 +35,7 @@ defmodule Web.LeadsController do
             []
 
           lead_id ->
-            Contacts.get_taget_persona_contacts_by_lead_id(tenant_id, lead_id)
+            Contacts.get_tagret_persona_contacts_by_lead_id(tenant_id, lead_id)
         end
 
       {attribution, attributions_list} =
