@@ -109,13 +109,21 @@ defmodule Core.Crm.Companies do
           {:ok, company}
 
         {:error, :not_found} ->
-          {:ok, company} = do_create_company_by_linkedin_id(linkedin_id)
+          case do_create_company_by_linkedin_id(linkedin_id) do
+            {:ok, company} ->
+              OpenTelemetry.Tracer.set_attributes([
+                {"result.company.id", company.id}
+              ])
 
-          OpenTelemetry.Tracer.set_attributes([
-            {"result.company.id", company.id}
-          ])
+              {:ok, company}
 
-          {:ok, company}
+            {:error, reason} ->
+              OpenTelemetry.Tracer.set_attributes([
+                {"error.reason", reason}
+              ])
+
+              {:error, reason}
+          end
       end
     end
   end
@@ -146,12 +154,16 @@ defmodule Core.Crm.Companies do
         {:error, :invalid_domain} ->
           Tracing.error(:invalid_domain)
           {:error, "Invalid or missing domain from scrapin record"}
-        error -> error
+
+        error ->
+          error
       end
     end
   end
 
-  defp validate_domain(domain) when is_binary(domain) and byte_size(domain) > 0, do: {:ok, domain}
+  defp validate_domain(domain) when is_binary(domain) and byte_size(domain) > 0,
+    do: {:ok, domain}
+
   defp validate_domain(_), do: {:error, :invalid_domain}
 
   defp update_company_linkedin_id_if_needed(

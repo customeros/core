@@ -378,7 +378,9 @@ defmodule Core.Crm.Contacts do
           end
 
         {:error, reason} ->
-          Tracing.warning(reason, "Failed to create company for contact",
+          Tracing.warning(
+            reason,
+            "Failed to create company for contact",
             contact_id: contact.id,
             linkedin_company_id: linkedin_company_id
           )
