@@ -171,7 +171,6 @@ defmodule Web.LeadsController do
       end)
       |> CSV.encode(headers: headers)
       |> Enum.to_list()
-      |> Enum.join("\n")
 
     Stats.register_event_start(user_id, :download_document)
 
