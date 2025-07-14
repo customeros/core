@@ -16,13 +16,9 @@ defmodule Core.Integrations.Providers.GoogleAds.Client do
   """
   def base_url do
     config = Application.get_env(:core, :google_ads)
-    base_url = config[:api_base_url]
-
-    unless base_url do
-      raise "Google Ads api_base_url is not configured. Please set it in your runtime config."
-    end
-
-    base_url
+    base = config[:api_base_url] || raise "Google Ads api_base_url is not configured"
+    dbg(base_url: base)
+    base
   end
 
   @doc """
@@ -82,22 +78,32 @@ defmodule Core.Integrations.Providers.GoogleAds.Client do
   def post(%Connection{} = connection, path, body, params \\ %{}) do
     with {:ok, connection} <- ensure_valid_token(connection),
          url = build_url(path, params),
+         config = Application.get_env(:core, :google_ads),
          headers = [
            {"authorization", "Bearer #{connection.access_token}"},
-           {"content-type", "application/json"}
-         ],
-         {:ok, %{status: status, body: body}} when status in 200..299 <-
-           Finch.build(:post, url, headers, Jason.encode!(body))
-           |> Finch.request(Core.Finch) do
-      {:ok, Jason.decode!(body)}
-    else
-      {:ok, %{status: status, body: body}} ->
-        Logger.error("Failed to post Google Ads API: HTTP #{status}: #{body}")
-        {:error, "HTTP #{status}: #{body}"}
+           {"content-type", "application/json"},
+           {"developer-token", config[:developer_token]},
+           {"login-customer-id", connection.external_system_id}
+         ] do
+      dbg(url: url)
+      dbg(headers: headers)
+      dbg(body: body)
 
-      {:error, reason} ->
-        Logger.error("Failed to post Google Ads API: #{inspect(reason)}")
-        {:error, reason}
+      case Finch.build(:post, url, headers, Jason.encode!(body))
+           |> Finch.request(Core.Finch) do
+        {:ok, %{status: status, body: response_body}} when status in 200..299 ->
+          dbg(response_status: status)
+          dbg(response_body: response_body)
+          {:ok, Jason.decode!(response_body)}
+
+        {:ok, %{status: status, body: response_body}} ->
+          Logger.error("Failed to post Google Ads API: HTTP #{status}: #{response_body}")
+          {:error, "HTTP #{status}: #{response_body}"}
+
+        {:error, reason} ->
+          Logger.error("Failed to post Google Ads API: #{inspect(reason)}")
+          {:error, reason}
+      end
     end
   end
 
@@ -206,39 +212,54 @@ defmodule Core.Integrations.Providers.GoogleAds.Client do
   # Private functions
 
   defp ensure_valid_token(%Connection{} = connection) do
+    dbg(connection_id: connection.id)
+    dbg(expires_at: connection.expires_at)
+
     case TokenManager.ensure_valid_token(connection) do
       {:ok, refreshed} ->
+        dbg(token_status: :valid)
         {:ok, refreshed}
 
       :refresh_needed ->
+        dbg(token_status: :refresh_needed)
         # Token needs refresh, try to refresh it directly
         case Registry.get_oauth(connection.provider) do
           {:ok, oauth} ->
             case oauth.refresh_token(connection) do
               {:ok, refreshed} ->
+                dbg(token_refresh: :success)
                 {:ok, refreshed}
 
               {:error, reason} ->
+                Logger.error("Token refresh failed: #{inspect(reason)}")
                 {:error, "Token refresh failed: #{inspect(reason)}"}
             end
 
           {:error, reason} ->
+            Logger.error("OAuth provider not found: #{inspect(reason)}")
             {:error, "OAuth provider not found: #{inspect(reason)}"}
         end
 
       {:error, reason} ->
+        Logger.error("Token refresh failed: #{inspect(reason)}")
         {:error, "Token refresh failed: #{inspect(reason)}"}
     end
   end
 
   defp build_url(path, params) do
+    url = "#{base_url()}#{path}"
+    dbg(base: base_url())
+    dbg(path: path)
+    dbg(params: params)
+
     query_string =
       params
       |> Enum.map_join("&", fn {key, value} ->
         "#{key}=#{URI.encode_www_form(to_string(value))}"
       end)
 
-    url = "#{base_url()}#{path}"
-    if query_string == "", do: url, else: "#{url}?#{query_string}"
+    final_url = if query_string == "", do: url, else: "#{url}?#{query_string}"
+    dbg(final_url: final_url)
+    final_url
   end
 end
