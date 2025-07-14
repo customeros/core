@@ -134,17 +134,25 @@ defmodule Core.Crm.Companies do
              ScrapinCompanies.get_scrapin_company_record_by_linkedin_id(
                scrapin_company_details.linked_in_id
              ),
-           {:ok, company} <-
-             get_or_create_by_domain(scrapin_company_record.domain) do
+           {:ok, domain} <- validate_domain(scrapin_company_record.domain),
+           {:ok, company} <- get_or_create_by_domain(domain) do
         update_company_linkedin_id_if_needed(
           company,
           linkedin_id,
-          scrapin_company_record.domain,
+          domain,
           scrapin_company_record.linkedin_domain
         )
+      else
+        {:error, :invalid_domain} ->
+          Tracing.error(:invalid_domain)
+          {:error, "Invalid or missing domain from scrapin record"}
+        error -> error
       end
     end
   end
+
+  defp validate_domain(domain) when is_binary(domain) and byte_size(domain) > 0, do: {:ok, domain}
+  defp validate_domain(_), do: {:error, :invalid_domain}
 
   defp update_company_linkedin_id_if_needed(
          company,
