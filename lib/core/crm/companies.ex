@@ -31,9 +31,11 @@ defmodule Core.Crm.Companies do
   alias Core.ScrapinCompanies
 
   @spec get_or_create_by_domain(String.t()) ::
-          {:ok, Company.t()} | {:error, Ecto.Changeset.t() | String.t()}
-  def get_or_create_by_domain(domain) when not is_binary(domain),
-    do: {:error, "domain must be a string"}
+          {:ok, Company.t()} | {:error, :invalid_domain | :no_primary_domain | String.t()}
+  def get_or_create_by_domain(domain) when not is_binary(domain) do
+    Tracing.error(:invalid_domain_type)
+    {:error, :invalid_domain}
+  end
 
   def get_or_create_by_domain(domain) when is_binary(domain) do
     OpenTelemetry.Tracer.with_span "company_service.get_or_create_by_domain" do
@@ -142,12 +144,13 @@ defmodule Core.Crm.Companies do
              ScrapinCompanies.get_scrapin_company_record_by_linkedin_id(
                scrapin_company_details.linked_in_id
              ),
-           {:ok, domain} <- validate_domain(scrapin_company_record.domain),
-           {:ok, company} <- get_or_create_by_domain(domain) do
+           domain <- Map.get(scrapin_company_record, :domain),
+           {:ok, validated_domain} <- ensure_domain_present(domain),
+           {:ok, company} <- get_or_create_by_domain(validated_domain) do
         update_company_linkedin_id_if_needed(
           company,
           linkedin_id,
-          domain,
+          validated_domain,
           scrapin_company_record.linkedin_domain
         )
       else
@@ -155,16 +158,30 @@ defmodule Core.Crm.Companies do
           Tracing.error(:invalid_domain)
           {:error, "Invalid or missing domain from scrapin record"}
 
+        {:error, :missing_domain} ->
+          Tracing.error(:missing_domain)
+          {:error, "Missing domain from scrapin record"}
+
+        {:error, :no_primary_domain} ->
+          Tracing.error(:no_primary_domain)
+          {:error, "Could not determine primary domain"}
+
+        {:error, reason} when is_binary(reason) ->
+          Tracing.error(reason)
+          {:error, reason}
+
         error ->
-          error
+          Tracing.error(inspect(error))
+          {:error, "Failed to create company"}
       end
     end
   end
 
-  defp validate_domain(domain) when is_binary(domain) and byte_size(domain) > 0,
+  defp ensure_domain_present(domain) when is_binary(domain) and byte_size(domain) > 0,
     do: {:ok, domain}
 
-  defp validate_domain(_), do: {:error, :invalid_domain}
+  defp ensure_domain_present(nil), do: {:error, :missing_domain}
+  defp ensure_domain_present(_), do: {:error, :invalid_domain}
 
   defp update_company_linkedin_id_if_needed(
          company,
