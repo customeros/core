@@ -10,6 +10,7 @@ defmodule Core.WebTracker.OriginTenantMapper do
   @err_origin_blocked {:error, "origin blocked"}
   @err_origin_not_provided {:error, "origin not provided"}
   @err_origin_not_configured {:error, :origin_not_configured}
+  @err_tracker_not_enabled {:error, "webtracker not enabled"}
 
   @doc """
   Checks if given origin is whitelisted and returns its associated tenant.
@@ -36,10 +37,13 @@ defmodule Core.WebTracker.OriginTenantMapper do
   def get_tenant_for_origin(nil), do: @err_origin_not_provided
   def get_tenant_for_origin(_), do: @err_invalid_origin
 
-  defp find_tenant_for_domain(domain) do
-    case Tenants.get_tenant_by_domain(domain) do
+  def find_tenant_for_domain(domain) do
+    with {:ok, tenant} <- Tenants.get_tenant_by_domain(domain),
+         true <- tenant.webtracker_status == :available do
+      {:ok, tenant}
+    else
       {:error, "tenant not found"} -> @err_origin_not_configured
-      result -> result
+      false -> @err_tracker_not_enabled
     end
   end
 

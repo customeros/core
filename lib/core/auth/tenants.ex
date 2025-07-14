@@ -20,6 +20,7 @@ defmodule Core.Auth.Tenants do
   @err_not_found {:error, "tenant not found"}
   @err_invalid_tenant_id {:error, "tenant id invalid"}
   @err_domain_exists {:error, "tenant domain already exists"}
+  @err_update_webtracker_status {:error, "failed to update webtracker status"}
 
   ## Database getters
 
@@ -69,6 +70,13 @@ defmodule Core.Auth.Tenants do
 
   def get_all_tenant_ids do
     case Repo.all(from t in Tenant, select: t.id) do
+      [] -> @err_not_found
+      tenant_ids -> {:ok, tenant_ids}
+    end
+  end
+
+  def get_tenant_ids_with_webtracker_available do
+    case Repo.all(from t in Tenant, where: t.webtracker_status == :available, select: t.id) do
       [] -> @err_not_found
       tenant_ids -> {:ok, tenant_ids}
     end
@@ -131,6 +139,23 @@ defmodule Core.Auth.Tenants do
 
       {:error, reason} ->
         {:error, reason}
+    end
+  end
+
+  def enable_webtracker(tenant_id) do
+    case get_tenant_by_id(tenant_id) do
+      {:ok, tenant} -> update_tenant(tenant, %{webtracker_status: :available})
+      _ -> @err_update_webtracker_status
+    end
+  end
+
+  def disable_webtracker(tenant_id) do
+    case get_tenant_by_id(tenant_id) do
+      {:ok, tenant} ->
+        update_tenant(tenant, %{webtracker_status: :not_available})
+
+      _ ->
+        @err_update_webtracker_status
     end
   end
 
