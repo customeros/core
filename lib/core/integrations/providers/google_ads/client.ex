@@ -17,7 +17,6 @@ defmodule Core.Integrations.Providers.GoogleAds.Client do
   def base_url do
     config = Application.get_env(:core, :google_ads)
     base = config[:api_base_url] || raise "Google Ads api_base_url is not configured"
-    dbg(base_url: base)
     base
   end
 
@@ -85,15 +84,10 @@ defmodule Core.Integrations.Providers.GoogleAds.Client do
            {"developer-token", config[:developer_token]},
            {"login-customer-id", connection.external_system_id}
          ] do
-      dbg(url: url)
-      dbg(headers: headers)
-      dbg(body: body)
 
       case Finch.build(:post, url, headers, Jason.encode!(body))
            |> Finch.request(Core.Finch) do
         {:ok, %{status: status, body: response_body}} when status in 200..299 ->
-          dbg(response_status: status)
-          dbg(response_body: response_body)
           {:ok, Jason.decode!(response_body)}
 
         {:ok, %{status: status, body: response_body}} ->
@@ -212,22 +206,16 @@ defmodule Core.Integrations.Providers.GoogleAds.Client do
   # Private functions
 
   defp ensure_valid_token(%Connection{} = connection) do
-    dbg(connection_id: connection.id)
-    dbg(expires_at: connection.expires_at)
-
     case TokenManager.ensure_valid_token(connection) do
       {:ok, refreshed} ->
-        dbg(token_status: :valid)
         {:ok, refreshed}
 
       :refresh_needed ->
-        dbg(token_status: :refresh_needed)
         # Token needs refresh, try to refresh it directly
         case Registry.get_oauth(connection.provider) do
           {:ok, oauth} ->
             case oauth.refresh_token(connection) do
               {:ok, refreshed} ->
-                dbg(token_refresh: :success)
                 {:ok, refreshed}
 
               {:error, reason} ->
@@ -248,9 +236,6 @@ defmodule Core.Integrations.Providers.GoogleAds.Client do
 
   defp build_url(path, params) do
     url = "#{base_url()}#{path}"
-    dbg(base: base_url())
-    dbg(path: path)
-    dbg(params: params)
 
     query_string =
       params
@@ -259,7 +244,6 @@ defmodule Core.Integrations.Providers.GoogleAds.Client do
       end)
 
     final_url = if query_string == "", do: url, else: "#{url}?#{query_string}"
-    dbg(final_url: final_url)
     final_url
   end
 end
