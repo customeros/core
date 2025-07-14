@@ -38,10 +38,12 @@ defmodule Core.Integrations.Providers.GoogleAds.Campaigns do
   """
   def list_campaigns(%Connection{} = connection) do
     customer_id = connection.external_system_id
+    config = Application.get_env(:core, :google_ads)
+    api_version = config[:api_version]
 
     case Client.get(
            connection,
-           "/customers/#{customer_id}/googleAds:searchStream",
+           "/#{api_version}/customers/#{customer_id}/googleAds:search",
            %{
              query: """
              SELECT
