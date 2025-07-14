@@ -67,46 +67,109 @@ defmodule Web.LeadsController do
 
     base_url = "#{conn.scheme}://#{get_req_header(conn, "host")}"
 
-    # Generate CSV content
+    headers = [
+      "Lead Name",
+      "Country Code",
+      "Country Name",
+      "Lead Domain",
+      "Industry",
+      "Stage",
+      "ICP Fit",
+      "Account Brief",
+      "Created",
+      "First Name",
+      "Last Name",
+      "Job Title",
+      "Phone Number",
+      "Email",
+      "Linkedin URL"
+    ]
+
     csv_content =
       leads
-      |> Enum.map(fn lead ->
-        %{
-          "Name" => lead.name,
-          "Country Code" => lead.country,
-          "Country Name" => lead.country_name,
-          "Domain" => lead.domain,
-          "Industry" => lead.industry,
-          "Stage" => format_stage(lead.stage),
-          "ICP Fit" => lead.icp_fit |> Atom.to_string() |> String.capitalize(),
-          "Account Brief" =>
-            case lead.document_id do
-              nil -> nil
-              _ -> "#{base_url}/documents/#{lead.document_id}"
-            end,
-          "Created" =>
-            case lead.inserted_at do
-              %DateTime{} = datetime ->
-                datetime |> DateTime.to_date() |> Date.to_string()
+      |> Enum.flat_map(fn lead ->
+        personas =
+          Contacts.get_target_persona_contacts_by_lead_id(tenant_id, lead.id)
 
-              _ ->
-                nil
-            end
-        }
+        if personas == [] do
+          [
+            %{
+              "Lead Name" => lead.name,
+              "Country Code" => lead.country,
+              "Country Name" => lead.country_name,
+              "Lead Domain" => lead.domain,
+              "Industry" => lead.industry,
+              "Stage" => format_stage(lead.stage),
+              "ICP Fit" =>
+                lead.icp_fit |> Atom.to_string() |> String.capitalize(),
+              "Account Brief" =>
+                case lead.document_id do
+                  nil -> nil
+                  _ -> "#{base_url}/documents/#{lead.document_id}"
+                end,
+              "Created" =>
+                case lead.inserted_at do
+                  %DateTime{} = datetime ->
+                    datetime |> DateTime.to_date() |> Date.to_string()
+
+                  _ ->
+                    nil
+                end,
+              "First Name" => nil,
+              "Last Name" => nil,
+              "Job Title" => nil,
+              "Linkedin URL" => nil,
+              "Email" => nil,
+              "Phone Number" => nil
+            }
+          ]
+        else
+          Enum.map(personas, fn persona ->
+            first_name =
+              persona.full_name
+              |> to_string()
+              |> String.split(" ")
+              |> List.first()
+
+            last_name =
+              persona.full_name
+              |> to_string()
+              |> String.split(" ")
+              |> List.last()
+
+            %{
+              "Lead Name" => lead.name,
+              "Lead Domain" => lead.domain,
+              "Country Code" => lead.country,
+              "Country Name" => lead.country_name,
+              "Stage" => format_stage(lead.stage),
+              "Industry" => lead.industry,
+              "ICP Fit" =>
+                lead.icp_fit |> Atom.to_string() |> String.capitalize(),
+              "Account Brief" =>
+                case lead.document_id do
+                  nil -> nil
+                  _ -> "#{base_url}/documents/#{lead.document_id}"
+                end,
+              "Created" =>
+                case lead.inserted_at do
+                  %DateTime{} = datetime ->
+                    datetime |> DateTime.to_date() |> Date.to_string()
+
+                  _ ->
+                    nil
+                end,
+              "First Name" => first_name,
+              "Last Name" => last_name,
+              "Job Title" => persona.job_title,
+              "Linkedin URL" => persona.linkedin,
+              "Email" => persona.work_email,
+              "Phone Number" => persona.phone_number
+            }
+          end)
+        end
       end)
-      |> CSV.encode(
-        headers: [
-          "Name",
-          "Country Code",
-          "Country Name",
-          "Domain",
-          "Industry",
-          "Stage",
-          "ICP Fit",
-          "Account Brief",
-          "Created"
-        ]
-      )
+      |> CSV.encode(headers: headers)
       |> Enum.to_list()
       |> Enum.join("\n")
 
