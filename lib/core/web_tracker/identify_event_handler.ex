@@ -1,4 +1,21 @@
 defmodule Core.WebTracker.IdentifyEventHandler do
+  @moduledoc """
+  Handles identify events from web tracking to associate users with companies.
+
+  This module processes identify events that contain email information, extracts
+  company domains, and manages the association between sessions, companies, and leads.
+  Key responsibilities include:
+
+  - Extracting and validating email domains from identify events
+  - Filtering out personal email providers
+  - Managing company associations in sessions
+  - Creating or updating company and lead records
+  - Tracking IP intelligence data for domains
+
+  The handler runs asynchronously using Task.Supervisor to avoid blocking the
+  event processing pipeline.
+  """
+
   require Logger
   require OpenTelemetry.Tracer
 
