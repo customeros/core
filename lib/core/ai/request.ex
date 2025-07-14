@@ -2,7 +2,7 @@ defmodule Core.Ai.Request do
   @moduledoc """
   Represents a request to ask a question to an AI Model.
   """
-  @default_model :claude_haiku_3_5
+  @default_model :gemini_flash_2_0
   @default_max_tokens 512
   @default_temperature 0.2
   @default_response_type :text
@@ -16,7 +16,6 @@ defmodule Core.Ai.Request do
           | :llama31_8b
           | :llama4_scout
           | :llama4_maverick
-          | :qwen_qwq32b
           | :gemma3_27b
           | :gemini_flash_2_0
           | :gemini_flash_2_5

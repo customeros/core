@@ -29,6 +29,8 @@ defmodule Core.Auth.Tenants.Tenant do
     field(:workspace_name, :string)
     field(:workspace_icon_key, :string)
     field(:webtracker_status, Ecto.Enum, values: [:available, :not_available])
+    field(:products, {:array, :string}, default: [])
+
     timestamps(type: :utc_datetime)
   end
 
@@ -40,6 +42,7 @@ defmodule Core.Auth.Tenants.Tenant do
           workspace_name: String.t(),
           workspace_icon_key: String.t(),
           webtracker_status: Ecto.Enum.t(),
+          products: [String.t()],
           inserted_at: DateTime.t(),
           updated_at: DateTime.t()
         }
@@ -53,7 +56,8 @@ defmodule Core.Auth.Tenants.Tenant do
       :domains,
       :workspace_name,
       :workspace_icon_key,
-      :webtracker_status
+      :webtracker_status,
+      :products
     ])
     |> maybe_put_id()
     |> validate_required([:id, :name, :primary_domain])

@@ -13,7 +13,10 @@ defmodule Core.Crm.Leads.Lead do
   use Ecto.Schema
   import Ecto.Changeset
 
+  alias Core.Enums.LeadStages
+
   @type lead_type :: :contact | :company
+  @type icp_fit :: :strong | :moderate | :not_a_fit | :unknown
   @type lead_stage ::
           :pending
           | :target
@@ -22,7 +25,6 @@ defmodule Core.Crm.Leads.Lead do
           | :evaluation
           | :ready_to_buy
           | :customer
-  @type icp_fit :: :strong | :moderate | :not_a_fit | :unknown
   @type disqualification_reason ::
           :brief_writer
           | :company_too_small
@@ -73,18 +75,7 @@ defmodule Core.Crm.Leads.Lead do
       default: :unknown
     )
 
-    field(:stage, Ecto.Enum,
-      values: [
-        :pending,
-        :target,
-        :education,
-        :solution,
-        :evaluation,
-        :ready_to_buy,
-        :customer
-      ],
-      default: :pending
-    )
+    field(:stage, Ecto.Enum, values: LeadStages.stages(), default: :pending)
 
     field(:icp_disqualification_reason, {:array, Ecto.Enum},
       values: [
