@@ -111,7 +111,7 @@ defmodule Core.WebTracker.IdentifyEventHandler do
 
       with {:ok, session} <- Sessions.get_session_by_id(event.session_id),
            true <- reassociation_needed?(session, domain),
-           {:ok, _} <- reassociate_company(event, domain) do
+           :ok <- reassociate_company(event, domain) do
         Tracing.ok()
         :ok
       else
@@ -122,6 +122,10 @@ defmodule Core.WebTracker.IdentifyEventHandler do
           )
 
           {:error, reason}
+
+        false ->
+          Tracing.ok()
+          :ok
       end
     end
   end

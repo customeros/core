@@ -19,7 +19,7 @@ defmodule Core.Analytics.JobScheduler do
   def schedule_future_jobs do
     Logger.info("Scheduling all analytics jobs for the next 24 hours...")
 
-    case Tenants.get_all_tenant_ids() do
+    case Tenants.get_tenant_ids_with_webtracker_available() do
       {:error, reason} ->
         Logger.error("Failed to get tenant ids: #{reason}")
         {:error, reason}
