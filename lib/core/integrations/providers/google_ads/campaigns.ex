@@ -41,39 +41,42 @@ defmodule Core.Integrations.Providers.GoogleAds.Campaigns do
     config = Application.get_env(:core, :google_ads)
     api_version = config[:api_version]
 
-    case Client.get(
+    dbg(customer_id: customer_id)
+    dbg(api_version: api_version)
+
+    query = """
+    SELECT
+      campaign.id,
+      campaign.name,
+      campaign.status,
+      campaign.budget_amount_micros,
+      campaign.start_date,
+      campaign.end_date,
+      campaign.advertising_channel_type,
+      campaign.advertising_channel_sub_type
+    FROM campaign
+    WHERE campaign.status != 'REMOVED'
+    ORDER BY campaign.name
+    """
+
+    dbg(query: query)
+
+    case Client.post(
            connection,
-           "/#{api_version}/customers/#{customer_id}/googleAds:search",
-           %{
-             query: """
-             SELECT
-               campaign.id,
-               campaign.name,
-               campaign.status,
-               campaign.budget_amount_micros,
-               campaign.start_date,
-               campaign.end_date,
-               campaign.advertising_channel_type,
-               campaign.advertising_channel_sub_type
-             FROM campaign
-             WHERE campaign.status != 'REMOVED'
-             ORDER BY campaign.name
-             """
-           }
+           "/#{api_version}/customers/#{customer_id}/googleAds:searchStream",
+           %{query: query}
          ) do
       {:ok, %{"results" => results}} ->
+        dbg(campaigns_count: length(results))
         campaigns = Enum.map(results, &extract_campaign_data/1)
         {:ok, campaigns}
 
       {:ok, response} ->
-        Logger.warning(
-          "Unexpected Google Ads API response format: #{inspect(response)}"
-        )
-
+        dbg(unexpected_response: response)
         {:ok, []}
 
       {:error, reason} ->
-        Logger.error("Failed to list Google Ads campaigns: #{inspect(reason)}")
+        dbg(error: reason)
         {:error, reason}
     end
   end
