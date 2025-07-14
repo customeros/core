@@ -63,7 +63,9 @@ defmodule Web.LeadsController do
 
   def download(conn, _params) do
     %{tenant_id: tenant_id, id: user_id} = conn.assigns.current_user
-    leads = Leads.list_all_view_by_tenant_id(tenant_id)
+
+    lead_contact_pairs =
+      Leads.get_leads_by_tenant_id_with_target_personas(tenant_id)
 
     base_url = "#{conn.scheme}://#{get_req_header(conn, "host")}"
 
@@ -86,91 +88,44 @@ defmodule Web.LeadsController do
     ]
 
     csv_content =
-      leads
-      |> Enum.flat_map(fn lead ->
-        personas =
-          Contacts.get_target_persona_contacts_by_lead_id(tenant_id, lead.id)
+      lead_contact_pairs
+      |> Enum.map(fn {contact, lead, company, document_id} ->
+        %{
+          "Lead Name" => company && company.name,
+          "Lead Domain" => company && company.primary_domain,
+          "Industry" => company && company.industry,
+          "Country Code" => company && company.country_a2,
+          "Country Name" =>
+            case Countriex.get_by(:alpha2, company && company.country_a2) do
+              %{name: name} -> name
+              _ -> nil
+            end,
+          "Stage" => format_stage(lead.stage),
+          "ICP Fit" => lead.icp_fit |> Atom.to_string() |> String.capitalize(),
+          "Account Brief" =>
+            case document_id do
+              nil -> nil
+              _ -> "#{base_url}/documents/#{document_id}"
+            end,
+          "Created" =>
+            case lead.inserted_at do
+              %DateTime{} = datetime ->
+                datetime |> DateTime.to_date() |> Date.to_string()
 
-        if personas == [] do
-          [
-            %{
-              "Lead Name" => lead.name,
-              "Country Code" => lead.country,
-              "Country Name" => lead.country_name,
-              "Lead Domain" => lead.domain,
-              "Industry" => lead.industry,
-              "Stage" => format_stage(lead.stage),
-              "ICP Fit" =>
-                lead.icp_fit |> Atom.to_string() |> String.capitalize(),
-              "Account Brief" =>
-                case lead.document_id do
-                  nil -> nil
-                  _ -> "#{base_url}/documents/#{lead.document_id}"
-                end,
-              "Created" =>
-                case lead.inserted_at do
-                  %DateTime{} = datetime ->
-                    datetime |> DateTime.to_date() |> Date.to_string()
-
-                  _ ->
-                    nil
-                end,
-              "First Name" => nil,
-              "Last Name" => nil,
-              "Job Title" => nil,
-              "Linkedin URL" => nil,
-              "Email" => nil,
-              "Phone Number" => nil
-            }
-          ]
-        else
-          Enum.map(personas, fn persona ->
-            first_name =
-              persona.full_name
-              |> to_string()
-              |> String.split(" ")
-              |> List.first()
-
-            last_name =
-              persona.full_name
-              |> to_string()
-              |> String.split(" ")
-              |> List.last()
-
-            %{
-              "Lead Name" => lead.name,
-              "Lead Domain" => lead.domain,
-              "Country Code" => lead.country,
-              "Country Name" => lead.country_name,
-              "Stage" => format_stage(lead.stage),
-              "Industry" => lead.industry,
-              "ICP Fit" =>
-                lead.icp_fit |> Atom.to_string() |> String.capitalize(),
-              "Account Brief" =>
-                case lead.document_id do
-                  nil -> nil
-                  _ -> "#{base_url}/documents/#{lead.document_id}"
-                end,
-              "Created" =>
-                case lead.inserted_at do
-                  %DateTime{} = datetime ->
-                    datetime |> DateTime.to_date() |> Date.to_string()
-
-                  _ ->
-                    nil
-                end,
-              "First Name" => first_name,
-              "Last Name" => last_name,
-              "Job Title" => persona.job_title,
-              "Linkedin URL" => persona.linkedin,
-              "Email" => persona.work_email,
-              "Phone Number" => persona.phone_number
-            }
-          end)
-        end
+              _ ->
+                nil
+            end,
+          "First Name" => if(contact, do: contact.first_name, else: nil),
+          "Last Name" => if(contact, do: contact.last_name, else: nil),
+          "Job Title" => if(contact, do: contact.job_title, else: nil),
+          "Linkedin URL" => if(contact, do: contact.linkedin_id, else: nil),
+          "Email" => if(contact, do: contact.business_email, else: nil),
+          "Phone Number" => if(contact, do: contact.mobile_phone, else: nil)
+        }
       end)
       |> CSV.encode(headers: headers)
       |> Enum.to_list()
+      |> Enum.join()
 
     Stats.register_event_start(user_id, :download_document)
 

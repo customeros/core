@@ -3,9 +3,8 @@ defmodule Core.Crm.Leads do
   The Leads context.
   """
 
-  import Ecto.Query, warn: false
-
   require Logger
+  import Ecto.Query, warn: false
   require OpenTelemetry.Tracer
 
   alias Ecto.Repo
@@ -16,10 +15,14 @@ defmodule Core.Crm.Leads do
   alias Core.Utils.Media.Images
   alias Core.Auth.Tenants.Tenant
   alias Core.Crm.Companies.Company
+  alias Core.Crm.Leads.Lead
+  alias Core.Crm.Contacts.Contact
+  alias Core.Crm.TargetPersonas.TargetPersona
   alias Core.Crm.Leads.LeadNotifier
   alias Core.WebTracker.Sessions.Session
   alias Core.Crm.Attribution.AttributionView
-  alias Core.Crm.Leads.{Lead, LeadView, LeadContext}
+  alias Core.Crm.Leads.{LeadView, LeadContext}
+  alias Core.Crm.Documents.RefDocument
 
   @type order_by ::
           [desc: :inserted_at]
@@ -124,6 +127,31 @@ defmodule Core.Crm.Leads do
     case Repo.get_by(Lead, tenant_id: tenant_id, ref_id: ref_id, type: :company) do
       %Lead{} = lead -> {:ok, lead}
       nil -> {:error, :not_found}
+    end
+  end
+
+  def get_leads_by_tenant_id_with_target_personas(tenant_id) do
+    OpenTelemetry.Tracer.with_span "leads.get_leads_by_tenant_id_with_target_personas" do
+      OpenTelemetry.Tracer.set_attributes([
+        {"param.tenant.id", tenant_id}
+      ])
+
+      from(l in Lead,
+        left_join: c in Contact,
+        on: l.ref_id == c.company_id and l.tenant_id == ^tenant_id,
+        left_join: tp in TargetPersona,
+        on: tp.contact_id == c.id and tp.tenant_id == ^tenant_id,
+        left_join: cp in Company,
+        on: l.ref_id == cp.id,
+        left_join: rd in RefDocument,
+        on: rd.ref_id == l.id,
+        where:
+          l.tenant_id == ^tenant_id and l.icp_fit in [:moderate, :strong] and
+            l.stage not in [:customer],
+        order_by: [desc: l.inserted_at],
+        select: {c, l, cp, rd.document_id}
+      )
+      |> Repo.all()
     end
   end
 
