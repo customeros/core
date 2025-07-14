@@ -41,15 +41,12 @@ defmodule Core.Integrations.Providers.GoogleAds.Campaigns do
     config = Application.get_env(:core, :google_ads)
     api_version = config[:api_version]
 
-    dbg(customer_id: customer_id)
-    dbg(api_version: api_version)
-
     query = """
     SELECT
       campaign.id,
       campaign.name,
       campaign.status,
-      campaign.budget_amount_micros,
+      campaign_budget.amount_micros,
       campaign.start_date,
       campaign.end_date,
       campaign.advertising_channel_type,
@@ -59,24 +56,19 @@ defmodule Core.Integrations.Providers.GoogleAds.Campaigns do
     ORDER BY campaign.name
     """
 
-    dbg(query: query)
-
     case Client.post(
            connection,
            "/#{api_version}/customers/#{customer_id}/googleAds:searchStream",
            %{query: query}
          ) do
       {:ok, %{"results" => results}} ->
-        dbg(campaigns_count: length(results))
         campaigns = Enum.map(results, &extract_campaign_data/1)
         {:ok, campaigns}
 
       {:ok, response} ->
-        dbg(unexpected_response: response)
         {:ok, []}
 
       {:error, reason} ->
-        dbg(error: reason)
         {:error, reason}
     end
   end
