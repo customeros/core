@@ -28,7 +28,7 @@ jobs:
 
       - name: Slack Notification
         if: github.actor != 'dependabot[bot]' && github.actor != 'dependabot'
-        uses: slackapi/slack-github-action@v2.1.0
+        uses: slackapi/slack-github-action@v2.1.1
         with:
           method: chat.postMessage
           token: ${{ secrets.SLACK_API_TOKEN }}
@@ -86,7 +86,7 @@ jobs:
 
       - name: Add Reaction
         if: (github.event.action == 'opened' || github.event.action == 'ready_for_review') && github.actor != 'dependabot[bot]' && github.actor != 'dependabot'
-        uses: slackapi/slack-github-action@v2.1.0
+        uses: slackapi/slack-github-action@v2.1.1
         with:
           method: reactions.add
           token: ${{ secrets.SLACK_API_TOKEN }}
@@ -99,7 +99,7 @@ jobs:
 
       - name: Add Approval Reaction
         if: github.event_name == 'pull_request_review' && github.event.review.state == 'approved' && github.actor != 'dependabot[bot]' && github.actor != 'dependabot'
-        uses: slackapi/slack-github-action@v2.1.0
+        uses: slackapi/slack-github-action@v2.1.1
         with:
           method: reactions.add
           token: ${{ secrets.SLACK_API_TOKEN }}
@@ -112,7 +112,7 @@ jobs:
 
       - name: Add Merge Reaction
         if: github.event.action == 'closed' && github.event.pull_request.merged == true && github.actor != 'dependabot[bot]' && github.actor != 'dependabot'
-        uses: slackapi/slack-github-action@v2.1.0
+        uses: slackapi/slack-github-action@v2.1.1
         with:
           method: reactions.add
           token: ${{ secrets.SLACK_API_TOKEN }}
@@ -125,7 +125,7 @@ jobs:
 
       - name: Add Close Reaction
         if: github.event.action == 'closed' && github.event.pull_request.merged == false && github.actor != 'dependabot[bot]' && github.actor != 'dependabot'
-        uses: slackapi/slack-github-action@v2.1.0
+        uses: slackapi/slack-github-action@v2.1.1
         with:
           method: reactions.add
           token: ${{ secrets.SLACK_API_TOKEN }}
