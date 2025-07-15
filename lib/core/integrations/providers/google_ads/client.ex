@@ -255,11 +255,12 @@ defmodule Core.Integrations.Providers.GoogleAds.Client do
       {"developer-token", config[:developer_token]}
     ]
 
-    # Add login-customer-id header only if customer_id is different from the connection's ID
-    case customer_id do
-      nil -> base_headers
-      id when id == connection.external_system_id -> base_headers
-      id -> [{"login-customer-id", id} | base_headers]
+    manager_id_str = to_string(connection.external_system_id)
+
+    if customer_id != manager_id_str do
+      [{"login-customer-id", manager_id_str} | base_headers]
+    else
+      base_headers
     end
   end
 end
