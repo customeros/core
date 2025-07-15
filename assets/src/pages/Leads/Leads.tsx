@@ -43,12 +43,12 @@ export default function Leads({ leads, stage_counts, max_count }: LeadsProps) {
   const handleOpenLead = useCallback(
     (lead: { id: string; stage: Stage }, tab: 'account' | 'engagement' | 'contacts') => {
       setUrlState(
-        ({ lead: currentLead, ...rest }) => {
+        ({ lead: currentLead, tab: currentTab, ...rest }) => {
           if (lead.id === currentLead) {
             return {
               ...rest,
               viewMode: 'default',
-              tab,
+              tab: currentTab,
             };
           }
 
@@ -56,6 +56,7 @@ export default function Leads({ leads, stage_counts, max_count }: LeadsProps) {
             ...rest,
             lead: lead.id,
             viewMode: 'default',
+            tab: !currentTab ? 'account' : currentTab,
           };
         },
         {
