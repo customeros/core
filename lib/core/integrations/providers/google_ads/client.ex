@@ -16,7 +16,10 @@ defmodule Core.Integrations.Providers.GoogleAds.Client do
   """
   def base_url do
     config = Application.get_env(:core, :google_ads)
-    base = config[:api_base_url] || raise "Google Ads api_base_url is not configured"
+
+    base =
+      config[:api_base_url] || raise "Google Ads api_base_url is not configured"
+
     base
   end
 
@@ -76,21 +79,34 @@ defmodule Core.Integrations.Providers.GoogleAds.Client do
     - `{:ok, map()}` - The parsed JSON response
     - `{:error, term()}` - Error reason
   """
-  def post(%Connection{} = connection, path, body, params \\ %{}, customer_id \\ nil) do
+  def post(
+        %Connection{} = connection,
+        path,
+        body,
+        params \\ %{},
+        customer_id \\ nil
+      ) do
     with {:ok, connection} <- ensure_valid_token(connection),
-         url = build_url(path, params),
-         headers = build_headers(connection, customer_id),
-         encoded_body = Jason.encode!(body) do
+         {:ok, encoded_body} <- Jason.encode(body) do
+      url = build_url(path, params)
+      headers = build_headers(connection, customer_id)
+
       case Finch.build(:post, url, headers, encoded_body)
            |> Finch.request(Core.Finch) do
         {:ok, %{status: status, body: response_body}} when status in 200..299 ->
           case Jason.decode(response_body) do
-            {:ok, decoded} -> {:ok, decoded}
-            {:error, _} -> {:error, "Failed to decode response: #{response_body}"}
+            {:ok, decoded} ->
+              {:ok, decoded}
+
+            {:error, _} ->
+              {:error, "Failed to decode response: #{response_body}"}
           end
 
         {:ok, %{status: status, body: response_body}} ->
-          Logger.error("Failed to post Google Ads API: HTTP #{status}: #{response_body}")
+          Logger.error(
+            "Failed to post Google Ads API: HTTP #{status}: #{response_body}"
+          )
+
           {:error, "HTTP #{status}: #{response_body}"}
 
         {:error, reason} ->
@@ -119,7 +135,13 @@ defmodule Core.Integrations.Providers.GoogleAds.Client do
     - `{:ok, map()}` - The parsed JSON response
     - `{:error, term()}` - Error reason
   """
-  def put(%Connection{} = connection, path, body, params \\ %{}, customer_id \\ nil) do
+  def put(
+        %Connection{} = connection,
+        path,
+        body,
+        params \\ %{},
+        customer_id \\ nil
+      ) do
     with {:ok, connection} <- ensure_valid_token(connection),
          url = build_url(path, params),
          headers = build_headers(connection, customer_id),
@@ -156,7 +178,12 @@ defmodule Core.Integrations.Providers.GoogleAds.Client do
     - `{:ok, map()}` - The parsed JSON response
     - `{:error, term()}` - Error reason
   """
-  def delete(%Connection{} = connection, path, params \\ %{}, customer_id \\ nil) do
+  def delete(
+        %Connection{} = connection,
+        path,
+        params \\ %{},
+        customer_id \\ nil
+      ) do
     with {:ok, connection} <- ensure_valid_token(connection),
          url = build_url(path, params),
          headers = build_headers(connection, customer_id),
@@ -236,19 +263,23 @@ defmodule Core.Integrations.Providers.GoogleAds.Client do
     url = "#{base_url()}#{path}"
 
     case Enum.empty?(params) do
-      true -> url
+      true ->
+        url
+
       false ->
         query_string =
           params
           |> Enum.map_join("&", fn {key, value} ->
             "#{key}=#{URI.encode_www_form(to_string(value))}"
           end)
+
         "#{url}?#{query_string}"
     end
   end
 
   defp build_headers(connection, customer_id) do
     config = Application.get_env(:core, :google_ads)
+
     base_headers = [
       {"authorization", "Bearer #{connection.access_token}"},
       {"content-type", "application/json"},

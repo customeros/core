@@ -63,12 +63,17 @@ defmodule Core.Integrations.OAuth.Providers.GoogleAds do
 
     case post_token(base_url, params) do
       {:ok, token_data} ->
-        Logger.info("Google Ads token exchange response: #{inspect(token_data, pretty: true)}")
+        Logger.info(
+          "Google Ads token exchange response: #{inspect(token_data, pretty: true)}"
+        )
+
         case Token.new(token_data) do
           {:ok, token} ->
             Logger.info("Created token struct: #{inspect(token, pretty: true)}")
             {:ok, token}
-          {:error, reason} -> {:error, reason}
+
+          {:error, reason} ->
+            {:error, reason}
         end
 
       {:error, reason} ->
@@ -99,7 +104,8 @@ defmodule Core.Integrations.OAuth.Providers.GoogleAds do
              {:ok, updated} <-
                Connections.update_connection(connection, %{
                  access_token: token.access_token,
-                 refresh_token: token.refresh_token || connection.refresh_token,  # Keep old refresh token if not provided
+                 # Keep old refresh token if not provided
+                 refresh_token: token.refresh_token || connection.refresh_token,
                  expires_at: token.expires_at,
                  scopes: config[:scopes] || [],
                  status: :active,

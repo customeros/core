@@ -31,7 +31,8 @@ defmodule Core.Crm.Companies do
   alias Core.ScrapinCompanies
 
   @spec get_or_create_by_domain(String.t()) ::
-          {:ok, Company.t()} | {:error, :invalid_domain | :no_primary_domain | String.t()}
+          {:ok, Company.t()}
+          | {:error, :invalid_domain | :no_primary_domain | String.t()}
   def get_or_create_by_domain(domain) when not is_binary(domain) do
     Tracing.error(:invalid_domain_type)
     {:error, :invalid_domain}
@@ -177,8 +178,9 @@ defmodule Core.Crm.Companies do
     end
   end
 
-  defp ensure_domain_present(domain) when is_binary(domain) and byte_size(domain) > 0,
-    do: {:ok, domain}
+  defp ensure_domain_present(domain)
+       when is_binary(domain) and byte_size(domain) > 0,
+       do: {:ok, domain}
 
   defp ensure_domain_present(nil), do: {:error, :missing_domain}
   defp ensure_domain_present(_), do: {:error, :invalid_domain}

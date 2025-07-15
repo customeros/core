@@ -31,7 +31,8 @@ defmodule Web.Channels.DocumentsChannel do
         Process.monitor(docpid)
         SharedDoc.observe(docpid)
 
-        if user_id = payload["user_id"], do: Stats.register_event_start(user_id, :view_document)
+        if user_id = payload["user_id"],
+          do: Stats.register_event_start(user_id, :view_document)
 
         {:ok, socket |> assign(doc_name: doc_name, doc_pid: docpid)}
 

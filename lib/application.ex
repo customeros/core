@@ -40,6 +40,7 @@ defmodule Core.Application do
       Core.Crm.Industries,
       Core.Crm.Contacts.Enricher.BetterContactJobChecker,
       Core.Analytics.JobProcessor,
+      Core.Analytics.GoogleAds.CampaignsDailyFetcher,
       Web.Endpoint,
       Web.Presence,
       Web.Telemetry,

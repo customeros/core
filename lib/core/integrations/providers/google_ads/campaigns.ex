@@ -27,32 +27,44 @@ defmodule Core.Integrations.Providers.GoogleAds.Campaigns do
     # Get all client accounts
     with {:ok, clients} <- Customers.list_accessible_customers(connection) do
       # Get campaigns from each client account in parallel
-      campaigns_results = Task.async_stream(clients, fn client ->
-        client_id = client["id"]
-        Logger.info("Fetching campaigns for client account '#{client["descriptive_name"]}' (#{client_id})")
+      campaigns_results =
+        Task.async_stream(
+          clients,
+          fn client ->
+            client_id = client["id"]
 
-        case list_campaigns_for_customer(connection, client_id) do
-          {:ok, campaigns} ->
-            # Add client account info to each campaign
-            Enum.map(campaigns, fn campaign ->
-              Map.merge(campaign, %{
-                "client_account" => %{
-                  "id" => client["id"],
-                  "name" => client["descriptive_name"],
-                  "currency_code" => client["currency_code"],
-                  "time_zone" => client["time_zone"]
-                }
-              })
-            end)
-          {:error, reason} ->
-            Logger.error("Failed to list Google Ads campaigns in client account #{client_id}: #{inspect(reason)}")
-            []
-        end
-      end, timeout: 30_000)
-      |> Enum.reduce([], fn
-        {:ok, campaigns}, acc -> acc ++ campaigns
-        _, acc -> acc
-      end)
+            Logger.info(
+              "Fetching campaigns for client account '#{client["descriptive_name"]}' (#{client_id})"
+            )
+
+            case list_campaigns_for_customer(connection, client_id) do
+              {:ok, campaigns} ->
+                # Add client account info to each campaign
+                Enum.map(campaigns, fn campaign ->
+                  Map.merge(campaign, %{
+                    "client_account" => %{
+                      "id" => client["id"],
+                      "name" => client["descriptive_name"],
+                      "currency_code" => client["currency_code"],
+                      "time_zone" => client["time_zone"]
+                    }
+                  })
+                end)
+
+              {:error, reason} ->
+                Logger.error(
+                  "Failed to list Google Ads campaigns in client account #{client_id}: #{inspect(reason)}"
+                )
+
+                []
+            end
+          end,
+          timeout: 30_000
+        )
+        |> Enum.reduce([], fn
+          {:ok, campaigns}, acc -> acc ++ campaigns
+          _, acc -> acc
+        end)
 
       {:ok, campaigns_results}
     end
@@ -99,32 +111,41 @@ defmodule Core.Integrations.Providers.GoogleAds.Campaigns do
            customer_id
          ) do
       {:ok, response} ->
-        Logger.info("Got response for customer #{customer_id}: #{inspect(response)}")
+        Logger.info(
+          "Got response for customer #{customer_id}: #{inspect(response)}"
+        )
 
         # Handle the stream response format
-        campaigns = case response do
-          [%{"results" => results} | _] when is_list(results) ->
-            Enum.map(results, &extract_campaign_data/1)
+        campaigns =
+          case response do
+            [%{"results" => results} | _] when is_list(results) ->
+              Enum.map(results, &extract_campaign_data/1)
 
-          [_ | _] = results when is_list(results) ->
-            # Handle case where results are directly in the list
-            Enum.flat_map(results, fn
-              %{"campaign" => _} = result -> [extract_campaign_data(result)]
-              _ -> []
-            end)
+            [_ | _] = results when is_list(results) ->
+              # Handle case where results are directly in the list
+              Enum.flat_map(results, fn
+                %{"campaign" => _} = result -> [extract_campaign_data(result)]
+                _ -> []
+              end)
 
-          %{"results" => results} when is_list(results) ->
-            Enum.map(results, &extract_campaign_data/1)
+            %{"results" => results} when is_list(results) ->
+              Enum.map(results, &extract_campaign_data/1)
 
-          _ ->
-            Logger.warning("No campaigns found in response: #{inspect(response)}")
-            []
-        end
+            _ ->
+              Logger.warning(
+                "No campaigns found in response: #{inspect(response)}"
+              )
+
+              []
+          end
 
         {:ok, campaigns}
 
       {:error, reason} ->
-        Logger.error("Failed to list Google Ads campaigns for customer #{customer_id}: #{inspect(reason)}")
+        Logger.error(
+          "Failed to list Google Ads campaigns for customer #{customer_id}: #{inspect(reason)}"
+        )
+
         {:error, reason}
     end
   end
