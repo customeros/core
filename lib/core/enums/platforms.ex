@@ -31,7 +31,7 @@ defmodule Core.Enums.Platforms do
     :instagram,
     :intercom,
     :jira,
-    :klavio,
+    :klaviyo,
     :linkedin,
     :mailchimp,
     :marketo,
