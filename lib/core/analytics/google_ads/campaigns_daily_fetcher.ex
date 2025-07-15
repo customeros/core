@@ -19,15 +19,14 @@ defmodule Core.Analytics.GoogleAds.CampaignsDailyFetcher do
   alias Core.Integrations.Registry
   alias Core.Integrations.Connection
   alias Core.Integrations.Providers.GoogleAds.{Campaigns, Customers}
+  alias NaiveDateTime
 
   @cron_name :cron_google_ads_campaign_fetcher
   @stuck_lock_duration_minutes 30
-  # TODO alexb: set to 5 minutes (5 * 60 * 1000)
-  @check_interval_ms 5 * 5 * 1000
+  @check_interval_ms 10 * 60 * 1000
   @min_execution_interval_minutes 23 * 60 + 30
 
   def start_link(opts \\ []) do
-    # TODO alexb: set to false
     crons_enabled = Application.get_env(:core, :crons)[:enabled] || false
 
     if crons_enabled do
