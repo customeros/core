@@ -14,28 +14,47 @@ defmodule Core.Integrations.Providers.GoogleAds.Campaigns do
   @doc """
   Lists campaigns for a Google Ads account.
 
-  If the account is a manager account, this will list campaigns from the first available client account.
+  If the account is a manager account, this will list campaigns from all available client accounts.
 
   ## Parameters
     - connection - The integration connection
 
   ## Returns
-    - `{:ok, [map()]}` - List of campaigns
+    - `{:ok, [map()]}` - List of campaigns with client account information
     - `{:error, term()}` - Error reason
   """
   def list_campaigns(%Connection{} = connection) do
-    # Get the client account
-    with {:ok, client} <- Customers.get_client_account(connection) do
-      client_id = client["id"]
-      Logger.info("Found client account '#{client["descriptive_name"]}' (#{client_id})")
+    # Get all client accounts
+    with {:ok, clients} <- Customers.list_accessible_customers(connection) do
+      # Get campaigns from each client account in parallel
+      campaigns_results = Task.async_stream(clients, fn client ->
+        client_id = client["id"]
+        Logger.info("Fetching campaigns for client account '#{client["descriptive_name"]}' (#{client_id})")
 
-      # Get campaigns from the client account
-      case list_campaigns_for_customer(connection, client_id) do
-        {:ok, campaigns} -> {:ok, campaigns}
-        {:error, reason} ->
-          Logger.error("Failed to list Google Ads campaigns in client account: #{inspect(reason)}")
-          {:error, reason}
-      end
+        case list_campaigns_for_customer(connection, client_id) do
+          {:ok, campaigns} ->
+            # Add client account info to each campaign
+            Enum.map(campaigns, fn campaign ->
+              Map.merge(campaign, %{
+                "client_account" => %{
+                  "id" => client["id"],
+                  "name" => client["descriptive_name"],
+                  "currency_code" => client["currency_code"],
+                  "time_zone" => client["time_zone"]
+                }
+              })
+            end)
+          {:error, reason} ->
+            Logger.error("Failed to list Google Ads campaigns in client account #{client_id}: #{inspect(reason)}")
+            []
+        end
+      end, timeout: 30_000)
+      |> Enum.reduce([], fn
+        {:ok, campaigns}, acc -> acc ++ campaigns
+        _, acc -> acc
+      end)
+
+      {:ok, campaigns_results}
     end
   end
 
