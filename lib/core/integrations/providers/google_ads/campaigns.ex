@@ -165,14 +165,14 @@ defmodule Core.Integrations.Providers.GoogleAds.Campaigns do
              %{},
              customer_id
            ) do
-
       # Process responses and build the complete structure
       campaigns = process_campaign_response(campaigns_response)
       ad_groups = process_ad_groups_response(ad_groups_response)
       ads = process_ads_response(ads_response)
 
       # Link everything together
-      campaigns_with_structure = link_campaign_structure(campaigns, ad_groups, ads)
+      campaigns_with_structure =
+        link_campaign_structure(campaigns, ad_groups, ads)
 
       {:ok, campaigns_with_structure}
     end
@@ -252,6 +252,7 @@ defmodule Core.Integrations.Providers.GoogleAds.Campaigns do
       [%{"results" => results} | _] when is_list(results) ->
         Enum.map(results, fn result ->
           ad_group = result["adGroup"]
+
           %{
             "id" => ad_group["id"],
             "name" => ad_group["name"],
@@ -261,7 +262,9 @@ defmodule Core.Integrations.Providers.GoogleAds.Campaigns do
             "campaign_resource_name" => ad_group["campaign"]
           }
         end)
-      _ -> []
+
+      _ ->
+        []
     end
   end
 
@@ -272,6 +275,7 @@ defmodule Core.Integrations.Providers.GoogleAds.Campaigns do
         Enum.map(results, fn result ->
           ad_group_ad = result["adGroupAd"]
           ad = ad_group_ad["ad"]
+
           %{
             "id" => ad["id"],
             "name" => ad["name"],
@@ -282,7 +286,9 @@ defmodule Core.Integrations.Providers.GoogleAds.Campaigns do
             "ad_group_resource_name" => ad_group_ad["adGroup"]
           }
         end)
-      _ -> []
+
+      _ ->
+        []
     end
   end
 
@@ -292,17 +298,21 @@ defmodule Core.Integrations.Providers.GoogleAds.Campaigns do
     ads_by_ad_group = Enum.group_by(ads, & &1["ad_group_resource_name"])
 
     # Then, add ads to their respective ad groups
-    ad_groups_with_ads = Enum.map(ad_groups, fn ad_group ->
-      group_ads = Map.get(ads_by_ad_group, ad_group["resource_name"], [])
-      Map.put(ad_group, "ads", group_ads)
-    end)
+    ad_groups_with_ads =
+      Enum.map(ad_groups, fn ad_group ->
+        group_ads = Map.get(ads_by_ad_group, ad_group["resource_name"], [])
+        Map.put(ad_group, "ads", group_ads)
+      end)
 
     # Group ad groups by campaign resource name
-    ad_groups_by_campaign = Enum.group_by(ad_groups_with_ads, & &1["campaign_resource_name"])
+    ad_groups_by_campaign =
+      Enum.group_by(ad_groups_with_ads, & &1["campaign_resource_name"])
 
     # Finally, add ad groups to their respective campaigns
     Enum.map(campaigns, fn campaign ->
-      campaign_ad_groups = Map.get(ad_groups_by_campaign, campaign["resource_name"], [])
+      campaign_ad_groups =
+        Map.get(ad_groups_by_campaign, campaign["resource_name"], [])
+
       Map.put(campaign, "ad_groups", campaign_ad_groups)
     end)
   end
