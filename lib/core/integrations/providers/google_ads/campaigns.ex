@@ -246,46 +246,6 @@ defmodule Core.Integrations.Providers.GoogleAds.Campaigns do
     end
   end
 
-  # Process metrics response
-  defp process_metrics_response(response) do
-    case response do
-      [%{"results" => results} | _] when is_list(results) ->
-        Enum.map(results, fn result ->
-          campaign = result["campaign"]
-          metrics = result["metrics"]
-          %{
-            "resource_name" => campaign["resourceName"],
-            "metrics" => %{
-              "cost_micros" => metrics["costMicros"],
-              "impressions" => metrics["impressions"],
-              "clicks" => metrics["clicks"],
-              "conversions" => metrics["conversions"],
-              "conversions_value" => metrics["conversionsValue"],
-              "average_cpc" => metrics["averageCpc"],
-              "ctr" => metrics["ctr"]
-            }
-          }
-        end)
-      _ -> []
-    end
-  end
-
-  # Add metrics to campaigns
-  defp add_metrics_to_campaigns(campaigns, metrics) do
-    # Create a map of metrics by campaign resource name
-    metrics_by_resource = Enum.reduce(metrics, %{}, fn metric, acc ->
-      Map.put(acc, metric["resource_name"], metric["metrics"])
-    end)
-
-    # Add metrics to each campaign
-    Enum.map(campaigns, fn campaign ->
-      case Map.get(metrics_by_resource, campaign["resource_name"]) do
-        nil -> campaign
-        campaign_metrics -> Map.put(campaign, "metrics", campaign_metrics)
-      end
-    end)
-  end
-
   # Process ad groups response
   defp process_ad_groups_response(response) do
     case response do
