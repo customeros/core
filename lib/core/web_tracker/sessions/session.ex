@@ -4,95 +4,16 @@ defmodule Core.WebTracker.Sessions.Session do
   """
   use Ecto.Schema
   import Ecto.Changeset
+
+  alias Core.Enums.Channels
+  alias Core.Enums.Platforms
+
   @primary_key {:id, :string, autogenerate: false}
   @foreign_key_type :string
 
   # Constants
   @id_prefix "sess"
   @id_regex ~r/^#{@id_prefix}_[a-z0-9]{21}$/
-
-  @channel_types [
-    :direct,
-    :organic_search,
-    :organic_social,
-    :referral,
-    :paid_search,
-    :paid_social,
-    :email,
-    :workplace_tools
-  ]
-
-  @platforms [
-    :airtable,
-    :asana,
-    :baidu,
-    :basecamp,
-    :bing,
-    :box,
-    :brave,
-    :campaign_monitor,
-    :chatgpt,
-    :claude,
-    :clickup,
-    :constant_contact,
-    :deepseek,
-    :discord,
-    :drift,
-    :dropbox,
-    :duckduckgo,
-    :ecosia,
-    :facebook,
-    :freshworks,
-    :gemini,
-    :github,
-    :google,
-    :google_drive,
-    :google_meet,
-    :google_workspace,
-    :gotomeeting,
-    :hubspot,
-    :instagram,
-    :intercom,
-    :jira,
-    :klavio,
-    :linkedin,
-    :mailchimp,
-    :marketo,
-    :meta_workplace,
-    :metager,
-    :microsoft_office,
-    :microsoft_onedrive,
-    :microsoft_sharepoint,
-    :monday,
-    :mojeek,
-    :notion,
-    :pinterest,
-    :pipedrive,
-    :qwant,
-    :reddit,
-    :salesforce,
-    :searx,
-    :seznam,
-    :slack,
-    :snapchat,
-    :stackoverflow,
-    :startpage,
-    :swisscows,
-    :teams,
-    :telegram,
-    :tiktok,
-    :trello,
-    :webex,
-    :whatsapp,
-    :x,
-    :yahoo,
-    :yammer,
-    :yandex,
-    :youtube,
-    :zendesk,
-    :zoho,
-    :zoom
-  ]
 
   schema "web_sessions" do
     field(:tenant_id, :string)
@@ -111,8 +32,8 @@ defmodule Core.WebTracker.Sessions.Session do
     field(:is_mobile, :boolean)
 
     # Attribution
-    field(:channel, Ecto.Enum, values: @channel_types)
-    field(:platform, Ecto.Enum, values: @platforms)
+    field(:channel, Ecto.Enum, values: Channels.channels())
+    field(:platform, Ecto.Enum, values: Platforms.platforms())
     field(:referrer, :string)
     field(:utm_id, :string)
     field(:paid_id, :string)

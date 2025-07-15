@@ -76,7 +76,11 @@ defmodule Core.Auth.Tenants do
   end
 
   def get_tenant_ids_with_webtracker_available do
-    case Repo.all(from t in Tenant, where: t.webtracker_status == :available, select: t.id) do
+    case Repo.all(
+           from t in Tenant,
+             where: t.webtracker_status == :available,
+             select: t.id
+         ) do
       [] -> @err_not_found
       tenant_ids -> {:ok, tenant_ids}
     end
@@ -175,6 +179,28 @@ defmodule Core.Auth.Tenants do
           Tracing.error(:insert_failed, "Failed to insert tenant into DB")
           error
       end
+    end
+  end
+
+  def add_product(tenant_id, product)
+      when is_binary(tenant_id) and is_binary(product) do
+    case Repo.get(Tenant, tenant_id) do
+      nil -> {:error, :tenant_not_found}
+      tenant -> add_product(tenant, product)
+    end
+  end
+
+  def add_product(%Tenant{} = tenant, product) when is_binary(product) do
+    current_products = tenant.products || []
+
+    if product in current_products do
+      {:ok, tenant}
+    else
+      updated_products = [product | current_products] |> Enum.uniq()
+
+      tenant
+      |> Tenant.changeset(%{products: updated_products})
+      |> Repo.update()
     end
   end
 
