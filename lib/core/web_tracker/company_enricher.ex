@@ -42,7 +42,7 @@ defmodule Core.WebTracker.CompanyEnricher do
   """
 
   def enrich_event_company(event) do
-    if event.with_new_session && should_enrich?(event.ip) do
+    if event.with_new_session do
       OpenTelemetry.Tracer.with_span "company_enrichment_job.enrich_event_company" do
         OpenTelemetry.Tracer.set_attributes([
           {"event.id", event.id},
@@ -58,19 +58,6 @@ defmodule Core.WebTracker.CompanyEnricher do
   end
 
   # Private Functions
-  def should_enrich?(ip_address) do
-    case IpIntelligence.get_by_ip(ip_address) do
-      {:ok, nil} ->
-        true
-
-      {:ok, record} ->
-        record.domain == ""
-
-      _ ->
-        true
-    end
-  end
-
   defp enrich(event) do
     case IPProfiler.get_company_info(event.ip) do
       {:ok, %{domain: domain}} ->
