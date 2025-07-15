@@ -95,3 +95,15 @@ export type ChannelAttribution = {
   inserted_at: string;
   country_code: string;
 };
+
+export type SessionAnalytics = {
+  id: string;
+  sessions: number;
+  updated_at: string;
+  inserted_at: string;
+  bucket_start_at: string;
+  icp_fit_sessions: number;
+  unique_companies: number;
+  new_icp_fit_leads: number;
+  identified_sessions: number;
+};

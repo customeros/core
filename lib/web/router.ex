@@ -114,6 +114,7 @@ defmodule Web.Router do
     get "/icons.svg", IconsController, :index
     get "/favicon/*path", FaviconController, :serve
     get "/welcome", WelcomeController, :index
+    get "/analytics", AnalyticsController, :index
 
     scope "/leads" do
       get "/", LeadsController, :index

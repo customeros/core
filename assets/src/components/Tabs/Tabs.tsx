@@ -39,8 +39,9 @@ export const Tabs = ({ children, variant = 'enclosed', ...props }: TabsProps) =>
       {...props}
       ref={containerRef}
       className={twMerge(
-        'flex items-center gap-2 relative', //
-        variant === 'enclosed' && 'bg-gray-100 p-[2px] rounded-full'
+        'flex items-center gap-2 relative w-fit', //
+        variant === 'enclosed' && 'bg-gray-100 p-[2px] rounded-full',
+        props.className
       )}
     >
       {variant === 'enclosed' && (

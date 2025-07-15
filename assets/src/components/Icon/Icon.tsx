@@ -61,7 +61,11 @@ export type IconName =
   | 'copy-03'
   | 'user-03'
   | 'corner-down-right'
-  | 'thumbs-down';
+  | 'thumbs-down'
+  | 'thumbs-down'
+  | 'chevron-right'
+  | 'chevron-left'
+  | 'handle-drag';
 
 export const Icon = ({
   name,
