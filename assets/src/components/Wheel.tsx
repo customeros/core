@@ -76,25 +76,30 @@ export default function Wheel(props: {
   }, [slider]);
 
   function slideValues() {
-    if (!sliderState) return [];
+    if (!sliderState) {
+      return [];
+    }
     const offset = props.loop ? 1 / 2 - 1 / slidesPerView / 2 : 0;
     const values = [];
 
     for (let i = 0; i < slides; i++) {
-      const distance = sliderState ? (sliderState.slides[i]?.distance - offset) * slidesPerView : 0;
-      // For horizontal: rotateY
-      const rotate = Math.abs(distance) > wheelSize / 2 ? 180 : distance * (360 / wheelSize) * -1;
+      const slide = sliderState.slides[i];
+      const distance = sliderState ? (slide?.distance - offset) * slidesPerView : 0;
+      const rotate = distance * (360 / wheelSize) * -1;
+
       const style = {
         transform: `rotateY(${rotate}deg) translateZ(${radius}px)`,
         WebkitTransform: `rotateY(${rotate}deg) translateZ(${radius}px)`,
       };
 
       // Calculate transition value based on distance from center
-      // This creates a smooth gradient-like transition from transparent to primary color
       const transitionValue = Math.max(0, Math.min(1, 1 - Math.abs(distance) * 1.5));
 
+      // Set opacity: lower for slides behind (rotate > 90deg or < -90deg)
+      const opacity = Math.abs(rotate) > 90 ? 0 : 1; // 0.2 for back, 1 for front
+
       values.push({
-        style,
+        style: { ...style, opacity },
         value: props.values?.[i] || i,
         transitionValue,
       });

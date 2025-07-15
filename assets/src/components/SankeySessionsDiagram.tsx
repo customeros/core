@@ -214,12 +214,7 @@ export const SankeySessionsDiagram = ({
   const { getUrlState } = useUrlState<AnalyticsUrlState>();
   const { time_range } = getUrlState();
 
-  // useEffect(() => {
-  //   onSelectedIndexChange?.(0);
-  // }, [session_analytics]);
-
   useEffect(() => {
-    // const hasData = session_analytics.sessions > 0;
     const session = hasData ? session_analytics : null;
 
     if (hasData && !session) return;

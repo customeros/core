@@ -12,14 +12,22 @@ defmodule Core.Analytics do
 
     case time_range do
       :hour ->
-        # Past 24 hours from now
         start_time = DateTime.add(now, -24, :hour)
 
         from(lg in LeadGeneration,
           where: lg.tenant_id == ^tenant_id,
           where: lg.bucket_start_at >= ^start_time,
           where: lg.bucket_start_at <= ^now,
-          order_by: [desc: lg.bucket_start_at]
+          order_by: [desc: lg.bucket_start_at],
+          select: %{
+            bucket_start_at:
+              fragment("TO_CHAR(?, 'HH24:MI')", lg.bucket_start_at),
+            sessions: lg.sessions,
+            identified_sessions: lg.identified_sessions,
+            icp_fit_sessions: lg.icp_fit_sessions,
+            unique_companies: lg.unique_companies,
+            new_icp_fit_leads: lg.new_icp_fit_leads
+          }
         )
         |> Repo.all()
 
