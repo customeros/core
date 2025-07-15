@@ -87,7 +87,7 @@ defmodule Core.Integrations.Providers.GoogleAds.Campaigns do
 
     Logger.info("Querying campaigns for customer ID: #{customer_id}")
 
-    # Query to get all campaigns basic info (no metrics)
+    # Query to get all campaigns with metrics
     campaigns_query = """
     SELECT
       campaign.id,
@@ -102,25 +102,15 @@ defmodule Core.Integrations.Providers.GoogleAds.Campaigns do
       campaign.serving_status,
       campaign.payment_mode,
       campaign.bidding_strategy_type,
-      campaign_budget.amount_micros
-    FROM campaign
-    """
-
-    # Query to get campaign metrics for last 30 days
-    metrics_query = """
-    SELECT
-      campaign.id,
-      campaign.resource_name,
+      campaign_budget.amount_micros,
       metrics.cost_micros,
       metrics.impressions,
       metrics.clicks,
       metrics.conversions,
       metrics.conversions_value,
       metrics.average_cpc,
-      metrics.ctr,
-      segments.date
+      metrics.ctr
     FROM campaign
-    WHERE segments.date DURING LAST_30_DAYS
     """
 
     # Query to get ad groups
@@ -159,14 +149,6 @@ defmodule Core.Integrations.Providers.GoogleAds.Campaigns do
              %{},
              customer_id
            ),
-         {:ok, metrics_response} <-
-           Client.post(
-             connection,
-             "/#{api_version}/customers/#{customer_id}/googleAds:searchStream",
-             %{query: metrics_query},
-             %{},
-             customer_id
-           ),
          {:ok, ad_groups_response} <-
            Client.post(
              connection,
@@ -186,15 +168,11 @@ defmodule Core.Integrations.Providers.GoogleAds.Campaigns do
 
       # Process responses and build the complete structure
       campaigns = process_campaign_response(campaigns_response)
-      metrics = process_metrics_response(metrics_response)
       ad_groups = process_ad_groups_response(ad_groups_response)
       ads = process_ads_response(ads_response)
 
-      # First add metrics to campaigns
-      campaigns_with_metrics = add_metrics_to_campaigns(campaigns, metrics)
-
-      # Then link everything together
-      campaigns_with_structure = link_campaign_structure(campaigns_with_metrics, ad_groups, ads)
+      # Link everything together
+      campaigns_with_structure = link_campaign_structure(campaigns, ad_groups, ads)
 
       {:ok, campaigns_with_structure}
     end
@@ -369,11 +347,12 @@ defmodule Core.Integrations.Providers.GoogleAds.Campaigns do
     end)
   end
 
-  # Update the extract_campaign_data function to handle the simpler campaign data
+  # Update the extract_campaign_data function to handle metrics again
   defp extract_campaign_data(%{"campaign" => campaign} = data) do
     campaign_budget = Map.get(data, "campaign_budget", %{})
+    metrics = Map.get(data, "metrics", %{})
 
-    %{
+    base_data = %{
       "id" => campaign["id"],
       "name" => campaign["name"],
       "status" => campaign["status"],
@@ -388,5 +367,19 @@ defmodule Core.Integrations.Providers.GoogleAds.Campaigns do
       "bidding_strategy_type" => campaign["biddingStrategyType"],
       "budget_amount_micros" => campaign_budget["amountMicros"]
     }
+
+    if map_size(metrics) > 0 do
+      Map.put(base_data, "metrics", %{
+        "cost_micros" => metrics["costMicros"],
+        "impressions" => metrics["impressions"],
+        "clicks" => metrics["clicks"],
+        "conversions" => metrics["conversions"],
+        "conversions_value" => metrics["conversionsValue"],
+        "average_cpc" => metrics["averageCpc"],
+        "ctr" => metrics["ctr"]
+      })
+    else
+      base_data
+    end
   end
 end
