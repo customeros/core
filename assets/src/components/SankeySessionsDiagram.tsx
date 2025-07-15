@@ -19,7 +19,11 @@ import Wheel from './Wheel';
 interface SankeySessionsDiagramProps {
   width?: number;
   height?: number;
-  session_analytics: SessionAnalytics[];
+  hasData: boolean;
+  wheelLabels: string[];
+  selectedIndex: number;
+  session_analytics: SessionAnalytics;
+  onSelectedIndexChange?: (index: number) => void;
 }
 
 // Color mapping for all hex colors used in the diagram
@@ -52,6 +56,7 @@ type SankeyLinkData = {
   color: string;
   source: number;
   target: number;
+  rawValue: number;
 };
 
 function buildSankeyData(session: SessionAnalytics) {
@@ -89,36 +94,42 @@ function buildSankeyData(session: SessionAnalytics) {
       source: 0,
       target: 1,
       value: scale(identified),
+      rawValue: identified,
       color: COLOR_MAP.green200, // green-200
     }, // All Sessions -> Identified
     {
       source: 0,
       target: 2,
       value: scale(nonIdentified),
+      rawValue: nonIdentified,
       color: COLOR_MAP.gray100, // gray-100
     }, // All Sessions -> Non-identified
     {
       source: 1,
       target: 3,
       value: scale(icpFit),
+      rawValue: icpFit,
       color: COLOR_MAP.green300, // green-300
     }, // Identified -> ICP Fit
     {
       source: 1,
       target: 4,
       value: scale(nonIcpFit),
+      rawValue: nonIcpFit,
       color: COLOR_MAP.gray100, // gray-100
     }, // Identified -> Non ICP Fit
     {
       source: 3,
       target: 5,
       value: scale(newIcpFitLeads),
+      rawValue: newIcpFitLeads,
       color: newIcpFitLeads > 0 ? COLOR_MAP.green400 : COLOR_MAP.gray100, // green-400 or gray-100
     }, // ICP Fit -> New
     {
       source: 3,
       target: 6,
       value: scale(returning),
+      rawValue: returning,
       color: COLOR_MAP.green400, // green-400
     }, // ICP Fit -> Returning
   ];
@@ -192,19 +203,27 @@ function buildDefaultSankeyData() {
 export const SankeySessionsDiagram = ({
   width = 1000,
   height = 300,
+  hasData,
+  wheelLabels,
+  selectedIndex,
   session_analytics,
+  onSelectedIndexChange,
 }: SankeySessionsDiagramProps) => {
   const ref = useRef<SVGSVGElement | null>(null);
-  const [selectedIndex, setSelectedIndex] = useState(0);
   const [isInitialized, setIsInitialized] = useState(false);
   const { getUrlState } = useUrlState<AnalyticsUrlState>();
   const { time_range } = getUrlState();
 
-  useEffect(() => {
-    setSelectedIndex(0);
+  // useEffect(() => {
+  //   onSelectedIndexChange?.(0);
+  // }, [session_analytics]);
 
-    const hasData = session_analytics.length > 0;
-    const session = hasData ? session_analytics[selectedIndex] : null;
+  useEffect(() => {
+    // const hasData = session_analytics.sessions > 0;
+    const session = hasData ? session_analytics : null;
+
+    if (hasData && !session) return;
+
     const { nodes, links } = hasData ? buildSankeyData(session!) : buildDefaultSankeyData();
 
     if (!isInitialized) {
@@ -256,7 +275,7 @@ export const SankeySessionsDiagram = ({
         .data(sankeyData.links)
         .join('path')
         .attr('d', sankeyLinkHorizontal())
-        .attr('stroke', d => (d.value > 100 ? d.color : COLOR_MAP.gray100))
+        .attr('stroke', d => (d.value >= 100 ? d.color : COLOR_MAP.gray100))
         .attr('stroke-width', d => Math.max(0, d.width ?? 0))
         .attr('stroke-dasharray', d => (!hasData ? (d.value > 100 ? '0' : '3') : 'none'))
         .attr('opacity', 1);
@@ -319,8 +338,8 @@ export const SankeySessionsDiagram = ({
         .ease(d3.easeExpInOut)
         .attr('d', sankeyLinkHorizontal())
         .attr('stroke-width', d => Math.max(0, d.width ?? 0))
-        .attr('stroke', (d: any) => (d.value > 100 ? d.color : COLOR_MAP.gray100))
-        .attr('stroke-dasharray', d => (!hasData ? (d.value > 100 ? '0' : '3') : 'none'));
+        .attr('stroke', (d: any) => (d.value >= 100 ? d.color : COLOR_MAP.gray100))
+        .attr('stroke-dasharray', d => (d.rawValue > 0 ? 'none' : '3'));
 
       const nodeGroup = svg.selectAll('g').filter(function () {
         return d3.select(this).select('rect').size() > 0;
@@ -342,7 +361,7 @@ export const SankeySessionsDiagram = ({
         .ease(d3.easeExpInOut)
         .attr('height', (d: any) => (d.y1 ?? 0) - (d.y0 ?? 0))
         .attr('width', (d: any) => (d.x1 ?? 0) - (d.x0 ?? 0))
-        .attr('fill', (d: any) => (d.rawValue > 0 ? d.color : COLOR_MAP.gray100));
+        .attr('fill', (d: any) => (d.rawValue > 0 ? d.color : COLOR_MAP.gray200));
 
       nodeGroups
         .select('#label')
@@ -368,21 +387,21 @@ export const SankeySessionsDiagram = ({
         .ease(d3.easeExpInOut)
         .text((d: any) => d.rawValue);
     }
-  }, [session_analytics, width, height, session_analytics.length, selectedIndex, isInitialized]);
+  }, [session_analytics, width, height, selectedIndex, isInitialized]);
 
   return (
     <>
       <svg ref={ref} width={width} height={height} className="mx-auto" />
-      {session_analytics.length >= 0 && (
+      {hasData && (
         <div style={{ width: width }} className="h-[40px] mt-4 mx-auto">
           <Wheel
+            initIdx={0}
             loop={false}
             width={width}
             key={time_range}
-            initIdx={selectedIndex}
-            values={session_analytics.map(s => s?.bucket_start_at)}
+            values={wheelLabels}
             onValueChange={value => {
-              setSelectedIndex(Number(value));
+              onSelectedIndexChange?.(Number(value));
             }}
           />
         </div>

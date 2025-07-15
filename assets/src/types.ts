@@ -65,6 +65,7 @@ export type UrlState = {
   stage?: Stage;
   viewMode?: 'default' | 'focus';
   pipeline?: 'hidden' | 'visible';
+  tab?: 'account' | 'engagement' | 'contacts';
   group?: 'stage' | 'industry' | 'country' | 'none';
   asc?: 'updated_at' | 'name' | 'industry' | 'stage' | 'country';
   desc?: 'updated_at' | 'name' | 'industry' | 'stage' | 'country';

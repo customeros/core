@@ -1,4 +1,4 @@
-import { useRef, useState, useEffect } from 'react';
+import { useRef, useMemo, useState, useEffect } from 'react';
 import { TrackDetails, useKeenSlider, KeenSliderOptions } from 'keen-slider/react';
 
 import { cn } from 'src/utils/cn';
@@ -34,38 +34,41 @@ export default function Wheel(props: {
     }
   );
 
-  const options = useRef<KeenSliderOptions>({
-    slides: {
-      number: slides,
-      origin: props.loop ? 'center' : 'auto',
-      perView: slidesPerView,
-    },
-    renderMode: 'performance',
-    vertical: false, // horizontal
-    initial: props.initIdx || 0,
-    loop: props.loop || false,
-    dragSpeed: val => {
-      const width = size.current;
+  const options = useMemo<KeenSliderOptions>(
+    () => ({
+      slides: {
+        number: slides,
+        origin: props.loop ? 'center' : 'auto',
+        perView: slidesPerView,
+      },
+      renderMode: 'performance',
+      vertical: false, // horizontal
+      initial: props.initIdx || 0,
+      loop: props.loop || false,
+      dragSpeed: val => {
+        const width = size.current;
 
-      return (
-        val * (width / ((width / 2) * Math.tan(slideDegree * (Math.PI / 180))) / slidesPerView)
-      );
-    },
-    created: s => {
-      size.current = s.size;
-    },
-    updated: s => {
-      size.current = s.size;
-    },
-    detailsChanged: s => {
-      setSliderState(s.track.details);
-      props.onValueChange?.(s.track.details.abs);
-    },
-    rubberband: !props.loop,
-    mode: 'free-snap',
-  });
+        return (
+          val * (width / ((width / 2) * Math.tan(slideDegree * (Math.PI / 180))) / slidesPerView)
+        );
+      },
+      created: s => {
+        size.current = s.size;
+      },
+      updated: s => {
+        size.current = s.size;
+      },
+      detailsChanged: s => {
+        setSliderState(s.track.details);
+        props.onValueChange?.(s.track.details.abs);
+      },
+      rubberband: !props.loop,
+      mode: 'free-snap',
+    }),
+    [props.initIdx, props.loop, props.values, slides, slidesPerView]
+  );
 
-  const [sliderRef, slider] = useKeenSlider<HTMLDivElement>(options.current);
+  const [sliderRef, slider] = useKeenSlider<HTMLDivElement>(options);
   const [radius, setRadius] = useState(0);
 
   useEffect(() => {

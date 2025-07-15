@@ -1,3 +1,5 @@
+import { useState } from 'react';
+
 import { useDimensionsRef } from 'rooks';
 import { Icon } from 'src/components/Icon';
 import { SessionAnalytics } from 'src/types';
@@ -17,38 +19,30 @@ export type AnalyticsUrlState = {
 
 export default function Analytics({ session_analytics }: AnalyticsProps) {
   const [ref, dimensions] = useDimensionsRef();
+  const [selectedIndex, setSelectedIndex] = useState(0);
   const { setUrlState, getUrlState } = useUrlState<AnalyticsUrlState>();
 
   const { time_range } = getUrlState();
 
   const handleTimeRangeChange = (time_range: AnalyticsUrlState['time_range']) => {
     setUrlState(prev => ({ ...prev, time_range }));
+    setSelectedIndex(0);
   };
 
   const isTimeRangeActive = (range: AnalyticsUrlState['time_range']) => {
     return time_range === range ? 'active' : 'inactive';
   };
 
-  const totalLeads = session_analytics.reduce(
-    (acc, curr) => acc + (curr.new_icp_fit_leads ?? 0),
-    0
-  );
-  const totalSessions = session_analytics.reduce((acc, curr) => acc + (curr.sessions ?? 0), 0);
-  const totalCompanies = session_analytics.reduce(
-    (acc, curr) => acc + (curr.unique_companies ?? 0),
-    0
-  );
-  const totalIcpFitSessions = session_analytics.reduce(
-    (acc, curr) => acc + (curr.icp_fit_sessions ?? 0),
-    0
-  );
+  const totalLeads = session_analytics[selectedIndex]?.new_icp_fit_leads ?? 0;
+
+  const allSessions = session_analytics[selectedIndex]?.sessions ?? 0;
+  const uniqueCompanies = session_analytics[selectedIndex]?.unique_companies ?? 0;
+  const identifiedSessions = session_analytics[selectedIndex]?.identified_sessions ?? 0;
 
   const sessionIdentificationRate =
-    session_analytics.length > 0
-      ? `${((totalIcpFitSessions / totalSessions) * 100).toFixed(2)}%`
-      : '0%';
+    allSessions > 0 ? `${((identifiedSessions / allSessions) * 100).toFixed(1)}%` : '0%';
   const icpQualificationRate =
-    session_analytics.length > 0 ? `${((totalLeads / totalCompanies) * 100).toFixed(2)}%` : '0%';
+    uniqueCompanies > 0 ? `${((totalLeads / uniqueCompanies) * 100).toFixed(1)}%` : '0%';
 
   return (
     <RootLayout>
@@ -81,17 +75,21 @@ export default function Analytics({ session_analytics }: AnalyticsProps) {
             size="xxs"
             className="w-fit"
             data-state={isTimeRangeActive('hour')}
-            onClick={() => handleTimeRangeChange('hour')}
+            onClick={() => {
+              handleTimeRangeChange('hour');
+            }}
           >
-            24 hour
+            hourly
           </Button>
           <Button
             size="xxs"
             className="w-fit"
             data-state={isTimeRangeActive('day')}
-            onClick={() => handleTimeRangeChange('day')}
+            onClick={() => {
+              handleTimeRangeChange('day');
+            }}
           >
-            7 days
+            daily
           </Button>
           <Button
             size="xxs"
@@ -99,7 +97,7 @@ export default function Analytics({ session_analytics }: AnalyticsProps) {
             data-state={isTimeRangeActive('week')}
             onClick={() => handleTimeRangeChange('week')}
           >
-            4 weeks
+            weekly
           </Button>
           <Button
             size="xxs"
@@ -107,15 +105,21 @@ export default function Analytics({ session_analytics }: AnalyticsProps) {
             data-state={isTimeRangeActive('month')}
             onClick={() => handleTimeRangeChange('month')}
           >
-            3 months
+            monthly
           </Button>
         </Tabs>
         <div ref={ref} className="md:w-full h-[224px] 2xl:h-[300px] 2xl:w-[1440px]">
           {dimensions && (
             <SankeySessionsDiagram
               height={dimensions?.height}
-              session_analytics={session_analytics}
+              selectedIndex={selectedIndex}
+              session_analytics={session_analytics[selectedIndex]}
+              hasData={session_analytics[selectedIndex]?.sessions > 0}
+              wheelLabels={session_analytics.map(s => s?.bucket_start_at)}
               width={dimensions?.width <= 1500 ? dimensions?.width - 200 : dimensions?.width}
+              onSelectedIndexChange={index => {
+                setSelectedIndex(index);
+              }}
             />
           )}
         </div>
