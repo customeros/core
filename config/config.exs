@@ -28,6 +28,7 @@ config :logger, :console,
   metadata: [
     :body,
     :cache_key,
+    :campaign_id,
     :company,
     :company_id,
     :company_domain,

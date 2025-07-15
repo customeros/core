@@ -1,70 +1,85 @@
 <!DOCTYPE html>
 <html lang="en" class="[scrollbar-gutter:stable]">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="csrf-token" content={get_csrf_token()} />
+    <.inertia_head content={@inertia_head} />
+    
+<!-- Favicon -->
+    <link rel="icon" type="image/x-icon" href={~p"/favicon/favicon.ico"} />
+    <link rel="icon" type="image/svg+xml" href={~p"/favicon/favicon.svg"} />
+    <link
+      rel="icon"
+      type="image/png"
+      sizes="96x96"
+      href={~p"/favicon/favicon-96x96.png"}
+    />
+    
+<!-- Apple Touch Icon -->
+    <link rel="apple-touch-icon" href={~p"/favicon/apple-touch-icon.png"} />
+    
+<!-- Web App Manifest -->
+    <link rel="manifest" href={~p"/favicon/site.webmanifest"} />
+    <link
+      rel="icon"
+      type="image/png"
+      sizes="192x192"
+      href={~p"/favicon/web-app-manifest-192x192.png"}
+    />
+    <link
+      rel="icon"
+      type="image/png"
+      sizes="512x512"
+      href={~p"/favicon/web-app-manifest-512x512.png"}
+    />
 
-<head>
-  <meta charset="utf-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <meta name="csrf-token" content={get_csrf_token()} />
-  <.inertia_head content={@inertia_head} />
-
-  <!-- Favicon -->
-  <link rel="icon" type="image/x-icon" href={~p"/favicon/favicon.ico"} />
-  <link rel="icon" type="image/svg+xml" href={~p"/favicon/favicon.svg"} />
-  <link rel="icon" type="image/png" sizes="96x96" href={~p"/favicon/favicon-96x96.png"} />
-
-  <!-- Apple Touch Icon -->
-  <link rel="apple-touch-icon" href={~p"/favicon/apple-touch-icon.png"} />
-
-  <!-- Web App Manifest -->
-  <link rel="manifest" href={~p"/favicon/site.webmanifest"} />
-  <link rel="icon" type="image/png" sizes="192x192" href={~p"/favicon/web-app-manifest-192x192.png"} />
-  <link rel="icon" type="image/png" sizes="512x512" href={~p"/favicon/web-app-manifest-512x512.png"} />
-
-  <script>window.global = window;</script>
-  <link phx-track-static rel="stylesheet" href={~p"/assets/app.css"} />
-  <script defer phx-track-static type="module" src={~p"/assets/app.js"}>
-  </script>
-</head>
-
-<body class="bg-white antialiased">
-  {@inner_content}
-  <%= if Application.get_env(:core, :app_env)==:prod and Application.get_env(:core, :analytics)[:posthog_key] do %>
     <script>
-      !function (t, e) { var o, n, p, r; e.__SV || (window.posthog = e, e._i = [], e.init = function (i, s, a) { function g(t, e) { var o = e.split("."); 2 == o.length && (t = t[o[0]], e = o[1]), t[e] = function () { t.push([e].concat(Array.prototype.slice.call(arguments, 0))) } } (p = t.createElement("script")).type = "text/javascript", p.async = !0, p.src = s.api_host + "/static/array.js", (r = t.getElementsByTagName("script")[0]).parentNode.insertBefore(p, r); var u = e; for (void 0 !== a ? u = e[a] = [] : a = "posthog", u.people = u.people || [], u.toString = function (t) { var e = "posthog"; return "posthog" !== a && (e += "." + a), t || (e += " (stub)"), e }, u.people.toString = function () { return u.toString(1) + ".people (stub)" }, o = "capture identify alias people.set people.set_once set_config register register_once unregister opt_out_capturing has_opted_out_capturing opt_in_capturing reset isFeatureEnabled onFeatureFlags".split(" "), n = 0; n < o.length; n++)g(u, o[n]); e._i.push([i, s, a]) }, e.__SV = 1) }(document, window.posthog || []);
-      posthog.init("<%= Application.get_env(:core, :analytics)[:posthog_key] %>", {
-        api_host: "<%= Application.get_env(:core, :analytics)[:posthog_host] %>",
-        loaded: function (posthog) {
-          posthog.onSessionId(function (sessionId) {
-            window.sessionId = sessionId;
-          });
-        }
-      });
+      window.global = window;
     </script>
+    <link phx-track-static rel="stylesheet" href={~p"/assets/app.css"} />
+    <script defer phx-track-static type="module" src={~p"/assets/app.js"}>
+    </script>
+  </head>
+
+  <body class="bg-white antialiased">
+    {@inner_content}
+    <%= if Application.get_env(:core, :app_env)==:prod and Application.get_env(:core, :analytics)[:posthog_key] do %>
+      <script>
+        !function (t, e) { var o, n, p, r; e.__SV || (window.posthog = e, e._i = [], e.init = function (i, s, a) { function g(t, e) { var o = e.split("."); 2 == o.length && (t = t[o[0]], e = o[1]), t[e] = function () { t.push([e].concat(Array.prototype.slice.call(arguments, 0))) } } (p = t.createElement("script")).type = "text/javascript", p.async = !0, p.src = s.api_host + "/static/array.js", (r = t.getElementsByTagName("script")[0]).parentNode.insertBefore(p, r); var u = e; for (void 0 !== a ? u = e[a] = [] : a = "posthog", u.people = u.people || [], u.toString = function (t) { var e = "posthog"; return "posthog" !== a && (e += "." + a), t || (e += " (stub)"), e }, u.people.toString = function () { return u.toString(1) + ".people (stub)" }, o = "capture identify alias people.set people.set_once set_config register register_once unregister opt_out_capturing has_opted_out_capturing opt_in_capturing reset isFeatureEnabled onFeatureFlags".split(" "), n = 0; n < o.length; n++)g(u, o[n]); e._i.push([i, s, a]) }, e.__SV = 1) }(document, window.posthog || []);
+        posthog.init("<%= Application.get_env(:core, :analytics)[:posthog_key] %>", {
+          api_host: "<%= Application.get_env(:core, :analytics)[:posthog_host] %>",
+          loaded: function (posthog) {
+            posthog.onSessionId(function (sessionId) {
+              window.sessionId = sessionId;
+            });
+          }
+        });
+      </script>
     <% end %>
-      <%= if Application.get_env(:core, :app_env)==:prod and Application.get_env(:core, :support)[:atlas_app_id] do %>
-        <script>
-          (() => {
-            ('use strict');
-            var t,
-              e = {
-                appId: '<%= Application.get_env(:core, :support)[:atlas_app_id] %>',
-                v: 2,
-                q: [],
-                call: function () {
-                  this.q.push(arguments);
-                },
-              };
-            window.Atlas = e;
-            var n = document.createElement('script');
-            (n.async = !0),
-              (n.src = 'https://app.atlas.so/client-js/atlas.bundle.js');
-            var s = document.getElementsByTagName('script')[0];
-            null === (t = s.parentNode) || void 0 === t || t.insertBefore(n, s);
-          })();
+    <%= if Application.get_env(:core, :app_env)==:prod and Application.get_env(:core, :support)[:atlas_app_id] do %>
+      <script>
+        (() => {
+          ('use strict');
+          var t,
+            e = {
+              appId: '<%= Application.get_env(:core, :support)[:atlas_app_id] %>',
+              v: 2,
+              q: [],
+              call: function () {
+                this.q.push(arguments);
+              },
+            };
+          window.Atlas = e;
+          var n = document.createElement('script');
+          (n.async = !0),
+            (n.src = 'https://app.atlas.so/client-js/atlas.bundle.js');
+          var s = document.getElementsByTagName('script')[0];
+          null === (t = s.parentNode) || void 0 === t || t.insertBefore(n, s);
+        })();
 
-          window.Atlas?.call('start');
-        </script>
-        <% end %>
-</body>
-
+        window.Atlas?.call('start');
+      </script>
+    <% end %>
+  </body>
 </html>

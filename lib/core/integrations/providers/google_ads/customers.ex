@@ -59,12 +59,18 @@ defmodule Core.Integrations.Providers.GoogleAds.Customers do
             {:ok, customers}
 
           other ->
-            Logger.warning("Unexpected Google Ads response format: #{inspect(other)}")
+            Logger.warning(
+              "Unexpected Google Ads response format: #{inspect(other)}"
+            )
+
             {:ok, []}
         end
 
       {:error, reason} ->
-        Logger.error("Failed to list Google Ads customer IDs: #{inspect(reason)}")
+        Logger.error(
+          "Failed to list Google Ads customer IDs: #{inspect(reason)}"
+        )
+
         {:error, reason}
     end
   end
