@@ -47,6 +47,9 @@ defmodule Core.Analytics.GoogleAds.GoogleAdsCampaign do
   def upsert_changeset(campaign, attrs) do
     campaign
     |> changeset(attrs)
-    |> force_change(:updated_at, NaiveDateTime.utc_now() |> NaiveDateTime.truncate(:second))
+    |> force_change(
+      :updated_at,
+      NaiveDateTime.utc_now() |> NaiveDateTime.truncate(:second)
+    )
   end
 end
