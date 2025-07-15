@@ -222,7 +222,7 @@ defmodule Core.Researcher.Webpages.ContentClassifier do
 
     Consider content depth, specificity, commercial intent, and decision-making focus when scoring.
 
-    RESPONSE FORMAT: Return only a valid integer from 0 to 10 that reflects your decesion:
+    RESPONSE FORMAT: Return only a valid integer from 0 to 10 that reflects your decision:
       7
     """
 
