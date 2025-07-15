@@ -259,7 +259,7 @@ defmodule Core.Integrations.Providers.GoogleAds.Client do
     case customer_id do
       nil -> base_headers
       id when id == connection.external_system_id -> base_headers
-      _ -> [{"login-customer-id", connection.external_system_id} | base_headers]
+      id -> [{"login-customer-id", id} | base_headers]
     end
   end
 end

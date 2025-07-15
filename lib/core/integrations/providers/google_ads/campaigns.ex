@@ -40,44 +40,16 @@ defmodule Core.Integrations.Providers.GoogleAds.Campaigns do
       ]}
   """
   def list_campaigns(%Connection{} = connection) do
-    manager_id = connection.external_system_id
+    # The manager account ID is 4146096454
+    manager_id = "4146096454"
+    # The client account ID is stored in external_system_id
+    client_id = connection.external_system_id
 
-    # First try to get campaigns from the manager account directly
-    case list_campaigns_for_customer(connection, manager_id) do
-      {:ok, []} ->
-        # No campaigns in manager account, try client accounts
-        case Customers.list_accessible_customers(connection) do
-          {:ok, []} ->
-            # No client accounts found, return empty list since we already checked manager account
-            {:ok, []}
-
-          {:ok, customer_ids} ->
-            # Found client accounts, query campaigns from each one
-            results = Enum.map(customer_ids, fn customer_id ->
-              list_campaigns_for_customer(connection, customer_id)
-            end)
-
-            # Combine results from all client accounts
-            campaigns = results
-            |> Enum.filter(fn
-              {:ok, _campaigns} -> true
-              {:error, _} -> false
-            end)
-            |> Enum.flat_map(fn {:ok, campaigns} -> campaigns end)
-
-            {:ok, campaigns}
-
-          {:error, reason} ->
-            Logger.error("Failed to list Google Ads client accounts: #{inspect(reason)}")
-            {:error, reason}
-        end
-
-      {:ok, campaigns} ->
-        # Found campaigns in manager account, return them
-        {:ok, campaigns}
-
+    # Get campaigns from the client account using manager account for auth
+    case list_campaigns_for_customer(connection, client_id, manager_id) do
+      {:ok, campaigns} -> {:ok, campaigns}
       {:error, reason} ->
-        Logger.error("Failed to list Google Ads campaigns in manager account: #{inspect(reason)}")
+        Logger.error("Failed to list Google Ads campaigns in client account: #{inspect(reason)}")
         {:error, reason}
     end
   end
@@ -88,12 +60,13 @@ defmodule Core.Integrations.Providers.GoogleAds.Campaigns do
   ## Parameters
     - connection - The integration connection
     - customer_id - The customer ID to query campaigns for
+    - login_customer_id - The manager account ID to use for authentication (optional)
 
   ## Returns
     - `{:ok, [map()]}` - List of campaigns
     - `{:error, term()}` - Error reason
   """
-  def list_campaigns_for_customer(%Connection{} = connection, customer_id) do
+  def list_campaigns_for_customer(%Connection{} = connection, customer_id, login_customer_id \\ nil) do
     config = Application.get_env(:core, :google_ads)
     api_version = config[:api_version]
 
@@ -120,23 +93,32 @@ defmodule Core.Integrations.Providers.GoogleAds.Campaigns do
            "/#{api_version}/customers/#{customer_id}/googleAds:searchStream",
            %{query: query},
            %{},
-           customer_id
+           login_customer_id
          ) do
       {:ok, response} ->
         Logger.info("Got response for customer #{customer_id}: #{inspect(response)}")
-        case response do
+
+        # Handle the stream response format
+        campaigns = case response do
+          [%{"results" => results} | _] when is_list(results) ->
+            Enum.map(results, &extract_campaign_data/1)
+
+          [_ | _] = results when is_list(results) ->
+            # Handle case where results are directly in the list
+            Enum.flat_map(results, fn
+              %{"campaign" => _} = result -> [extract_campaign_data(result)]
+              _ -> []
+            end)
+
           %{"results" => results} when is_list(results) ->
-            campaigns = Enum.map(results, &extract_campaign_data/1)
-            {:ok, campaigns}
+            Enum.map(results, &extract_campaign_data/1)
 
-          %{"results" => nil} ->
-            Logger.info("No campaigns found for customer #{customer_id}")
-            {:ok, []}
-
-          other ->
-            Logger.warning("Unexpected Google Ads response format for customer #{customer_id}: #{inspect(other)}")
-            {:ok, []}
+          _ ->
+            Logger.warning("No campaigns found in response: #{inspect(response)}")
+            []
         end
+
+        {:ok, campaigns}
 
       {:error, reason} ->
         Logger.error("Failed to list Google Ads campaigns for customer #{customer_id}: #{inspect(reason)}")
@@ -202,7 +184,8 @@ defmodule Core.Integrations.Providers.GoogleAds.Campaigns do
       "advertising_channel_sub_type" => campaign["advertisingChannelSubType"],
       "start_date" => campaign["startDate"],
       "end_date" => campaign["endDate"],
-      "optimization_score" => campaign["optimizationScore"]
+      "optimization_score" => campaign["optimizationScore"],
+      "resource_name" => campaign["resourceName"]
     }
   end
 end
