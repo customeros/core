@@ -13,6 +13,8 @@ defmodule Core.WebTracker.CompanyEnricher do
   require Logger
   require OpenTelemetry.Tracer
 
+  import Core.Utils.Pipeline
+
   alias Core.Crm.Leads
   alias Core.Crm.Companies
   alias Core.Utils.Tracing
@@ -55,6 +57,12 @@ defmodule Core.WebTracker.CompanyEnricher do
     else
       :ok
     end
+  end
+
+  def enrich_session(session_id) do
+    session_id
+    |> Core.WebTracker.Events.get_first_event()
+    |> ok(&enrich/1)
   end
 
   # Private Functions

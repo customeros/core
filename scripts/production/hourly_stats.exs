@@ -3,7 +3,7 @@ Application.ensure_all_started(:core)
 
 defmodule HourlyStats do
   def run(tenant_id) do
-    start_time = ~U[2025-06-10 00:00:00Z]
+    start_time = ~U[2025-07-10 00:00:00Z]
     current_time = DateTime.utc_now()
     
     hours_diff = DateTime.diff(current_time, start_time, :hour)
@@ -29,4 +29,4 @@ defmodule HourlyStats do
   end
 end
 
-HourlyStats.run("tenant_o37flpi7higycpsl")
+HourlyStats.run("tenant_4048efgi9ya6kzxt")
