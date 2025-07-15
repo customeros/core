@@ -120,7 +120,7 @@ defmodule Web.LeadsController do
           "Job Title" => if(contact, do: contact.job_title, else: nil),
           "Linkedin URL" =>
             if(contact && contact.linkedin_id,
-              do: "https://linkedin.com/" <> contact.linkedin_id,
+              do: "https://linkedin.com/in/" <> contact.linkedin_id,
               else: nil
             ),
           "Email" => if(contact, do: contact.business_email, else: nil),
