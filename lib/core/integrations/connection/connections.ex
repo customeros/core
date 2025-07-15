@@ -131,42 +131,24 @@ defmodule Core.Integrations.Connections do
     Repo.delete(connection)
   end
 
-  @doc """
-  Lists all connections for a tenant.
-
-  ## Examples
-
-      iex> list_connections("tenant_123")
-      [%Connection{}, ...]
-  """
-  def list_connections(tenant_id) when is_binary(tenant_id) do
+  def list_connections_by_tenant(tenant_id) when is_binary(tenant_id) do
     Connection
     |> where([c], c.tenant_id == ^tenant_id)
     |> Repo.all()
   end
 
-  @doc """
-  Lists all active connections for a tenant.
-
-  ## Examples
-
-      iex> list_active_connections("tenant_123")
-      [%Connection{}, ...]
-  """
-  def list_active_connections(tenant_id) when is_binary(tenant_id) do
+  def list_active_connections_by_tenant(tenant_id) when is_binary(tenant_id) do
     Connection
     |> where([c], c.tenant_id == ^tenant_id and c.status == :active)
     |> Repo.all()
   end
 
-  @doc """
-  Lists all connections that need token refresh.
+  def list_active_connections_by_provider(provider) do
+    Connection
+    |> where([c], c.provider == ^provider and c.status == :active)
+    |> Repo.all()
+  end
 
-  ## Examples
-
-      iex> list_connections_needing_refresh()
-      [%Connection{}, ...]
-  """
   def list_connections_needing_refresh do
     now = DateTime.utc_now()
     # 1 hour before expiry

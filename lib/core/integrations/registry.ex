@@ -118,25 +118,15 @@ defmodule Core.Integrations.Registry do
     provider in list_providers()
   end
 
-  @doc """
-  Lists all connections for a tenant.
+  def list_connections_by_tenant(tenant_id) do
+    Connections.list_connections_by_tenant(tenant_id)
+  end
 
-  ## Parameters
-    - tenant_id - The ID of the tenant to list connections for
+  def list_active_connections_by_tenant(tenant_id) do
+    Connections.list_active_connections_by_tenant(tenant_id)
+  end
 
-  ## Returns
-    - `{:ok, [Connection.t()]}` - List of connections
-    - `{:error, term()}` - Error reason
-
-  ## Examples
-
-      iex> list_connections("tenant_123")
-      {:ok, [%Connection{provider: :hubspot, ...}]}
-
-      iex> list_connections("nonexistent")
-      {:error, :not_found}
-  """
-  def list_connections(tenant_id) do
-    Connections.list_connections(tenant_id)
+  def list_active_connections_by_provider(provider) do
+    Connections.list_active_connections_by_provider(provider)
   end
 end

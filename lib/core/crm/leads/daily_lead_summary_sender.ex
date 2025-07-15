@@ -29,9 +29,7 @@ defmodule Core.Crm.Leads.DailyLeadSummarySender do
   alias Core.Auth.Tenants
   alias Core.Notifications.Slack
 
-  # Constants
   @cron_name :cron_daily_lead_summary_sender
-  # Duration in minutes after which a lock is considered stuck
   @stuck_lock_duration_minutes 30
   # Check every 5 minutes
   @check_interval_ms 5 * 60 * 1000
