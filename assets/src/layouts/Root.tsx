@@ -4,6 +4,7 @@ import { cssTransition, ToastContainer } from 'react-toastify';
 
 import posthog from 'posthog-js';
 import { PageProps } from '@inertiajs/core';
+import { Header } from 'src/pages/Leads/components';
 import { User, Lead, Tenant, IcpProfile } from 'src/types';
 
 import { toastError, toastSuccess } from '../components/Toast';
@@ -81,6 +82,7 @@ export const RootLayout = ({ children }: { children: React.ReactNode }) => {
             collapse: false,
           })}
         />
+        <Header />
         {children}
       </PresenceProvider>
     </PhoenixSocketProvider>

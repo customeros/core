@@ -15,7 +15,7 @@ import {
   ScrollAreaScrollbar,
 } from 'src/components/ScrollArea';
 
-import { Header, Pipeline, LeadItem, EmptyState } from './components';
+import { Pipeline, LeadItem, EmptyState } from './components';
 
 interface LeadsProps {
   tenant: Tenant;
@@ -93,7 +93,6 @@ export default function Leads({ leads, stage_counts, max_count }: LeadsProps) {
   return (
     <RootLayout>
       <EventSubscriber />
-      <Header />
       {max_count === 0 ? (
         <EmptyState />
       ) : (

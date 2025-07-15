@@ -16,9 +16,11 @@ const Signin = lazy(() => import('./pages/Signin/Signin'));
 const Welcome = lazy(() => import('./pages/Welcome'));
 const Leads = lazy(() => import('./pages/Leads/Leads'));
 const Document = lazy(() => import('./pages/Document'));
+const Analytics = lazy(() => import('./pages/Analytics/Analytics'));
 
 const pages = {
   Leads,
+  Analytics,
   Signin,
   Welcome,
   Document,

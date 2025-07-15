@@ -15,6 +15,18 @@ defmodule Core.Analytics.LeadGeneration do
   import Ecto.Changeset
   alias Core.Repo
 
+  @derive {Jason.Encoder,
+           only: [
+             :id,
+             :bucket_start_at,
+             :tenant_id,
+             :sessions,
+             :identified_sessions,
+             :icp_fit_sessions,
+             :unique_companies,
+             :new_icp_fit_leads,
+             :updated_at
+           ]}
   @primary_key {:id, :binary_id, autogenerate: true}
   schema "analytics_lead_generation" do
     field(:bucket_start_at, :utc_datetime)
