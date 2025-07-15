@@ -44,6 +44,8 @@ export default function Analytics({ session_analytics }: AnalyticsProps) {
   const icpQualificationRate =
     uniqueCompanies > 0 ? `${((totalLeads / uniqueCompanies) * 100).toFixed(1)}%` : '0%';
 
+  const hasAnyData = session_analytics.some(s => s.sessions > 0);
+
   return (
     <RootLayout>
       <div className="relative flex flex-col gap-8 h-[calc(100vh-3rem)] overflow-x-hidden bg-white p-0 transition-[width] duration-300 ease-in-out w-full 2xl:w-[1440px] 2xl:mx-auto animate-fadeIn items-center">
@@ -111,10 +113,10 @@ export default function Analytics({ session_analytics }: AnalyticsProps) {
         <div ref={ref} className="md:w-full h-[224px] 2xl:h-[300px] 2xl:w-[1440px]">
           {dimensions && (
             <SankeySessionsDiagram
+              hasData={hasAnyData}
               height={dimensions?.height}
               selectedIndex={selectedIndex}
               session_analytics={session_analytics[selectedIndex]}
-              hasData={session_analytics[selectedIndex]?.sessions > 0}
               wheelLabels={session_analytics.map(s => s?.bucket_start_at)}
               width={dimensions?.width <= 1500 ? dimensions?.width - 200 : dimensions?.width}
               onSelectedIndexChange={index => {
