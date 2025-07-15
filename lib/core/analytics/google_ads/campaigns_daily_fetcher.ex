@@ -3,11 +3,8 @@ defmodule Core.Analytics.GoogleAds.CampaignsDailyFetcher do
   GenServer responsible for syncing Google Ads campaign data for all tenants.
 
   This module:
-  * Runs daily at 12:00 UTC
   * Fetches campaign data for all tenants with Google Ads connections
   * Updates or creates campaign records in the database
-  * Uses cron locking to prevent multiple executions
-  * Tracks last execution time to prevent duplicate syncs
   """
 
   use GenServer
@@ -20,18 +17,18 @@ defmodule Core.Analytics.GoogleAds.CampaignsDailyFetcher do
   alias Core.Utils.Cron.CronLock
   alias Core.Utils.Tracing
   alias Core.Integrations.Registry
+  alias Core.Integrations.Connection
   alias Core.Integrations.Providers.GoogleAds.{Campaigns, Customers}
 
   @cron_name :cron_google_ads_campaign_fetcher
   @stuck_lock_duration_minutes 30
   # TODO alexb: set to 5 minutes (5 * 60 * 1000)
   @check_interval_ms 5 * 5 * 1000
-  # 23.5 hours in seconds
-  @min_execution_interval_seconds 23 * 3600 + 30 * 60
+  @min_execution_interval_minutes 23 * 60 + 30
 
   def start_link(opts \\ []) do
     # TODO alexb: set to false
-    crons_enabled = Application.get_env(:core, :crons)[:enabled] || true
+    crons_enabled = Application.get_env(:core, :crons)[:enabled] || false
 
     if crons_enabled do
       GenServer.start_link(__MODULE__, opts, name: __MODULE__)
@@ -56,13 +53,10 @@ defmodule Core.Analytics.GoogleAds.CampaignsDailyFetcher do
 
         case CronLocks.acquire_lock(@cron_name, lock_uuid) do
           %CronLock{} ->
-            # Lock acquired, proceed with syncing campaigns
             process_campaign_sync()
-            # Release the lock after processing
             CronLocks.release_lock(@cron_name, lock_uuid)
 
           nil ->
-            # Lock not acquired, try to force release if stuck
             Logger.info(
               "Google Ads campaign sync lock not acquired, attempting to release any stuck locks"
             )
@@ -87,38 +81,32 @@ defmodule Core.Analytics.GoogleAds.CampaignsDailyFetcher do
     end
   end
 
-  # Private Functions
+  @impl true
+  def handle_info(msg, state) do
+    Logger.warning(
+      "Google Ads campaign sync job received unexpected message: #{inspect(msg)}"
+    )
+
+    {:noreply, state}
+  end
 
   defp should_run_now? do
     now = DateTime.utc_now()
 
-    # Check if it's between 12:00 and 12:20 UTC
-    time_window_ok = now.hour == 12 and now.minute <= 20
+    # Check if it's after 10:00 UTC
+    time_window_ok = now.hour >= 10
 
-    # Check if enough time has passed since last execution
     time_since_last_execution_ok =
       case CronLocks.get_last_execution_time(@cron_name) do
         nil ->
           true
 
         last_execution ->
-          seconds_since_last = DateTime.diff(now, last_execution)
-          seconds_since_last >= @min_execution_interval_seconds
+          minutes_since_last = DateTime.diff(now, last_execution, :minute)
+          minutes_since_last >= @min_execution_interval_minutes
       end
 
-    if time_window_ok and time_since_last_execution_ok do
-      Logger.info(
-        "Google Ads campaign sync will run - within time window and enough time since last execution"
-      )
-
-      true
-    else
-      Logger.debug(
-        "Google Ads campaign sync skipped - time window: #{time_window_ok}, time since last: #{time_since_last_execution_ok}"
-      )
-
-      false
-    end
+    time_window_ok and time_since_last_execution_ok
   end
 
   defp schedule_check do
@@ -127,19 +115,16 @@ defmodule Core.Analytics.GoogleAds.CampaignsDailyFetcher do
 
   defp process_campaign_sync do
     OpenTelemetry.Tracer.with_span "google_ads_campaign_sync.process_campaign_sync" do
-      # Get all tenants with Google Ads connections
-      Registry.list_connections(:google_ads)
-      |> Enum.each(fn connection ->
-        sync_tenant_campaigns(connection)
-      end)
+      Registry.list_active_connections_by_provider(:google_ads)
+      |> Enum.each(&sync_tenant_campaigns/1)
     end
   end
 
-  defp sync_tenant_campaigns(connection) do
+  defp sync_tenant_campaigns(%Connection{} = connection) do
     OpenTelemetry.Tracer.with_span "google_ads_campaign_sync.sync_tenant_campaigns" do
       OpenTelemetry.Tracer.set_attributes([
-        {"tenant.id", connection.tenant_id},
-        {"manager_customer_id", connection.external_system_id}
+        {"param.tenant.id", connection.tenant_id},
+        {"param.external_system_id", connection.external_system_id}
       ])
 
       case Customers.list_accessible_customers(connection) do
@@ -148,26 +133,23 @@ defmodule Core.Analytics.GoogleAds.CampaignsDailyFetcher do
             "Found #{length(clients)} Google Ads client accounts for tenant #{connection.tenant_id}"
           )
 
-          # Get campaigns for each client account
-          Enum.each(clients, fn client ->
-            sync_client_campaigns(connection, client)
-          end)
+          Enum.each(clients, &sync_client_campaigns(connection, &1))
 
         {:error, reason} ->
           Tracing.error(reason, "Failed to get Google Ads client accounts",
             tenant_id: connection.tenant_id,
-            manager_customer_id: connection.external_system_id
+            external_system_id: connection.external_system_id
           )
       end
     end
   end
 
-  defp sync_client_campaigns(connection, client) do
+  defp sync_client_campaigns(%Connection{} = connection, client) do
     OpenTelemetry.Tracer.with_span "google_ads_campaign_sync.sync_client_campaigns" do
       OpenTelemetry.Tracer.set_attributes([
-        {"tenant.id", connection.tenant_id},
-        {"manager_customer_id", connection.external_system_id},
-        {"client_customer_id", client["id"]}
+        {"param.tenant.id", connection.tenant_id},
+        {"param.external_system_id", connection.external_system_id},
+        {"param.client_customer_id", client["id"]}
       ])
 
       case Campaigns.list_campaigns_for_customer(connection, client["id"]) do

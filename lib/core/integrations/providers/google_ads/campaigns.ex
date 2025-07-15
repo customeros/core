@@ -87,9 +87,8 @@ defmodule Core.Integrations.Providers.GoogleAds.Campaigns do
 
     Logger.info("Querying campaigns for customer ID: #{customer_id}")
 
-    # For test accounts, we only query basic campaign data without metrics
-    # to avoid REQUESTED_METRICS_FOR_MANAGER error
-    query = """
+    # Query to get all campaigns basic info (no metrics)
+    campaigns_query = """
     SELECT
       campaign.id,
       campaign.name,
@@ -98,55 +97,106 @@ defmodule Core.Integrations.Providers.GoogleAds.Campaigns do
       campaign.advertising_channel_sub_type,
       campaign.start_date,
       campaign.end_date,
-      campaign.optimization_score
+      campaign.optimization_score,
+      campaign.resource_name,
+      campaign.serving_status,
+      campaign.payment_mode,
+      campaign.bidding_strategy_type,
+      campaign_budget.amount_micros
     FROM campaign
-    ORDER BY campaign.id
     """
 
-    case Client.post(
-           connection,
-           "/#{api_version}/customers/#{customer_id}/googleAds:searchStream",
-           %{query: query},
-           %{},
-           customer_id
-         ) do
-      {:ok, response} ->
-        Logger.info(
-          "Got response for customer #{customer_id}: #{inspect(response)}"
-        )
+    # Query to get campaign metrics for last 30 days
+    metrics_query = """
+    SELECT
+      campaign.id,
+      campaign.resource_name,
+      metrics.cost_micros,
+      metrics.impressions,
+      metrics.clicks,
+      metrics.conversions,
+      metrics.conversions_value,
+      metrics.average_cpc,
+      metrics.ctr,
+      segments.date
+    FROM campaign
+    WHERE segments.date DURING LAST_30_DAYS
+    """
 
-        # Handle the stream response format
-        campaigns =
-          case response do
-            [%{"results" => results} | _] when is_list(results) ->
-              Enum.map(results, &extract_campaign_data/1)
+    # Query to get ad groups
+    ad_groups_query = """
+    SELECT
+      ad_group.id,
+      ad_group.name,
+      ad_group.status,
+      ad_group.type,
+      ad_group.resource_name,
+      ad_group.campaign,
+      campaign.resource_name
+    FROM ad_group
+    """
 
-            [_ | _] = results when is_list(results) ->
-              # Handle case where results are directly in the list
-              Enum.flat_map(results, fn
-                %{"campaign" => _} = result -> [extract_campaign_data(result)]
-                _ -> []
-              end)
+    # Query to get ads
+    ads_query = """
+    SELECT
+      ad_group_ad.ad.id,
+      ad_group_ad.ad.name,
+      ad_group_ad.ad.type,
+      ad_group_ad.ad.final_urls,
+      ad_group_ad.status,
+      ad_group_ad.resource_name,
+      ad_group_ad.ad_group,
+      ad_group.resource_name
+    FROM ad_group_ad
+    """
 
-            %{"results" => results} when is_list(results) ->
-              Enum.map(results, &extract_campaign_data/1)
+    # Execute all queries and merge results
+    with {:ok, campaigns_response} <-
+           Client.post(
+             connection,
+             "/#{api_version}/customers/#{customer_id}/googleAds:searchStream",
+             %{query: campaigns_query},
+             %{},
+             customer_id
+           ),
+         {:ok, metrics_response} <-
+           Client.post(
+             connection,
+             "/#{api_version}/customers/#{customer_id}/googleAds:searchStream",
+             %{query: metrics_query},
+             %{},
+             customer_id
+           ),
+         {:ok, ad_groups_response} <-
+           Client.post(
+             connection,
+             "/#{api_version}/customers/#{customer_id}/googleAds:searchStream",
+             %{query: ad_groups_query},
+             %{},
+             customer_id
+           ),
+         {:ok, ads_response} <-
+           Client.post(
+             connection,
+             "/#{api_version}/customers/#{customer_id}/googleAds:searchStream",
+             %{query: ads_query},
+             %{},
+             customer_id
+           ) do
 
-            _ ->
-              Logger.warning(
-                "No campaigns found in response: #{inspect(response)}"
-              )
+      # Process responses and build the complete structure
+      campaigns = process_campaign_response(campaigns_response)
+      metrics = process_metrics_response(metrics_response)
+      ad_groups = process_ad_groups_response(ad_groups_response)
+      ads = process_ads_response(ads_response)
 
-              []
-          end
+      # First add metrics to campaigns
+      campaigns_with_metrics = add_metrics_to_campaigns(campaigns, metrics)
 
-        {:ok, campaigns}
+      # Then link everything together
+      campaigns_with_structure = link_campaign_structure(campaigns_with_metrics, ad_groups, ads)
 
-      {:error, reason} ->
-        Logger.error(
-          "Failed to list Google Ads campaigns for customer #{customer_id}: #{inspect(reason)}"
-        )
-
-        {:error, reason}
+      {:ok, campaigns_with_structure}
     end
   end
 
@@ -197,9 +247,132 @@ defmodule Core.Integrations.Providers.GoogleAds.Campaigns do
     end
   end
 
-  # Private functions
+  # Private helper to process the campaign response
+  defp process_campaign_response(response) do
+    case response do
+      [%{"results" => results} | _] when is_list(results) ->
+        Enum.map(results, &extract_campaign_data/1)
 
-  defp extract_campaign_data(%{"campaign" => campaign}) do
+      [_ | _] = results when is_list(results) ->
+        Enum.flat_map(results, fn
+          %{"campaign" => _} = result -> [extract_campaign_data(result)]
+          _ -> []
+        end)
+
+      %{"results" => results} when is_list(results) ->
+        Enum.map(results, &extract_campaign_data/1)
+
+      _ ->
+        Logger.warning("No campaigns found in response: #{inspect(response)}")
+        []
+    end
+  end
+
+  # Process metrics response
+  defp process_metrics_response(response) do
+    case response do
+      [%{"results" => results} | _] when is_list(results) ->
+        Enum.map(results, fn result ->
+          campaign = result["campaign"]
+          metrics = result["metrics"]
+          %{
+            "resource_name" => campaign["resourceName"],
+            "metrics" => %{
+              "cost_micros" => metrics["costMicros"],
+              "impressions" => metrics["impressions"],
+              "clicks" => metrics["clicks"],
+              "conversions" => metrics["conversions"],
+              "conversions_value" => metrics["conversionsValue"],
+              "average_cpc" => metrics["averageCpc"],
+              "ctr" => metrics["ctr"]
+            }
+          }
+        end)
+      _ -> []
+    end
+  end
+
+  # Add metrics to campaigns
+  defp add_metrics_to_campaigns(campaigns, metrics) do
+    # Create a map of metrics by campaign resource name
+    metrics_by_resource = Enum.reduce(metrics, %{}, fn metric, acc ->
+      Map.put(acc, metric["resource_name"], metric["metrics"])
+    end)
+
+    # Add metrics to each campaign
+    Enum.map(campaigns, fn campaign ->
+      case Map.get(metrics_by_resource, campaign["resource_name"]) do
+        nil -> campaign
+        campaign_metrics -> Map.put(campaign, "metrics", campaign_metrics)
+      end
+    end)
+  end
+
+  # Process ad groups response
+  defp process_ad_groups_response(response) do
+    case response do
+      [%{"results" => results} | _] when is_list(results) ->
+        Enum.map(results, fn result ->
+          ad_group = result["adGroup"]
+          %{
+            "id" => ad_group["id"],
+            "name" => ad_group["name"],
+            "status" => ad_group["status"],
+            "type" => ad_group["type"],
+            "resource_name" => ad_group["resourceName"],
+            "campaign_resource_name" => ad_group["campaign"]
+          }
+        end)
+      _ -> []
+    end
+  end
+
+  # Process ads response
+  defp process_ads_response(response) do
+    case response do
+      [%{"results" => results} | _] when is_list(results) ->
+        Enum.map(results, fn result ->
+          ad_group_ad = result["adGroupAd"]
+          ad = ad_group_ad["ad"]
+          %{
+            "id" => ad["id"],
+            "name" => ad["name"],
+            "type" => ad["type"],
+            "final_urls" => ad["finalUrls"],
+            "status" => ad_group_ad["status"],
+            "resource_name" => ad_group_ad["resourceName"],
+            "ad_group_resource_name" => ad_group_ad["adGroup"]
+          }
+        end)
+      _ -> []
+    end
+  end
+
+  # Link campaigns, ad groups, and ads together
+  defp link_campaign_structure(campaigns, ad_groups, ads) do
+    # First, group ads by their ad group resource name
+    ads_by_ad_group = Enum.group_by(ads, & &1["ad_group_resource_name"])
+
+    # Then, add ads to their respective ad groups
+    ad_groups_with_ads = Enum.map(ad_groups, fn ad_group ->
+      group_ads = Map.get(ads_by_ad_group, ad_group["resource_name"], [])
+      Map.put(ad_group, "ads", group_ads)
+    end)
+
+    # Group ad groups by campaign resource name
+    ad_groups_by_campaign = Enum.group_by(ad_groups_with_ads, & &1["campaign_resource_name"])
+
+    # Finally, add ad groups to their respective campaigns
+    Enum.map(campaigns, fn campaign ->
+      campaign_ad_groups = Map.get(ad_groups_by_campaign, campaign["resource_name"], [])
+      Map.put(campaign, "ad_groups", campaign_ad_groups)
+    end)
+  end
+
+  # Update the extract_campaign_data function to handle the simpler campaign data
+  defp extract_campaign_data(%{"campaign" => campaign} = data) do
+    campaign_budget = Map.get(data, "campaign_budget", %{})
+
     %{
       "id" => campaign["id"],
       "name" => campaign["name"],
@@ -209,7 +382,11 @@ defmodule Core.Integrations.Providers.GoogleAds.Campaigns do
       "start_date" => campaign["startDate"],
       "end_date" => campaign["endDate"],
       "optimization_score" => campaign["optimizationScore"],
-      "resource_name" => campaign["resourceName"]
+      "resource_name" => campaign["resourceName"],
+      "serving_status" => campaign["servingStatus"],
+      "payment_mode" => campaign["paymentMode"],
+      "bidding_strategy_type" => campaign["biddingStrategyType"],
+      "budget_amount_micros" => campaign_budget["amountMicros"]
     }
   end
 end

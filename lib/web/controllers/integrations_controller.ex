@@ -8,12 +8,9 @@ defmodule Web.IntegrationsController do
   use Web, :controller
   alias Core.Integrations.Registry
 
-  @doc """
-  Returns a list of available integrations and their connection status.
-  """
   def index(conn, _params) do
     tenant_id = conn.assigns.current_user.tenant_id
-    connections = Registry.list_connections(tenant_id)
+    connections = Registry.list_connections_by_tenant(tenant_id)
     hubspot_config = Application.get_env(:core, :hubspot)
 
     # Check if there's an active HubSpot connection
