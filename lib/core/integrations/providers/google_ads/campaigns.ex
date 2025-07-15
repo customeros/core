@@ -14,7 +14,7 @@ defmodule Core.Integrations.Providers.GoogleAds.Campaigns do
   @doc """
   Lists campaigns for a Google Ads account.
 
-  If the account is a manager account, this will list campaigns from all accessible client accounts.
+  If the account is a manager account, this will list campaigns from the first available client account.
 
   ## Parameters
     - connection - The integration connection
@@ -22,35 +22,20 @@ defmodule Core.Integrations.Providers.GoogleAds.Campaigns do
   ## Returns
     - `{:ok, [map()]}` - List of campaigns
     - `{:error, term()}` - Error reason
-
-  ## Examples
-
-      iex> list_campaigns(connection)
-      {:ok, [
-        %{
-          "id" => "123456789",
-          "name" => "Summer Sale Campaign",
-          "status" => "ENABLED",
-          "budget_amount_micros" => "1000000",
-          "start_date" => "2023-01-01",
-          "end_date" => "2023-12-31",
-          "advertising_channel_type" => "SEARCH",
-          "advertising_channel_sub_type" => "SEARCH_MOBILE_APP"
-        }
-      ]}
   """
   def list_campaigns(%Connection{} = connection) do
-    # The manager account ID is 4146096454
-    manager_id = "4146096454"
-    # The client account ID is stored in external_system_id
-    client_id = connection.external_system_id
+    # Get the client account
+    with {:ok, client} <- Customers.get_client_account(connection) do
+      client_id = client["id"]
+      Logger.info("Found client account '#{client["descriptive_name"]}' (#{client_id})")
 
-    # Get campaigns from the client account using manager account for auth
-    case list_campaigns_for_customer(connection, client_id, manager_id) do
-      {:ok, campaigns} -> {:ok, campaigns}
-      {:error, reason} ->
-        Logger.error("Failed to list Google Ads campaigns in client account: #{inspect(reason)}")
-        {:error, reason}
+      # Get campaigns from the client account
+      case list_campaigns_for_customer(connection, client_id) do
+        {:ok, campaigns} -> {:ok, campaigns}
+        {:error, reason} ->
+          Logger.error("Failed to list Google Ads campaigns in client account: #{inspect(reason)}")
+          {:error, reason}
+      end
     end
   end
 
@@ -60,13 +45,12 @@ defmodule Core.Integrations.Providers.GoogleAds.Campaigns do
   ## Parameters
     - connection - The integration connection
     - customer_id - The customer ID to query campaigns for
-    - login_customer_id - The manager account ID to use for authentication (optional)
 
   ## Returns
     - `{:ok, [map()]}` - List of campaigns
     - `{:error, term()}` - Error reason
   """
-  def list_campaigns_for_customer(%Connection{} = connection, customer_id, login_customer_id \\ nil) do
+  def list_campaigns_for_customer(%Connection{} = connection, customer_id) do
     config = Application.get_env(:core, :google_ads)
     api_version = config[:api_version]
 
@@ -93,7 +77,7 @@ defmodule Core.Integrations.Providers.GoogleAds.Campaigns do
            "/#{api_version}/customers/#{customer_id}/googleAds:searchStream",
            %{query: query},
            %{},
-           login_customer_id
+           customer_id
          ) do
       {:ok, response} ->
         Logger.info("Got response for customer #{customer_id}: #{inspect(response)}")

@@ -17,7 +17,7 @@ defmodule Core.Integrations.Providers.GoogleAds.Customers do
     - connection - The integration connection
 
   ## Returns
-    - `{:ok, [String.t()]}` - List of customer IDs
+    - `{:ok, [map()]}` - List of customer accounts with their details
     - `{:error, term()}` - Error reason
   """
   def list_accessible_customers(%Connection{} = connection) do
@@ -38,18 +38,25 @@ defmodule Core.Integrations.Providers.GoogleAds.Customers do
     WHERE customer_client.manager = FALSE
     """
 
+    # Pass the manager account ID as both the customer ID and login-customer-id
+    manager_id = connection.external_system_id
+
     case Client.post(
            connection,
-           "/#{api_version}/customers/#{connection.external_system_id}/googleAds:searchStream",
-           %{query: query}
+           "/#{api_version}/customers/#{manager_id}/googleAds:searchStream",
+           %{query: query},
+           %{},
+           manager_id
          ) do
       {:ok, response} ->
         case response do
-          %{"results" => results} ->
-            customer_ids = Enum.map(results, fn result ->
-              get_in(result, ["customerClient", "id"])
-            end)
-            {:ok, customer_ids}
+          [%{"results" => results} | _] when is_list(results) ->
+            customers = Enum.map(results, &extract_customer_data/1)
+            {:ok, customers}
+
+          %{"results" => results} when is_list(results) ->
+            customers = Enum.map(results, &extract_customer_data/1)
+            {:ok, customers}
 
           other ->
             Logger.warning("Unexpected Google Ads response format: #{inspect(other)}")
@@ -60,5 +67,37 @@ defmodule Core.Integrations.Providers.GoogleAds.Customers do
         Logger.error("Failed to list Google Ads customer IDs: #{inspect(reason)}")
         {:error, reason}
     end
+  end
+
+  @doc """
+  Gets the first non-manager client account.
+
+  ## Parameters
+    - connection - The integration connection
+
+  ## Returns
+    - `{:ok, map()}` - Client account details
+    - `{:error, term()}` - Error reason
+  """
+  def get_client_account(%Connection{} = connection) do
+    case list_accessible_customers(connection) do
+      {:ok, [customer | _]} -> {:ok, customer}
+      {:ok, []} -> {:error, :no_client_accounts}
+      {:error, reason} -> {:error, reason}
+    end
+  end
+
+  # Private functions
+
+  defp extract_customer_data(%{"customerClient" => client}) do
+    %{
+      "id" => client["id"],
+      "resource_name" => client["resourceName"],
+      "descriptive_name" => client["descriptiveName"],
+      "currency_code" => client["currencyCode"],
+      "time_zone" => client["timeZone"],
+      "level" => client["level"],
+      "manager" => client["manager"]
+    }
   end
 end
