@@ -39,6 +39,7 @@ defmodule Core.Application do
       Core.WebTracker.SessionCloser,
       Core.Crm.Industries,
       Core.Crm.Contacts.Enricher.BetterContactJobChecker,
+      Core.Crm.Contacts.Enricher.ContactEnricher,
       Core.Analytics.JobProcessor,
       Core.Analytics.GoogleAds.CampaignsDailyFetcher,
       Web.Endpoint,

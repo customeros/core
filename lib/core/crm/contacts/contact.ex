@@ -24,6 +24,7 @@ defmodule Core.Crm.Contacts.Contact do
     field(:city, :string)
     field(:region, :string)
     field(:country_a2, :string)
+    field(:timezone, :string)
     field(:avatar_key, :string)
     field(:job_title, :string)
     field(:company_id, :string)
@@ -38,6 +39,8 @@ defmodule Core.Crm.Contacts.Contact do
     field(:department, :string)
     field(:email_enrich_requested_at, :utc_datetime)
     field(:phone_enrich_requested_at, :utc_datetime)
+    field(:enrich_attempts, :integer, default: 0)
+    field(:enrich_attempt_at, :utc_datetime)
 
     timestamps(type: :utc_datetime)
   end
@@ -71,7 +74,10 @@ defmodule Core.Crm.Contacts.Contact do
     :seniority,
     :department,
     :email_enrich_requested_at,
-    :phone_enrich_requested_at
+    :phone_enrich_requested_at,
+    :enrich_attempts,
+    :enrich_attempt_at,
+    :timezone
   ]
 
   @type t :: %__MODULE__{
@@ -103,7 +109,10 @@ defmodule Core.Crm.Contacts.Contact do
           seniority: String.t() | nil,
           department: String.t() | nil,
           email_enrich_requested_at: DateTime.t() | nil,
-          phone_enrich_requested_at: DateTime.t() | nil
+          phone_enrich_requested_at: DateTime.t() | nil,
+          enrich_attempts: integer() | nil,
+          enrich_attempt_at: DateTime.t() | nil,
+          timezone: String.t() | nil
         }
 
   def changeset(%__MODULE__{} = contact, attrs) do

@@ -20,7 +20,6 @@ defmodule Core.WebTracker.CompanyEnricher do
   alias Core.Utils.Tracing
   alias Core.WebTracker.Sessions
   alias Core.WebTracker.IPProfiler
-  alias Core.WebTracker.IpIdentifier.IpIntelligence
 
   @doc """
   Enqueues a company enrichment job for an event.
