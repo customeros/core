@@ -686,7 +686,7 @@ defmodule Core.Crm.Contacts do
     end
   end
 
-  defp process_avatar_for_contact(%Contact{} = contact, photo_url) do
+  def process_avatar_for_contact(%Contact{} = contact, photo_url) do
     if is_nil(contact.avatar_key) do
       process_avatar_for_contact_without_avatar(contact, photo_url)
     else
@@ -814,47 +814,6 @@ defmodule Core.Crm.Contacts do
         ]
 
         Images.download_image_with_httpoison(photo_url, headers)
-      end,
-
-      # Strategy 3: Finch with standard headers and LinkedIn referer
-      fn ->
-        headers = [
-          {"User-Agent",
-           "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36"},
-          {"Accept",
-           "image/avif,image/webp,image/apng,image/svg+xml,image/*,*/*;q=0.8"},
-          {"Accept-Language", "en-US,en;q=0.9"},
-          {"Referer", "https://www.linkedin.com/"}
-        ]
-
-        Images.download_image(photo_url, headers)
-      end,
-
-      # Strategy 4: Finch with standard headers without referer
-      fn ->
-        headers = [
-          {"User-Agent",
-           "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36"},
-          {"Accept",
-           "image/avif,image/webp,image/apng,image/svg+xml,image/*,*/*;q=0.8"},
-          {"Accept-Language", "en-US,en;q=0.9"}
-        ]
-
-        Images.download_image(photo_url, headers)
-      end,
-
-      # Strategy 5: Finch with different User-Agent
-      fn ->
-        headers = [
-          {"User-Agent",
-           "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36"},
-          {"Accept",
-           "image/avif,image/webp,image/apng,image/svg+xml,image/*,*/*;q=0.8"},
-          {"Accept-Language", "en-US,en;q=0.9"},
-          {"Referer", "https://www.linkedin.com/"}
-        ]
-
-        Images.download_image(photo_url, headers)
       end,
 
       # Strategy 6: HTTPoison with different User-Agent

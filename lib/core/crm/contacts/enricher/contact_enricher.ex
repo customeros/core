@@ -116,7 +116,14 @@ defmodule Core.Crm.Contacts.Enricher.ContactEnricher do
         {"param.batch.size", @default_batch_size}
       ])
 
-      Enum.each(contacts, &enrich_contact_location/1)
+      Enum.each(contacts, fn contact ->
+        contact
+        |> increment_attempt()
+        |> enrich_contact_location()
+        |> enrich_contact_avatar()
+      end)
+
+      Enum.each(contacts, &enrich_contact_avatar/1)
       {:ok, length(contacts)}
     end
   end
@@ -131,12 +138,13 @@ defmodule Core.Crm.Contacts.Enricher.ContactEnricher do
       |> DateTime.add(-@delay_from_contact_creation_minutes, :minute)
 
     Contact
-    |> where([c], not is_nil(c.location) and c.location != "")
     |> where(
       [c],
-      (is_nil(c.country_a2) or c.country_a2 == "") and
-        (is_nil(c.city) or c.city == "") and
-        (is_nil(c.region) or c.region == "")
+      (not is_nil(c.location) and c.location != "" and
+         (is_nil(c.country_a2) or c.country_a2 == "") and
+         (is_nil(c.city) or c.city == "") and
+         (is_nil(c.region) or c.region == "")) or
+        is_nil(c.avatar_key)
     )
     |> where([c], c.enrich_attempts < @max_attempts)
     |> where(
@@ -151,10 +159,10 @@ defmodule Core.Crm.Contacts.Enricher.ContactEnricher do
   end
 
   defp enrich_contact_location(%{location: nil} = contact),
-    do: increment_attempt(contact)
+    do: contact
 
   defp enrich_contact_location(%{location: ""} = contact),
-    do: increment_attempt(contact)
+    do: contact
 
   defp enrich_contact_location(
          %{
@@ -168,7 +176,7 @@ defmodule Core.Crm.Contacts.Enricher.ContactEnricher do
               is_binary(country) and country != "" and
               is_binary(city) and city != "" and
               is_binary(region) and region != "",
-       do: increment_attempt(contact)
+       do: contact
 
   defp enrich_contact_location(%{location: location} = contact)
        when is_binary(location) do
@@ -204,6 +212,38 @@ defmodule Core.Crm.Contacts.Enricher.ContactEnricher do
     end
   end
 
+  defp enrich_contact_avatar(%{avatar_key: avatar_key} = contact)
+       when is_nil(avatar_key) and is_binary(contact.linkedin_id) do
+    OpenTelemetry.Tracer.with_span "contact_enricher.enrich_avatar" do
+      OpenTelemetry.Tracer.set_attributes([
+        {"contact.id", contact.id},
+        {"contact.avatar_key", avatar_key}
+      ])
+
+      case Core.ScrapinContacts.get_scrapin_contact_record_by_linkedin_id(
+             contact.linkedin_id
+           ) do
+        {:ok, record} ->
+          case Core.ScrapinContacts.parse_contact_from_record(record) do
+            {:ok, details} ->
+              case details do
+                %{photo_url: photo_url} ->
+                  Core.Crm.Contacts.process_avatar_for_contact(
+                    contact,
+                    photo_url
+                  )
+
+                _ ->
+                  contact
+              end
+          end
+
+        _ ->
+          contact
+      end
+    end
+  end
+
   defp increment_attempt(contact) do
     OpenTelemetry.Tracer.with_span "contact_enricher.increment_attempt" do
       case contact
@@ -212,16 +252,15 @@ defmodule Core.Crm.Contacts.Enricher.ContactEnricher do
              enrich_attempt_at: DateTime.utc_now()
            })
            |> Repo.update() do
-        {:ok, _contact} = result ->
-          Tracing.ok()
-          result
+        {:ok, updated_contact} = result ->
+          updated_contact
 
         {:error, reason} = error ->
           Tracing.error(reason, "Failed to increment attempt",
             contact_id: contact.id
           )
 
-          error
+          contact
       end
     end
   end

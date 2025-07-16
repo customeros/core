@@ -40,6 +40,31 @@ defmodule Core.ScrapinContacts do
     do: Application.get_env(:core, :scrapin)[:scrapin_base_url]
 
   @doc """
+  Get latest ScrapinCompany record by LinkedIn ID.
+  Returns {:ok, %ScrapinCompany{}} or {:error, :not_found}.
+  """
+  def get_scrapin_contact_record_by_linkedin_id(linkedin_id)
+      when is_binary(linkedin_id) do
+    latest = get_latest_by_linkedin_id(linkedin_id)
+
+    case latest do
+      %ScrapinContact{} = record ->
+        {:ok, record}
+
+      nil ->
+        {:error, :not_found}
+    end
+  end
+
+  defp get_latest_by_linkedin_id(linkedin_id) do
+    ScrapinContact
+    |> where([s], s.linkedin_id == ^linkedin_id)
+    |> order_by([s], desc: s.inserted_at)
+    |> limit(1)
+    |> Repo.one()
+  end
+
+  @doc """
   Search for a contact using ScrapIn with multiple parameters.
   Requires at least one of: first_name, last_name, or email.
   Returns {:ok, %ScrapinContactDetails{}} or {:error, :not_found}.
@@ -233,8 +258,8 @@ defmodule Core.ScrapinContacts do
     |> Repo.one()
   end
 
-  defp parse_contact_from_record(%ScrapinContact{data: data})
-       when is_binary(data) do
+  def parse_contact_from_record(%ScrapinContact{data: data})
+      when is_binary(data) do
     with {:ok, decoded} <- Jason.decode(data, keys: :atoms),
          %{} = map <- MapUtils.to_snake_case_map(decoded) do
       response_struct = StructUtils.safe_struct(map, ScrapinContactResponseBody)
