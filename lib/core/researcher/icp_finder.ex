@@ -109,7 +109,7 @@ defmodule Core.Researcher.IcpFinder do
 
     leads =
       Enum.map(companies, fn %{id: id, primary_domain: _} ->
-        case Leads.get_or_create(tenant.name, %{ref_id: id, type: :company}) do
+        case Leads.get_or_create(tenant.id, %{ref_id: id, type: :company}) do
           {:ok, lead} -> lead
           {:error, reason} -> {:error, reason}
         end

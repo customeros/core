@@ -250,7 +250,7 @@ defmodule Core.Integrations.Providers.HubSpot.Companies do
            {:ok, tenant} <- Core.Auth.Tenants.get_tenant_by_id(tenant_id),
            {:ok, lead} <-
              get_or_create_lead_with_stage(
-               tenant.name,
+               tenant.id,
                crm_company.id,
                is_customer
              ),
@@ -321,7 +321,7 @@ defmodule Core.Integrations.Providers.HubSpot.Companies do
     end)
   end
 
-  defp get_or_create_lead_with_stage(tenant_name, company_id, is_customer) do
+  defp get_or_create_lead_with_stage(tenant_id, company_id, is_customer) do
     lead_attrs = %{ref_id: company_id, type: :company}
 
     lead_attrs =
@@ -333,7 +333,7 @@ defmodule Core.Integrations.Providers.HubSpot.Companies do
         lead_attrs
       end
 
-    Core.Crm.Leads.get_or_create(tenant_name, lead_attrs)
+    Core.Crm.Leads.get_or_create(tenant_id, lead_attrs)
   end
 
   defp update_lead_stage_for_customer(

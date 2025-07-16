@@ -133,7 +133,7 @@ defmodule Core.Auth.Users do
         if customeros_tenant.primary_domain == domain do
           changeset
         else
-          handle_lead_creation(changeset, domain, email, customeros_tenant_name)
+          handle_lead_creation(changeset, domain, email, customeros_tenant.id)
         end
 
       _ ->
@@ -141,14 +141,14 @@ defmodule Core.Auth.Users do
     end
   end
 
-  defp handle_lead_creation(changeset, domain, email, customeros_tenant_name) do
+  defp handle_lead_creation(changeset, domain, email, customeros_tenant_id) do
     case Companies.get_or_create_by_domain(domain) do
       {:ok, company} ->
         create_lead_for_company(
           changeset,
           company,
           email,
-          customeros_tenant_name
+          customeros_tenant_id
         )
 
       {:error, reason} ->
@@ -164,7 +164,7 @@ defmodule Core.Auth.Users do
          changeset,
          company,
          email,
-         customeros_tenant_name
+         customeros_tenant_id
        ) do
     lead_attrs = %{ref_id: company.id, type: :company}
 
@@ -180,7 +180,7 @@ defmodule Core.Auth.Users do
     end
 
     case Leads.get_or_create(
-           customeros_tenant_name,
+           customeros_tenant_id,
            lead_attrs,
            callback_after_lead_evaluation,
            max_pages: 10
