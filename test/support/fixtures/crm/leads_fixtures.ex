@@ -12,11 +12,11 @@ defmodule Core.Crm.LeadsFixtures do
     ref_id = "test_#{System.unique_integer()}"
 
     # Create tenant first
-    {:ok, _tenant} = Core.Auth.Tenants.create_tenant(tenant, "test.com")
+    {:ok, tenant_record} = Core.Auth.Tenants.create_tenant(tenant, "test.com")
 
     {:ok, lead} =
       Core.Crm.Leads.get_or_create(
-        tenant,
+        tenant_record.id,
         attrs
         |> Enum.into(%{
           ref_id: ref_id,

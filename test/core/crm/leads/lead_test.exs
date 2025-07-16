@@ -46,7 +46,7 @@ defmodule Core.Crm.Leads.LeadTest do
       {:ok, tenant_record} = Core.Auth.Tenants.create_tenant(tenant, "test.com")
 
       assert {:ok, %Lead{} = lead} =
-               Core.Crm.Leads.get_or_create(tenant, valid_attrs)
+               Core.Crm.Leads.get_or_create(tenant_record.id, valid_attrs)
 
       assert lead.ref_id == valid_attrs.ref_id
       assert lead.type == :contact
