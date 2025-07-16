@@ -24,6 +24,7 @@ defmodule Core.Analytics.LeadGeneration do
              :identified_sessions,
              :icp_fit_sessions,
              :unique_companies,
+             :unique_new_companies,
              :new_icp_fit_leads,
              :updated_at
            ]}

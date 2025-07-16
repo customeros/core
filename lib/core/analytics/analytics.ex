@@ -26,6 +26,7 @@ defmodule Core.Analytics do
             identified_sessions: lg.identified_sessions,
             icp_fit_sessions: lg.icp_fit_sessions,
             unique_companies: lg.unique_companies,
+            unique_new_companies: lg.unique_new_companies,
             new_icp_fit_leads: lg.new_icp_fit_leads
           }
         )
@@ -47,6 +48,7 @@ defmodule Core.Analytics do
             identified_sessions: sum(lg.identified_sessions),
             icp_fit_sessions: sum(lg.icp_fit_sessions),
             unique_companies: sum(lg.unique_companies),
+            unique_new_companies: sum(lg.unique_new_companies),
             new_icp_fit_leads: sum(lg.new_icp_fit_leads)
           }
         )
@@ -71,6 +73,7 @@ defmodule Core.Analytics do
             identified_sessions: sum(lg.identified_sessions),
             icp_fit_sessions: sum(lg.icp_fit_sessions),
             unique_companies: sum(lg.unique_companies),
+            unique_new_companies: sum(lg.unique_new_companies),
             new_icp_fit_leads: sum(lg.new_icp_fit_leads)
           }
         )
@@ -96,6 +99,7 @@ defmodule Core.Analytics do
             identified_sessions: sum(lg.identified_sessions),
             icp_fit_sessions: sum(lg.icp_fit_sessions),
             unique_companies: sum(lg.unique_companies),
+            unique_new_companies: sum(lg.unique_new_companies),
             new_icp_fit_leads: sum(lg.new_icp_fit_leads)
           }
         )

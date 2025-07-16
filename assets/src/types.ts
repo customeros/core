@@ -107,4 +107,5 @@ export type SessionAnalytics = {
   unique_companies: number;
   new_icp_fit_leads: number;
   identified_sessions: number;
+  unique_new_companies: number;
 };
