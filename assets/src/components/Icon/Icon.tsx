@@ -65,6 +65,7 @@ export type IconName =
   | 'thumbs-down'
   | 'chevron-right'
   | 'chevron-left'
+  | 'activity'
   | 'handle-drag';
 
 export const Icon = ({

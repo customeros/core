@@ -39,7 +39,7 @@ export const LeadItem = ({ lead, isSeen, handleOpenLead, handleStageClick }: Lea
       key={lead.id}
       className={cn(
         'flex items-center w-full relative group hover:bg-gray-50 animate-slideUpFade',
-        isSelected && 'bg-gray-50'
+        isSelected && 'bg-gray-100'
       )}
     >
       <div className={cn('ml-6 size-6', (group === 'stage' || !group) && 'hidden')}>
@@ -54,7 +54,7 @@ export const LeadItem = ({ lead, isSeen, handleOpenLead, handleStageClick }: Lea
       <div
         className={cn(
           'flex items-center gap-2 ml-2 flex-1 md:flex-none md:flex-shrink-0 bg-white group-hover:bg-gray-50',
-          isSelected && 'bg-gray-50',
+          isSelected && 'bg-gray-100',
           (group === 'stage' || !group) && 'ml-5'
         )}
       >
@@ -119,7 +119,7 @@ export const LeadItem = ({ lead, isSeen, handleOpenLead, handleStageClick }: Lea
       <div
         className={cn(
           'flex-4 text-right mr-4 min-w-0 flex-shrink-0 bg-white hidden md:block group-hover:bg-gray-50',
-          isSelected && 'bg-gray-50'
+          isSelected && 'bg-gray-100'
         )}
       >
         {lead.industry && (
@@ -135,7 +135,7 @@ export const LeadItem = ({ lead, isSeen, handleOpenLead, handleStageClick }: Lea
         }}
         className={cn(
           'text-right cursor-pointer hover:underline min-w-0 flex-1 md:flex-none md:flex-shrink-0 bg-white px-2 py-1 group-hover:bg-gray-50 truncate',
-          isSelected && 'bg-gray-50'
+          isSelected && 'bg-gray-100'
         )}
       >
         {lead.domain}
@@ -144,7 +144,7 @@ export const LeadItem = ({ lead, isSeen, handleOpenLead, handleStageClick }: Lea
         <p
           className={cn(
             'text-center text-gray-500 flex-shrink-0 bg-white py-2 pl-1 pr-5 group-hover:bg-gray-50',
-            isSelected && 'bg-gray-50'
+            isSelected && 'bg-gray-100'
           )}
         >
           {countryCodeToEmoji(lead.country)}

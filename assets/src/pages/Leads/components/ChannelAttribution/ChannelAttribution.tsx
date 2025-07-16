@@ -1,6 +1,7 @@
 import { usePage, WhenVisible } from '@inertiajs/react';
 
 import { match } from 'ts-pattern';
+import upperFirst from 'lodash/upperFirst';
 import { Tooltip } from 'src/components/Tooltip';
 import { ChannelAttribution as ChannelAttributionType } from 'src/types';
 
@@ -65,11 +66,11 @@ export const ChannelAttribution = () => {
   let tooltipLabel = '';
 
   if (channelAttribution?.referrer && channelAttribution?.platform) {
-    tooltipLabel = `via ${channelAttribution.platform} · ${channelAttribution.referrer}`;
+    tooltipLabel = `Via ${upperFirst(channelAttribution.platform)} · ${channelAttribution.referrer}`;
   } else if (channelAttribution?.referrer) {
-    tooltipLabel = `from ${channelAttribution.referrer}`;
+    tooltipLabel = `From ${channelAttribution.referrer}`;
   } else if (channelAttribution?.platform) {
-    tooltipLabel = `via ${channelAttribution.platform}`;
+    tooltipLabel = `Via ${upperFirst(channelAttribution.platform)}`;
   }
 
   const content = (

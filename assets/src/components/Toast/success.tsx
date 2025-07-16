@@ -7,7 +7,6 @@ export const toastSuccess = (text: string, id: string) => {
   return toast.success(text, {
     toastId: id,
     icon: <Icon className="size-6" name="check-circle" />,
-    autoClose: 5000,
     closeButton: ({ closeToast }) => (
       <IconButton
         size="xs"

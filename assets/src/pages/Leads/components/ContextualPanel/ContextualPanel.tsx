@@ -6,12 +6,19 @@ import { Icon } from 'src/components/Icon';
 import { PageProps } from '@inertiajs/core';
 import { Tabs } from 'src/components/Tabs/Tabs';
 import { useUrlState } from 'src/hooks/useUrlState';
-import { Lead, User, Stage, Tenant } from 'src/types';
 import { Button } from 'src/components/Button/Button';
 import { IconButton } from 'src/components/IconButton';
 import { Tooltip } from 'src/components/Tooltip/Tooltip';
 import { toastSuccess } from 'src/components/Toast/success';
 import { usePresence } from 'src/providers/PresenceProvider';
+import {
+  Lead,
+  User,
+  Stage,
+  Tenant,
+  TargetPersona,
+  ChannelAttribution as Attributions,
+} from 'src/types';
 import {
   ScrollAreaRoot,
   ScrollAreaThumb,
@@ -26,7 +33,13 @@ import { ChannelAttribution } from '../ChannelAttribution/ChannelAttribution';
 
 export const ContextualPanel = () => {
   const page = usePage<
-    PageProps & { tenant: Tenant; current_user: User; leads: Lead[] | Record<Stage, Lead[]> }
+    PageProps & {
+      tenant: Tenant;
+      current_user: User;
+      personas: TargetPersona[];
+      attributions_list: Attributions[];
+      leads: Lead[] | Record<Stage, Lead[]>;
+    }
   >();
   const params = new URLSearchParams(window.location.search);
   const leadId = params.get('lead');
@@ -128,15 +141,19 @@ export const ContextualPanel = () => {
     );
   };
 
+  const engagementLabel = `Engagements • ${page.props.attributions_list?.length}`;
+
+  const contactsLabel = `Contacts • ${page.props.personas?.length}`;
+
   return (
     <>
       <ScrollAreaRoot>
         <ScrollAreaViewport>
           <div className="w-full bg-white px-4 md:px-6">
             <div className="relative bg-white h-full mx-auto w-full md:min-w-[680px] max-w-[680px]">
-              <div className="flex items-center justify-between sticky top-0 bg-white z-20 py-0.5 mt-[5px]">
+              <div className="flex items-center justify-between sticky top-0 bg-white z-20 py-0.5 ">
                 {currentLead && (
-                  <div className="flex items-center w-full justify-start gap-2 group/section">
+                  <div className="flex items-center w-full justify-start gap-2 group/section mt-[5px]">
                     {currentLead?.icon ? (
                       <img
                         loading="lazy"
@@ -150,7 +167,7 @@ export const ContextualPanel = () => {
                       </div>
                     )}
                     <p className="text-[16px] font-medium text-gray-900 truncate w-fit min-w-fit ">
-                      {currentLead?.name}
+                      {currentLead?.name || 'Unnamed'}
                     </p>
                     {currentLead?.icp_fit === 'strong' && (
                       <div className="bg-error-100 w-fit px-2 py-1.5 rounded-[4px] max-w-[100px] truncate items-center gap-1 flex-shrink-0 hidden sm:flex md:flex lg:flex xl:flex 2xl:flex">
@@ -225,7 +242,7 @@ export const ContextualPanel = () => {
                   />
                 </div>
               </div>
-              <div className="w-fit mt-2">
+              <div className="w-fit mt-2 mb-4">
                 <Tabs variant="enclosed" className="w-fit z-[1]">
                   <Button
                     size="xs"
@@ -241,7 +258,7 @@ export const ContextualPanel = () => {
                     onClick={() => handleTabClick('engagement')}
                     data-state={tab === 'engagement' ? 'active' : 'inactive'}
                   >
-                    Engagement
+                    {engagementLabel}
                   </Button>
                   <Button
                     size="xs"
@@ -249,7 +266,7 @@ export const ContextualPanel = () => {
                     onClick={() => handleTabClick('contacts')}
                     data-state={tab === 'contacts' ? 'active' : 'inactive'}
                   >
-                    Contacts
+                    {contactsLabel}
                   </Button>
                 </Tabs>
               </div>

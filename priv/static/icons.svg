@@ -219,4 +219,7 @@
       <circle cx="8.5" cy="5" r="1.5" />
     </g>
   </symbol>
+  <symbol id='activity'>
+    <path d="M22 12H18L15 21L9 3L6 12H2" />
+  </symbol>
 </svg>
