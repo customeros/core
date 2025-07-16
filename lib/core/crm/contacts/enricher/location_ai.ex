@@ -34,11 +34,11 @@ defmodule Core.Crm.Contacts.Enricher.LocationAI do
   """
 
   @type location_data :: %{
-    country_a2: String.t() | nil,
-    region: String.t() | nil,
-    city: String.t() | nil,
-    timezone: String.t() | nil
-  }
+          country_a2: String.t() | nil,
+          region: String.t() | nil,
+          city: String.t() | nil,
+          timezone: String.t() | nil
+        }
 
   @spec parse_location(String.t()) :: {:ok, location_data()} | {:error, term()}
   def parse_location(location) do
@@ -49,6 +49,7 @@ defmodule Core.Crm.Contacts.Enricher.LocationAI do
   end
 
   defp try_models(_prompt, [], _location), do: {:error, :all_models_failed}
+
   defp try_models(prompt, [model | remaining_models], location) do
     request =
       Ai.Request.new(prompt,
@@ -80,7 +81,10 @@ defmodule Core.Crm.Contacts.Enricher.LocationAI do
         end
 
       {:error, {:api_error, "User location is not supported for the API use."}} ->
-        Logger.warning("Location not supported for model #{model}, trying next model")
+        Logger.warning(
+          "Location not supported for model #{model}, trying next model"
+        )
+
         try_models(prompt, remaining_models, location)
 
       {:error, reason} ->

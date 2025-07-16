@@ -246,6 +246,7 @@ defmodule Core.Crm.Contacts.Enricher.ContactEnricher do
         Tracing.error(reason, "Failed to update contact with location data",
           contact_id: contact.id
         )
+
         error
     end
   end
