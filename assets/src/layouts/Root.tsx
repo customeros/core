@@ -1,6 +1,6 @@
 import { useEffect } from 'react';
+import { ToastContainer } from 'react-toastify';
 import { Head, usePage } from '@inertiajs/react';
-import { cssTransition, ToastContainer } from 'react-toastify';
 
 import posthog from 'posthog-js';
 import { PageProps } from '@inertiajs/core';
@@ -71,19 +71,7 @@ export const RootLayout = ({ children }: { children: React.ReactNode }) => {
         <Head>
           <title>{props.page_title || 'CustomerOS'}</title>
         </Head>
-        <ToastContainer
-          limit={3}
-          theme="colored"
-          autoClose={8000}
-          closeOnClick={true}
-          hideProgressBar={true}
-          position="bottom-right"
-          transition={cssTransition({
-            enter: 'animate-slideDownAndFade',
-            exit: 'animate-fadeOut',
-            collapse: false,
-          })}
-        />
+        <ToastContainer theme="colored" hideProgressBar={true} position="bottom-right" />
         {displayHeader && <Header />}
         {children}
       </PresenceProvider>

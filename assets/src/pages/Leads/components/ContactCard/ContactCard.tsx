@@ -39,7 +39,7 @@ function ContactCardContent() {
   }
 
   return (
-    <div className="flex w-full flex-col gap-2 mt-4">
+    <div className="flex w-full flex-col gap-2">
       {personas.map((persona, index) => (
         <div key={persona.id} className="flex flex-col px-2 bg-white">
           <div className="flex items-center gap-3 mb-2">
