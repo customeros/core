@@ -5,32 +5,58 @@ defmodule Core.WebTracker.SessionAnalyzer do
 
   require Logger
   require OpenTelemetry.Tracer
-  alias Core.Utils.UrlFormatter
-  alias Core.Researcher.Webpages.Intent
+
   alias Core.Crm.Leads
+  alias Core.Crm.Companies
+  alias Core.Crm.Documents
   alias Core.Crm.Leads.Lead
-  alias Core.Researcher.Webpages.ScrapedWebpage
-  alias Core.WebTracker.StageIdentifier
-  alias Core.Researcher.Webpages
+  alias Core.Utils.TaskAwaiter
   alias Core.WebTracker.Events
   alias Core.Researcher.Scraper
+  alias Core.Utils.UrlFormatter
   alias Core.WebTracker.Sessions
-  alias Core.Utils.TaskAwaiter
-  alias Core.Crm.Companies
+  alias Core.Researcher.Webpages
   alias Core.Researcher.BriefWriter
-  alias Core.Crm.Documents
+  alias Core.WebTracker.StageIdentifier
+  alias Core.Researcher.Webpages.Intent
+  alias Core.Researcher.Webpages.ScrapedWebpage
+  alias Core.WebTracker.SessionAnalyzer.ChannelClassifier
+  alias Core.WebTracker.SessionAnalyzer.TouchpointBuilder
+  alias Core.WebTracker.SessionAnalyzer.CampaignIdentifier
 
   @analysis_timeout 60 * 1000
 
   @err_unable_to_get_page_visits {:error, "unable to process page visits"}
 
   def start(session_id) do
-    Task.Supervisor.start_child(
-      Core.TaskSupervisor,
-      fn ->
-        analyze_session(session_id)
-      end
-    )
+    tasks = [
+      Task.Supervisor.start_child(
+        Core.TaskSupervisor,
+        fn ->
+          analyze_session(session_id)
+        end
+      ),
+      Task.Supervisor.start_child(
+        Core.TaskSupervisor,
+        fn ->
+          ChannelClassifier.classify_session(session_id)
+        end
+      ),
+      Task.Supervisor.start_child(
+        Core.TaskSupervisor,
+        fn ->
+          CampaignIdentifier.identify_campaigns(session_id)
+        end
+      ),
+      Task.Supervisor.start_child(
+        Core.TaskSupervisor,
+        fn ->
+          TouchpointBuilder.build_touchpoints(session_id)
+        end
+      )
+    ]
+
+    tasks
   end
 
   def analyze_session(session_id) do

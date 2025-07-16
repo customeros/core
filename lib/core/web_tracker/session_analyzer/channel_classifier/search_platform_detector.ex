@@ -1,4 +1,4 @@
-defmodule Core.WebTracker.SearchPlatformDetector do
+defmodule Core.WebTracker.SessionAnalyzer.ChannelClassifier.SearchPlatformDetector do
   @moduledoc """
   Detects search platforms and distinguishes between paid and organic search traffic.
 

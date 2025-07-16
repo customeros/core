@@ -13,7 +13,7 @@ defmodule Core.WebTracker.Events do
   alias Core.WebTracker.Sessions
   alias Core.WebTracker.Events.Event
   alias Core.WebTracker.CompanyEnricher
-  alias Core.WebTracker.IdentifyEventHandler
+  alias Core.WebTracker.Events.IdentifyEventHandler
 
   @err_not_found {:error, "event not found"}
 

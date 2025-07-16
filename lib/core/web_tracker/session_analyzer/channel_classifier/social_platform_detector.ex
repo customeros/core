@@ -1,4 +1,4 @@
-defmodule Core.WebTracker.SocialPlatformDetector do
+defmodule Core.WebTracker.SessionAnalyzer.ChannelClassifier.SocialPlatformDetector do
   @moduledoc """
   Detects social platforms and distinguishes between paid and organic social traffic.
 

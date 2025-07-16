@@ -1,4 +1,4 @@
-defmodule Core.WebTracker.IdentifyEventHandler do
+defmodule Core.WebTracker.Events.IdentifyEventHandler do
   @moduledoc """
   Handles identify events from web tracking to associate users with companies.
 

@@ -85,7 +85,7 @@ defmodule Core.WebTracker.Sessions.Session do
   @doc """
   Validates the changeset for a web session.
   """
-  def changeset(session, attrs) do
+  def changeset(session \\ %__MODULE__{}, attrs) do
     session
     |> cast(attrs, [
       :id,
