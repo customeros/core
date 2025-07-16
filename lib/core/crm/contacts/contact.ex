@@ -35,6 +35,7 @@ defmodule Core.Crm.Contacts.Contact do
     field(:summary, :string)
     field(:job_started_at, :utc_datetime)
     field(:job_ended_at, :utc_datetime)
+    field(:company_started_at, :utc_datetime)
     field(:seniority, :string)
     field(:department, :string)
     field(:email_enrich_requested_at, :utc_datetime)
@@ -71,6 +72,7 @@ defmodule Core.Crm.Contacts.Contact do
     :summary,
     :job_started_at,
     :job_ended_at,
+    :company_started_at,
     :seniority,
     :department,
     :email_enrich_requested_at,
@@ -106,6 +108,7 @@ defmodule Core.Crm.Contacts.Contact do
           summary: String.t() | nil,
           job_started_at: DateTime.t() | nil,
           job_ended_at: DateTime.t() | nil,
+          company_started_at: DateTime.t() | nil,
           seniority: String.t() | nil,
           department: String.t() | nil,
           email_enrich_requested_at: DateTime.t() | nil,

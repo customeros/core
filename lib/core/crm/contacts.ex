@@ -174,16 +174,27 @@ defmodule Core.Crm.Contacts do
           end
 
         existing_contact ->
+          if existing_contact.company_started_at == nil or
+               (not is_nil(contact_attrs.company_started_at) and
+                  DateTime.compare(existing_contact.company_started_at, contact_attrs.company_started_at) == :gt) do
+            {:ok, existing_contact} =
+              update_contact_field(
+                existing_contact.id,
+                %{company_started_at: contact_attrs.company_started_at},
+                "company started at"
+              )
+          end
+
           result =
             if should_update_contact(existing_contact, contact_attrs) do
-              update_contact_with_position(existing_contact, contact_attrs)
+              position_attrs = Map.delete(contact_attrs, :company_started_at)
+              update_contact_with_position(existing_contact, position_attrs)
             else
               {:ok, existing_contact}
             end
 
           case result do
             {:ok, contact} ->
-              # Set company information for updated/existing contact
               {:ok, set_company_info_for_contact(contact)}
 
             {:error, reason} ->
@@ -203,12 +214,15 @@ defmodule Core.Crm.Contacts do
   end
 
   defp extract_position_fields(position) do
+    start_date = parse_start_date(position.start_end_date)
+
     %{
       job_title: position.title,
       linkedin_company_id: position.linked_in_id,
       job_description: position.description,
-      job_started_at: parse_start_date(position.start_end_date),
-      job_ended_at: parse_end_date(position.start_end_date)
+      job_started_at: start_date,
+      job_ended_at: parse_end_date(position.start_end_date),
+      company_started_at: start_date  # For new contacts, this will be updated if earlier positions are found
     }
   end
 
