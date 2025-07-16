@@ -22,7 +22,7 @@ defmodule Core.Crm.Contacts.Enricher.ContactEnricher do
   @default_batch_size 10
   @stuck_lock_duration_minutes 30
   @max_attempts 5
-  @delay_between_checks_hours 48
+  @delay_between_checks_hours 24
   @delay_from_contact_creation_minutes 10
 
   def start_link(opts \\ []) do
@@ -123,7 +123,6 @@ defmodule Core.Crm.Contacts.Enricher.ContactEnricher do
         |> enrich_contact_avatar()
       end)
 
-      Enum.each(contacts, &enrich_contact_avatar/1)
       {:ok, length(contacts)}
     end
   end
@@ -186,27 +185,29 @@ defmodule Core.Crm.Contacts.Enricher.ContactEnricher do
         {"contact.location", contact.location}
       ])
 
-      {:ok, contact} = increment_attempt(contact)
-
       case Repo.get_by(LocationMapping, location: contact.location) do
         %LocationMapping{} = mapping ->
-          update_contact_with_mapping(contact, mapping)
+          update_contact_with_location_mapping(contact, mapping)
 
         nil ->
           case LocationAI.parse_location(contact.location) do
             {:ok, location_data} ->
-              {:ok, mapping} =
-                %LocationMapping{}
-                |> LocationMapping.changeset(
-                  Map.put(location_data, "location", contact.location)
-                )
-                |> Repo.insert()
+              case %LocationMapping{}
+                   |> LocationMapping.changeset(
+                     Map.put(location_data, "location", contact.location)
+                   )
+                   |> Repo.insert() do
+                {:ok, mapping} ->
+                  update_contact_with_location_mapping(contact, mapping)
 
-              update_contact_with_mapping(contact, mapping)
+                {:error, reason} ->
+                  Tracing.error(reason, "Failed to create location mapping")
+                  contact
+              end
 
             {:error, reason} ->
               Tracing.error(reason, "Failed to parse location")
-              {:error, reason}
+              contact
           end
       end
     end
@@ -225,24 +226,29 @@ defmodule Core.Crm.Contacts.Enricher.ContactEnricher do
            ) do
         {:ok, record} ->
           case Core.ScrapinContacts.parse_contact_from_record(record) do
-            {:ok, details} ->
-              case details do
-                %{photo_url: photo_url} ->
-                  Core.Crm.Contacts.process_avatar_for_contact(
-                    contact,
-                    photo_url
-                  )
+            {:ok, %{photo_url: photo_url}}
+            when is_binary(photo_url) and photo_url != "" ->
+              Core.Crm.Contacts.process_avatar_for_contact(contact, photo_url)
 
-                _ ->
-                  contact
-              end
+            {:ok, _} ->
+              contact
+
+            {:error, reason} ->
+              Tracing.error(reason, "Failed to parse contact record")
+              contact
           end
+
+        {:error, reason} ->
+          Tracing.error(reason, "Failed to get scrapin contact record")
+          contact
 
         _ ->
           contact
       end
     end
   end
+
+  defp enrich_contact_avatar(contact), do: contact
 
   defp increment_attempt(contact) do
     OpenTelemetry.Tracer.with_span "contact_enricher.increment_attempt" do
@@ -252,10 +258,10 @@ defmodule Core.Crm.Contacts.Enricher.ContactEnricher do
              enrich_attempt_at: DateTime.utc_now()
            })
            |> Repo.update() do
-        {:ok, updated_contact} = result ->
+        {:ok, updated_contact} ->
           updated_contact
 
-        {:error, reason} = error ->
+        {:error, reason} ->
           Tracing.error(reason, "Failed to increment attempt",
             contact_id: contact.id
           )
@@ -265,7 +271,7 @@ defmodule Core.Crm.Contacts.Enricher.ContactEnricher do
     end
   end
 
-  defp update_contact_with_mapping(contact, mapping) do
+  defp update_contact_with_location_mapping(contact, mapping) do
     # Get values directly from the struct fields
     attrs = %{
       country_a2: mapping.country_a2,
@@ -277,16 +283,16 @@ defmodule Core.Crm.Contacts.Enricher.ContactEnricher do
     case contact
          |> Contact.changeset(attrs)
          |> Repo.update() do
-      {:ok, _updated_contact} = result ->
+      {:ok, updated_contact} ->
         Tracing.ok()
-        result
+        updated_contact
 
-      {:error, reason} = error ->
+      {:error, reason} ->
         Tracing.error(reason, "Failed to update contact with location data",
           contact_id: contact.id
         )
 
-        error
+        contact
     end
   end
 end

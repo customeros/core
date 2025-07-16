@@ -15,6 +15,7 @@ defmodule Core.Crm.Contacts.Enricher.LocationAI do
   @models [:gemini_flash_2_0, :llama3_70b]
   @max_tokens 100
   @temperature 0.05
+  @response_type :json
   @system_prompt """
   You are a location parsing expert. Your task is to analyze location strings and extract structured location data.
 
@@ -56,7 +57,8 @@ defmodule Core.Crm.Contacts.Enricher.LocationAI do
         model: model,
         system_prompt: @system_prompt,
         max_tokens: @max_tokens,
-        temperature: @temperature
+        temperature: @temperature,
+        response_type: @response_type
       )
 
     task = Ai.ask_supervised(request)
@@ -76,7 +78,10 @@ defmodule Core.Crm.Contacts.Enricher.LocationAI do
             {:ok, normalized_data}
 
           {:error, reason} ->
-            Tracing.error(reason, "Failed to parse AI response as JSON")
+            Tracing.error(reason, "Failed to parse AI response as JSON",
+              raw_response: response
+            )
+
             try_models(prompt, remaining_models, location)
         end
 
