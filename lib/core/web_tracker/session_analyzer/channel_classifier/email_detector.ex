@@ -1,4 +1,4 @@
-defmodule Core.WebTracker.EmailDetector do
+defmodule Core.WebTracker.SessionAnalyzer.ChannelClassifier.EmailDetector do
   @moduledoc """
   Detects email platform traffic and distinguishes between marketing emails and personal email shares.
 

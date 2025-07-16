@@ -1,4 +1,4 @@
-defmodule Core.WebTracker.WorkplacePlatformDetector do
+defmodule Core.WebTracker.SessionAnalyzer.ChannelClassifier.WorkplacePlatformDetector do
   @moduledoc """
   Detects workplace platforms and business tools traffic.
 

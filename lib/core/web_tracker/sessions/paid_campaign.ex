@@ -27,6 +27,7 @@ defmodule Core.WebTracker.Sessions.PaidCampaign do
   ]
 
   schema "paid_campaigns" do
+    field(:tenant_id, :string)
     field(:platform, Ecto.Enum, values: @ad_platforms)
     field(:campaign_id, :string)
     field(:account_id, :string)
@@ -42,6 +43,8 @@ defmodule Core.WebTracker.Sessions.PaidCampaign do
 
   @type t :: %__MODULE__{
           id: String.t(),
+          tenant_id: String.t(),
+          platform: atom(),
           campaign_id: String.t() | nil,
           account_id: String.t() | nil,
           group_id: String.t() | nil,
@@ -55,6 +58,8 @@ defmodule Core.WebTracker.Sessions.PaidCampaign do
         }
 
   @required_fields [
+    :tenant_id,
+    :platform,
     :hash
   ]
   @optional_fields [
@@ -67,18 +72,18 @@ defmodule Core.WebTracker.Sessions.PaidCampaign do
     :last_seen_at
   ]
 
-  def changeset(%__MODULE__{} = ad, attrs) do
+  def changeset(ad \\ %__MODULE__{}, attrs) do
     ad
     |> cast(attrs, @required_fields ++ @optional_fields)
     |> generate_hash()
     |> put_timestamps()
     |> validate_required(@required_fields)
-    |> unique_constraint(:hash)
+    |> unique_constraint([:tenant_id, :hash])
     |> maybe_put_id()
   end
 
   defp put_timestamps(changeset) do
-    now = DateTime.utc_now()
+    now = DateTime.truncate(DateTime.utc_now(), :second)
 
     changeset
     |> put_change(:last_seen_at, now)
@@ -91,11 +96,12 @@ defmodule Core.WebTracker.Sessions.PaidCampaign do
 
   defp maybe_put_first_seen(changeset, _now), do: changeset
 
-  defp generate_hash(changeset) do
+  def generate_hash(changeset) do
     case changeset do
       %{valid?: true} ->
         hash_input =
           [
+            get_field(changeset, :tenant_id),
             get_field(changeset, :campaign_id),
             get_field(changeset, :account_id),
             get_field(changeset, :group_id),

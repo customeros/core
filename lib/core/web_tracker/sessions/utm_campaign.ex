@@ -17,6 +17,7 @@ defmodule Core.WebTracker.Sessions.UtmCampaign do
   @id_prefix "utm"
 
   schema "utm_campaigns" do
+    field(:tenant_id, :string)
     field(:utm_source, :string)
     field(:utm_medium, :string)
     field(:utm_campaign, :string)
@@ -31,6 +32,7 @@ defmodule Core.WebTracker.Sessions.UtmCampaign do
 
   @type t :: %__MODULE__{
           id: String.t(),
+          tenant_id: String.t(),
           utm_source: String.t() | nil,
           utm_medium: String.t() | nil,
           utm_campaign: String.t() | nil,
@@ -44,6 +46,7 @@ defmodule Core.WebTracker.Sessions.UtmCampaign do
         }
 
   @required_fields [
+    :tenant_id,
     :utm_hash
   ]
   @optional_fields [
@@ -56,19 +59,20 @@ defmodule Core.WebTracker.Sessions.UtmCampaign do
     :last_seen_at
   ]
 
-  def changeset(%__MODULE__{} = utm, attrs) do
+  def changeset(utm \\ %__MODULE__{}, attrs) do
     utm
     |> cast(attrs, @required_fields ++ @optional_fields)
     |> validate_has_utm_data()
     |> generate_utm_hash()
     |> put_timestamps()
     |> validate_required(@required_fields)
-    |> unique_constraint(:utm_hash)
+    |> unique_constraint([:tenant_id, :utm_hash])
     |> maybe_put_id()
   end
 
   defp validate_has_utm_data(changeset) do
     utm_fields = [
+      :tenant_id,
       :utm_source,
       :utm_medium,
       :utm_campaign,
@@ -93,7 +97,7 @@ defmodule Core.WebTracker.Sessions.UtmCampaign do
   end
 
   defp put_timestamps(changeset) do
-    now = DateTime.utc_now()
+    now = DateTime.truncate(DateTime.utc_now(), :second)
 
     changeset
     |> put_change(:last_seen_at, now)

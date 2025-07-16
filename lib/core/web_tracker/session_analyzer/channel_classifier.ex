@@ -1,4 +1,4 @@
-defmodule Core.WebTracker.ChannelClassifier do
+defmodule Core.WebTracker.SessionAnalyzer.ChannelClassifier do
   @moduledoc """
   Classifies web traffic sources into marketing channels.
   This module analyzes referrer URLs and query parameters to categorize
@@ -12,11 +12,12 @@ defmodule Core.WebTracker.ChannelClassifier do
   alias Core.WebTracker.Events
   alias Core.WebTracker.Sessions
   alias Core.Utils.DomainExtractor
-  alias Core.WebTracker.EmailDetector
-  alias Core.WebTracker.QueryParamAnalyzer
-  alias Core.WebTracker.SearchPlatformDetector
-  alias Core.WebTracker.SocialPlatformDetector
-  alias Core.WebTracker.WorkplacePlatformDetector
+  alias Core.WebTracker.SessionAnalyzer.ChannelClassifier.EmailDetector
+  alias Core.WebTracker.SessionAnalyzer.ChannelClassifier.QueryParamAnalyzer
+  alias Core.WebTracker.SessionAnalyzer.ChannelClassifier.SearchPlatformDetector
+  alias Core.WebTracker.SessionAnalyzer.ChannelClassifier.SocialPlatformDetector
+
+  alias Core.WebTracker.SessionAnalyzer.ChannelClassifier.WorkplacePlatformDetector
 
   @err_unable_to_classify {:error,
                            "unable to determine channel attribution for session"}

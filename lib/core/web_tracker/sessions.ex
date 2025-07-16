@@ -10,8 +10,8 @@ defmodule Core.WebTracker.Sessions do
   alias Plug.Session
   alias Core.Utils.IdGenerator
   alias Core.WebTracker.IPProfiler
+  alias Core.WebTracker.SessionAnalyzer
   alias Core.WebTracker.Sessions.Session
-  alias Core.WebTracker.ChannelClassifier
 
   # Session timeout constants (in minutes)
   @default_limit 100
@@ -341,7 +341,6 @@ defmodule Core.WebTracker.Sessions do
   end
 
   defp after_session_closed(%Session{} = session) do
-    Core.WebTracker.SessionAnalyzer.start(session.id)
-    ChannelClassifier.classify_session(session.id)
+    SessionAnalyzer.start(session.id)
   end
 end
