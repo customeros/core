@@ -17,15 +17,16 @@ defmodule Core.Utils.Cron.CronLock do
     :cron_company_domain_processor,
     :cron_company_enricher,
     :cron_company_scrapin_enricher,
+    :cron_contact_enricher,
     :cron_daily_lead_summary_sender,
+    :cron_google_ads_campaign_fetcher,
     :cron_hubspot_company_sync,
     :cron_icp_fit_evaluator,
     :cron_lead_creator,
     :cron_magic_link_usage_checker,
     :cron_session_closer,
     :cron_stage_evaluator,
-    :cron_target_persona_linkedin_processor,
-    :cron_google_ads_campaign_fetcher
+    :cron_target_persona_linkedin_processor
   ]
 
   @type cron_name :: unquote(Enum.reduce(@cron_names, &{:|, [], [&1, &2]}))
