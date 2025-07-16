@@ -36,13 +36,13 @@ export default function Analytics({ session_analytics }: AnalyticsProps) {
   const totalLeads = session_analytics[selectedIndex]?.new_icp_fit_leads ?? 0;
 
   const allSessions = session_analytics[selectedIndex]?.sessions ?? 0;
-  const uniqueCompanies = session_analytics[selectedIndex]?.unique_companies ?? 0;
+  const uniqueNewCompanies = session_analytics[selectedIndex]?.unique_new_companies ?? 0;
   const identifiedSessions = session_analytics[selectedIndex]?.identified_sessions ?? 0;
 
   const sessionIdentificationRate =
     allSessions > 0 ? `${((identifiedSessions / allSessions) * 100).toFixed(1)}%` : '0%';
   const icpQualificationRate =
-    uniqueCompanies > 0 ? `${((totalLeads / uniqueCompanies) * 100).toFixed(1)}%` : '0%';
+    uniqueNewCompanies > 0 ? `${((totalLeads / uniqueNewCompanies) * 100).toFixed(1)}%` : '0%';
 
   const hasAnyData = session_analytics.some(s => s.sessions > 0);
 
