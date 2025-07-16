@@ -12,7 +12,7 @@ defmodule Core.Crm.Contacts.Enricher.LocationAI do
   alias Core.Utils.TaskAwaiter
 
   @timeout 30 * 1000
-  @model :gemini_flash_2_0
+  @models [:gemini_flash_2_0, :llama3_70b]
   @max_tokens 100
   @temperature 0.05
   @system_prompt """
@@ -34,47 +34,58 @@ defmodule Core.Crm.Contacts.Enricher.LocationAI do
   """
 
   @type location_data :: %{
-          country_a2: String.t() | nil,
-          region: String.t() | nil,
-          city: String.t() | nil,
-          timezone: String.t() | nil
-        }
+    country_a2: String.t() | nil,
+    region: String.t() | nil,
+    city: String.t() | nil,
+    timezone: String.t() | nil
+  }
 
   @spec parse_location(String.t()) :: {:ok, location_data()} | {:error, term()}
   def parse_location(location) do
     OpenTelemetry.Tracer.with_span "location.parse" do
       prompt = build_prompt(location)
+      try_models(prompt, @models, location)
+    end
+  end
 
-      request =
-        Ai.Request.new(prompt,
-          model: @model,
-          system_prompt: @system_prompt,
-          max_tokens: @max_tokens,
-          temperature: @temperature
-        )
+  defp try_models(_prompt, [], _location), do: {:error, :all_models_failed}
+  defp try_models(prompt, [model | remaining_models], location) do
+    request =
+      Ai.Request.new(prompt,
+        model: model,
+        system_prompt: @system_prompt,
+        max_tokens: @max_tokens,
+        temperature: @temperature
+      )
 
-      task = Ai.ask_supervised(request)
+    task = Ai.ask_supervised(request)
 
-      case TaskAwaiter.await(task, @timeout) do
-        {:ok, response} ->
-          OpenTelemetry.Tracer.set_attributes([
-            {"ai.raw.response", response}
-          ])
+    case TaskAwaiter.await(task, @timeout) do
+      {:ok, response} ->
+        OpenTelemetry.Tracer.set_attributes([
+          {"ai.raw.response", response},
+          {"ai.model.used", model}
+        ])
 
-          case Jason.decode(response) do
-            {:ok, data} ->
-              Tracing.ok()
-              {:ok, data}
+        case Jason.decode(response) do
+          {:ok, data} ->
+            normalized_data = normalize_keys(data)
 
-            {:error, reason} ->
-              Tracing.error(reason, "Failed to parse AI response as JSON")
-              {:error, :invalid_json}
-          end
+            Tracing.ok()
+            {:ok, normalized_data}
 
-        {:error, reason} ->
-          Tracing.error(reason, "Failed to get AI response")
-          {:error, reason}
-      end
+          {:error, reason} ->
+            Tracing.error(reason, "Failed to parse AI response as JSON")
+            try_models(prompt, remaining_models, location)
+        end
+
+      {:error, {:api_error, "User location is not supported for the API use."}} ->
+        Logger.warning("Location not supported for model #{model}, trying next model")
+        try_models(prompt, remaining_models, location)
+
+      {:error, reason} ->
+        Tracing.error(reason, "Failed to get AI response")
+        try_models(prompt, remaining_models, location)
     end
   end
 
@@ -82,5 +93,10 @@ defmodule Core.Crm.Contacts.Enricher.LocationAI do
     """
     Parse this location string: #{location}
     """
+  end
+
+  defp normalize_keys(map) when is_map(map) do
+    map
+    |> Map.new(fn {k, v} -> {to_string(k), v} end)
   end
 end

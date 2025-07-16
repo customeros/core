@@ -178,22 +178,19 @@ defmodule Core.Crm.Contacts.Enricher.ContactEnricher do
         {"contact.location", contact.location}
       ])
 
-      increment_attempt(contact)
+      {:ok, contact} = increment_attempt(contact)
 
-      # First check if we have cached mapping
       case Repo.get_by(LocationMapping, location: contact.location) do
         %LocationMapping{} = mapping ->
           update_contact_with_mapping(contact, mapping)
 
         nil ->
-          # No cached mapping, use AI to parse
           case LocationAI.parse_location(contact.location) do
             {:ok, location_data} ->
-              # Cache the mapping
               {:ok, mapping} =
                 %LocationMapping{}
                 |> LocationMapping.changeset(
-                  Map.put(location_data, :location, contact.location)
+                  Map.put(location_data, "location", contact.location)
                 )
                 |> Repo.insert()
 
@@ -230,13 +227,26 @@ defmodule Core.Crm.Contacts.Enricher.ContactEnricher do
   end
 
   defp update_contact_with_mapping(contact, mapping) do
-    contact
-    |> Contact.changeset(%{
+    # Get values directly from the struct fields
+    attrs = %{
       country_a2: mapping.country_a2,
       region: mapping.region,
       city: mapping.city,
       timezone: mapping.timezone
-    })
-    |> Repo.update()
+    }
+
+    case contact
+         |> Contact.changeset(attrs)
+         |> Repo.update() do
+      {:ok, _updated_contact} = result ->
+        Tracing.ok()
+        result
+
+      {:error, reason} = error ->
+        Tracing.error(reason, "Failed to update contact with location data",
+          contact_id: contact.id
+        )
+        error
+    end
   end
 end
