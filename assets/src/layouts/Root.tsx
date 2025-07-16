@@ -27,7 +27,7 @@ declare global {
 }
 
 export const RootLayout = ({ children }: { children: React.ReactNode }) => {
-  const { props } = usePage<
+  const { props, component } = usePage<
     PageProps & {
       tenant: Tenant;
       companies: Lead[];
@@ -36,6 +36,8 @@ export const RootLayout = ({ children }: { children: React.ReactNode }) => {
       profile: IcpProfile;
     }
   >();
+
+  const displayHeader = !['Signin', 'Signup', 'Document'].includes(component);
 
   useEffect(() => {
     if ('flash' in props) {
@@ -82,7 +84,7 @@ export const RootLayout = ({ children }: { children: React.ReactNode }) => {
             collapse: false,
           })}
         />
-        <Header />
+        {displayHeader && <Header />}
         {children}
       </PresenceProvider>
     </PhoenixSocketProvider>
