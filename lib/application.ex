@@ -52,7 +52,28 @@ defmodule Core.Application do
       {Finch,
        name: Core.Finch,
        pools: %{
-         default: [size: 40, count: 4]
+         default: [
+           size: 40,
+           count: 4,
+           conn_opts: [
+             transport_opts: [
+               verify: :verify_peer,
+               cacerts: :public_key.cacerts_get(),
+               customize_hostname_check: [
+                 match_fun: :public_key.pkix_verify_hostname_match_fun(:https)
+               ]
+             ]
+           ]
+         ],
+         relaxed_tls: [
+           size: 10,
+           count: 2,
+           conn_opts: [
+             transport_opts: [
+               verify: :verify_none # WARNING: Disables TLS verification; may introduce MITM risks.
+             ]
+           ]
+         ]
        }}
     ]
 

@@ -388,14 +388,14 @@ defmodule Core.Researcher.Scraper do
         url,
         depth \\ 0,
         visited \\ MapSet.new(),
-        last_know_content_type \\ nil
+        last_known_content_type \\ nil
       ) do
     OpenTelemetry.Tracer.with_span "scraper.fetch_content_type" do
       OpenTelemetry.Tracer.set_attributes([
         {"param.url", url},
         {"param.depth", depth},
         {"param.visited", visited},
-        {"param.last_know_content_type", last_know_content_type}
+        {"param.last_known_content_type", last_known_content_type}
       ])
 
       cond do
@@ -410,7 +410,7 @@ defmodule Core.Researcher.Scraper do
           {:error, :invalid_url}
 
         true ->
-          make_request(url, depth, visited, last_know_content_type)
+          make_request(url, depth, visited, last_known_content_type)
       end
     end
   end
@@ -430,9 +430,8 @@ defmodule Core.Researcher.Scraper do
   defp valid_url?(_), do: false
 
   # Extract the request logic to a separate function
-  defp make_request(url, depth, visited, last_know_content_type) do
-    case Finch.build(:get, url)
-         |> Finch.request(Core.Finch, receive_timeout: 30_000) do
+  defp make_request(url, depth, visited, last_known_content_type) do
+    case execute_finch_request(url, :default) do
       {:ok, %Finch.Response{headers: headers, status: status}} ->
         OpenTelemetry.Tracer.set_attributes([{"result.status", status}])
 
@@ -442,11 +441,15 @@ defmodule Core.Researcher.Scraper do
           status,
           depth,
           visited,
-          last_know_content_type
+          last_known_content_type
         )
 
       {:error, %Mint.TransportError{reason: :timeout}} ->
         {:error, :timeout}
+
+      {:error, %Mint.TransportError{reason: {:tls_alert, _}}} ->
+        Logger.warning("TLS verification failed for #{url}, trying with relaxed verification")
+        make_request_with_relaxed_tls(url, depth, visited, last_known_content_type)
 
       {:error, reason} ->
         Logger.warning(
@@ -464,13 +467,61 @@ defmodule Core.Researcher.Scraper do
       {:error, :invalid_url}
   end
 
+  # Fallback function for TLS verification failures
+  defp make_request_with_relaxed_tls(url, depth, visited, last_known_content_type) do
+    case execute_finch_request(url, :relaxed_tls) do
+      {:ok, %Finch.Response{headers: headers, status: status}} ->
+        OpenTelemetry.Tracer.set_attributes([{"result.status", status}])
+
+        handle_fetch_content_type_successful_response(
+          url,
+          headers,
+          status,
+          depth,
+          visited,
+          last_known_content_type
+        )
+
+      {:error, reason} ->
+        Logger.warning(
+          "Relaxed TLS request also failed for URL #{url}: #{inspect(reason)}"
+        )
+
+        {:error, reason}
+    end
+  rescue
+    e in ArgumentError ->
+      Logger.error(
+        "ArgumentError in relaxed TLS request for URL #{url}: #{Exception.message(e)}"
+      )
+
+      {:error, :invalid_url}
+  end
+
+  # Shared helper function for executing Finch requests
+  defp execute_finch_request(url, pool) do
+    request_opts = 
+      case pool do
+        :default -> [receive_timeout: 30_000]
+        :relaxed_tls -> [
+          receive_timeout: 30_000,
+          pool_timeout: 30_000,
+          request_timeout: 30_000,
+          pool: :relaxed_tls
+        ]
+      end
+
+    Finch.build(:get, url)
+    |> Finch.request(Core.Finch, request_opts)
+  end
+
   defp handle_fetch_content_type_successful_response(
          url,
          headers,
          status,
          depth,
          visited,
-         last_know_content_type
+         last_known_content_type
        ) do
     content_type = extract_content_type(headers)
     disposition = extract_disposition(headers)
@@ -484,7 +535,7 @@ defmodule Core.Researcher.Scraper do
           content_type,
           depth,
           visited,
-          last_know_content_type
+          last_known_content_type
         )
 
       is_nil(content_type) ->
@@ -528,12 +579,12 @@ defmodule Core.Researcher.Scraper do
          content_type,
          depth,
          visited,
-         last_know_content_type
+         last_known_content_type
        ) do
     next_url = build_next_url(url, location)
 
     if MapSet.member?(visited, next_url) do
-      handle_visited_redirect(content_type, last_know_content_type)
+      handle_visited_redirect(content_type, last_known_content_type)
     else
       handle_new_redirect(
         next_url,
@@ -541,7 +592,7 @@ defmodule Core.Researcher.Scraper do
         content_type,
         depth,
         visited,
-        last_know_content_type
+        last_known_content_type
       )
     end
   end
@@ -583,13 +634,13 @@ defmodule Core.Researcher.Scraper do
     end
   end
 
-  defp handle_visited_redirect(content_type, last_know_content_type) do
+  defp handle_visited_redirect(content_type, last_known_content_type) do
     cond do
       not is_nil(content_type) and content_type != "" ->
         {:ok, content_type}
 
-      not is_nil(last_know_content_type) and last_know_content_type != "" ->
-        {:ok, last_know_content_type}
+      not is_nil(last_known_content_type) and last_known_content_type != "" ->
+        {:ok, last_known_content_type}
 
       true ->
         {:error, :no_content_type}
@@ -602,11 +653,11 @@ defmodule Core.Researcher.Scraper do
          content_type,
          depth,
          visited,
-         last_know_content_type
+         last_known_content_type
        ) do
     updated_content_type =
       if content_type == "" or is_nil(content_type),
-        do: last_know_content_type,
+        do: last_known_content_type,
         else: content_type
 
     if valid_url?(next_url) do
