@@ -678,6 +678,15 @@ defmodule Core.Crm.Companies.CompanyEnrich do
           @err_image_not_found
         end
 
+      {:error, "HTTP request failed with status 429"} ->
+        Tracing.warning(:rate_limited, "Icon download rate limited, will retry later",
+          company_id: company.id,
+          company_domain: company.primary_domain
+        )
+
+        # Return a retryable error for rate limiting
+        {:error, :rate_limited}
+
       {:error, reason} ->
         Tracing.error(reason, "Failed to download icon for company",
           company_id: company.id,
