@@ -185,12 +185,23 @@ defmodule Core.Crm.Contacts do
                  ) == :gt)
 
           if should_update_company_started_at do
-            {:ok, existing_contact} =
-              update_contact_field(
-                existing_contact.id,
-                %{company_started_at: contact_attrs.company_started_at},
-                "company started at"
-              )
+            case update_contact_field(
+                   existing_contact.id,
+                   %{company_started_at: contact_attrs.company_started_at},
+                   "company started at"
+                 ) do
+              {:ok, updated_contact} ->
+                updated_contact
+
+              {:error, reason} ->
+                # Optionally log the error
+                Logger.warning("Failed to update company_started_at", %{
+                  contact_id: existing_contact.id,
+                  reason: reason
+                })
+
+                existing_contact
+            end
           end
 
           result =
