@@ -45,6 +45,7 @@ defmodule Core.WebTracker.SessionAnalyzer.CampaignIdentifier do
               query_string: query_string,
               tenant_id: tenant_id
             })
+
             nil
         end
 
@@ -68,6 +69,7 @@ defmodule Core.WebTracker.SessionAnalyzer.CampaignIdentifier do
               query_string: query_string,
               tenant_id: tenant_id
             })
+
             nil
         end
 

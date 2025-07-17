@@ -21,6 +21,7 @@ defmodule Core.Researcher.Scraper.Jina do
   """
   def fetch_page_supervised(url) do
     ctx = OpenTelemetry.Ctx.get_current()
+
     Task.Supervisor.async(
       Core.TaskSupervisor,
       fn ->

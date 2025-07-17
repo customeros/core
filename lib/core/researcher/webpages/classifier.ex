@@ -19,6 +19,7 @@ defmodule Core.Researcher.Webpages.Classifier do
 
   def classify_content_supervised(url, content) do
     ctx = OpenTelemetry.Ctx.get_current()
+
     Task.Supervisor.async(
       Core.TaskSupervisor,
       fn ->
@@ -34,38 +35,43 @@ defmodule Core.Researcher.Webpages.Classifier do
         {"param.url", url}
       ])
 
-    Logger.info("Starting classify content analysis for #{url}",
-      url: url
-    )
-
-    {system_prompt, prompt} =
-      build_classify_webpage_prompts(url, content)
-
-    request =
-      Ai.Request.new(prompt,
-        model: @model,
-        system_prompt: system_prompt,
-        temperature: @model_temperature,
-        max_tokens: @max_tokens,
-        response_type: :json
+      Logger.info("Starting classify content analysis for #{url}",
+        url: url
       )
 
-    task = Ai.ask_supervised(request)
+      {system_prompt, prompt} =
+        build_classify_webpage_prompts(url, content)
 
-    case TaskAwaiter.await(task, @timeout) do
-      {:ok, answer} ->
-        case parse_and_validate_response(answer) do
-          {:ok, classification} -> {:ok, classification}
-          {:error, reason} ->
-            Tracing.error(reason, "AI classification validation failed", url: url)
-            {:error, reason}
-        end
+      request =
+        Ai.Request.new(prompt,
+          model: @model,
+          system_prompt: system_prompt,
+          temperature: @model_temperature,
+          max_tokens: @max_tokens,
+          response_type: :json
+        )
 
-      {:error, reason} ->
-        Tracing.error(reason, "AI classification failed", url: url)
-        {:error, reason}
+      task = Ai.ask_supervised(request)
+
+      case TaskAwaiter.await(task, @timeout) do
+        {:ok, answer} ->
+          case parse_and_validate_response(answer) do
+            {:ok, classification} ->
+              {:ok, classification}
+
+            {:error, reason} ->
+              Tracing.error(reason, "AI classification validation failed",
+                url: url
+              )
+
+              {:error, reason}
+          end
+
+        {:error, reason} ->
+          Tracing.error(reason, "AI classification failed", url: url)
+          {:error, reason}
+      end
     end
-  end
   end
 
   defp parse_and_validate_response(response) when is_binary(response) do

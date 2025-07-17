@@ -25,6 +25,7 @@ defmodule Core.Researcher.Webpages.Summarizer do
 
   def summarize_webpage_supervised(url, content) do
     ctx = OpenTelemetry.Ctx.get_current()
+
     Task.Supervisor.async(
       Core.TaskSupervisor,
       fn ->

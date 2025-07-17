@@ -19,6 +19,7 @@ defmodule Core.Researcher.Scraper.Puremd do
   """
   def fetch_page_supervised(url) do
     ctx = OpenTelemetry.Ctx.get_current()
+
     Task.Supervisor.async(
       Core.TaskSupervisor,
       fn ->

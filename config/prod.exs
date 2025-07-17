@@ -13,13 +13,15 @@ config :core, :url,
 
 config :logger,
   backends: [
-    :console, 
+    :console,
     Core.Notifications.CrashMonitor,
-    {Core.Logger.SignozLogger, [
-      env: System.get_env("OTEL_ENVIRONMENT", "production"),
-      endpoint: System.get_env("SIGNOZ_LOGS_ENDPOINT", "http://10.0.16.2:4318/v1/logs"),
-      service_name: System.get_env("OTEL_SERVICE_NAME", "customeros-core")
-    ]}
+    {Core.Logger.SignozLogger,
+     [
+       env: System.get_env("OTEL_ENVIRONMENT", "production"),
+       endpoint:
+         System.get_env("SIGNOZ_LOGS_ENDPOINT", "http://10.0.16.2:4318/v1/logs"),
+       service_name: System.get_env("OTEL_SERVICE_NAME", "customeros-core")
+     ]}
   ],
   level: :warning
 
