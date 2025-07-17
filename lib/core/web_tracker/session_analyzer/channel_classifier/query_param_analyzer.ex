@@ -31,10 +31,12 @@ defmodule Core.WebTracker.SessionAnalyzer.ChannelClassifier.QueryParamAnalyzer d
   """
 
   def get_paid_campaign(tenant_id, query_string) when is_binary(query_string) do
-    query_string
-    |> parse_query_params()
-    |> extract_paid_data(tenant_id)
-    |> PaidCampaigns.upsert()
+    case query_string
+         |> parse_query_params()
+         |> extract_paid_data(tenant_id) do
+      nil -> {:ok, nil}
+      data -> PaidCampaigns.upsert(data)
+    end
   end
 
   def get_utm_campaign(tenant_id, query_string) when is_binary(query_string) do
@@ -99,7 +101,7 @@ defmodule Core.WebTracker.SessionAnalyzer.ChannelClassifier.QueryParamAnalyzer d
     platform = determine_platform(params)
 
     if platform do
-      base_params = extract_hsa_params(params)
+      base_params = extract_platform_params(params, platform)
 
       if map_size(base_params) > 0 do
         Map.merge(base_params, %{
@@ -121,6 +123,12 @@ defmodule Core.WebTracker.SessionAnalyzer.ChannelClassifier.QueryParamAnalyzer d
       "bing" ->
         :bing
 
+      "microsoft" ->
+        :bing
+
+      "msn" ->
+        :bing
+
       "adwords" ->
         :google
 
@@ -139,6 +147,9 @@ defmodule Core.WebTracker.SessionAnalyzer.ChannelClassifier.QueryParamAnalyzer d
       "instagram" ->
         :instagram
 
+      "ig" ->
+        :instagram
+
       "tiktok" ->
         :tiktok
 
@@ -155,6 +166,110 @@ defmodule Core.WebTracker.SessionAnalyzer.ChannelClassifier.QueryParamAnalyzer d
           true -> nil
         end
     end
+  end
+
+  defp extract_platform_params(params, platform) do
+    case platform do
+      platform when platform in [:facebook, :instagram] ->
+        extract_facebook_params(params)
+
+      platform when platform in [:google, :youtube] ->
+        extract_google_params(params)
+
+      :linkedin ->
+        extract_linkedin_params(params)
+
+      :x ->
+        extract_twitter_params(params)
+
+      :bing ->
+        extract_bing_params(params)
+
+      _ ->
+        extract_hsa_params(params)
+    end
+  end
+
+  defp extract_facebook_params(params) do
+    %{
+      account_id: Map.get(params, "igshid") || Map.get(params, "fbclid"),
+      campaign_id:
+        Map.get(params, "ig_campaign_id") || Map.get(params, "fbc_id"),
+      group_id:
+        Map.get(params, "ig_adset_id") || Map.get(params, "fb_adset_id"),
+      targeting_id:
+        Map.get(params, "ig_targeting_id") || Map.get(params, "fb_targeting_id"),
+      content_id:
+        Map.get(params, "ig_ad_id") || Map.get(params, "h_ad_id") ||
+          Map.get(params, "fb_ad_id")
+    }
+    |> filter_empty_values()
+  end
+
+  defp extract_google_params(params) do
+    %{
+      account_id: Map.get(params, "gclid"),
+      campaign_id:
+        Map.get(params, "gc_id") || Map.get(params, "gad_campaignid"),
+      group_id: Map.get(params, "h_ga_id"),
+      targeting_id:
+        Map.get(params, "h_keyword_id") || Map.get(params, "h_placement"),
+      content_id: Map.get(params, "h_ad_id")
+    }
+    |> filter_empty_values()
+  end
+
+  defp extract_twitter_params(params) do
+    %{
+      account_id:
+        Map.get(params, "twclid") || Map.get(params, "twitter_account_id"),
+      campaign_id:
+        Map.get(params, "tw_campaign_id") ||
+          Map.get(params, "twitter_campaign_id"),
+      group_id:
+        Map.get(params, "tw_adgroup_id") ||
+          Map.get(params, "twitter_adgroup_id"),
+      targeting_id:
+        Map.get(params, "tw_targeting_id") ||
+          Map.get(params, "twitter_targeting_id"),
+      content_id:
+        Map.get(params, "tw_ad_id") || Map.get(params, "twitter_ad_id")
+    }
+    |> filter_empty_values()
+  end
+
+  defp extract_linkedin_params(params) do
+    %{
+      account_id:
+        Map.get(params, "li_fat_id") || Map.get(params, "linkedin_account_id"),
+      campaign_id:
+        Map.get(params, "li_campaign_id") ||
+          Map.get(params, "linkedin_campaign_id"),
+      group_id:
+        Map.get(params, "li_adgroup_id") ||
+          Map.get(params, "linkedin_adgroup_id"),
+      targeting_id:
+        Map.get(params, "li_targeting_id") ||
+          Map.get(params, "linkedin_targeting_id"),
+      content_id:
+        Map.get(params, "li_ad_id") || Map.get(params, "linkedin_ad_id")
+    }
+    |> filter_empty_values()
+  end
+
+  defp extract_bing_params(params) do
+    %{
+      account_id:
+        Map.get(params, "msclkid") || Map.get(params, "ms_account_id"),
+      campaign_id:
+        Map.get(params, "ms_campaign_id") || Map.get(params, "bing_campaign_id"),
+      group_id:
+        Map.get(params, "ms_adgroup_id") || Map.get(params, "bing_adgroup_id"),
+      targeting_id:
+        Map.get(params, "ms_targeting_id") || Map.get(params, "bing_keyword_id"),
+      content_id: Map.get(params, "ms_ad_id") || Map.get(params, "bing_ad_id")
+    }
+    |> filter_empty_values()
   end
 
   defp extract_hsa_params(params) do
