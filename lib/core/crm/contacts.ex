@@ -565,13 +565,17 @@ defmodule Core.Crm.Contacts do
     end
   end
 
-  defp format_current_time_in_timezone(timezone) when is_binary(timezone) do
+  defp format_current_time_in_timezone(timezone) when is_binary(timezone) and timezone != "" do
     try do
       dt = Timex.now(timezone)
       Timex.format!(dt, "%H:%M", :strftime)
     rescue
       _ -> nil
     end
+  end
+
+  defp format_current_time_in_timezone(_) do
+    nil
   end
 
   def update_business_email(business_email, status, contact_id) do
