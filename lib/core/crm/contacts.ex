@@ -556,10 +556,11 @@ defmodule Core.Crm.Contacts do
       ])
 
       Enum.map(contacts, fn {contact, company_name} ->
+        company_started_at = safe_to_datetime(contact.company_started_at)
         time_current_position =
-          if not is_nil(contact.company_started_at) do
+          if not is_nil(company_started_at) do
             CalculateTimeInPosition.calculate(
-              contact.company_started_at,
+              company_started_at,
               DateTime.utc_now()
             )
           else
@@ -1169,6 +1170,19 @@ defmodule Core.Crm.Contacts do
 
       _ ->
         {:ok, nil}
+    end
+  end
+
+  defp safe_to_datetime(nil), do: nil
+  defp safe_to_datetime(%DateTime{} = dt), do: dt
+  defp safe_to_datetime(str) when is_binary(str) do
+    case NaiveDateTime.from_iso8601(str) do
+      {:ok, naive_dt} ->
+        case DateTime.from_naive(naive_dt, "Etc/UTC") do
+          {:ok, dt} -> dt
+          _ -> nil
+        end
+      _ -> nil
     end
   end
 end
