@@ -7,6 +7,7 @@ defmodule Web.WebTrackerController do
   alias Core.WebTracker.OriginTenantMapper
   alias Core.WebTracker.Events
   alias Core.WebTracker.BotDetector
+  alias Core.WebTracker.IPProfiler
   alias Core.Utils.Tracing
 
   plug Web.Plugs.ValidateWebTrackerHeaders when action in [:create]
@@ -19,7 +20,8 @@ defmodule Web.WebTrackerController do
       ])
 
       with :ok <- validate_origin(params["origin"]),
-           {:ok, _} <- validate_visitor_id(params["visitorId"]) do
+           {:ok, _} <- validate_visitor_id(params["visitorId"]),
+           :ok <- validate_ip_safety(params["ip"]) do
         case Events.create(params) do
           {:ok, _event} ->
             Tracing.ok()
@@ -77,6 +79,18 @@ defmodule Web.WebTrackerController do
           |> json(%{
             error: "bad_request",
             details: %{visitor_id: "Visitor ID is required"}
+          })
+
+        {:error, :ip_is_threat} ->
+          OpenTelemetry.Tracer.set_attributes([
+            {"result.error", "IP is flagged as threat"}
+          ])
+
+          conn
+          |> put_status(:forbidden)
+          |> json(%{
+            error: "forbidden",
+            details: %{ip: "IP is flagged as threat"}
           })
       end
     end
@@ -138,6 +152,28 @@ defmodule Web.WebTrackerController do
        do: {:ok, visitor_id}
 
   defp validate_visitor_id(_), do: {:error, :missing_visitor_id}
+
+  defp validate_ip_safety(ip) when is_binary(ip) and ip != "" do
+    case IPProfiler.get_ip_data(ip) do
+      {:ok, ip_data} ->
+        if ip_data.is_threat do
+          {:error, :ip_is_threat}
+        else
+          :ok
+        end
+
+      {:error, reason} ->
+        Tracing.warning(
+          reason,
+          "IP validation failed, allowing event creation",
+          %{ip: ip}
+        )
+        # Allow event creation if IP validation fails
+        :ok
+    end
+  end
+
+  defp validate_ip_safety(_), do: :ok
 
   @spec determine_error_status(map()) :: :bad_request | :forbidden
   defp determine_error_status(errors) do
