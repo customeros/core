@@ -64,13 +64,17 @@ defmodule Core.Application do
                ]
              ]
            ]
-         ],
-         relaxed_tls: [
+         ]
+       }},
+      {Finch,
+       name: Core.FinchRelaxedTLS,
+       pools: %{
+         default: [
            size: 10,
            count: 2,
            conn_opts: [
              transport_opts: [
-               verify: :verify_none # WARNING: Disables TLS verification; may introduce MITM risks.
+               verify: :verify_none
              ]
            ]
          ]

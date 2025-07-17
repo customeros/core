@@ -500,19 +500,20 @@ defmodule Core.Researcher.Scraper do
 
   # Shared helper function for executing Finch requests
   defp execute_finch_request(url, pool) do
-    request_opts = 
+    {finch_name, request_opts} = 
       case pool do
-        :default -> [receive_timeout: 30_000]
-        :relaxed_tls -> [
-          receive_timeout: 30_000,
-          pool_timeout: 30_000,
-          request_timeout: 30_000,
-          pool: :relaxed_tls
-        ]
+        :default -> 
+          {Core.Finch, [receive_timeout: 30_000]}
+        :relaxed_tls -> 
+          {Core.FinchRelaxedTLS, [
+            receive_timeout: 30_000,
+            pool_timeout: 30_000,
+            request_timeout: 30_000
+          ]}
       end
 
     Finch.build(:get, url)
-    |> Finch.request(Core.Finch, request_opts)
+    |> Finch.request(finch_name, request_opts)
   end
 
   defp handle_fetch_content_type_successful_response(
