@@ -19,6 +19,7 @@ defmodule Core.Researcher.Crawler do
   @spec crawl_supervised(String.t(), keyword()) :: Task.t()
   def crawl_supervised(domain, opts \\ []) do
     ctx = OpenTelemetry.Ctx.get_current()
+
     Task.Supervisor.async(Core.TaskSupervisor, fn ->
       OpenTelemetry.Ctx.attach(ctx)
       opts = Keyword.merge(@default_opts, opts)

@@ -18,6 +18,7 @@ defmodule Core.Researcher.Webpages.IntentProfiler do
 
   def profile_intent_supervised(url, content) do
     ctx = OpenTelemetry.Ctx.get_current()
+
     Task.Supervisor.async(
       Core.TaskSupervisor,
       fn ->

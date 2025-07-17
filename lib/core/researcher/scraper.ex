@@ -455,8 +455,16 @@ defmodule Core.Researcher.Scraper do
         {:error, :timeout}
 
       {:error, %Mint.TransportError{reason: {:tls_alert, _}}} ->
-        Logger.warning("TLS verification failed for #{url}, trying with relaxed verification")
-        make_request_with_relaxed_tls(url, depth, visited, last_known_content_type)
+        Logger.warning(
+          "TLS verification failed for #{url}, trying with relaxed verification"
+        )
+
+        make_request_with_relaxed_tls(
+          url,
+          depth,
+          visited,
+          last_known_content_type
+        )
 
       {:error, reason} ->
         Logger.warning(
@@ -475,7 +483,12 @@ defmodule Core.Researcher.Scraper do
   end
 
   # Fallback function for TLS verification failures
-  defp make_request_with_relaxed_tls(url, depth, visited, last_known_content_type) do
+  defp make_request_with_relaxed_tls(
+         url,
+         depth,
+         visited,
+         last_known_content_type
+       ) do
     case execute_finch_request(url, :relaxed_tls) do
       {:ok, %Finch.Response{headers: headers, status: status}} ->
         OpenTelemetry.Tracer.set_attributes([{"result.status", status}])
@@ -511,12 +524,14 @@ defmodule Core.Researcher.Scraper do
       case pool do
         :default ->
           {Core.Finch, [receive_timeout: 30_000]}
+
         :relaxed_tls ->
-          {Core.FinchRelaxedTLS, [
-            receive_timeout: 30_000,
-            pool_timeout: 30_000,
-            request_timeout: 30_000
-          ]}
+          {Core.FinchRelaxedTLS,
+           [
+             receive_timeout: 30_000,
+             pool_timeout: 30_000,
+             request_timeout: 30_000
+           ]}
       end
 
     Finch.build(:get, url)

@@ -29,6 +29,7 @@ defmodule Core.Researcher.Webpages.ContentClassifier do
 
   def classify_supervised(url, content) do
     ctx = OpenTelemetry.Ctx.get_current()
+
     Task.Supervisor.async(
       Core.TaskSupervisor,
       fn ->
@@ -53,36 +54,36 @@ defmodule Core.Researcher.Webpages.ContentClassifier do
         {"param.url", url}
       ])
 
-    Logger.info("Starting classify content analysis for #{url}",
-      url: url
-    )
+      Logger.info("Starting classify content analysis for #{url}",
+        url: url
+      )
 
-    case ask(
-           url,
-           @classify_model,
-           build_classify_prompts(url, content)
-         ) do
-      {:ok, answer} ->
-        validate_classification(answer)
+      case ask(
+             url,
+             @classify_model,
+             build_classify_prompts(url, content)
+           ) do
+        {:ok, answer} ->
+          validate_classification(answer)
 
-      {:error, _reason} ->
-        case ask(
-               url,
-               @fallback_model,
-               build_classify_prompts(url, content)
-             ) do
-          {:ok, answer} ->
-            validate_classification(answer)
+        {:error, _reason} ->
+          case ask(
+                 url,
+                 @fallback_model,
+                 build_classify_prompts(url, content)
+               ) do
+            {:ok, answer} ->
+              validate_classification(answer)
 
-          {:error, fallback_error} ->
-            Logger.error(
-              "failed to classify content at #{url}: #{fallback_error}"
-            )
+            {:error, fallback_error} ->
+              Logger.error(
+                "failed to classify content at #{url}: #{fallback_error}"
+              )
 
-            {:error, fallback_error}
-        end
+              {:error, fallback_error}
+          end
+      end
     end
-  end
   end
 
   def score(url, content, content_type) when is_binary(content) do

@@ -131,6 +131,7 @@ defmodule Core.WebTracker.Events.Event do
     rescue
       error ->
         Tracing.error(error, "Put tenant failed")
+
         changeset
         |> add_error(:origin, "Invalid origin")
     end
@@ -190,6 +191,7 @@ defmodule Core.WebTracker.Events.Event do
         Tracing.error(error, "Bot detection crashed")
         # Fall back to simple detection if sophisticated detection crashes
         user_agent = get_field(changeset, :user_agent) || ""
+
         if bot_user_agent?(user_agent) do
           add_error(changeset, :user_agent, "Bot requests are not allowed")
         else
