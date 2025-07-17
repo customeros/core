@@ -32,11 +32,12 @@ defmodule Core.Utils.DomainIO do
     request =
       Finch.build(:get, url, [
         {"user-agent",
-         "mozilla/5.0 (windows nt 10.0; win64; x64) applewebkit/537.36 (khtml, like gecko) chrome/91.0.4472.124 safari/537.36"}
+         "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/108.0.0.0 Safari/537.36"}
       ])
 
     try do
-      case Finch.request(request, Core.Finch, receive_timeout: 5000) do
+      case Finch.request(request, Core.FinchRelaxedTLS,
+                         receive_timeout: 5000) do
         {:ok, %Response{status: status, headers: headers}}
         when status >= 300 and status < 400 ->
           {:ok, {:redirect, headers}}
