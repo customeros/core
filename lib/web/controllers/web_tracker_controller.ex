@@ -21,7 +21,8 @@ defmodule Web.WebTrackerController do
 
       with :ok <- validate_origin(params["origin"]),
            {:ok, _} <- validate_visitor_id(params["visitorId"]),
-           :ok <- validate_ip_safety(params["ip"]) do
+           :ok <- validate_ip_safety(params["ip"]),
+           :ok <- validate_bot_detection(params) do
         case Events.create(params) do
           {:ok, _event} ->
             Tracing.ok()
@@ -86,12 +87,31 @@ defmodule Web.WebTrackerController do
             {"result.error", "IP is flagged as threat"}
           ])
 
+          Tracing.warning(
+            :ip_is_threat,
+            "Blocking event creation - IP is flagged as threat",
+            %{ip: params["ip"]}
+          )
+
           conn
           |> put_status(:forbidden)
-          |> json(%{
-            error: "forbidden",
-            details: %{ip: "IP is flagged as threat"}
-          })
+          |> json(%{error: "forbidden"})
+
+        {:error, {:bot_detected, confidence}} ->
+          OpenTelemetry.Tracer.set_attributes([
+            {"result.error", "Bot detected"},
+            {"result.bot_confidence", confidence}
+          ])
+
+          Tracing.warning(
+            :bot_detected,
+            "Blocking event creation - Bot detected",
+            %{user_agent: params["userAgent"], confidence: confidence}
+          )
+
+          conn
+          |> put_status(:forbidden)
+          |> json(%{error: "forbidden"})
       end
     end
   end
@@ -175,6 +195,29 @@ defmodule Web.WebTrackerController do
   end
 
   defp validate_ip_safety(_), do: :ok
+
+  defp validate_bot_detection(params) do
+    user_agent = params["userAgent"] || ""
+    ip = params["ip"] || ""
+    origin = params["origin"] || ""
+    referrer = params["referrer"] || ""
+
+    case BotDetector.detect_bot(user_agent, ip, origin, referrer) do
+      {:ok, %{bot: true, confidence: confidence}} ->
+        {:error, {:bot_detected, confidence}}
+
+      {:ok, %{bot: false}} ->
+        :ok
+
+      {:error, reason} ->
+        Tracing.warning(
+          reason,
+          "Bot detection failed, allowing event creation",
+          %{user_agent: user_agent, ip: ip}
+        )
+        :ok
+    end
+  end
 
   @spec determine_error_status(map()) :: :bad_request | :forbidden
   defp determine_error_status(errors) do
