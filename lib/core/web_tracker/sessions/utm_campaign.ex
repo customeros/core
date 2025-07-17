@@ -62,12 +62,47 @@ defmodule Core.WebTracker.Sessions.UtmCampaign do
   def changeset(utm \\ %__MODULE__{}, attrs) do
     utm
     |> cast(attrs, @required_fields ++ @optional_fields)
+    |> decode_utm_fields()
     |> validate_has_utm_data()
     |> generate_utm_hash()
     |> put_timestamps()
     |> validate_required(@required_fields)
     |> unique_constraint([:tenant_id, :utm_hash])
     |> maybe_put_id()
+  end
+
+  defp decode_utm_fields(changeset) do
+    utm_fields = [
+      :utm_source,
+      :utm_medium,
+      :utm_campaign,
+      :utm_term,
+      :utm_content
+    ]
+
+    Enum.reduce(utm_fields, changeset, fn field, acc ->
+      case get_change(acc, field) do
+        nil ->
+          acc
+
+        "" ->
+          acc
+
+        value when is_binary(value) ->
+          if needs_uri_decoding?(value) do
+            put_change(acc, field, URI.decode(value))
+          else
+            acc
+          end
+
+        _ ->
+          acc
+      end
+    end)
+  end
+
+  defp needs_uri_decoding?(string) do
+    String.contains?(string, "%") and String.match?(string, ~r/%[0-9A-Fa-f]{2}/)
   end
 
   defp validate_has_utm_data(changeset) do
@@ -115,6 +150,7 @@ defmodule Core.WebTracker.Sessions.UtmCampaign do
       %{valid?: true} ->
         hash_input =
           [
+            get_field(changeset, :tenant_id),
             get_field(changeset, :utm_source),
             get_field(changeset, :utm_medium),
             get_field(changeset, :utm_campaign),
