@@ -566,13 +566,11 @@ defmodule Core.Crm.Contacts do
   end
 
   defp format_current_time_in_timezone(timezone) when is_binary(timezone) do
-    case DateTime.now(timezone) do
-      {:ok, dt} ->
-        dt
-        |> Calendar.strftime("%H:%M")
-
-      _ ->
-        nil
+    try do
+      dt = Timex.now(timezone)
+      Timex.format!(dt, "%H:%M", :strftime)
+    rescue
+      _ -> nil
     end
   end
 
