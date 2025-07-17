@@ -3,9 +3,9 @@ defmodule Core.Crm.TargetPersonas.TargetPersonaLinkedinProcessor do
   Job responsible for processing target persona LinkedIn queue records.
   """
   use GenServer
-  import Ecto.Query
   require Logger
   require OpenTelemetry.Tracer
+  import Ecto.Query
   alias Core.Crm.TargetPersonas
   alias Core.Crm.TargetPersonas.TargetPersonaLinkedinQueue
   alias Core.Crm.TargetPersonas.TargetPersonaLinkedinQueues
@@ -19,6 +19,8 @@ defmodule Core.Crm.TargetPersonas.TargetPersonaLinkedinProcessor do
   @stuck_lock_duration_minutes 30
   @max_retries 5
   @delay_between_checks_hours 24
+
+  @linkedin_url_prefix "https://linkedin.com/in/"
 
   @doc """
   Starts the target persona LinkedIn processor process.
@@ -114,6 +116,29 @@ defmodule Core.Crm.TargetPersonas.TargetPersonaLinkedinProcessor do
 
   # Private Functions
 
+  defp format_linkedin_url(url) when is_binary(url) do
+    url = String.trim(url)
+
+    cond do
+      String.starts_with?(url, [
+        "http://linkedin.com/in/",
+        "https://linkedin.com/in/",
+        "http://www.linkedin.com/in/",
+        "https://www.linkedin.com/in/"
+      ]) ->
+        {:ok, url}
+
+      # If it's just an alias (e.g. "john-doe-123abc")
+      String.match?(url, ~r/^[a-zA-Z0-9\-]+$/) ->
+        {:ok, @linkedin_url_prefix <> url}
+
+      true ->
+        {:error, :invalid_linkedin_url}
+    end
+  end
+
+  defp format_linkedin_url(_), do: {:error, :invalid_linkedin_url}
+
   defp process_queue_record(%TargetPersonaLinkedinQueue{} = queue_record) do
     OpenTelemetry.Tracer.with_span "target_persona_linkedin_processor.process_record" do
       OpenTelemetry.Tracer.set_attributes([
@@ -124,25 +149,34 @@ defmodule Core.Crm.TargetPersonas.TargetPersonaLinkedinProcessor do
 
       case TargetPersonaLinkedinQueues.update_attempt(queue_record.id) do
         {:ok, _updated_record} ->
-          result =
-            TargetPersonas.create_from_linkedin(
-              queue_record.tenant_id,
-              queue_record.linkedin_url
-            )
+          with {:ok, formatted_url} <-
+                 format_linkedin_url(queue_record.linkedin_url),
+               {:ok, _personas} <-
+                 TargetPersonas.create_from_linkedin(
+                   queue_record.tenant_id,
+                   formatted_url
+                 ) do
+            case TargetPersonaLinkedinQueues.mark_completed(queue_record.id) do
+              {:ok, _completed_record} ->
+                {:ok, :completed}
 
-          case result do
-            {:ok, _personas} ->
-              case TargetPersonaLinkedinQueues.mark_completed(queue_record.id) do
-                {:ok, _completed_record} ->
-                  {:ok, :completed}
+              {:error, reason} ->
+                Tracing.error(reason, "Failed to mark record as completed",
+                  id: queue_record.id
+                )
 
-                {:error, reason} ->
-                  Tracing.error(reason, "Failed to mark record as completed",
-                    id: queue_record.id
-                  )
+                {:error, :mark_completed_failed}
+            end
+          else
+            {:error, :invalid_linkedin_url} ->
+              Tracing.error(
+                :invalid_linkedin_url,
+                "Invalid LinkedIn URL format",
+                id: queue_record.id,
+                url: queue_record.linkedin_url
+              )
 
-                  {:error, :mark_completed_failed}
-              end
+              {:error, :invalid_linkedin_url}
 
             {:error, reason} ->
               Tracing.error(
@@ -152,7 +186,7 @@ defmodule Core.Crm.TargetPersonas.TargetPersonaLinkedinProcessor do
                 linkedin_url: queue_record.linkedin_url
               )
 
-              {:error, :reason}
+              {:error, reason}
           end
 
         {:error, reason} ->

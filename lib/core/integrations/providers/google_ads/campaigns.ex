@@ -299,7 +299,8 @@ defmodule Core.Integrations.Providers.GoogleAds.Campaigns do
             "display_url" => ad["displayUrl"],
             "responsive_search_ad" => %{
               "headlines" => get_in(ad, ["responsiveSearchAd", "headlines"]),
-              "descriptions" => get_in(ad, ["responsiveSearchAd", "descriptions"])
+              "descriptions" =>
+                get_in(ad, ["responsiveSearchAd", "descriptions"])
             },
             "image_url" => get_in(ad, ["imageAd", "imageUrl"])
           }
