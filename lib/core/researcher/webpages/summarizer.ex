@@ -11,6 +11,8 @@ defmodule Core.Researcher.Webpages.Summarizer do
   - Task supervision for long-running operations
   """
 
+  require OpenTelemetry.Tracer
+
   alias Core.Ai
   alias Core.Utils.TaskAwaiter
 
@@ -22,9 +24,12 @@ defmodule Core.Researcher.Webpages.Summarizer do
   @err_timeout {:error, "generating content summary timed out"}
 
   def summarize_webpage_supervised(url, content) do
+    ctx = OpenTelemetry.Ctx.get_current()
+
     Task.Supervisor.async(
       Core.TaskSupervisor,
       fn ->
+        OpenTelemetry.Ctx.attach(ctx)
         summarize_webpage(url, content)
       end
     )

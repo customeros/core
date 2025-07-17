@@ -4,6 +4,7 @@ defmodule Core.Researcher.Scraper.Puremd do
   """
 
   require Logger
+  require OpenTelemetry.Tracer
 
   @err_timeout {:error, :timeout}
   @err_invalid_url {:error, :invalid_url}
@@ -17,9 +18,14 @@ defmodule Core.Researcher.Scraper.Puremd do
   Fetches a web page async with supervision.
   """
   def fetch_page_supervised(url) do
+    ctx = OpenTelemetry.Ctx.get_current()
+
     Task.Supervisor.async(
       Core.TaskSupervisor,
-      fn -> fetch_page(url) end
+      fn ->
+        OpenTelemetry.Ctx.attach(ctx)
+        fetch_page(url)
+      end
     )
   end
 

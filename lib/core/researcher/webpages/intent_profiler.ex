@@ -2,10 +2,12 @@ defmodule Core.Researcher.Webpages.IntentProfiler do
   @moduledoc """
   Profiles webpage intent using AI.
   """
+  require Logger
+  require OpenTelemetry.Tracer
+
   alias Core.Ai
   alias Core.Utils.Tracing
   alias Core.Utils.TaskAwaiter
-  require Logger
 
   @model :claude_sonnet_4_0
   @model_temperature 0.2
@@ -15,9 +17,12 @@ defmodule Core.Researcher.Webpages.IntentProfiler do
   alias Core.Researcher.Webpages.Intent
 
   def profile_intent_supervised(url, content) do
+    ctx = OpenTelemetry.Ctx.get_current()
+
     Task.Supervisor.async(
       Core.TaskSupervisor,
       fn ->
+        OpenTelemetry.Ctx.attach(ctx)
         profile_intent(url, content)
       end
     )

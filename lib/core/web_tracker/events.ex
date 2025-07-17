@@ -129,7 +129,12 @@ defmodule Core.WebTracker.Events do
 
           {:error, reason} ->
             Tracing.error(reason, "Failed to create/get session")
-            add_error(changeset, :session_id, "Failed to create session: #{inspect(reason)}")
+
+            add_error(
+              changeset,
+              :session_id,
+              "Failed to create session: #{inspect(reason)}"
+            )
         end
       end
     else

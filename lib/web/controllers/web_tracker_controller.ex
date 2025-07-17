@@ -188,6 +188,7 @@ defmodule Web.WebTrackerController do
           "IP validation failed, allowing event creation",
           %{ip: ip}
         )
+
         # Allow event creation if IP validation fails
         :ok
     end

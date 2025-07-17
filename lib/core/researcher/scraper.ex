@@ -172,6 +172,10 @@ defmodule Core.Researcher.Scraper do
 
   defp process_content({:ok, content}, url) do
     OpenTelemetry.Tracer.with_span "scraper.process_content" do
+      OpenTelemetry.Tracer.set_attributes([
+        {"param.url", url}
+      ])
+
       Logger.metadata(module: __MODULE__, function: :process_content)
 
       case ContentProcessor.process_scraped_content(url, content) do
@@ -179,13 +183,7 @@ defmodule Core.Researcher.Scraper do
           {:ok, content}
 
         {:error, reason} ->
-          Logger.error(
-            "Failed processing scraped content",
-            url: url,
-            reason: reason
-          )
-
-          Tracing.error(reason)
+          Tracing.error(reason, "Failed processing scraped content", url: url)
 
           {:error, reason}
       end
@@ -261,8 +259,11 @@ defmodule Core.Researcher.Scraper do
         url: url
       )
 
+      ctx = OpenTelemetry.Ctx.get_current()
+
       task =
         Task.Supervisor.async(Core.TaskSupervisor, fn ->
+          OpenTelemetry.Ctx.attach(ctx)
           Jina.fetch_page(url)
         end)
 
@@ -282,8 +283,11 @@ defmodule Core.Researcher.Scraper do
         url: url
       )
 
+      ctx = OpenTelemetry.Ctx.get_current()
+
       task =
         Task.Supervisor.async(Core.TaskSupervisor, fn ->
+          OpenTelemetry.Ctx.attach(ctx)
           Firecrawl.fetch_page(url)
         end)
 
@@ -303,8 +307,11 @@ defmodule Core.Researcher.Scraper do
         url: url
       )
 
+      ctx = OpenTelemetry.Ctx.get_current()
+
       task =
         Task.Supervisor.async(Core.TaskSupervisor, fn ->
+          OpenTelemetry.Ctx.attach(ctx)
           Puremd.fetch_page(url)
         end)
 
@@ -448,8 +455,16 @@ defmodule Core.Researcher.Scraper do
         {:error, :timeout}
 
       {:error, %Mint.TransportError{reason: {:tls_alert, _}}} ->
-        Logger.warning("TLS verification failed for #{url}, trying with relaxed verification")
-        make_request_with_relaxed_tls(url, depth, visited, last_known_content_type)
+        Logger.warning(
+          "TLS verification failed for #{url}, trying with relaxed verification"
+        )
+
+        make_request_with_relaxed_tls(
+          url,
+          depth,
+          visited,
+          last_known_content_type
+        )
 
       {:error, reason} ->
         Logger.warning(
@@ -468,7 +483,12 @@ defmodule Core.Researcher.Scraper do
   end
 
   # Fallback function for TLS verification failures
-  defp make_request_with_relaxed_tls(url, depth, visited, last_known_content_type) do
+  defp make_request_with_relaxed_tls(
+         url,
+         depth,
+         visited,
+         last_known_content_type
+       ) do
     case execute_finch_request(url, :relaxed_tls) do
       {:ok, %Finch.Response{headers: headers, status: status}} ->
         OpenTelemetry.Tracer.set_attributes([{"result.status", status}])
@@ -500,16 +520,18 @@ defmodule Core.Researcher.Scraper do
 
   # Shared helper function for executing Finch requests
   defp execute_finch_request(url, pool) do
-    {finch_name, request_opts} = 
+    {finch_name, request_opts} =
       case pool do
-        :default -> 
+        :default ->
           {Core.Finch, [receive_timeout: 30_000]}
-        :relaxed_tls -> 
-          {Core.FinchRelaxedTLS, [
-            receive_timeout: 30_000,
-            pool_timeout: 30_000,
-            request_timeout: 30_000
-          ]}
+
+        :relaxed_tls ->
+          {Core.FinchRelaxedTLS,
+           [
+             receive_timeout: 30_000,
+             pool_timeout: 30_000,
+             request_timeout: 30_000
+           ]}
       end
 
     Finch.build(:get, url)

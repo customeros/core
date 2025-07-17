@@ -12,7 +12,7 @@ defmodule Web.AnalyticsController do
         "day" -> :day
         "week" -> :week
         "month" -> :month
-        _ -> :hour
+        _ -> :day
       end
 
     session_analytics =

@@ -34,14 +34,20 @@ defmodule Core.Crm.Companies do
           {:ok, Company.t()}
           | {:error, :invalid_domain | :no_primary_domain | String.t()}
   def get_or_create_by_domain(domain) when not is_binary(domain) do
-    Tracing.error(:invalid_domain_type)
-    {:error, :invalid_domain}
+    OpenTelemetry.Tracer.with_span "companies.get_or_create_by_domain" do
+      OpenTelemetry.Tracer.set_attributes([
+        {"param.domain", inspect(domain)}
+      ])
+
+      Tracing.error(:invalid_domain_type, "Invalid domain type", domain: domain)
+      {:error, :invalid_domain}
+    end
   end
 
   def get_or_create_by_domain(domain) when is_binary(domain) do
-    OpenTelemetry.Tracer.with_span "company_service.get_or_create_by_domain" do
+    OpenTelemetry.Tracer.with_span "companies.get_or_create_by_domain" do
       OpenTelemetry.Tracer.set_attributes([
-        {"domain", domain}
+        {"param.domain", domain}
       ])
 
       # First check if company exists with this exact domain

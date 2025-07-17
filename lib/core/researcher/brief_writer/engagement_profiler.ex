@@ -271,11 +271,13 @@ defmodule Core.Researcher.BriefWriter.EngagementProfiler do
     - Most relevant value proposition
     - Engagement depth
 
-    IMPORTANT: Your brief must be returned in valid markdown format only!
+    <MARKDOWN_RULES>
+    Your brief must be returned in valid markdown format only!
     - Use ## for section headers
     - Use - for bullet points
     - Do not use * or _ for emphasis unless you ensure they are properly matched
     - Keep formatting simple and clean
+    </MARKDOWN_RULES>
 
     What Makes a Great Account Brief: Quality Standards
     A great brief tells a story that makes the prospect feel like you already understand their business better than 99% of vendors who contact them.

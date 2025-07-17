@@ -136,7 +136,18 @@ defmodule Core.Integrations.Providers.GoogleAds.Campaigns do
       ad_group_ad.status,
       ad_group_ad.resource_name,
       ad_group_ad.ad_group,
-      ad_group.resource_name
+      ad_group.resource_name,
+      metrics.cost_micros,
+      metrics.impressions,
+      metrics.clicks,
+      metrics.conversions,
+      metrics.conversions_value,
+      metrics.average_cpc,
+      metrics.ctr,
+      ad_group_ad.ad.responsive_search_ad.headlines,
+      ad_group_ad.ad.responsive_search_ad.descriptions,
+      ad_group_ad.ad.image_ad.image_url,
+      ad_group_ad.ad.display_url
     FROM ad_group_ad
     """
 
@@ -275,16 +286,38 @@ defmodule Core.Integrations.Providers.GoogleAds.Campaigns do
         Enum.map(results, fn result ->
           ad_group_ad = result["adGroupAd"]
           ad = ad_group_ad["ad"]
+          metrics = Map.get(result, "metrics", %{})
 
-          %{
+          base_data = %{
             "id" => ad["id"],
             "name" => ad["name"],
             "type" => ad["type"],
             "final_urls" => ad["finalUrls"],
             "status" => ad_group_ad["status"],
             "resource_name" => ad_group_ad["resourceName"],
-            "ad_group_resource_name" => ad_group_ad["adGroup"]
+            "ad_group_resource_name" => ad_group_ad["adGroup"],
+            "display_url" => ad["displayUrl"],
+            "responsive_search_ad" => %{
+              "headlines" => get_in(ad, ["responsiveSearchAd", "headlines"]),
+              "descriptions" =>
+                get_in(ad, ["responsiveSearchAd", "descriptions"])
+            },
+            "image_url" => get_in(ad, ["imageAd", "imageUrl"])
           }
+
+          if map_size(metrics) > 0 do
+            Map.put(base_data, "metrics", %{
+              "cost_micros" => metrics["costMicros"],
+              "impressions" => metrics["impressions"],
+              "clicks" => metrics["clicks"],
+              "conversions" => metrics["conversions"],
+              "conversions_value" => metrics["conversionsValue"],
+              "average_cpc" => metrics["averageCpc"],
+              "ctr" => metrics["ctr"]
+            })
+          else
+            base_data
+          end
         end)
 
       _ ->

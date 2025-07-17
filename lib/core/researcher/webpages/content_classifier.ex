@@ -1,5 +1,6 @@
 defmodule Core.Researcher.Webpages.ContentClassifier do
   require Logger
+  require OpenTelemetry.Tracer
 
   import Core.Utils.Pipeline
 
@@ -27,9 +28,12 @@ defmodule Core.Researcher.Webpages.ContentClassifier do
   end
 
   def classify_supervised(url, content) do
+    ctx = OpenTelemetry.Ctx.get_current()
+
     Task.Supervisor.async(
       Core.TaskSupervisor,
       fn ->
+        OpenTelemetry.Ctx.attach(ctx)
         classify_and_score(url, content)
       end
     )
@@ -45,34 +49,40 @@ defmodule Core.Researcher.Webpages.ContentClassifier do
   end
 
   defp classify(url, content) when is_binary(content) do
-    Logger.info("Starting classify content analysis for #{url}",
-      url: url
-    )
+    OpenTelemetry.Tracer.with_span "classifier.classify" do
+      OpenTelemetry.Tracer.set_attributes([
+        {"param.url", url}
+      ])
 
-    case ask(
-           url,
-           @classify_model,
-           build_classify_prompts(url, content)
-         ) do
-      {:ok, answer} ->
-        validate_classification(answer)
+      Logger.info("Starting classify content analysis for #{url}",
+        url: url
+      )
 
-      {:error, _reason} ->
-        case ask(
-               url,
-               @fallback_model,
-               build_classify_prompts(url, content)
-             ) do
-          {:ok, answer} ->
-            validate_classification(answer)
+      case ask(
+             url,
+             @classify_model,
+             build_classify_prompts(url, content)
+           ) do
+        {:ok, answer} ->
+          validate_classification(answer)
 
-          {:error, fallback_error} ->
-            Logger.error(
-              "failed to classify content at #{url}: #{fallback_error}"
-            )
+        {:error, _reason} ->
+          case ask(
+                 url,
+                 @fallback_model,
+                 build_classify_prompts(url, content)
+               ) do
+            {:ok, answer} ->
+              validate_classification(answer)
 
-            {:error, fallback_error}
-        end
+            {:error, fallback_error} ->
+              Logger.error(
+                "failed to classify content at #{url}: #{fallback_error}"
+              )
+
+              {:error, fallback_error}
+          end
+      end
     end
   end
 

@@ -67,7 +67,7 @@ defmodule Core.Attribution.ContentAnalyzer.Content do
     changeset
     |> validate_number(:expected_engagement_seconds,
       greater_than_or_equal_to: 0,
-      less_than_or_equal_to: 18000
+      less_than_or_equal_to: 18_000
     )
   end
 

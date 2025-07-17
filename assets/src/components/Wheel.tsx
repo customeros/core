@@ -1,4 +1,4 @@
-import { useRef, useMemo, useState, useEffect } from 'react';
+import { useRef, useMemo, useState, useEffect, CSSProperties } from 'react';
 import { TrackDetails, useKeenSlider, KeenSliderOptions } from 'keen-slider/react';
 
 import { cn } from 'src/utils/cn';
@@ -13,6 +13,7 @@ export default function Wheel(props: {
   loop?: boolean;
   initIdx?: number;
   values?: string[];
+  disableDragging?: boolean;
   onValueChange?: (value: string | number) => void;
   setValue?: (relative: number, absolute: number) => string;
 }) {
@@ -41,6 +42,7 @@ export default function Wheel(props: {
         origin: props.loop ? 'center' : 'auto',
         perView: slidesPerView,
       },
+      disabled: props.disableDragging,
       renderMode: 'performance',
       vertical: false, // horizontal
       initial: props.initIdx || 0,
@@ -97,9 +99,10 @@ export default function Wheel(props: {
 
       // Set opacity: lower for slides behind (rotate > 90deg or < -90deg)
       const opacity = Math.abs(rotate) > 90 ? 0 : 1; // 0.2 for back, 1 for front
+      const pointerEvents = opacity === 0 ? 'none' : 'auto';
 
       values.push({
-        style: { ...style, opacity },
+        style: { ...style, opacity, pointerEvents } as CSSProperties,
         value: props.values?.[i] || i,
         transitionValue,
       });
@@ -107,6 +110,8 @@ export default function Wheel(props: {
 
     return values;
   }
+
+  const displayDraggingCursor = isDragging && !props.disableDragging;
 
   return (
     <div className="flex items-center justify-center h-full">
@@ -118,8 +123,9 @@ export default function Wheel(props: {
           <div
             ref={longPressRef}
             className={cn(
-              'relative w-full h-full flex items-center justify-center cursor-grab',
-              isDragging && 'cursor-grabbing'
+              'relative w-full h-full flex items-center justify-center',
+              !props.disableDragging && 'cursor-grab',
+              displayDraggingCursor && 'cursor-grabbing'
             )}
           >
             {slideValues().map(({ style, value, transitionValue }, idx) => (
@@ -128,7 +134,7 @@ export default function Wheel(props: {
                 style={style}
                 className={cn(
                   'absolute flex items-center justify-center h-full text-md text-gray-700 transition-colors duration-200 z-10',
-                  isDragging && 'cursor-grabbing'
+                  displayDraggingCursor && 'cursor-grabbing'
                 )}
               >
                 <span
@@ -136,11 +142,11 @@ export default function Wheel(props: {
                     slider.current?.moveToIdx(idx);
                   }}
                   style={{
-                    backgroundColor: `rgba(219, 234, 254, ${transitionValue})`,
+                    backgroundColor: `rgba(238, 242, 246, ${transitionValue})`,
                   }}
                   className={cn(
                     'block px-4 py-1 rounded cursor-pointer after:content-["after:absolute after:top-[4px] after:right-0 after:w-[1px] after:h-[calc(100%-4px)] after:bg-gradient-to-t after:from-gray-200 after:to-transparent hover:bg-gray-100',
-                    isDragging && 'cursor-grabbing'
+                    displayDraggingCursor && 'cursor-grabbing'
                   )}
                 >
                   {value}
@@ -149,7 +155,7 @@ export default function Wheel(props: {
             ))}
           </div>
           <div className="absolute top-1/2 left-1/2 -translate-x-[calc(1px)] -translate-y-1/2 mt-0 text-sm font-medium text-gray-700">
-            <div className="w-[2px] h-[52px] ring-1 ring-primary-500 bg-primary-500 rounded-sm"></div>
+            <div className="w-[2px] h-[52px] bg-gray-300 rounded-sm"></div>
           </div>
         </div>
         <div className="w-full h-[1px] bg-gradient-to-r from-transparent via-gray-200 to-transparent" />
@@ -165,8 +171,9 @@ export default function Wheel(props: {
           />
           <div
             className={cn(
-              'w-4 h-4 flex items-center mt-[10px] cursor-grab text-gray-500',
-              isDragging && 'cursor-grabbing text-primary-500'
+              'w-4 h-4 flex items-center mt-[10px] text-gray-500',
+              !props.disableDragging && 'cursor-grab',
+              displayDraggingCursor && 'cursor-grabbing text-primary-500'
             )}
           >
             <Icon name="handle-drag" className={cn('w-4 h-4')} />
