@@ -60,15 +60,32 @@ defmodule Core.Researcher.Webpages.Classifier do
               {:ok, classification}
 
             {:error, reason} ->
-              Tracing.error(reason, "AI classification validation failed",
-                url: url
-              )
+              case reason do
+                {:invalid_json_format, raw_response} ->
+                  Tracing.error(reason, "AI classification validation failed",
+                    url: url,
+                    raw_response: raw_response
+                  )
+                _ ->
+                  Tracing.error(reason, "AI classification validation failed",
+                    url: url,
+                    raw_response: answer
+                  )
+              end
 
               {:error, reason}
           end
 
         {:error, reason} ->
-          Tracing.error(reason, "AI classification failed", url: url)
+          case reason do
+            {:invalid_response, _message, response_body} ->
+              Tracing.error(reason, "AI classification failed", 
+                url: url, 
+                response_body: response_body
+              )
+            _ ->
+              Tracing.error(reason, "AI classification failed", url: url)
+          end
           {:error, reason}
       end
     end
@@ -80,7 +97,7 @@ defmodule Core.Researcher.Webpages.Classifier do
       {:ok, classification}
     else
       {:error, %Jason.DecodeError{}} ->
-        {:error, :invalid_json_format}
+        {:error, {:invalid_json_format, response}}
 
       {:error, reason} ->
         {:error, reason}
