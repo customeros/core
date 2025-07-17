@@ -159,9 +159,18 @@ defmodule Core.Logger.SignozUdpLogger do
   defp flush_batch(state) do
     if state.socket do
       # Send each log entry as a separate UDP packet
+      IO.puts("SignozUdpLogger: Flushing batch of #{length(state.batch)} logs to #{inspect(state.host)}:#{state.port}")
+      
       Enum.each(state.batch, fn log_entry ->
-        :gen_udp.send(state.socket, state.host, state.port, log_entry)
+        result = :gen_udp.send(state.socket, state.host, state.port, log_entry)
+        if result != :ok do
+          IO.puts("SignozUdpLogger: Failed to send UDP packet: #{inspect(result)}")
+        end
       end)
+      
+      IO.puts("SignozUdpLogger: Batch flush completed")
+    else
+      IO.puts("SignozUdpLogger: No socket available for sending")
     end
     
     %{state | batch: []}
