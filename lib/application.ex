@@ -70,7 +70,7 @@ defmodule Core.Application do
            count: 2,
            conn_opts: [
              transport_opts: [
-               verify: :verify_none
+               verify: :verify_none # WARNING: Disables TLS verification; may introduce MITM risks.
              ]
            ]
          ]
