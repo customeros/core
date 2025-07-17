@@ -176,7 +176,10 @@ defmodule Core.Crm.Contacts do
         existing_contact ->
           if existing_contact.company_started_at == nil or
                (not is_nil(contact_attrs.company_started_at) and
-                  DateTime.compare(existing_contact.company_started_at, contact_attrs.company_started_at) == :gt) do
+                  DateTime.compare(
+                    existing_contact.company_started_at,
+                    contact_attrs.company_started_at
+                  ) == :gt) do
             {:ok, existing_contact} =
               update_contact_field(
                 existing_contact.id,
@@ -222,7 +225,8 @@ defmodule Core.Crm.Contacts do
       job_description: position.description,
       job_started_at: start_date,
       job_ended_at: parse_end_date(position.start_end_date),
-      company_started_at: start_date  # For new contacts, this will be updated if earlier positions are found
+      # For new contacts, this will be updated if earlier positions are found
+      company_started_at: start_date
     }
   end
 
@@ -538,8 +542,8 @@ defmodule Core.Crm.Contacts do
       Enum.map(contacts, fn {contact, company_name} ->
         time_current_position =
           CalculateTimeInPosition.calculate(
-            contact.job_started_at,
-            contact.job_ended_at
+            contact.company_started_at,
+            DateTime.utc_now()
           )
 
         {:ok, linkedin_url} = build_linkedin_url(contact)
@@ -549,6 +553,8 @@ defmodule Core.Crm.Contacts do
           full_name: contact.full_name,
           job_title: contact.job_title,
           location: FormatLocation.format(contact.country_a2, contact.city),
+          timezone: contact.timezone,
+          current_time: format_current_time_in_timezone(contact.timezone),
           time_current_position: time_current_position,
           work_email: contact.business_email,
           phone_number: contact.mobile_phone,
@@ -556,6 +562,17 @@ defmodule Core.Crm.Contacts do
           company_name: company_name
         })
       end)
+    end
+  end
+
+  defp format_current_time_in_timezone(timezone) when is_binary(timezone) do
+    case DateTime.now(timezone) do
+      {:ok, dt} ->
+        dt
+        |> Calendar.strftime("%H:%M")
+
+      _ ->
+        nil
     end
   end
 

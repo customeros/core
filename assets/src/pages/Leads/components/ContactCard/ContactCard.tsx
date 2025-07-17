@@ -58,7 +58,9 @@ function ContactCardContent() {
               {persona.location && (
                 <>
                   <Icon name="globe-05" className="text-gray-500 mr-1" />
-                  <span>{persona.location}</span>
+                  <span>
+                    {persona.location} • {persona.current_time}
+                  </span>
                 </>
               )}
             </div>

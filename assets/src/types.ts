@@ -85,6 +85,7 @@ export type TargetPersona = {
   work_email: string | null;
   phone_number: string | null;
   company_name: string | null;
+  current_time: string | null;
   time_current_position: string;
 };
 
