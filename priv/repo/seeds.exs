@@ -12,9 +12,16 @@
 
 # Execute SQL files using the repo directly
 try do
+  Core.Repo.query!("DELETE FROM contacts")
+  Core.Repo.query!("DELETE FROM leads")
+  Core.Repo.query!("DELETE FROM companies")
+  Core.Repo.query!("DELETE FROM tenants")
+  Core.Repo.query!("DELETE FROM target_personas")
   Core.Repo.query!(File.read!("priv/repo/seeds/tenants.sql"))
   Core.Repo.query!(File.read!("priv/repo/seeds/companies.sql"))
   Core.Repo.query!(File.read!("priv/repo/seeds/leads.sql"))
+  Core.Repo.query!(File.read!("priv/repo/seeds/contacts.sql"))
+  Core.Repo.query!(File.read!("priv/repo/seeds/target_personas.sql"))
 rescue
   e ->
     IO.puts("Error: #{inspect(e)}")

@@ -17,8 +17,6 @@ INSERT INTO companies (
   industry_enrich_attempt_at,
   name_enrich_attempt_at,
   icon_enrich_attempt_at,
-  linkedin_id,
-  linkedin_alias,
   scrapin_enrichment_attempts,
   scrapin_enrich_attempt_at,
   country_enrich_attempt_at,
@@ -28,8 +26,10 @@ INSERT INTO companies (
   industry_enrichment_attempts,
   name_enrichment_attempts,
   country_enrichment_attempts,
+  linkedin_ids,
+  domains,
   inserted_at,
   updated_at
 ) VALUES
-  ('1', 'acme.com', 'Acme Corporation', 'A1', 'Manufacturing', 'acme-icon', 'US', '{"Elixir","Phoenix"}', 'New York', 'NY', 'B2B', 500, 0, NULL, NULL, NULL, NULL, NULL, 'acme123', 'acme-alias', 0, NULL, NULL, false, 0, 0, 0, 0, 0, NOW(), NOW()),
-  ('2', 'globex.com', 'Globex Inc.', 'B2', 'Technology', 'globex-icon', 'GB', '{"React","Node.js"}', 'London', 'London', 'B2C', 1200, 0, NULL, NULL, NULL, NULL, NULL, 'globex456', 'globex-alias', 0, NULL, NULL, false, 0, 0, 0, 0, 0, NOW(), NOW()); 
+  ('1', 'acme.com', 'Acme Corporation', 'A1', 'Manufacturing', 'acme-icon', 'US', '{"Elixir","Phoenix"}', 'New York', 'NY', 'B2B', 500, 0, NULL, NULL, NULL, NULL, NULL, 0, NULL, NULL, false, 0, 0, 0, 0, 0, '{"acme123"}', '{"acme.com"}', NOW(), NOW()),
+  ('2', 'globex.com', 'Globex Inc.', 'B2', 'Technology', 'globex-icon', 'GB', '{"React","Node.js"}', 'London', 'London', 'B2C', 1200, 0, NULL, NULL, NULL, NULL, NULL, 0, NULL, NULL, false, 0, 0, 0, 0, 0, '{"globex456"}', '{"globex.com"}', NOW(), NOW()); 

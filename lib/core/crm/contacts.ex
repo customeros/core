@@ -174,17 +174,23 @@ defmodule Core.Crm.Contacts do
           end
 
         existing_contact ->
-          if existing_contact.company_started_at == nil or
-               (not is_nil(contact_attrs.company_started_at) and
-                  DateTime.compare(
-                    existing_contact.company_started_at,
-                    contact_attrs.company_started_at
-                  ) == :gt) do
-            update_contact_field(
-              existing_contact.id,
-              %{company_started_at: contact_attrs.company_started_at},
-              "company started at"
-            )
+          # Add guards for DateTime.compare
+          should_update_company_started_at =
+            existing_contact.company_started_at == nil or
+              (not is_nil(contact_attrs.company_started_at) and
+                 not is_nil(existing_contact.company_started_at) and
+                 DateTime.compare(
+                   existing_contact.company_started_at,
+                   contact_attrs.company_started_at
+                 ) == :gt)
+
+          if should_update_company_started_at do
+            {:ok, existing_contact} =
+              update_contact_field(
+                existing_contact.id,
+                %{company_started_at: contact_attrs.company_started_at},
+                "company started at"
+              )
           end
 
           result =
@@ -540,10 +546,14 @@ defmodule Core.Crm.Contacts do
 
       Enum.map(contacts, fn {contact, company_name} ->
         time_current_position =
-          CalculateTimeInPosition.calculate(
-            contact.company_started_at,
-            DateTime.utc_now()
-          )
+          if not is_nil(contact.company_started_at) do
+            CalculateTimeInPosition.calculate(
+              contact.company_started_at,
+              DateTime.utc_now()
+            )
+          else
+            nil
+          end
 
         {:ok, linkedin_url} = build_linkedin_url(contact)
 
@@ -569,6 +579,7 @@ defmodule Core.Crm.Contacts do
       case DateTime.now(timezone) do
         {:ok, dt} ->
           Calendar.strftime(dt, "%H:%M")
+
         _ ->
           nil
       end
