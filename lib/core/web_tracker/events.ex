@@ -119,7 +119,7 @@ defmodule Core.WebTracker.Events do
               "IP is threat, skipping session creation"
             )
 
-            add_error(changeset, :session_id, :ip_is_threat)
+            add_error(changeset, :session_id, "IP is flagged as threat")
 
           {:error, %Ecto.Changeset{} = changeset} ->
             Tracing.error(
@@ -129,7 +129,7 @@ defmodule Core.WebTracker.Events do
 
           {:error, reason} ->
             Tracing.error(reason, "Failed to create/get session")
-            add_error(changeset, :session_id, reason)
+            add_error(changeset, :session_id, "Failed to create session: #{inspect(reason)}")
         end
       end
     else
