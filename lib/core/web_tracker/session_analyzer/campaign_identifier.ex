@@ -57,6 +57,9 @@ defmodule Core.WebTracker.SessionAnalyzer.CampaignIdentifier do
     case QueryParamAnalyzer.has_paid_campaign_params?(query_string) do
       true ->
         case QueryParamAnalyzer.get_paid_campaign(tenant_id, query_string) do
+          {:ok, nil} ->
+            nil
+
           {:ok, campaign} ->
             campaign.id
 
