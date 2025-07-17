@@ -90,7 +90,7 @@ defmodule Web.WebTrackerController do
           Tracing.warning(
             :ip_is_threat,
             "Blocking event creation - IP is flagged as threat",
-            %{ip: params["ip"]}
+            ip: params["ip"]
           )
 
           conn
@@ -106,7 +106,7 @@ defmodule Web.WebTrackerController do
           Tracing.warning(
             :bot_detected,
             "Blocking event creation - Bot detected",
-            %{user_agent: params["userAgent"], confidence: confidence}
+            user_agent: params["userAgent"], confidence: confidence
           )
 
           conn
@@ -186,7 +186,7 @@ defmodule Web.WebTrackerController do
         Tracing.warning(
           reason,
           "IP validation failed, allowing event creation",
-          %{ip: ip}
+          ip: ip
         )
 
         # Allow event creation if IP validation fails
@@ -213,7 +213,7 @@ defmodule Web.WebTrackerController do
         Tracing.warning(
           reason,
           "Bot detection failed, allowing event creation",
-          %{user_agent: user_agent, ip: ip}
+          user_agent: user_agent, ip: ip
         )
         :ok
     end
