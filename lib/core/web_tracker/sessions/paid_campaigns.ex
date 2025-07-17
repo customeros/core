@@ -14,7 +14,7 @@ defmodule Core.WebTracker.Sessions.PaidCampaigns do
 
   def upsert(nil), do: @err_no_data
 
-  def(upsert(attrs) when is_map(attrs)) do
+  def upsert(attrs) when is_map(attrs) do
     changeset = PaidCampaign.changeset(%PaidCampaign{}, attrs)
     hash = Ecto.Changeset.get_field(changeset, :hash)
     now = DateTime.truncate(DateTime.utc_now(), :second)
