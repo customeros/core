@@ -123,7 +123,7 @@ function buildSankeyData(session: SessionAnalytics) {
       target: 5,
       value: scale(newIcpFitLeads),
       rawValue: newIcpFitLeads,
-      color: newIcpFitLeads > 0 ? COLOR_MAP.green400 : COLOR_MAP.gray100, // green-400 or gray-100
+      color: COLOR_MAP.green400,
     }, // ICP Fit -> New
     {
       source: 3,
@@ -163,6 +163,7 @@ function buildDefaultSankeyData() {
       source: 0,
       target: 1,
       value: scale(defaultValues.Identified),
+      rawValue: defaultValues.Identified,
       color: COLOR_MAP.gray100, // gray-100
     }, // All Sessions -> Identified
     {
@@ -170,29 +171,34 @@ function buildDefaultSankeyData() {
       target: 2,
       value: scale(defaultValues['Non-identified']),
       color: COLOR_MAP.gray100, // gray-100
+      rawValue: defaultValues['Non-identified'],
     }, // All Sessions -> Non-identified
     {
       source: 1,
       target: 3,
       value: scale(defaultValues['ICP Fit']),
       color: COLOR_MAP.gray100, // gray-100
+      rawValue: defaultValues['ICP Fit'],
     }, // Identified -> ICP Fit
     {
       source: 1,
       target: 4,
       value: scale(defaultValues['Non ICP Fit']),
       color: COLOR_MAP.gray100, // gray-100
+      rawValue: defaultValues['Non ICP Fit'],
     }, // Identified -> Non ICP Fit
     {
       source: 3,
       target: 5,
       value: scale(defaultValues.New),
+      rawValue: defaultValues.New,
       color: COLOR_MAP.gray100, // gray-100
     }, // ICP Fit -> New
     {
       source: 3,
       target: 6,
       value: scale(defaultValues.Returning),
+      rawValue: defaultValues.Returning,
       color: COLOR_MAP.gray100, // gray-100
     }, // ICP Fit -> Returning
   ];
@@ -270,7 +276,7 @@ export const SankeySessionsDiagram = ({
         .data(sankeyData.links)
         .join('path')
         .attr('d', sankeyLinkHorizontal())
-        .attr('stroke', d => (d.value >= 100 ? d.color : COLOR_MAP.gray100))
+        .attr('stroke', d => (d.rawValue > 0 ? d.color : COLOR_MAP.gray100))
         .attr('stroke-width', d => Math.max(0, d.width ?? 0))
         .attr('stroke-dasharray', d => (!hasData ? (d.value > 100 ? '0' : '3') : 'none'))
         .attr('opacity', 1);
@@ -308,19 +314,7 @@ export const SankeySessionsDiagram = ({
         .attr('dy', '0.35em')
         .attr('text-anchor', 'start')
         .style('font', '16px')
-        .style('text-transform', 'uppercase')
-        .text(d => d.name);
-
-      node
-        .append('text')
-        .attr('id', 'value')
-        .attr('x', d => (d.x1 ?? 0) - (d.x0 ?? 0) + 8)
-        .attr('y', 32)
-        .attr('dy', '0.35em')
-        .attr('text-anchor', 'start')
-        .style('font', '16px')
-        .style('text-transform', 'uppercase')
-        .text(d => d.rawValue);
+        .text(d => `${d.name} • ${d.rawValue}`);
     } else {
       // Animated update
       const linkGroup = svg.select('g');
@@ -333,7 +327,7 @@ export const SankeySessionsDiagram = ({
         .ease(d3.easeExpInOut)
         .attr('d', sankeyLinkHorizontal())
         .attr('stroke-width', d => Math.max(0, d.width ?? 0))
-        .attr('stroke', (d: any) => (d.value >= 100 ? d.color : COLOR_MAP.gray100))
+        .attr('stroke', (d: any) => (d.rawValue > 0 ? d.color : COLOR_MAP.gray100))
         .attr('stroke-dasharray', d => (d.rawValue > 0 ? 'none' : '3'));
 
       const nodeGroup = svg.selectAll('g').filter(function () {
@@ -373,7 +367,7 @@ export const SankeySessionsDiagram = ({
         .ease(d3.easeExpInOut)
         .attr('x', (d: any) => (d.x1 ?? 0) - (d.x0 ?? 0) + 8)
         .attr('y', 12)
-        .text((d: any) => d.name);
+        .text((d: any) => `${d.name} • ${d.rawValue}`);
 
       nodeGroups
         .select('#value')
@@ -393,6 +387,7 @@ export const SankeySessionsDiagram = ({
             initIdx={0}
             loop={false}
             width={width}
+            disableDragging
             key={time_range}
             values={wheelLabels}
             onValueChange={value => {
