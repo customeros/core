@@ -127,7 +127,12 @@ defmodule Core.Researcher.Webpages.Classifier do
     Logger.info("Creating companies from urls...")
 
     urls
-    |> Enum.map(&DomainExtractor.extract_base_domain/1)
+    |> Enum.flat_map(fn url ->
+      case DomainExtractor.extract_base_domain(url) do
+        {:ok, domain} -> [domain]
+        {:error, _} -> []
+      end
+    end)
     |> Enum.uniq()
     |> Enum.each(&Companies.get_or_create_by_domain/1)
 

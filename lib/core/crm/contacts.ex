@@ -180,7 +180,7 @@ defmodule Core.Crm.Contacts do
                     existing_contact.company_started_at,
                     contact_attrs.company_started_at
                   ) == :gt) do
-            {:ok, existing_contact} =
+            {:ok, _existing_contact} =
               update_contact_field(
                 existing_contact.id,
                 %{company_started_at: contact_attrs.company_started_at},
