@@ -176,16 +176,12 @@ defmodule Core.Crm.Contacts do
         existing_contact ->
           if existing_contact.company_started_at == nil or
                (not is_nil(contact_attrs.company_started_at) and
-                  DateTime.compare(
-                    existing_contact.company_started_at,
-                    contact_attrs.company_started_at
-                  ) == :gt) do
-            {:ok, existing_contact} =
-              update_contact_field(
-                existing_contact.id,
-                %{company_started_at: contact_attrs.company_started_at},
-                "company started at"
-              )
+                  DateTime.compare(existing_contact.company_started_at, contact_attrs.company_started_at) == :gt) do
+            update_contact_field(
+              existing_contact.id,
+              %{company_started_at: contact_attrs.company_started_at},
+              "company started at"
+            )
           end
 
           result =

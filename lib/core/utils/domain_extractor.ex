@@ -14,6 +14,7 @@ defmodule Core.Utils.DomainExtractor do
   def extract_base_domain(url_or_host)
       when is_binary(url_or_host) and byte_size(url_or_host) > 0 do
     url_or_host
+    |> String.downcase()
     |> extract_host()
     |> ok(&Domainatrex.parse/1)
     |> ok(&build_base_domain/1)

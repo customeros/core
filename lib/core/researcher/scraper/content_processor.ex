@@ -31,6 +31,11 @@ defmodule Core.Researcher.Scraper.ContentProcessor do
   @err_content_invalid {:error, "invalid content"}
 
   def process_scraped_content(url, content) do
+    OpenTelemetry.Tracer.with_span "content_processor.process_scraped_content" do
+      OpenTelemetry.Tracer.set_attributes([
+        {"param.url", url}
+      ])
+
     with {:ok, clean_content} <- sanitize_content(content),
          {:ok, links} <- extract_links(clean_content),
          :ok <- create_companies_from_links(url, links),
@@ -40,7 +45,9 @@ defmodule Core.Researcher.Scraper.ContentProcessor do
     else
       {:error, reason} ->
         Tracing.error(reason, "Process scraped content failed", url: url)
+        {:error, reason}
     end
+  end
   end
 
   defp sanitize_content(content) when is_binary(content) do
@@ -68,22 +75,38 @@ defmodule Core.Researcher.Scraper.ContentProcessor do
   end
 
   defp create_companies_from_links(url, links) do
+    OpenTelemetry.Tracer.with_span "content_processor.create_companies_from_links" do
+      OpenTelemetry.Tracer.set_attributes([
+        {"param.url", url},
+        {"param.links", inspect(links)}
+      ])
+
     Logger.info("Processing links...",
       url: url
     )
 
-    base_url = DomainExtractor.extract_base_domain(url)
+    base_url =
+      case DomainExtractor.extract_base_domain(url) do
+        {:ok, domain} -> domain
+        _ -> nil
+      end
 
     links
     |> Enum.map(&DomainExtractor.extract_base_domain/1)
+    |> Enum.filter(&match?({:ok, _}, &1))
+    |> Enum.map(fn {:ok, domain} -> domain end)
     |> Enum.uniq()
     |> Enum.reject(&(&1 == base_url))
     |> Enum.each(&Companies.get_or_create_by_domain/1)
+    end
   end
 
   defp summarize_content(url, content) do
     OpenTelemetry.Tracer.with_span "content_processor.summarize_content" do
       Logger.metadata(module: __MODULE__, function: :summarize_content)
+      OpenTelemetry.Tracer.set_attributes([
+        {"param.url", url}
+      ])
 
       Logger.info("Starting webpage summarization",
         url: url
