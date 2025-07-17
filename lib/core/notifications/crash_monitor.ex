@@ -8,8 +8,8 @@ defmodule Core.Notifications.CrashMonitor do
   alias Core.Notifications.Slack
   require Logger
 
-  # Rate limiting: max 5 alerts per 5 minutes
-  @max_alerts_per_window 5
+  # Rate limiting: max 20 alerts per 5 minutes
+  @max_alerts_per_window 20
   @rate_limit_window_seconds 300
 
   def init(_opts) do
@@ -75,7 +75,25 @@ defmodule Core.Notifications.CrashMonitor do
       "terminated",
       "** (exit)",
       "** (throw)",
-      "EXIT"
+      "** (stop)",
+      "** (kill)",
+      "EXIT",
+      "failed to determine",
+      "protocol String.Chars not implemented",
+      "protocol Enumerable not implemented",
+      "no function clause matching",
+      "bad argument",
+      "argument error",
+      "function_clause",
+      "badarg",
+      "badarith",
+      "badmatch",
+      "case_clause",
+      "try_clause",
+      "undef",
+      "System Crash Detected",
+      "Task Crash",
+      "Process Exit"
     ]
 
     Enum.any?(crash_indicators, &String.contains?(msg_str, &1)) and
