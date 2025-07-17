@@ -41,7 +41,10 @@ defmodule Core.WebTracker.SessionAnalyzer.CampaignIdentifier do
             campaign.id
 
           {:error, reason} ->
-            Logger.error("Failed to get utm campaign: #{reason}")
+            Logger.error("Failed to get utm campaign: #{inspect(reason)}", %{
+              query_string: query_string,
+              tenant_id: tenant_id
+            })
             nil
         end
 
@@ -58,7 +61,10 @@ defmodule Core.WebTracker.SessionAnalyzer.CampaignIdentifier do
             campaign.id
 
           {:error, reason} ->
-            Logger.error("Failed to get paid campaign: #{reason}")
+            Logger.error("Failed to get paid campaign: #{inspect(reason)}", %{
+              query_string: query_string,
+              tenant_id: tenant_id
+            })
             nil
         end
 
