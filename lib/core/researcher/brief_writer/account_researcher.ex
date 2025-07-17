@@ -66,7 +66,18 @@ defmodule Core.Researcher.BriefWriter.AccountResearcher do
       - Likely pain points
       - Strategic value drivers
 
-      IMPORTANT:  Your brief must be returned in valid markdown format only!
+      <MARKDOWN_RULES>
+      Your brief must be returned in valid markdown format only!
+      Follow these formatting rules strictly:
+      - Use ## for section headers (e.g., ## Company Overview)
+      - Use - for bullet points
+      - Use **text** for bold emphasis, ensure all asterisks are properly matched
+      - Use lists consistently with bullet points (-)
+      - Keep formatting simple and clean
+      - Do not use * or _ for emphasis unless properly matched
+      - Ensure proper spacing between sections
+      - Do not use HTML tags
+      </MARKDOWN_RULES>
 
       What Makes a Great Account Brief: Quality Standards
     A great brief tells a story that makes the prospect feel like you already understand their business better than 99% of vendors who contact them.
