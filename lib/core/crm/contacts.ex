@@ -174,34 +174,18 @@ defmodule Core.Crm.Contacts do
           end
 
         existing_contact ->
-          # Add guards for DateTime.compare
-          should_update_company_started_at =
-            existing_contact.company_started_at == nil or
-              (not is_nil(contact_attrs.company_started_at) and
-                 not is_nil(existing_contact.company_started_at) and
-                 DateTime.compare(
-                   existing_contact.company_started_at,
-                   contact_attrs.company_started_at
-                 ) == :gt)
-
-          if should_update_company_started_at do
-            case update_contact_field(
-                   existing_contact.id,
-                   %{company_started_at: contact_attrs.company_started_at},
-                   "company started at"
-                 ) do
-              {:ok, updated_contact} ->
-                updated_contact
-
-              {:error, reason} ->
-                # Optionally log the error
-                Logger.warning("Failed to update company_started_at", %{
-                  contact_id: existing_contact.id,
-                  reason: reason
-                })
-
-                existing_contact
-            end
+          if existing_contact.company_started_at == nil or
+               (not is_nil(contact_attrs.company_started_at) and
+                  DateTime.compare(
+                    existing_contact.company_started_at,
+                    contact_attrs.company_started_at
+                  ) == :gt) do
+            {:ok, existing_contact} =
+              update_contact_field(
+                existing_contact.id,
+                %{company_started_at: contact_attrs.company_started_at},
+                "company started at"
+              )
           end
 
           result =
@@ -556,16 +540,11 @@ defmodule Core.Crm.Contacts do
       ])
 
       Enum.map(contacts, fn {contact, company_name} ->
-        company_started_at = safe_to_datetime(contact.company_started_at)
         time_current_position =
-          if not is_nil(company_started_at) do
-            CalculateTimeInPosition.calculate(
-              company_started_at,
-              DateTime.utc_now()
-            )
-          else
-            nil
-          end
+          CalculateTimeInPosition.calculate(
+            contact.company_started_at,
+            DateTime.utc_now()
+          )
 
         {:ok, linkedin_url} = build_linkedin_url(contact)
 
@@ -587,16 +566,12 @@ defmodule Core.Crm.Contacts do
   end
 
   defp format_current_time_in_timezone(timezone) when is_binary(timezone) do
-    try do
-      case DateTime.now(timezone) do
-        {:ok, dt} ->
-          Calendar.strftime(dt, "%H:%M")
+    case DateTime.now(timezone) do
+      {:ok, dt} ->
+        dt
+        |> Calendar.strftime("%H:%M")
 
-        _ ->
-          nil
-      end
-    rescue
-      ArgumentError ->
+      _ ->
         nil
     end
   end
@@ -1170,19 +1145,6 @@ defmodule Core.Crm.Contacts do
 
       _ ->
         {:ok, nil}
-    end
-  end
-
-  defp safe_to_datetime(nil), do: nil
-  defp safe_to_datetime(%DateTime{} = dt), do: dt
-  defp safe_to_datetime(str) when is_binary(str) do
-    case NaiveDateTime.from_iso8601(str) do
-      {:ok, naive_dt} ->
-        case DateTime.from_naive(naive_dt, "Etc/UTC") do
-          {:ok, dt} -> dt
-          _ -> nil
-        end
-      _ -> nil
     end
   end
 end
