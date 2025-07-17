@@ -40,6 +40,7 @@ defmodule Core.Utils.PrimaryDomainFinder do
   @err_cannot_resolve_to_primary_domain {:error,
                                          :cannot_resolve_to_primary_domain}
   @err_platform_url_not_allowed {:error, "app/social media URL not allowed"}
+  @err_adult_content_not_allowed {:error, "adult content domain not allowed"}
 
   # Configuration constants
   @max_retries 3
@@ -91,6 +92,202 @@ defmodule Core.Utils.PrimaryDomainFinder do
     ~r/^(https?:\/\/)?(www\.)?upwork\.com\/[^\/]+\/[^\/]+/i,
     ~r/^(https?:\/\/)?(www\.)?freelancer\.com\/[^\/]+\/[^\/]+/i,
     ~r/^(https?:\/\/)?(www\.)?99designs\.com\/[^\/]+\/[^\/]+/i
+  ]
+
+  # Adult content domains to be filtered out
+  @adult_content_domains [
+    # Major adult content sites
+    "pornhub.com",
+    "xvideos.com",
+    "xhamster.com",
+    "xnxx.com",
+    "redtube.com",
+    "youporn.com",
+    "tube8.com",
+    "spankbang.com",
+    "txxx.com",
+    "xmovies.com",
+    "beeg.com",
+    "thumbzilla.com",
+    "pornhd.com",
+    "drtuber.com",
+    "sunporno.com",
+    "porn.com",
+    "sex.com",
+    "xxx.com",
+    "adult.com",
+    "sexvideos.com",
+    "pornmd.com",
+    "tnaflix.com",
+    "empflix.com",
+    "keezmovies.com",
+    "slutload.com",
+    "bangbros.com",
+    "brazzers.com",
+    "realitykings.com",
+    "naughtyamerica.com",
+    "digitalplayground.com",
+    "vivid.com",
+    "playboy.com",
+    "penthouse.com",
+    "hustler.com",
+    "adulttime.com",
+    "mindgeek.com",
+    "chaturbate.com",
+    "livejasmin.com",
+    "cam4.com",
+    "camsoda.com",
+    "stripchat.com",
+    "bongacams.com",
+    "myfreecams.com",
+    "flirt4free.com",
+    "streamate.com",
+    "onlyfans.com",
+    "fansly.com",
+    "manyvids.com",
+    "clips4sale.com",
+    "pornpics.com",
+    "sex.com",
+    "xxxpics.com",
+    "nudepics.com",
+    "sexhub.com",
+    "motherless.com",
+    "upornia.com",
+    "porntube.com",
+    "freeones.com",
+    "ixxx.com",
+    "4tube.com",
+    "gotporn.com",
+    "porngo.com",
+    "pornktube.com",
+    "hqporner.com",
+    "porntrex.com",
+    "pornolab.net",
+    "eporner.com",
+    "ashemaletube.com",
+    "shemalez.com",
+    "tgirls.com",
+    "ladyboy.com",
+    "escort.com",
+    "slixa.com",
+    "eros.com",
+    "adultsearch.com",
+    "skipthegames.com",
+    "megapersonals.com",
+    "bedpage.com",
+    "cityxguide.com",
+    "tryst.link",
+    "switter.at",
+    "privatedelights.ch",
+    "adultsearch.com",
+    "escortdirectory.com",
+    "fetlife.com",
+    "adultfriendfinder.com",
+    "ashley-madison.com",
+    "seeking.com",
+    "casualx.com",
+    "fuckbook.com",
+    "bangwithfriends.com",
+    "quickflirt.com",
+    "iwantu.com",
+    "hornyhub.com",
+    "sexmessenger.com",
+    "hookuphangout.com",
+    "easysex.com",
+    "sexfinder.com",
+    "hornywife.com",
+    "milfhookup.com",
+    "cougarlife.com",
+    "fling.com",
+    "naughtydate.com",
+    "benaughty.com",
+    "together2night.com",
+    "instabang.com",
+    "sexhookup.com",
+    "wildbuddies.com",
+    "dirtyroulette.com",
+    "sexroulette.com",
+    "camroulette.com",
+    "sexcamhub.com",
+    "pornchat.com",
+    "sexchat.com",
+    "adultchat.com",
+    "freechat.com",
+    "livesexchat.com",
+    "webcamchat.com",
+    "sexting.com"
+  ]
+
+  @adult_content_strings [
+    "porn",
+    "xxx",
+    "sex",
+    "adult",
+    "nude",
+    "naked",
+    "escort",
+    "strip",
+    "webcam",
+    "erotic",
+    "fetish",
+    "bdsm",
+    "kink",
+    "milf",
+    "teen",
+    "mature",
+    "anal",
+    "oral",
+    "blow",
+    "fuck",
+    "cock",
+    "dick",
+    "pussy",
+    "tits",
+    "boobs",
+    "ass",
+    "butt",
+    "horny",
+    "naughty",
+    "dirty",
+    "slut",
+    "whore",
+    "bang",
+    "kinky",
+    "orgasm",
+    "cum",
+    "masturbat",
+    "vibrator",
+    "dildo",
+    "hookup",
+    "tranny",
+    "fling",
+    "affair",
+    "cheat",
+    "swing",
+    "wife",
+    "husband",
+    "gay",
+    "lesbian",
+    "trans",
+    "shemale",
+    "ladyboy",
+    "femboy",
+    "sissy",
+    "domina",
+    "mistress",
+    "slave",
+    "submissive",
+    "dominant",
+    "bondage",
+    "spank",
+    "whip",
+    "torture",
+    "pain",
+    "pleasure",
+    "roleplay",
+    "taboo",
+    "sensual",
+    "smut"
   ]
 
   @doc """
@@ -196,9 +393,32 @@ defmodule Core.Utils.PrimaryDomainFinder do
 
   defp safe_clean_domain(url) do
     case DomainExtractor.clean_domain(url) do
-      cleaned when is_binary(cleaned) and cleaned != "" -> {:ok, cleaned}
-      _ -> @err_invalid_domain
+      cleaned when is_binary(cleaned) and cleaned != "" ->
+        case adult_content_domain?(cleaned) do
+          true -> @err_adult_content_not_allowed
+          false -> {:ok, cleaned}
+        end
+
+      _ ->
+        @err_invalid_domain
     end
+  end
+
+  defp adult_content_domain?(domain) when is_binary(domain) do
+    normalized_domain = String.downcase(domain)
+
+    exact_match =
+      Enum.any?(@adult_content_domains, fn adult_domain ->
+        normalized_domain == adult_domain or
+          String.ends_with?(normalized_domain, ".#{adult_domain}")
+      end)
+
+    string_match =
+      Enum.any?(@adult_content_strings, fn adult_string ->
+        String.contains?(normalized_domain, adult_string)
+      end)
+
+    exact_match or string_match
   end
 
   defp primary_domain_check(url) do
