@@ -3,28 +3,37 @@ defmodule Core.Researcher.Webpages.Classifier do
   Classifies webpage content using AI.
   """
   require Logger
+  require OpenTelemetry.Tracer
 
   alias Core.Ai
   alias Core.Crm.Companies
   alias Core.Utils.TaskAwaiter
   alias Core.Utils.DomainExtractor
   alias Core.Researcher.Webpages.Classification
+  alias Core.Utils.Tracing
 
   @model :gemini_pro_2_5
   @model_temperature 0.2
-  @max_tokens 1024
+  @max_tokens 2048
   @timeout 45 * 1000
 
   def classify_content_supervised(url, content) do
+    ctx = OpenTelemetry.Ctx.get_current()
     Task.Supervisor.async(
       Core.TaskSupervisor,
       fn ->
+        OpenTelemetry.Ctx.attach(ctx)
         classify_content(url, content)
       end
     )
   end
 
   def classify_content(url, content) when is_binary(content) do
+    OpenTelemetry.Tracer.with_span "classifier.classify_content" do
+      OpenTelemetry.Tracer.set_attributes([
+        {"param.url", url}
+      ])
+
     Logger.info("Starting classify content analysis for #{url}",
       url: url
     )
@@ -47,12 +56,16 @@ defmodule Core.Researcher.Webpages.Classifier do
       {:ok, answer} ->
         case parse_and_validate_response(answer) do
           {:ok, classification} -> {:ok, classification}
-          {:error, reason} -> {:error, reason}
+          {:error, reason} ->
+            Tracing.error(reason, "AI classification validation failed", url: url)
+            {:error, reason}
         end
 
       {:error, reason} ->
+        Tracing.error(reason, "AI classification failed", url: url)
         {:error, reason}
     end
+  end
   end
 
   defp parse_and_validate_response(response) when is_binary(response) do

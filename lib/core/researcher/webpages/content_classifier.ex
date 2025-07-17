@@ -1,5 +1,6 @@
 defmodule Core.Researcher.Webpages.ContentClassifier do
   require Logger
+  require OpenTelemetry.Tracer
 
   import Core.Utils.Pipeline
 
@@ -27,9 +28,11 @@ defmodule Core.Researcher.Webpages.ContentClassifier do
   end
 
   def classify_supervised(url, content) do
+    ctx = OpenTelemetry.Ctx.get_current()
     Task.Supervisor.async(
       Core.TaskSupervisor,
       fn ->
+        OpenTelemetry.Ctx.attach(ctx)
         classify_and_score(url, content)
       end
     )
@@ -45,6 +48,11 @@ defmodule Core.Researcher.Webpages.ContentClassifier do
   end
 
   defp classify(url, content) when is_binary(content) do
+    OpenTelemetry.Tracer.with_span "classifier.classify" do
+      OpenTelemetry.Tracer.set_attributes([
+        {"param.url", url}
+      ])
+
     Logger.info("Starting classify content analysis for #{url}",
       url: url
     )
@@ -74,6 +82,7 @@ defmodule Core.Researcher.Webpages.ContentClassifier do
             {:error, fallback_error}
         end
     end
+  end
   end
 
   def score(url, content, content_type) when is_binary(content) do

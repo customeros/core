@@ -3,6 +3,8 @@ defmodule Core.Researcher.Scraper.Firecrawl do
   Service for fetching web pages using the Firecrawl API.
   """
 
+  require OpenTelemetry.Tracer
+
   # 45 seconds
   @timeout 45 * 1000
 
@@ -19,9 +21,13 @@ defmodule Core.Researcher.Scraper.Firecrawl do
   Fetches a web page async with supervision.
   """
   def fetch_page_supervised(url) do
+    ctx = OpenTelemetry.Ctx.get_current()
     Task.Supervisor.async(
       Core.TaskSupervisor,
-      fn -> fetch_page(url) end
+      fn ->
+        OpenTelemetry.Ctx.attach(ctx)
+        fetch_page(url)
+      end
     )
   end
 
