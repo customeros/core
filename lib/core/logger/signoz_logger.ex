@@ -32,22 +32,26 @@ defmodule Core.Logger.SignozLogger do
   - Metadata converted to attributes
   - Timestamp in nanoseconds
   """
-  alias Core.Logger.ApiLogger
   @behaviour :gen_event
 
   # Handle when called with {module, opts} tuple
   def init({__MODULE__, opts}) do
-    {:ok, configure(opts)}
+    state = configure(opts)
+    schedule_batch_send()
+    {:ok, state}
   end
 
   # Handle when called with just the module name (no opts)
   def init(__MODULE__) do
-    {:ok, configure([])}
+    state = configure([])
+    schedule_batch_send()
+    {:ok, state}
   end
 
   def handle_event({level, _gl, {Logger, msg, ts, md}}, state) do
-    send_to_signoz(level, msg, ts, md, state)
-    {:ok, state}
+    log_record = build_log_record(level, msg, ts, md)
+    new_state = add_to_batch(log_record, state)
+    {:ok, new_state}
   end
 
   def handle_event(_, state) do
@@ -56,6 +60,12 @@ defmodule Core.Logger.SignozLogger do
 
   def handle_call({:configure, opts}, _state) do
     {:ok, :ok, configure(opts)}
+  end
+
+  def handle_info(:batch_send, state) do
+    new_state = flush_batch(state)
+    schedule_batch_send()
+    {:ok, new_state}
   end
 
   def handle_info(_, state) do
@@ -74,12 +84,50 @@ defmodule Core.Logger.SignozLogger do
     env = Keyword.get(opts, :env, "production")
     endpoint = Keyword.get(opts, :endpoint, "http://10.0.16.2:4318/v1/logs")
     service_name = Keyword.get(opts, :service_name, "core")
-    %{env: env, endpoint: endpoint, service_name: service_name}
+    batch_size = Keyword.get(opts, :batch_size, 100)
+    batch_timeout = Keyword.get(opts, :batch_timeout, 5_000)
+
+    %{
+      env: env,
+      endpoint: endpoint,
+      service_name: service_name,
+      batch_size: batch_size,
+      batch_timeout: batch_timeout,
+      batch: []
+    }
   end
 
-  defp send_to_signoz(level, msg, _timestamp, metadata, state) do
+  defp schedule_batch_send do
+    Process.send_after(self(), :batch_send, 5_000)
+  end
+
+  defp build_log_record(level, msg, _timestamp, metadata) do
     {severity_text, severity_number} = map_log_level(level)
 
+    %{
+      "timeUnixNano" => "#{System.system_time(:nanosecond)}",
+      "severityNumber" => severity_number,
+      "severityText" => severity_text,
+      "body" => %{"stringValue" => to_string(msg)},
+      "attributes" => build_attributes(metadata)
+    }
+  end
+
+  defp add_to_batch(log_record, state) do
+    new_batch = [log_record | state.batch]
+    new_state = %{state | batch: new_batch}
+
+    # Check if we should flush due to batch size
+    if length(new_batch) >= state.batch_size do
+      flush_batch(new_state)
+    else
+      new_state
+    end
+  end
+
+  defp flush_batch(%{batch: []} = state), do: state
+
+  defp flush_batch(state) do
     payload = %{
       "resourceLogs" => [
         %{
@@ -102,15 +150,7 @@ defmodule Core.Logger.SignozLogger do
           "scopeLogs" => [
             %{
               "scope" => %{"name" => "elixir-logger"},
-              "logRecords" => [
-                %{
-                  "timeUnixNano" => "#{System.system_time(:nanosecond)}",
-                  "severityNumber" => severity_number,
-                  "severityText" => severity_text,
-                  "body" => %{"stringValue" => to_string(msg)},
-                  "attributes" => build_attributes(metadata)
-                }
-              ]
+              "logRecords" => Enum.reverse(state.batch)
             }
           ]
         }
@@ -127,12 +167,27 @@ defmodule Core.Logger.SignozLogger do
           ],
           Jason.encode!(payload)
         )
-        |> ApiLogger.request("signoz")
+        |> Finch.request(Core.Finch,
+          receive_timeout: 10_000,
+          request_timeout: 15_000
+        )
+        |> case do
+          {:ok, %{status: status}} when status in 200..299 ->
+            :ok
+
+          {:ok, %{status: status}} ->
+            IO.puts("SigNoz batch send failed with status: #{status}")
+
+          {:error, reason} ->
+            IO.puts("SigNoz batch send failed: #{inspect(reason)}")
+        end
       rescue
         error ->
-          IO.puts("SignozLogger error: #{inspect(error)}")
+          IO.puts("SigNoz batch send crashed: #{inspect(error)}")
       end
     end)
+
+    %{state | batch: []}
   end
 
   defp map_log_level(:debug), do: {"DEBUG", 5}
