@@ -320,13 +320,13 @@ defmodule Core.Utils.PrimaryDomainFinder do
       OpenTelemetry.Tracer.set_attributes([{"param.url", url}])
 
       case Retry.with_delay(
-             fn -> try_get_primary_domain(url) end,
-             @max_retries,
-             # Don't retry on SSL errors, they are not transient
-             retry_if: fn
-               @err_invalid_ssl -> false
-               _ -> true
-             end
+             fn -> 
+               case try_get_primary_domain(url) do
+                 @err_invalid_ssl -> {:error, :ssl_error_no_retry}
+                 result -> result
+               end
+             end,
+             @max_retries
            ) do
         {:ok, :no_primary_domain} ->
           @err_cannot_resolve_to_primary_domain
@@ -338,7 +338,7 @@ defmodule Core.Utils.PrimaryDomainFinder do
 
           {:ok, String.downcase(primary_domain)}
 
-        @err_invalid_ssl ->
+        {:error, :ssl_error_no_retry} ->
           check_www(url)
 
         {:error, _reason} ->
