@@ -13,49 +13,49 @@ export const ChannelAttribution = () => {
     .with('paid_social', () => (
       <div className="flex items-center gap-1.5">
         <p className="size-2 bg-warning-500 rounded-full" />
-        <span className="text-xs">Paid Social</span>
+        <span className="text-[14px]">Paid Social</span>
       </div>
     ))
     .with('organic_social', () => (
       <div className="flex items-center gap-1.5">
         <p className="size-2 bg-orange-dark-500 rounded-full" />
-        <span className="text-xs">Organic Social</span>
+        <span className="text-[14px]">Organic Social</span>
       </div>
     ))
     .with('email', () => (
       <div className="flex items-center gap-1.5">
         <p className="size-2 bg-violet-500 rounded-full" />
-        <span className="text-xs">Email</span>
+        <span className="text-[14px]">Email</span>
       </div>
     ))
     .with('referral', () => (
       <div className="flex items-center gap-1.5">
         <p className="size-2 bg-pink-500 rounded-full" />
-        <span className="text-xs">Referral</span>
+        <span className="text-[14px]">Referral</span>
       </div>
     ))
     .with('paid_search', () => (
       <div className="flex items-center gap-1.5">
         <p className="size-2 bg-blue-light-500 rounded-full" />
-        <span className="text-xs">Paid Search</span>
+        <span className="text-[14px]">Paid Search</span>
       </div>
     ))
     .with('organic_search', () => (
       <div className="flex items-center gap-1.5">
         <p className="size-2 bg-blue-dark-500 rounded-full" />
-        <span className="text-xs">Organic Search</span>
+        <span className="text-[14px]">Organic Search</span>
       </div>
     ))
     .with('direct', () => (
       <div className="flex items-center gap-1.5">
         <p className="size-2 bg-gray-500 rounded-full" />
-        <span className="text-xs">Direct</span>
+        <span className="text-[14px]">Direct</span>
       </div>
     ))
     .otherwise(() => (
       <div className="flex items-center gap-1.5">
         <p className="size-2 bg-gray-500 rounded-full" />
-        <span className="text-xs">Direct</span>
+        <span className="text-[14px]">Direct</span>
       </div>
     ));
   const showTooltip =
@@ -74,7 +74,7 @@ export const ChannelAttribution = () => {
   }
 
   const content = (
-    <div className="bg-gray-100 min-w-fit rounded-sm text-sm px-2 py-1.5 cursor-default hidden sm:flex md:flex lg:flex xl:flex 2xl:flex">
+    <div className="bg-gray-100 min-w-fit rounded-sm text-[14px] px-2 py-1 cursor-default hidden sm:flex md:flex lg:flex xl:flex 2xl:flex">
       {channelDisplay}
     </div>
   );

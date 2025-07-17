@@ -170,9 +170,9 @@ export const ContextualPanel = () => {
                       {currentLead?.name || 'Unnamed'}
                     </p>
                     {currentLead?.icp_fit === 'strong' && (
-                      <div className="bg-error-100 w-fit px-2 py-1.5 rounded-[4px] max-w-[100px] truncate items-center gap-1 flex-shrink-0 hidden sm:flex md:flex lg:flex xl:flex 2xl:flex">
+                      <div className="bg-error-100 w-fit px-2 py-1 rounded-[4px] max-w-[100px] truncate items-center gap-1 flex-shrink-0 hidden sm:flex md:flex lg:flex xl:flex 2xl:flex">
                         <Icon name="flame" className="w-[14px] h-[14px] text-error-500" />
-                        <span className="text-error-700 text-xs">Strong fit</span>
+                        <span className="text-error-700 text-[14px]">Strong fit</span>
                       </div>
                     )}
                     <ChannelAttribution />
