@@ -14,7 +14,7 @@ interface AnalyticsProps {
 }
 
 export type AnalyticsUrlState = {
-  time_range: 'hour' | 'day' | 'week' | 'month';
+  time_range: 'day' | 'week' | 'month';
 };
 
 export default function Analytics({ session_analytics }: AnalyticsProps) {
@@ -52,8 +52,8 @@ export default function Analytics({ session_analytics }: AnalyticsProps) {
         <div className="flex gap-4 w-full mt-8 px-6">
           <div className="flex-1 rounded-md p-4 border border-gray-200">
             <div className="flex items-center gap-2">
-              <Icon className="size-5" name="activity-heart" />
-              <p className="font-medium">No. of Leads Created</p>
+              <Icon className="size-5" name="users-check" />
+              <p className="font-medium">Leads Created</p>
             </div>
             <p className="pl-7 text-xl font-bold">{totalLeads}</p>
           </div>
@@ -62,36 +62,26 @@ export default function Analytics({ session_analytics }: AnalyticsProps) {
               <Icon className="size-5" name="activity-heart" />
               <p className="font-medium">Session Identification Rate</p>
             </div>
-            <p className="pl-6 text-xl font-bold">{sessionIdentificationRate}</p>
+            <p className="pl-7 text-xl font-bold">{sessionIdentificationRate}</p>
           </div>
           <div className="flex-1 rounded-md p-4 border border-gray-200">
             <div className="flex items-center gap-2">
               <Icon className="size-5" name="activity-heart" />
               <p className="font-medium">ICP Qualification Rate</p>
             </div>
-            <p className="pl-6 text-xl font-bold">{icpQualificationRate}</p>
+            <p className="pl-7 text-xl font-bold">{icpQualificationRate}</p>
           </div>
         </div>
         <Tabs variant="enclosed">
           <Button
             size="xxs"
             className="w-fit"
-            data-state={isTimeRangeActive('hour')}
-            onClick={() => {
-              handleTimeRangeChange('hour');
-            }}
-          >
-            hourly
-          </Button>
-          <Button
-            size="xxs"
-            className="w-fit"
-            data-state={isTimeRangeActive('day')}
+            data-state={time_range ? isTimeRangeActive('day') : 'active'}
             onClick={() => {
               handleTimeRangeChange('day');
             }}
           >
-            daily
+            Daily
           </Button>
           <Button
             size="xxs"
@@ -99,7 +89,7 @@ export default function Analytics({ session_analytics }: AnalyticsProps) {
             data-state={isTimeRangeActive('week')}
             onClick={() => handleTimeRangeChange('week')}
           >
-            weekly
+            Weekly
           </Button>
           <Button
             size="xxs"
@@ -107,7 +97,7 @@ export default function Analytics({ session_analytics }: AnalyticsProps) {
             data-state={isTimeRangeActive('month')}
             onClick={() => handleTimeRangeChange('month')}
           >
-            monthly
+            Monthly
           </Button>
         </Tabs>
         <div ref={ref} className="md:w-full h-[224px] 2xl:h-[300px] 2xl:w-[1440px]">

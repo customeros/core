@@ -40,10 +40,13 @@ defmodule Core.Analytics do
           where: lg.tenant_id == ^tenant_id,
           where: lg.bucket_start_at >= ^start_time,
           where: lg.bucket_start_at <= ^now,
-          group_by: fragment("DATE(?)", lg.bucket_start_at),
-          order_by: [desc: fragment("DATE(?)", lg.bucket_start_at)],
+          group_by: fragment("TO_CHAR(?, 'DD-MM-YYYY')", lg.bucket_start_at),
+          order_by: [
+            desc: fragment("TO_CHAR(?, 'DD-MM-YYYY')", lg.bucket_start_at)
+          ],
           select: %{
-            bucket_start_at: fragment("DATE(?)", lg.bucket_start_at),
+            bucket_start_at:
+              fragment("TO_CHAR(?, 'DD-MM-YYYY')", lg.bucket_start_at),
             sessions: sum(lg.sessions),
             identified_sessions: sum(lg.identified_sessions),
             icp_fit_sessions: sum(lg.icp_fit_sessions),
@@ -62,13 +65,24 @@ defmodule Core.Analytics do
           where: lg.tenant_id == ^tenant_id,
           where: lg.bucket_start_at >= ^start_time,
           where: lg.bucket_start_at <= ^now,
-          group_by: fragment("DATE(DATE_TRUNC('week', ?))", lg.bucket_start_at),
+          group_by:
+            fragment(
+              "TO_CHAR(DATE_TRUNC('week', ?), 'DD-MM-YYYY')",
+              lg.bucket_start_at
+            ),
           order_by: [
-            desc: fragment("DATE(DATE_TRUNC('week', ?))", lg.bucket_start_at)
+            desc:
+              fragment(
+                "TO_CHAR(DATE_TRUNC('week', ?), 'DD-MM-YYYY')",
+                lg.bucket_start_at
+              )
           ],
           select: %{
             bucket_start_at:
-              fragment("DATE(DATE_TRUNC('week', ?))", lg.bucket_start_at),
+              fragment(
+                "TO_CHAR(DATE_TRUNC('week', ?), 'DD-MM-YYYY')",
+                lg.bucket_start_at
+              ),
             sessions: sum(lg.sessions),
             identified_sessions: sum(lg.identified_sessions),
             icp_fit_sessions: sum(lg.icp_fit_sessions),
@@ -88,13 +102,23 @@ defmodule Core.Analytics do
           where: lg.bucket_start_at >= ^start_time,
           where: lg.bucket_start_at <= ^now,
           group_by:
-            fragment("DATE(DATE_TRUNC('month', ?))", lg.bucket_start_at),
+            fragment(
+              "TO_CHAR(DATE_TRUNC('month', ?), 'DD-MM-YYYY')",
+              lg.bucket_start_at
+            ),
           order_by: [
-            desc: fragment("DATE(DATE_TRUNC('month', ?))", lg.bucket_start_at)
+            desc:
+              fragment(
+                "TO_CHAR(DATE_TRUNC('month', ?), 'DD-MM-YYYY')",
+                lg.bucket_start_at
+              )
           ],
           select: %{
             bucket_start_at:
-              fragment("DATE(DATE_TRUNC('month', ?))", lg.bucket_start_at),
+              fragment(
+                "TO_CHAR(DATE_TRUNC('month', ?), 'DD-MM-YYYY')",
+                lg.bucket_start_at
+              ),
             sessions: sum(lg.sessions),
             identified_sessions: sum(lg.identified_sessions),
             icp_fit_sessions: sum(lg.icp_fit_sessions),
