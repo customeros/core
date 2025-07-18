@@ -8,6 +8,7 @@ defmodule Core.Crm.Contacts.ContactsView do
     :work_email,
     :phone_number,
     :linkedin,
+    :avatar_url,
     :company_name,
     :current_time
   ]
@@ -21,6 +22,7 @@ defmodule Core.Crm.Contacts.ContactsView do
           work_email: String.t() | nil,
           phone_number: String.t() | nil,
           linkedin: String.t() | nil,
+          avatar_url: String.t() | nil,
           company_name: String.t() | nil,
           current_time: String.t() | nil
         }
@@ -37,6 +39,7 @@ defmodule Core.Crm.Contacts.ContactsView do
         :work_email,
         :phone_number,
         :linkedin,
+        :avatar_url,
         :company_name,
         :current_time
       ])
