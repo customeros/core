@@ -130,6 +130,7 @@ defmodule Core.Crm.Leads.Lead do
     :ref_id,
     :type,
     :icp_fit,
+    :state,
     :error_message,
     :icp_fit_evaluation_attempt_at,
     :icp_fit_evaluation_attempts,
