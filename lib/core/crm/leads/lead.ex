@@ -44,6 +44,8 @@ defmodule Core.Crm.Leads.Lead do
           | :wrong_industry
           | :wrong_geography
           | :wrong_business_model
+  @type lead_state ::
+          :not_contacted_yet | :outreach_in_progress | :meeting_booked
 
   @type t :: %__MODULE__{
           id: String.t(),
@@ -61,7 +63,8 @@ defmodule Core.Crm.Leads.Lead do
           brief_create_attempts: integer(),
           just_created: boolean(),
           inserted_at: DateTime.t(),
-          updated_at: DateTime.t()
+          updated_at: DateTime.t(),
+          state: lead_state
         }
 
   @primary_key {:id, :string, autogenerate: false}
@@ -108,6 +111,11 @@ defmodule Core.Crm.Leads.Lead do
     field(:brief_create_attempts, :integer, default: 0)
 
     field(:just_created, :boolean, virtual: true, default: false)
+
+    field(:state, Ecto.Enum,
+      values: [:not_contacted_yet, :outreach_in_progress, :meeting_booked],
+      default: :not_contacted_yet
+    )
 
     timestamps(type: :utc_datetime)
   end

@@ -666,6 +666,7 @@ defmodule Core.Crm.Leads do
         country: c.country_a2,
         icon_key: c.icon_key,
         document_id: rd.document_id,
+        state: l.state,
         inserted_at: l.inserted_at,
         updated_at: l.updated_at
       }
