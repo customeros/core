@@ -10,6 +10,7 @@ defmodule Core.Researcher.IcpBuilder do
   """
 
   require Logger
+  require OpenTelemetry.Tracer
 
   alias Core.Utils.Retry
   alias Core.Utils.TaskAwaiter
@@ -17,6 +18,7 @@ defmodule Core.Researcher.IcpBuilder do
   alias Core.Researcher.IcpProfiles
   alias Core.Researcher.Crawler
   alias Core.Researcher.Scraper
+  alias Core.Utils.Tracing
 
   @crawl_timeout 5 * 60 * 1000
   @max_retries 2
@@ -47,27 +49,33 @@ defmodule Core.Researcher.IcpBuilder do
   end
 
   def build_icp_fast(domain) do
-    Task.start(fn ->
-      Core.Notifications.Slack.notify_new_icp_request(domain)
-    end)
+    OpenTelemetry.Tracer.with_span "icp_builder.build_icp_fast" do
+      OpenTelemetry.Tracer.set_attributes([
+        {"param.domain", domain}
+      ])
 
-    case IcpProfiles.get_by_domain(domain) do
-      {:ok, existing_profile} ->
-        {:ok, existing_profile}
+      Task.start(fn ->
+        Core.Notifications.Slack.notify_new_icp_request(domain)
+      end)
 
-      {:error, _} ->
-        with {:ok, _content} <- Scraper.scrape_webpage(domain),
-             {:ok, profile} <- generate_and_save(domain) do
-          {:ok, profile}
-        else
-          {:error, reason} ->
-            Logger.error(
-              "Could not build fast ICP: #{inspect(reason)}",
-              company_domain: domain
-            )
+      case IcpProfiles.get_by_domain(domain) do
+        {:ok, existing_profile} ->
+          {:ok, existing_profile}
 
-            {:error, reason}
-        end
+        {:error, _} ->
+          with {:ok, _content} <- Scraper.scrape_webpage(domain),
+               {:ok, profile} <- generate_and_save(domain) do
+            {:ok, profile}
+          else
+            {:error, reason} ->
+              Logger.error(
+                "Could not build fast ICP: #{inspect(reason)}",
+                company_domain: domain
+              )
+
+              {:error, reason}
+          end
+      end
     end
   end
 
@@ -90,17 +98,25 @@ defmodule Core.Researcher.IcpBuilder do
   end
 
   defp generate_and_save(domain, tenant_id) do
-    with {:ok, icp} <- ProfileWriter.generate_icp(domain),
-         {:ok, profile} <- save_icp(domain, icp, tenant_id) do
-      {:ok, profile}
-    else
-      {:error, reason} ->
-        Logger.error(
-          "Could not generate and save ICP: #{inspect(reason)}",
-          company_domain: domain
-        )
+    OpenTelemetry.Tracer.with_span "icp_builder.generate_and_save" do
+      OpenTelemetry.Tracer.set_attributes([
+        {"param.domain", domain},
+        {"param.tenant_id", tenant_id}
+      ])
 
-        {:error, reason}
+      with {:ok, icp} <- ProfileWriter.generate_icp(domain),
+           {:ok, profile} <- save_icp(domain, icp, tenant_id) do
+        {:ok, profile}
+      else
+        {:error, reason} ->
+          Tracing.error(
+            reason,
+            "Could not generate and save ICP",
+            company_domain: domain
+          )
+
+          {:error, reason}
+      end
     end
   end
 

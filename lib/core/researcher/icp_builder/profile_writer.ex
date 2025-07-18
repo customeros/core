@@ -56,7 +56,8 @@ defmodule Core.Researcher.IcpBuilder.ProfileWriter do
       model: @model,
       system_prompt: system_prompt,
       max_tokens: @max_tokens,
-      temperature: @model_temperature
+      temperature: @model_temperature,
+      response_type: :json
     )
   end
 
@@ -67,15 +68,14 @@ defmodule Core.Researcher.IcpBuilder.ProfileWriter do
     2. Up to 5 qualifying attributes of a company that matches the ideal customer profile
     IMPORTANT:  Your response MUST be in valid JSON format exactly matching this schema:
       {
-        "profile": "Mid-to-large organizations with significant marketing budgets who receive a high volume of high-value phone calls as part of their customer journey. These companies typically operate in sectors where phone conversations lead to meaningful conversions (financial services, automotive, healthcare, travel, property, retail) and struggle to connect their digital marketing efforts to offline call outcomes. They're sophisticated marketers who invest substantially in multi-channel campaigns but face attribution challenges when customers move from online research to phone conversations. The most receptive customers tend to have average transaction values over £1,000, making precise marketing attribution critical for ROI optimization, and employ dedicated marketing analytics teams who recognize the value gap in their current attribution models. They're often frustrated by wasted ad spend and inability to prove which campaigns truly drive revenue.
-    ",
+        "profile": "Mid-to-large organizations with significant marketing budgets who receive a high volume of high-value phone calls as part of their customer journey. These companies typically operate in sectors where phone conversations lead to meaningful conversions (financial services, automotive, healthcare, travel, property, retail) and struggle to connect their digital marketing efforts to offline call outcomes. They're sophisticated marketers who invest substantially in multi-channel campaigns but face attribution challenges when customers move from online research to phone conversations. The most receptive customers tend to have average transaction values over £1,000, making precise marketing attribution critical for ROI optimization, and employ dedicated marketing analytics teams who recognize the value gap in their current attribution models. They're often frustrated by wasted ad spend and inability to prove which campaigns truly drive revenue.",
         "qualifying_attributes": [
           "Companies that receive at least 500+ valuable phone calls per month from digital marketing efforts.",
           "Businesses where phone conversations typically lead to transactions worth £1,000+ or significant lifetime value.",
           "Sectors where complex purchases often require phone conversations (financial services, automotive, healthcare, property, travel, etc.)"
         ]
       }
-    Do not include any text outside the JSON object.
+    Do not include any text outside the JSON object. Do not wrap the JSON in markdown code blocks.
     """
 
     prompt = build_company_context_prompt(domain, business_pages)
