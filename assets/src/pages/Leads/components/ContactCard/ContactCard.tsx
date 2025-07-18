@@ -46,6 +46,7 @@ function ContactCardContent() {
             <Avatar
               size="sm"
               variant="outlineCircle"
+              src={persona.avatar_url}
               icon={<Icon name="user-03" className="text-grayModern-700 size-6" />}
             />
             <div>

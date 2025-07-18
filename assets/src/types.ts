@@ -83,6 +83,7 @@ export type TargetPersona = {
   location: string | null;
   linkedin: string | null;
   work_email: string | null;
+  avatar_url: string | null;
   phone_number: string | null;
   company_name: string | null;
   current_time: string | null;
