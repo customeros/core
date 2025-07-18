@@ -1,4 +1,13 @@
 defmodule Core.Researcher.Webpages.ContentClassifier do
+  @moduledoc """
+  Classifies webpage content based on its type and characteristics.
+
+  This module provides functionality to:
+  - Analyze webpage content structure
+  - Identify content types (blog, product page, etc.)
+  - Extract key content features
+  - Determine content relevance and quality
+  """
   require Logger
   require OpenTelemetry.Tracer
 

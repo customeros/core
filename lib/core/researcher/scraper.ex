@@ -84,19 +84,27 @@ defmodule Core.Researcher.Scraper do
             %Mint.TransportError{reason: :nxdomain} ->
               Tracing.warning(:nxdomain, "Domain does not exist", url: url)
               {:error, :domain_not_found}
-            
+
             %Mint.TransportError{reason: :timeout} ->
               Tracing.warning(:timeout, "Domain connection timed out", url: url)
               {:error, :connection_timeout}
-            
+
             %Mint.TransportError{reason: :closed} ->
-              Tracing.warning(:connection_closed, "Connection closed by server", url: url)
+              Tracing.warning(:connection_closed, "Connection closed by server",
+                url: url
+              )
+
               {:error, :connection_closed}
-            
+
             %Mint.TransportError{} = transport_error ->
-              Tracing.warning(transport_error.reason, "Network error while validating URL", url: url)
+              Tracing.warning(
+                transport_error.reason,
+                "Network error while validating URL",
+                url: url
+              )
+
               {:error, :network_error}
-            
+
             _ ->
               Tracing.error(reason, "Invalid URL for scraping", url: url)
               {:error, reason}

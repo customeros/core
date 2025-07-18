@@ -1,4 +1,21 @@
 defmodule Core.Attribution.Touchpoint do
+  @moduledoc """
+  Schema and changeset for tracking user interaction touchpoints in the attribution system.
+
+  A touchpoint represents a significant interaction between a user and the system, capturing:
+  - User and session identification
+  - Lead and company association
+  - Geographic location data
+  - Channel and platform information
+  - UTM and paid campaign tracking
+  - Content interaction details
+  - Stage transitions in the user journey
+  - Engagement metrics (attention time)
+
+  Touchpoints are crucial for understanding user behavior and attributing conversions
+  to specific marketing channels and content.
+  """
+
   use Ecto.Schema
   import Ecto.Changeset
 

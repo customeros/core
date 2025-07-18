@@ -34,15 +34,19 @@ defmodule Core.Researcher.BriefWriter do
 
       with {:ok, account_overview} <-
              AccountResearcher.account_overview(tenant_id, lead_domain),
-           :ok <- validate_account_overview(account_overview),
+           {:ok, lead} <- Leads.get_by_id(tenant_id, lead_id),
+           {:ok, fit_status} <- validate_account_overview(account_overview),
+           {:ok, _updated_lead} <- maybe_update_lead_fit(lead, fit_status),
            {:ok, engagement_summary} <-
-             EngagementProfiler.engagement_summary(tenant_id, lead_id) do
-        build_and_save_document(
-          tenant_id,
-          lead_id,
-          account_overview,
-          engagement_summary
-        )
+             EngagementProfiler.engagement_summary(tenant_id, lead_id),
+           {:ok, document} <-
+             build_and_save_document(
+               tenant_id,
+               lead_id,
+               account_overview,
+               engagement_summary
+             ) do
+        {:ok, document}
       else
         :not_a_fit ->
           case Leads.disqualify_lead_by_brief_writer(tenant_id, lead_id) do
@@ -71,9 +75,29 @@ defmodule Core.Researcher.BriefWriter do
   end
 
   defp validate_account_overview(account_overview) do
-    case String.contains?(account_overview, "not_a_fit") do
-      true -> :not_a_fit
-      false -> :ok
+    cond do
+      String.contains?(account_overview, "not_a_fit") ->
+        :not_a_fit
+
+      String.contains?(account_overview, "Strong Fit") ->
+        {:ok, :strong}
+
+      String.contains?(account_overview, "Moderate Fit") ->
+        {:ok, :moderate}
+
+      true ->
+        {:ok, :no_change}
+    end
+  end
+
+  defp maybe_update_lead_fit(lead, :no_change), do: {:ok, lead}
+
+  defp maybe_update_lead_fit(lead, new_fit)
+       when new_fit in [:strong, :moderate] do
+    if lead.icp_fit != new_fit do
+      Leads.update_lead_field(lead.id, %{icp_fit: new_fit}, "icp_fit")
+    else
+      {:ok, lead}
     end
   end
 

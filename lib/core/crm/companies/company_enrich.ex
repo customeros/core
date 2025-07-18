@@ -679,7 +679,9 @@ defmodule Core.Crm.Companies.CompanyEnrich do
         end
 
       {:error, "HTTP request failed with status 429"} ->
-        Tracing.warning(:rate_limited, "Icon download rate limited, will retry later",
+        Tracing.warning(
+          :rate_limited,
+          "Icon download rate limited, will retry later",
           company_id: company.id,
           company_domain: company.primary_domain
         )

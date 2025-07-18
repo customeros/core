@@ -36,8 +36,7 @@ defmodule Core.Utils.DomainIO do
       ])
 
     try do
-      case Finch.request(request, Core.FinchRelaxedTLS,
-                         receive_timeout: 5000) do
+      case Finch.request(request, Core.FinchRelaxedTLS, receive_timeout: 5000) do
         {:ok, %Response{status: status, headers: headers}}
         when status >= 300 and status < 400 ->
           {:ok, {:redirect, headers}}

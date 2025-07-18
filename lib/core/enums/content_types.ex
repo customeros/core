@@ -1,4 +1,11 @@
 defmodule Core.Enums.ContentTypes do
+  @moduledoc """
+  Defines the various types of content that can be found on a website.
+
+  This enum categorizes different content formats and pages, from educational materials
+  to product information and company pages, helping in content classification and analysis.
+  """
+
   @content_type [
     :educational_article,
     :infographic,

@@ -1,4 +1,19 @@
 defmodule Core.Enums.Platforms do
+  @moduledoc """
+  Defines a comprehensive list of digital platforms and services.
+
+  This enum includes various types of platforms such as:
+  - Search engines
+  - Social media platforms
+  - Productivity tools
+  - Communication platforms
+  - AI services
+  - Cloud storage solutions
+  - Business software
+
+  Used for platform identification and integration purposes.
+  """
+
   @platforms [
     :airtable,
     :asana,

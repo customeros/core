@@ -1,21 +1,21 @@
 defmodule Core.Logger.SignozUdpLogger do
   @moduledoc """
   A Logger backend that sends log messages to SigNoz via UDP.
-  
+
   This backend uses UDP sockets to send logs to SigNoz's UDP receiver,
   avoiding HTTP connection pool issues and providing better reliability.
-  
+
   ## Configuration
-  
+
   - `:host` - SigNoz UDP receiver host (default: "10.0.16.2")
   - `:port` - SigNoz UDP receiver port (default: 54525)
   - `:env` - Environment name (default: "production")
   - `:service_name` - Service name for identification (default: "core")
   - `:batch_size` - Number of logs to batch before sending (default: 50)
   - `:batch_timeout` - Maximum time to wait before flushing batch in ms (default: 2000)
-  
+
   ## Usage
-  
+
       config :logger,
         backends: [:console, {Core.Logger.SignozUdpLogger, [
           host: "10.0.16.2",
@@ -26,9 +26,9 @@ defmodule Core.Logger.SignozUdpLogger do
           batch_timeout: 2000
         ]}]
   """
-  
+
   @behaviour :gen_event
-  
+
   # Handle when called with {module, opts} tuple
   def init({__MODULE__, opts}) do
     state = configure(opts)
@@ -74,23 +74,25 @@ defmodule Core.Logger.SignozUdpLogger do
   def terminate(_reason, state) do
     # Flush any remaining logs before terminating
     flush_batch(state)
+
     if state.socket do
       :gen_udp.close(state.socket)
     end
+
     :ok
   end
 
   defp configure(opts) do
     host = Keyword.get(opts, :host, "10.0.16.2")
-    port = Keyword.get(opts, :port, 54525)
+    port = Keyword.get(opts, :port, 54_525)
     env = Keyword.get(opts, :env, "production")
     service_name = Keyword.get(opts, :service_name, "core")
     batch_size = Keyword.get(opts, :batch_size, 50)
-    batch_timeout = Keyword.get(opts, :batch_timeout, 2000)
-    
+    batch_timeout = Keyword.get(opts, :batch_timeout, 2_000)
+
     # Open UDP socket
     {:ok, socket} = :gen_udp.open(0, [:binary, {:active, false}])
-    
+
     %{
       host: parse_host(host),
       port: port,
@@ -106,7 +108,8 @@ defmodule Core.Logger.SignozUdpLogger do
   defp parse_host(host) when is_binary(host) do
     case :inet.getaddr(String.to_charlist(host), :inet) do
       {:ok, ip} -> ip
-      {:error, _} -> {10, 0, 16, 2}  # fallback
+      # fallback
+      {:error, _} -> {10, 0, 16, 2}
     end
   end
 
@@ -118,23 +121,28 @@ defmodule Core.Logger.SignozUdpLogger do
 
   defp build_log_entry(level, msg, timestamp, metadata, state) do
     {severity_text, _severity_number} = map_log_level(level)
-    
+
     # Convert timestamp to ISO8601 format
-    timestamp_str = case timestamp do
-      {date, {hour, min, sec, micro}} ->
-        datetime = NaiveDateTime.from_erl!({date, {hour, min, sec}}, {micro, 6})
-        DateTime.from_naive!(datetime, "Etc/UTC")
-        |> DateTime.to_iso8601()
-      _ ->
-        DateTime.utc_now() |> DateTime.to_iso8601()
-    end
-    
+    timestamp_str =
+      case timestamp do
+        {date, {hour, min, sec, micro}} ->
+          datetime =
+            NaiveDateTime.from_erl!({date, {hour, min, sec}}, {micro, 6})
+
+          DateTime.from_naive!(datetime, "Etc/UTC")
+          |> DateTime.to_iso8601()
+
+        _ ->
+          DateTime.utc_now() |> DateTime.to_iso8601()
+      end
+
     # Build structured log message similar to standard log formats
     # Format: [timestamp] [level] [service] message [metadata]
     metadata_str = format_metadata_string(metadata)
-    
-    log_message = "[#{timestamp_str}] [#{severity_text}] [#{state.service_name}] #{to_string(msg)}"
-    
+
+    log_message =
+      "[#{timestamp_str}] [#{severity_text}] [#{state.service_name}] #{to_string(msg)}"
+
     # Add metadata if present
     if metadata_str != "" do
       log_message <> " " <> metadata_str
@@ -146,7 +154,7 @@ defmodule Core.Logger.SignozUdpLogger do
   defp add_to_batch(log_entry, state) do
     new_batch = [log_entry | state.batch]
     new_state = %{state | batch: new_batch}
-    
+
     # Check if we should flush due to batch size
     if length(new_batch) >= state.batch_size do
       flush_batch(new_state)
@@ -156,23 +164,29 @@ defmodule Core.Logger.SignozUdpLogger do
   end
 
   defp flush_batch(%{batch: []} = state), do: state
+
   defp flush_batch(state) do
     if state.socket do
       # Send each log entry as a separate UDP packet
-      IO.puts("SignozUdpLogger: Flushing batch of #{length(state.batch)} logs to #{inspect(state.host)}:#{state.port}")
-      
+      IO.puts(
+        "SignozUdpLogger: Flushing batch of #{length(state.batch)} logs to #{inspect(state.host)}:#{state.port}"
+      )
+
       Enum.each(state.batch, fn log_entry ->
         result = :gen_udp.send(state.socket, state.host, state.port, log_entry)
+
         if result != :ok do
-          IO.puts("SignozUdpLogger: Failed to send UDP packet: #{inspect(result)}")
+          IO.puts(
+            "SignozUdpLogger: Failed to send UDP packet: #{inspect(result)}"
+          )
         end
       end)
-      
+
       IO.puts("SignozUdpLogger: Batch flush completed")
     else
       IO.puts("SignozUdpLogger: No socket available for sending")
     end
-    
+
     %{state | batch: []}
   end
 
@@ -184,15 +198,17 @@ defmodule Core.Logger.SignozUdpLogger do
 
   defp format_metadata_string(metadata) do
     case metadata do
-      [] -> ""
+      [] ->
+        ""
+
       _ ->
-        metadata_pairs = 
+        metadata_pairs =
           metadata
           |> Enum.map(fn {key, value} ->
             "#{key}=#{safe_to_string(value)}"
           end)
           |> Enum.join(" ")
-        
+
         "[#{metadata_pairs}]"
     end
   end
