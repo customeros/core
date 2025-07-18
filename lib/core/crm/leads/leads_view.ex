@@ -16,6 +16,7 @@ defmodule Core.Crm.Leads.LeadView do
     :country,
     :country_name,
     :document_id,
+    :state,
     :inserted_at,
     :updated_at
   ]
@@ -33,6 +34,7 @@ defmodule Core.Crm.Leads.LeadView do
           country: String.t() | nil,
           country_name: String.t() | nil,
           document_id: String.t() | nil,
+          state: Core.Crm.Leads.Lead.lead_state() | nil,
           inserted_at: DateTime.t(),
           updated_at: DateTime.t()
         }
@@ -53,6 +55,7 @@ defmodule Core.Crm.Leads.LeadView do
         :country,
         :country_name,
         :document_id,
+        :state,
         :inserted_at,
         :updated_at
       ])

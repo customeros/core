@@ -179,6 +179,18 @@ defmodule Web.LeadsController do
     end
   end
 
+  def set_state(conn, %{"id" => lead_id, "state" => state}) do
+    case Leads.update_lead_field(%{state: state |> String.to_atom()}, "state") do
+      {:ok, updated_lead} ->
+        conn |> put_status(:ok) |> json(%{success: true})
+
+      _ ->
+        conn
+        |> put_status(:unprocessable_entity)
+        |> json(%{error: "Failed to update lead state"})
+    end
+  end
+
   defp get_filter_by(params) do
     case params do
       %{"stage" => stage} -> [stage: stage]
