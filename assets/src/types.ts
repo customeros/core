@@ -5,6 +5,7 @@ export type Lead = {
   icon: string;
   name: string;
   stage: Stage;
+  state: string;
   count: number;
   domain: string;
   country: string;

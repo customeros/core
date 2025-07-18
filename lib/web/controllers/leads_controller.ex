@@ -180,9 +180,35 @@ defmodule Web.LeadsController do
   end
 
   def set_state(conn, %{"id" => lead_id, "state" => state}) do
-    case Leads.update_lead_field(%{state: state |> String.to_atom()}, "state") do
+    case Leads.update_lead_field(
+           lead_id,
+           %{state: state |> String.to_atom()},
+           "state"
+         ) do
       {:ok, updated_lead} ->
-        conn |> put_status(:ok) |> json(%{success: true})
+        lead_map =
+          Map.take(updated_lead, [
+            :id,
+            :tenant_id,
+            :ref_id,
+            :type,
+            :stage,
+            :icp_fit,
+            :icp_disqualification_reason,
+            :error_message,
+            :icp_fit_evaluation_attempt_at,
+            :icp_fit_evaluation_attempts,
+            :brief_create_attempt_at,
+            :brief_create_attempts,
+            :just_created,
+            :state,
+            :inserted_at,
+            :updated_at
+          ])
+
+        conn
+        |> put_status(:ok)
+        |> json(%{success: true, lead: lead_map})
 
       _ ->
         conn

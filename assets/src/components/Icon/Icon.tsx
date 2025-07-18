@@ -65,11 +65,13 @@ export type IconName =
   | 'thumbs-down'
   | 'chevron-right'
   | 'chevron-left'
+  | 'chevron-down'
   | 'activity'
   | 'handle-drag'
   | 'users-check'
   | 'contrast-01'
-  | 'thumbs-up';
+  | 'thumbs-up'
+  | 'calendar-check-01';
 
 export const Icon = ({
   name,

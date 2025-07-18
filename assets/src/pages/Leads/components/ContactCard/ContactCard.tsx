@@ -59,7 +59,8 @@ function ContactCardContent() {
                 <>
                   <Icon name="globe-05" className="text-gray-500 mr-1" />
                   <span>
-                    {persona.location} • {persona.current_time}
+                    {persona.location}
+                    {persona.current_time && ` • ${persona.current_time} local time`}
                   </span>
                 </>
               )}

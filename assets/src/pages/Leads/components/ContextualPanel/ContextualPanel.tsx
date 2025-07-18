@@ -26,10 +26,10 @@ import {
   ScrollAreaScrollbar,
 } from 'src/components/ScrollArea';
 
+import { LeadState } from '../LeadState/LeadState';
 import { Engagement } from '../Engagement/Engagement';
 import { ContactCard } from '../ContactCard/ContactCard';
 import { DocumentEditor } from '../DocumentEditor/DocumentEditor';
-import { ChannelAttribution } from '../ChannelAttribution/ChannelAttribution';
 
 export const ContextualPanel = () => {
   const page = usePage<
@@ -175,7 +175,8 @@ export const ContextualPanel = () => {
                         <span className="text-error-700 text-[14px]">Strong fit</span>
                       </div>
                     )}
-                    <ChannelAttribution />
+                    {/* <ChannelAttribution /> */}
+                    <LeadState leadId={currentLead?.id || ''} />
                     <Tooltip asChild side="bottom" label="Lead is not a fit">
                       <IconButton
                         size="xs"

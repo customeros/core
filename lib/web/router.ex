@@ -119,7 +119,7 @@ defmodule Web.Router do
     scope "/leads" do
       get "/", LeadsController, :index
       get "/download", LeadsController, :download
-      patch "/:id", LeadsController, :update
+      patch "/:id", LeadsController, :set_state
       post "/:id/disqualify", LeadsController, :disqualify
     end
 

@@ -14,6 +14,11 @@ interface LeadItemProps {
   handleStageClick: (stage: Stage | null) => void;
   handleOpenLead: (lead: { id: string; stage: Stage }) => void;
 }
+const leadStateMap = {
+  not_contacted_yet: { label: 'Not contacted yet', icon: '' },
+  outreach_in_progress: { label: 'Outreach in progress', icon: 'clock-fast-forward' },
+  meeting_booked: { label: 'Meeting booked', icon: 'calendar-check-01' },
+};
 
 export const LeadItem = ({ lead, isSeen, handleOpenLead, handleStageClick }: LeadItemProps) => {
   const { getUrlState } = useUrlState<UrlState>();
@@ -72,12 +77,13 @@ export const LeadItem = ({ lead, isSeen, handleOpenLead, handleStageClick }: Lea
               alt={lead.name}
               className="size-6 object-contain border border-gray-200 rounded flex-shrink-0"
             />
-            {lead?.icp_fit === 'strong' && (
-              <Icon
-                name="flame"
-                className="absolute bottom-[-3px] left-[14px] w-[14px] h-[14px] z-20 text-error-500 ring-offset-1
-                                        rounded-full ring-[1px] bg-error-100 ring-white"
-              />
+            {lead?.state !== 'not_contacted_yet' && (
+              <span className="absolute bottom-[-3px] left-[14px] z-20 flex items-center justify-center bg-white size-4 rounded-full ring-white">
+                <Icon
+                  className="w-3 h-3" // or "size-3" if you have that utility
+                  name={leadStateMap[lead.state as keyof typeof leadStateMap].icon as IconName}
+                />
+              </span>
             )}
           </div>
         ) : (
@@ -92,12 +98,13 @@ export const LeadItem = ({ lead, isSeen, handleOpenLead, handleStageClick }: Lea
                 handleOpenLead({ id: lead.id, stage: lead.stage });
               }}
             />
-            {lead?.icp_fit === 'strong' && (
-              <Icon
-                name="flame"
-                className="absolute bottom-[-3px] left-[14px] w-[14px] h-[14px] z-20 text-error-500 ring-offset-1
-                                        rounded-full ring-[1px] bg-error-100 ring-white"
-              />
+            {lead?.state !== 'not_contacted_yet' && (
+              <span className="absolute bottom-[-3px] left-[14px] z-20 flex items-center justify-center bg-white size-4 rounded-full  ring-white">
+                <Icon
+                  className="w-3 h-3" // or "size-3" if you have that utility
+                  name={leadStateMap[lead.state as keyof typeof leadStateMap].icon as IconName}
+                />
+              </span>
             )}
           </div>
         )}
