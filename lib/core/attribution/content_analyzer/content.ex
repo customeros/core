@@ -1,4 +1,13 @@
 defmodule Core.Attribution.ContentAnalyzer.Content do
+  @moduledoc """
+  Handles content analysis for attribution tracking.
+
+  This module is responsible for:
+  - Analyzing content engagement patterns
+  - Tracking content interaction metrics
+  - Evaluating content effectiveness
+  - Supporting attribution modeling for content
+  """
   use Ecto.Schema
   import Ecto.Changeset
 

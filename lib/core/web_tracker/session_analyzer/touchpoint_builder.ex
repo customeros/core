@@ -1,18 +1,28 @@
 defmodule Core.WebTracker.SessionAnalyzer.TouchpointBuilder do
+  @moduledoc """
+  Responsible for building and analyzing user touchpoints from web tracking session data.
+
+  This module processes web session events to construct touchpoints, which represent
+  meaningful user interactions with the website. It handles:
+  - Session event aggregation and organization
+  - Pageview tracking and analysis
+  - Event data cleaning and structuring
+  - Touchpoint evaluation and metrics calculation
+  """
+
   require Logger
 
   import Ecto.Query
 
   alias Core.Repo
-  alias Core.WebTracker.Events
   alias Core.WebTracker.Sessions
   alias Core.WebTracker.Events.Event
 
-  # @err_not_found {:error, "touchpoint events not found"}
+  @err_not_found {:error, "touchpoint events not found"}
 
   def build_touchpoints(session_id) do
-    with {:ok, session} <- Sessions.get_session_by_id(session_id),
-         {:ok, events} <- get_all_session_events(session_id) do
+    with {:ok, _session} <- Sessions.get_session_by_id(session_id),
+         {:ok, _events} <- get_all_session_events(session_id) do
       :ok
     else
       _ -> :error

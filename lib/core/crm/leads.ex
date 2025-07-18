@@ -803,4 +803,37 @@ defmodule Core.Crm.Leads do
       _ -> false
     end)
   end
+
+  @spec update_lead_field(String.t(), map(), String.t()) ::
+          {:ok, Lead.t()} | {:error, :not_found | String.t()}
+  def update_lead_field(lead_id, attrs, field_name) do
+    case Repo.get(Lead, lead_id) do
+      nil ->
+        {:error, :not_found}
+
+      lead ->
+        lead
+        |> Lead.changeset(attrs)
+        |> Repo.update()
+        |> case do
+          {:ok, updated_lead} ->
+            Logger.info("Updated lead #{field_name}", %{
+              lead_id: lead_id,
+              changes: attrs
+            })
+
+            LeadNotifier.notify_lead_updated(updated_lead)
+            {:ok, updated_lead}
+
+          {:error, changeset} ->
+            Tracing.error(
+              changeset.errors,
+              "Failed to update lead #{field_name}",
+              lead_id: lead_id
+            )
+
+            {:error, "Failed to update #{field_name}"}
+        end
+    end
+  end
 end

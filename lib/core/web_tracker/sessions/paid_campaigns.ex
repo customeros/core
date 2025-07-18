@@ -1,4 +1,15 @@
 defmodule Core.WebTracker.Sessions.PaidCampaigns do
+  @moduledoc """
+  Manages paid campaign tracking and persistence.
+
+  This module handles the storage and retrieval of paid campaign data, including:
+  - Campaign lookup by unique hash
+  - Upsert operations for campaign data
+  - Tracking of campaign last seen timestamps
+
+  Used to maintain records of paid marketing campaigns and their interactions.
+  """
+
   alias Core.Repo
   alias Core.WebTracker.Sessions.PaidCampaign
 

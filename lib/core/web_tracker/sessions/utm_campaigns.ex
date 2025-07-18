@@ -1,4 +1,13 @@
 defmodule Core.WebTracker.Sessions.UtmCampaigns do
+  @moduledoc """
+  Handles UTM campaign parameter tracking and analysis for web sessions.
+
+  This module is responsible for:
+  - Parsing and validating UTM parameters
+  - Tracking campaign sources, mediums, and terms
+  - Standardizing UTM parameter formats
+  - Supporting campaign attribution analysis
+  """
   alias Core.Repo
   alias Core.WebTracker.Sessions.UtmCampaign
 

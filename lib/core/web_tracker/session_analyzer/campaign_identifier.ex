@@ -1,4 +1,13 @@
 defmodule Core.WebTracker.SessionAnalyzer.CampaignIdentifier do
+  @moduledoc """
+  Analyzes web sessions to identify and classify marketing campaigns.
+
+  This module is responsible for:
+  - Parsing UTM parameters from session data
+  - Identifying campaign sources and mediums
+  - Classifying traffic sources into campaign categories
+  - Tracking campaign attribution for sessions
+  """
   require Logger
 
   alias Core.Repo

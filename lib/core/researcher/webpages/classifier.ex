@@ -66,6 +66,7 @@ defmodule Core.Researcher.Webpages.Classifier do
                     url: url,
                     raw_response: raw_response
                   )
+
                 _ ->
                   Tracing.error(reason, "AI classification validation failed",
                     url: url,
@@ -79,13 +80,15 @@ defmodule Core.Researcher.Webpages.Classifier do
         {:error, reason} ->
           case reason do
             {:invalid_response, _message, response_body} ->
-              Tracing.error(reason, "AI classification failed", 
-                url: url, 
+              Tracing.error(reason, "AI classification failed",
+                url: url,
                 response_body: response_body
               )
+
             _ ->
               Tracing.error(reason, "AI classification failed", url: url)
           end
+
           {:error, reason}
       end
     end

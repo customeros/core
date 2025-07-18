@@ -173,8 +173,11 @@ defmodule Core.Ai.Gemini.Ask do
          text <- Map.get(part, "text") do
       {:ok, String.trim(text)}
     else
-      nil -> {:error, {:invalid_response, "No text content found in response", body}}
-      _ -> {:error, {:invalid_response, "Invalid response format", body}}
+      nil ->
+        {:error, {:invalid_response, "No text content found in response", body}}
+
+      _ ->
+        {:error, {:invalid_response, "Invalid response format", body}}
     end
   end
 

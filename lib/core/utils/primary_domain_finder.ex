@@ -320,7 +320,7 @@ defmodule Core.Utils.PrimaryDomainFinder do
       OpenTelemetry.Tracer.set_attributes([{"param.url", url}])
 
       case Retry.with_delay(
-             fn -> 
+             fn ->
                case try_get_primary_domain(url) do
                  @err_invalid_ssl -> {:error, :ssl_error_no_retry}
                  result -> result
